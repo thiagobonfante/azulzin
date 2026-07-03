@@ -18,6 +18,11 @@ default: &default
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Host/port come from the environment so the same config works whether the DB
+  # is a local socket, a Docker service, or a managed instance. Defaults to a
+  # local server; production reads DATABASE_HOST/DATABASE_PORT (see deploy env).
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  port: <%= ENV.fetch("DATABASE_PORT", 5432) %>
 
 
 development:
