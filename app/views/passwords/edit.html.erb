@@ -1,21 +1,21 @@
-<div class="mx-auto md:w-2/3 w-full">
-  <% if alert = flash[:alert] %>
-    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= alert %></p>
-  <% end %>
+<div class="container mx-auto flex justify-center px-5 py-16">
+  <div class="card w-full max-w-md border border-base-300/70 bg-base-100 shadow-xl">
+    <div class="card-body gap-6">
+      <h1 class="font-display text-3xl font-extrabold tracking-tight"><%= t(".title") %></h1>
 
-  <h1 class="font-bold text-4xl"><%= t(".title") %></h1>
+      <%= form_with url: password_path(params[:token]), method: :put, class: "flex flex-col gap-4" do |form| %>
+        <div class="form-control">
+          <label for="password" class="mb-1 block text-sm font-medium"><%= User.human_attribute_name(:password) %></label>
+          <%= form.password_field :password, required: true, autofocus: true, autocomplete: "new-password", placeholder: t(".password_placeholder"), maxlength: 72, class: "input input-bordered w-full" %>
+        </div>
 
-  <%= form_with url: password_path(params[:token]), method: :put, class: "contents" do |form| %>
-    <div class="my-5">
-      <%= form.password_field :password, required: true, autocomplete: "new-password", placeholder: t(".password_placeholder"), maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-solid focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+        <div class="form-control">
+          <label for="password_confirmation" class="mb-1 block text-sm font-medium"><%= User.human_attribute_name(:password_confirmation) %></label>
+          <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: t(".password_confirmation_placeholder"), maxlength: 72, class: "input input-bordered w-full" %>
+        </div>
+
+        <%= form.submit t(".submit"), class: "btn btn-primary w-full" %>
+      <% end %>
     </div>
-
-    <div class="my-5">
-      <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: t(".password_confirmation_placeholder"), maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-solid focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
-    </div>
-
-    <div class="inline">
-      <%= form.submit t(".submit"), class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
-    </div>
-  <% end %>
+  </div>
 </div>

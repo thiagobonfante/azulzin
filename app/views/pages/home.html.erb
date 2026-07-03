@@ -1,4 +1,4 @@
-<% content_for :title, "azulzin — calm personal finance" %>
+<% content_for :title, t(".meta_title") %>
 
 <section class="relative overflow-hidden">
   <%# soft blue wash — decorative only %>
@@ -12,25 +12,24 @@
     <div class="max-w-xl">
       <span class="badge badge-outline badge-lg gap-2 border-primary/30 text-primary">
         <span class="h-2 w-2 rounded-full bg-primary"></span>
-        Personal finance, made calm
+        <%= t(".badge") %>
       </span>
 
       <h1 class="mt-6 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-        Your money,<br>
-        <span class="text-primary">finally calm.</span>
+        <%= t(".hero_title_1") %><br>
+        <span class="text-primary"><%= t(".hero_title_2") %></span>
       </h1>
 
       <p class="mt-6 text-lg leading-relaxed text-base-content/70">
-        azulzin brings everything you earn and spend into one simple, gentle view —
-        so you always know where you stand, without the spreadsheets.
+        <%= t(".hero_subtitle") %>
       </p>
 
       <div class="mt-8 flex flex-wrap items-center gap-3">
-        <a href="#" class="btn btn-primary btn-lg">Get started — it's free</a>
-        <a href="#features" class="btn btn-ghost btn-lg">See how it works</a>
+        <%= link_to t(".cta_primary"), new_registration_path, class: "btn btn-primary btn-lg" %>
+        <a href="#features" class="btn btn-ghost btn-lg"><%= t(".cta_secondary") %></a>
       </div>
 
-      <p class="mt-6 text-sm text-base-content/55">No jargon. No judgement. Just clarity.</p>
+      <p class="mt-6 text-sm text-base-content/55"><%= t(".hero_footnote") %></p>
     </div>
 
     <%# ── Signature: the balance card ─────────────────────────────── %>
@@ -39,7 +38,7 @@
         <div class="card-body gap-6">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-sm font-medium text-base-content/60">Total balance</p>
+              <p class="text-sm font-medium text-base-content/60"><%= t(".card_total_balance") %></p>
               <p class="mt-1 font-display text-4xl font-extrabold tabular-nums tracking-tight">
                 R$&nbsp;12.480<span class="text-base-content/50">,00</span>
               </p>
@@ -59,23 +58,23 @@
               <div class="w-full rounded-t-md bg-primary/45" style="height:64%"></div>
             </div>
             <div class="mt-2 flex justify-between text-xs text-base-content/40">
-              <span>Mon</span><span>Sun</span>
+              <span><%= t(".day_start") %></span><span><%= t(".day_end") %></span>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div class="rounded-box bg-success/10 px-4 py-3">
-              <p class="text-xs font-medium text-success">In this month</p>
+              <p class="text-xs font-medium text-success"><%= t(".card_in") %></p>
               <p class="mt-0.5 font-display text-lg font-bold tabular-nums">R$&nbsp;6.200</p>
             </div>
             <div class="rounded-box bg-error/10 px-4 py-3">
-              <p class="text-xs font-medium text-error">Out this month</p>
+              <p class="text-xs font-medium text-error"><%= t(".card_out") %></p>
               <p class="mt-0.5 font-display text-lg font-bold tabular-nums">R$&nbsp;3.940</p>
             </div>
           </div>
         </div>
       </div>
-      <span class="absolute -right-2 -top-2 badge badge-neutral badge-sm">Preview</span>
+      <span class="absolute -right-2 -top-2 badge badge-neutral badge-sm"><%= t(".card_preview") %></span>
     </div>
   </div>
 </section>
@@ -90,8 +89,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9V6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 19.5h-15A2.25 2.25 0 012.25 17.25V9z"/>
           </svg>
         </span>
-        <h3 class="card-title font-display text-lg">Track every cent</h3>
-        <p class="text-base-content/65">Log income and expenses in seconds, and watch your balance stay up to date.</p>
+        <h3 class="card-title font-display text-lg"><%= t(".feature_1_title") %></h3>
+        <p class="text-base-content/65"><%= t(".feature_1_body") %></p>
       </div>
     </div>
 
@@ -103,8 +102,8 @@
             <circle cx="12" cy="12" r="3.25"/>
           </svg>
         </span>
-        <h3 class="card-title font-display text-lg">Budgets that breathe</h3>
-        <p class="text-base-content/65">Set gentle limits per category and always see how much room you have left.</p>
+        <h3 class="card-title font-display text-lg"><%= t(".feature_2_title") %></h3>
+        <p class="text-base-content/65"><%= t(".feature_2_body") %></p>
       </div>
     </div>
 
@@ -115,8 +114,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v16.5A1.5 1.5 0 004.5 21H21M7.5 15l3-3 3 2.25L18 9"/>
           </svg>
         </span>
-        <h3 class="card-title font-display text-lg">See where it goes</h3>
-        <p class="text-base-content/65">Clear, uncluttered summaries turn your spending into something you can actually read.</p>
+        <h3 class="card-title font-display text-lg"><%= t(".feature_3_title") %></h3>
+        <p class="text-base-content/65"><%= t(".feature_3_body") %></p>
       </div>
     </div>
   </div>

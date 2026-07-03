@@ -1,17 +1,20 @@
-<div class="mx-auto md:w-2/3 w-full">
-  <% if alert = flash[:alert] %>
-    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= alert %></p>
-  <% end %>
+<div class="container mx-auto flex justify-center px-5 py-16">
+  <div class="card w-full max-w-md border border-base-300/70 bg-base-100 shadow-xl">
+    <div class="card-body gap-6">
+      <h1 class="font-display text-3xl font-extrabold tracking-tight"><%= t(".title") %></h1>
 
-  <h1 class="font-bold text-4xl"><%= t(".title") %></h1>
+      <%= form_with url: passwords_path, class: "flex flex-col gap-4" do |form| %>
+        <div class="form-control">
+          <label for="email_address" class="mb-1 block text-sm font-medium"><%= User.human_attribute_name(:email_address) %></label>
+          <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t(".email_placeholder"), value: params[:email_address], class: "input input-bordered w-full" %>
+        </div>
 
-  <%= form_with url: passwords_path, class: "contents" do |form| %>
-    <div class="my-5">
-      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t(".email_placeholder"), value: params[:email_address], class: "block shadow-sm rounded-md border border-gray-400 focus:outline-solid focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+        <%= form.submit t(".submit"), class: "btn btn-primary w-full" %>
+      <% end %>
+
+      <div class="text-center text-sm">
+        <%= link_to t("layout.nav.sign_in"), new_session_path, class: "link link-hover opacity-70" %>
+      </div>
     </div>
-
-    <div class="inline">
-      <%= form.submit t(".submit"), class: "w-full sm:w-auto text-center rounded-lg px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
-    </div>
-  <% end %>
+  </div>
 </div>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="<%= I18n.locale %>">
   <head>
-    <title><%= content_for(:title) || "azulzin — calm personal finance" %></title>
+    <title><%= content_for(:title) || t("layout.title") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="azulzin">
@@ -37,20 +37,36 @@
           <span class="font-display text-xl font-extrabold tracking-tight lowercase">azulzin</span>
         <% end %>
         <nav class="flex items-center gap-1 sm:gap-2">
-          <a href="#" class="btn btn-ghost btn-sm hidden sm:inline-flex">Sign in</a>
-          <a href="#" class="btn btn-primary btn-sm">Get started</a>
+          <% if authenticated? %>
+            <%= button_to t("layout.nav.sign_out"), session_path, method: :delete, class: "btn btn-ghost btn-sm" %>
+          <% else %>
+            <%= link_to t("layout.nav.sign_in"), new_session_path, class: "btn btn-ghost btn-sm hidden sm:inline-flex" %>
+            <%= link_to t("layout.nav.get_started"), new_registration_path, class: "btn btn-primary btn-sm" %>
+          <% end %>
         </nav>
       </div>
     </header>
 
     <main class="flex-1">
+      <% if flash.any? %>
+        <div class="container mx-auto px-5 pt-4">
+          <%= render "shared/flash" %>
+        </div>
+      <% end %>
       <%= yield %>
     </main>
 
     <footer class="border-t border-base-300/60">
-      <div class="container mx-auto flex flex-col items-center justify-between gap-2 px-5 py-6 text-sm text-base-content/60 sm:flex-row">
+      <div class="container mx-auto flex flex-col items-center justify-between gap-3 px-5 py-6 text-sm text-base-content/60 sm:flex-row">
         <span class="font-display font-semibold lowercase">azulzin</span>
-        <span>Calm, simple control over your money.</span>
+        <span><%= t("layout.footer.tagline") %></span>
+        <div class="flex items-center gap-1">
+          <% Rails.application.config.x.supported_locales.each do |code, label| %>
+            <%= button_to label, locale_path, method: :patch, params: { locale: code },
+                  data: { turbo: false },
+                  class: "btn btn-ghost btn-xs #{'btn-active' if I18n.locale.to_s == code}" %>
+          <% end %>
+        </div>
       </div>
     </footer>
   </body>

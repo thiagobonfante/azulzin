@@ -1,10 +1,18 @@
 # Shared English base. :"en-US" inherits these app strings via the dash-split fallback.
 # pt-BR is the default UI locale (ADR 0006 / docs/i18n.md); :en is never shown as a UI option.
 en:
-  hello: "Hello world"
+  layout:
+    title: "azulzin — calm personal finance"
+    nav:
+      sign_in: "Sign in"
+      get_started: "Get started"
+      sign_out: "Sign out"
+    footer:
+      tagline: "Calm, simple control over your money."
   shared:
     rate_limited: "Too many attempts. Please try again in a few minutes."
     continue_with_google: "Continue with Google"
+    or: "or"
   omniauth:
     signed_in: "Signed in with Google."
     could_not_sign_in: "We couldn't sign you in. Add an email to your account and try again."
@@ -15,6 +23,28 @@ en:
         email_address: "Email address"
         password: "Password"
         password_confirmation: "Password confirmation"
+  pages:
+    home:
+      meta_title: "azulzin — calm personal finance"
+      badge: "Personal finance, made calm"
+      hero_title_1: "Your money,"
+      hero_title_2: "finally calm."
+      hero_subtitle: "azulzin brings everything you earn and spend into one simple, gentle view — so you always know where you stand, without the spreadsheets."
+      cta_primary: "Get started — it's free"
+      cta_secondary: "See how it works"
+      hero_footnote: "No jargon. No judgement. Just clarity."
+      card_total_balance: "Total balance"
+      card_in: "In this month"
+      card_out: "Out this month"
+      card_preview: "Preview"
+      day_start: "Mon"
+      day_end: "Sun"
+      feature_1_title: "Track every cent"
+      feature_1_body: "Log income and expenses in seconds, and watch your balance stay up to date."
+      feature_2_title: "Budgets that breathe"
+      feature_2_body: "Set gentle limits per category and always see how much room you have left."
+      feature_3_title: "See where it goes"
+      feature_3_body: "Clear, uncluttered summaries turn your spending into something you can actually read."
   registrations:
     new:
       title: "Create your account"
@@ -25,6 +55,11 @@ en:
       check_email: "Check your email to confirm your account, then sign in."
   sessions:
     new:
+      title: "Sign in"
+      email_placeholder: "Enter your email address"
+      password_placeholder: "Enter your password"
+      submit: "Sign in"
+      forgot_password: "Forgot password?"
       resend_summary: "Didn't get the confirmation email?"
       resend_submit: "Resend"
       resend_placeholder: "you@example.com"

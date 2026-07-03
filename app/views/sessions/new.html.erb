@@ -1,44 +1,38 @@
-<div class="mx-auto md:w-2/3 w-full">
-  <% if alert = flash[:alert] %>
-    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= alert %></p>
-  <% end %>
+<div class="container mx-auto flex justify-center px-5 py-16">
+  <div class="card w-full max-w-md border border-base-300/70 bg-base-100 shadow-xl">
+    <div class="card-body gap-6">
+      <h1 class="font-display text-3xl font-extrabold tracking-tight"><%= t(".title") %></h1>
 
-  <% if notice = flash[:notice] %>
-    <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-lg inline-block" id="notice"><%= notice %></p>
-  <% end %>
+      <%= form_with url: session_url, class: "flex flex-col gap-4" do |form| %>
+        <div class="form-control">
+          <label for="email_address" class="mb-1 block text-sm font-medium"><%= User.human_attribute_name(:email_address) %></label>
+          <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t(".email_placeholder"), value: params[:email_address], class: "input input-bordered w-full" %>
+        </div>
 
-  <h1 class="font-bold text-4xl">Sign in</h1>
+        <div class="form-control">
+          <label for="password" class="mb-1 block text-sm font-medium"><%= User.human_attribute_name(:password) %></label>
+          <%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: t(".password_placeholder"), maxlength: 72, class: "input input-bordered w-full" %>
+        </div>
 
-  <%= form_with url: session_url, class: "contents" do |form| %>
-    <div class="my-5">
-      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address], class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+        <%= form.submit t(".submit"), class: "btn btn-primary w-full" %>
+
+        <div class="text-center text-sm">
+          <%= link_to t(".forgot_password"), new_password_path, class: "link link-hover opacity-70" %>
+        </div>
+      <% end %>
+
+      <div class="divider my-0 text-sm opacity-60"><%= t("shared.or") %></div>
+
+      <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
+            data: { turbo: false }, class: "btn btn-outline w-full" %>
+
+      <details class="text-sm">
+        <summary class="cursor-pointer opacity-70"><%= t(".resend_summary") %></summary>
+        <%= form_with url: resend_email_verification_path, class: "mt-3 flex gap-2" do |form| %>
+          <%= form.email_field :email_address, required: true, autocomplete: "username", placeholder: t(".resend_placeholder"), class: "input input-bordered input-sm flex-1" %>
+          <%= form.submit t(".resend_submit"), class: "btn btn-sm" %>
+        <% end %>
+      </details>
     </div>
-
-    <div class="my-5">
-      <%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: "Enter your password", maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
-    </div>
-
-    <div class="col-span-6 sm:flex sm:items-center sm:gap-4">
-      <div class="inline">
-        <%= form.submit "Sign in", class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
-      </div>
-
-      <div class="mt-4 text-sm text-gray-500 sm:mt-0">
-        <%= link_to "Forgot password?", new_password_path, class: "text-gray-700 underline hover:no-underline" %>
-      </div>
-    </div>
-  <% end %>
-
-  <div class="my-5">
-    <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
-          data: { turbo: false }, class: "btn btn-outline w-full" %>
   </div>
-
-  <details class="mt-6 text-sm">
-    <summary class="cursor-pointer text-gray-500"><%= t(".resend_summary") %></summary>
-    <%= form_with url: resend_email_verification_path, class: "mt-3 flex gap-2" do |form| %>
-      <%= form.email_field :email_address, required: true, autocomplete: "username", placeholder: t(".resend_placeholder"), class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 flex-1" %>
-      <%= form.submit t(".resend_submit"), class: "rounded-md px-3.5 py-2.5 bg-gray-600 hover:bg-gray-500 text-white font-medium cursor-pointer" %>
-    <% end %>
-  </details>
 </div>

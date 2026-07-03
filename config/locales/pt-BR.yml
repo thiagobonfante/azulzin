@@ -2,10 +2,18 @@
 # App strings live here; en.yml holds the shared English base that :"en-US" inherits.
 # rails-i18n supplies date/number/currency formats and pluralization for pt-BR.
 pt-BR:
-  hello: "Olá mundo"
+  layout:
+    title: "azulzin — finanças pessoais com tranquilidade"
+    nav:
+      sign_in: "Entrar"
+      get_started: "Começar"
+      sign_out: "Sair"
+    footer:
+      tagline: "Controle tranquilo e simples do seu dinheiro."
   shared:
     rate_limited: "Muitas tentativas. Tente novamente daqui a alguns minutos."
     continue_with_google: "Continuar com o Google"
+    or: "ou"
   omniauth:
     signed_in: "Você entrou com o Google."
     could_not_sign_in: "Não foi possível entrar. Adicione um e-mail à sua conta e tente novamente."
@@ -16,6 +24,28 @@ pt-BR:
         email_address: "E-mail"
         password: "Senha"
         password_confirmation: "Confirmação de senha"
+  pages:
+    home:
+      meta_title: "azulzin — finanças pessoais com tranquilidade"
+      badge: "Finanças pessoais, com tranquilidade"
+      hero_title_1: "Seu dinheiro,"
+      hero_title_2: "finalmente em paz."
+      hero_subtitle: "O azulzin reúne tudo o que você ganha e gasta em uma visão simples e leve — para você sempre saber como está, sem planilhas."
+      cta_primary: "Comece agora — é grátis"
+      cta_secondary: "Veja como funciona"
+      hero_footnote: "Sem jargão. Sem julgamento. Só clareza."
+      card_total_balance: "Saldo total"
+      card_in: "Entradas no mês"
+      card_out: "Saídas no mês"
+      card_preview: "Prévia"
+      day_start: "Seg"
+      day_end: "Dom"
+      feature_1_title: "Acompanhe cada centavo"
+      feature_1_body: "Registre receitas e despesas em segundos e veja seu saldo sempre atualizado."
+      feature_2_title: "Orçamentos que respiram"
+      feature_2_body: "Defina limites tranquilos por categoria e veja sempre quanto ainda resta para gastar."
+      feature_3_title: "Veja para onde vai"
+      feature_3_body: "Resumos claros e sem bagunça transformam seus gastos em algo fácil de entender."
   registrations:
     new:
       title: "Crie sua conta"
@@ -26,6 +56,11 @@ pt-BR:
       check_email: "Enviamos um e-mail para você confirmar sua conta. Confirme e depois faça login."
   sessions:
     new:
+      title: "Entrar"
+      email_placeholder: "Digite seu e-mail"
+      password_placeholder: "Digite sua senha"
+      submit: "Entrar"
+      forgot_password: "Esqueceu a senha?"
       resend_summary: "Não recebeu o e-mail de confirmação?"
       resend_submit: "Reenviar"
       resend_placeholder: "voce@exemplo.com"

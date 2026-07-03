@@ -1,0 +1,35 @@
+# i18n-tasks config — https://github.com/glebm/i18n-tasks
+# Gates CI (test/i18n_test.rb) so pt-BR and en stay in sync with no missing/unused keys.
+
+# English is the base the pt-BR default falls back to (config.i18n.fallbacks = [:en]).
+base_locale: en
+
+# Only the two locales we maintain standalone files for. :"en-US" is intentionally
+# omitted: it has no config/locales/en-US.yml — it inherits every English app string
+# from :en via Rails' dash-split fallback (see docs/i18n.md). Listing it would make
+# i18n-tasks report every app key as "missing in en-US".
+locales: [en, pt-BR]
+
+data:
+  read:
+    - config/locales/%{locale}.yml
+  yaml:
+    write:
+      line_width: -1
+
+search:
+  paths:
+    - app/
+  exclude:
+    - app/assets
+  # AST matchers so i18n-tasks understands two implicit lookups it cannot see textually:
+  #   RailsModelMatcher        -> User.human_attribute_name(:email_address) (auth form labels)
+  #   DefaultI18nSubjectMatcher-> default_i18n_subject in UserMailer/PasswordsMailer
+  ast_matchers:
+    - 'I18n::Tasks::Scanners::AstMatchers::RailsModelMatcher'
+    - 'I18n::Tasks::Scanners::AstMatchers::DefaultI18nSubjectMatcher'
+
+# Keys resolved dynamically by Rails form/label/error helpers (e.g. form.label
+# :password_confirmation) that the scanner still can't match to a literal key.
+ignore_unused:
+  - 'activerecord.attributes.*'

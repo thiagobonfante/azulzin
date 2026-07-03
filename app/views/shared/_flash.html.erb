@@ -1,0 +1,7 @@
+<% flash.each do |type, message| %>
+  <% next if message.blank? %>
+  <% klass = { "notice" => "alert-success", "success" => "alert-success", "alert" => "alert-error", "error" => "alert-error" }[type.to_s] || "alert-info" %>
+  <div class="alert <%= klass %> mb-4" role="alert" id="<%= type %>">
+    <span><%= message %></span>
+  </div>
+<% end %>
