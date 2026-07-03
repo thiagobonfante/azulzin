@@ -16,6 +16,12 @@ module Azulzin
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Internationalization — pt-BR default, en-US supported (ADR 0006 / docs/i18n.md).
+    # :en is loaded only as the fallback base; never offered as a UI choice.
+    config.i18n.default_locale    = :"pt-BR"
+    config.i18n.available_locales = [ :"pt-BR", :"en-US", :en ]
+    config.i18n.fallbacks         = [ :en ]   # NEVER `true` (would fall back to pt-BR)
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

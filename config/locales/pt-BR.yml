@@ -1,0 +1,5 @@
+# Brazilian Portuguese — the default locale (ADR 0006 / docs/i18n.md).
+# App strings live here; en.yml holds the shared English base that :"en-US" inherits.
+# rails-i18n supplies date/number/currency formats and pluralization for pt-BR.
+pt-BR:
+  hello: "Olá mundo"

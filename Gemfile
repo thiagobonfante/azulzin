@@ -22,6 +22,16 @@ gem "jbuilder"
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 
+# OmniAuth social login (Phases 4-5)
+gem "omniauth", "~> 2.1"
+gem "omniauth-rails_csrf_protection", "~> 2.0"   # REQUIRED — closes CVE-2015-9284
+gem "omniauth-google-oauth2", "~> 1.1"
+gem "omniauth-facebook", "~> 10.0"
+
+# Internationalization: pt-BR default, en-US supported (ADR 0006 / docs/i18n.md)
+gem "rails-i18n", "~> 8.1"            # locale data: pluralization, date/number/currency
+gem "http_accept_language", "~> 2.1" # guest browser-language negotiation (whitelisted)
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
@@ -54,11 +64,17 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # i18n key linting: missing/unused translation keys (ADR 0006)
+  gem "i18n-tasks", "~> 1.1"
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # Preview outgoing mail in the browser instead of sending it
+  gem "letter_opener"
 end
 
 group :test do
