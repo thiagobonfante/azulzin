@@ -66,6 +66,8 @@ Route helpers: `new_registration_path`, `registration_path`, `new_session_path`,
 
 ## Config & credentials
 
+**Setup runbooks (external services):** [Google OAuth](google-oauth-setup.md) · [Resend email + DNS](resend-email-setup.md) · [Facebook/Meta OAuth](facebook-oauth-setup.md) (deferred).
+
 **`bin/rails credentials:edit`:**
 ```yaml
 google:   { client_id: ..., client_secret: ... }
