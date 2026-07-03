@@ -5,4 +5,12 @@ class PagesController < ApplicationController
 
   def home
   end
+
+  # Host-aware robots.txt: the marketing apex is crawlable; the product app
+  # (app.azulzin.com.br) is kept out of search indexes. Rendered here rather than
+  # from public/ so it can vary by host.
+  def robots
+    rules = request.host == Rails.application.config.x.app_host ? "Disallow: /" : "Disallow:"
+    render plain: "User-agent: *\n#{rules}\n", content_type: "text/plain"
+  end
 end

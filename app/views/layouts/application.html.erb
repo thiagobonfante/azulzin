@@ -40,8 +40,8 @@
           <% if authenticated? %>
             <%= button_to t("layout.nav.sign_out"), session_path, method: :delete, class: "btn btn-ghost btn-sm" %>
           <% else %>
-            <%= link_to t("layout.nav.sign_in"), new_session_path, class: "btn btn-ghost btn-sm hidden sm:inline-flex" %>
-            <%= link_to t("layout.nav.get_started"), new_registration_path, class: "btn btn-primary btn-sm" %>
+            <%= link_to t("layout.nav.sign_in"), app_url(new_session_path), class: "btn btn-ghost btn-sm hidden sm:inline-flex" %>
+            <%= link_to t("layout.nav.get_started"), app_url(new_registration_path), class: "btn btn-primary btn-sm" %>
           <% end %>
         </nav>
       </div>

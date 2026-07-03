@@ -20,7 +20,7 @@ Go to <https://console.cloud.google.com> and select or create a project (e.g. **
 - **Authorized redirect URIs** — add both, *byte-exact* (or Google returns `redirect_uri_mismatch`):
   ```
   http://localhost:3000/auth/google_oauth2/callback
-  https://azulzin.com.br/auth/google_oauth2/callback
+  https://app.azulzin.com.br/auth/google_oauth2/callback
   ```
   (Authorized JavaScript origins are not needed — this is a server-side flow.)
 - **Create** → copy the **Client ID** (`…apps.googleusercontent.com`) and **Client secret** (`GOCSPX-…`).

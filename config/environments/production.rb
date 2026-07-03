@@ -58,7 +58,9 @@ Rails.application.configure do
   config.action_mailer.delivery_method       = :smtp
   config.action_mailer.perform_deliveries    = true
   config.action_mailer.raise_delivery_errors = true   # SMTP failures surface as failed Solid Queue jobs
-  config.action_mailer.default_url_options   = { host: "azulzin.com.br", protocol: "https" }
+  # Auth emails (verification + password reset) link into the product app, which
+  # lives on the app subdomain — not the marketing apex. See config/routes.rb.
+  config.action_mailer.default_url_options   = { host: "app.azulzin.com.br", protocol: "https" }
   config.action_mailer.smtp_settings = {
     address:   "smtp.resend.com",
     port:      465,
@@ -78,12 +80,15 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  #
-  # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Public marketing site (apex) vs. the product app (subdomain). Route constraints
+  # and the marketing CTAs key off these to keep the two on separate hosts. See
+  # config/routes.rb and app/helpers/application_helper.rb#app_url.
+  config.x.marketing_host = "azulzin.com.br"
+  config.x.app_host       = "app.azulzin.com.br"
+
+  # Enable DNS rebinding protection: only serve the hosts we own.
+  config.hosts = [ "azulzin.com.br", "www.azulzin.com.br", "app.azulzin.com.br" ]
+
+  # Skip DNS rebinding protection for the health check (the Cloudflare tunnel probes it).
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
