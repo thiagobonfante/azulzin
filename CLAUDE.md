@@ -64,3 +64,19 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+## Project Rules — azulzin
+
+### Internationalization (i18n) — the app is bilingual
+
+**azulzin is a Brazil-first product: `pt-BR` is the default locale and `en-US` is fully supported. Every user-facing string ships as a translation key — no hardcoded UI text, ever.**
+
+- **Locales:** default `:"pt-BR"`; also support `:"en-US"`. `:en` is loaded only as the fallback base and is never offered as a UI choice. Always whitelist locale input against the supported set (`config.x.supported_locales`).
+- **All user-facing text goes through `I18n`** — views/controllers use lazy lookup `t(".key")`; model names, attributes, and validation errors live under the `activerecord.*` namespaces; mailer subjects/bodies are keyed too. Self-check on every diff: grep views/controllers/mailers for quoted human-readable strings — there should be none.
+- **Money, dates, and numbers are localized, never hardcoded.** Format currency with `number_to_currency` (the locale renders `R$ 1.234,56` vs `$1,234.56`); store money as integer cents and format with `BigDecimal`, never floats. Never hardcode `R$`/`$` or a date format.
+- **Locale is per-request only.** Set it with `around_action` + `I18n.with_locale` — a bare `I18n.locale =` leaks across requests on Puma. Resolve in order: `params` → `session` → `current_user.locale` → `Accept-Language`, always whitelisted, defaulting to `pt-BR`.
+- **Emails render in the recipient's language.** Mailers set the locale from the stored `user.locale` *inside* the mailer (via `around_action`), not from the caller's ambient locale.
+- **Keep locale files in sync.** Adding a key to one locale means adding it to the other; `i18n-tasks` (missing/unused-key lint) gates CI.
+- Details: [docs/i18n.md](docs/i18n.md) · decision: [ADR 0006](docs/decisions/0006-internationalization.md).
