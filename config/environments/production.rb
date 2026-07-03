@@ -24,11 +24,11 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  # config.assume_ssl = true
+  # Assume all access to the app is happening through a SSL-terminating reverse proxy (Kamal/Thruster).
+  config.assume_ssl = true
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  # config.force_ssl = true
+  config.force_ssl = true
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -53,25 +53,24 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Ignore bad email addresses and do not raise email delivery errors.
-  # Set this to true and configure the email server for immediate delivery to raise delivery errors.
-  # config.action_mailer.raise_delivery_errors = false
+  # Transactional email via Resend SMTP (verification + password reset). Secrets live in
+  # encrypted credentials (resend.api_key); RAILS_MASTER_KEY must reach the deploy to decrypt.
+  config.action_mailer.delivery_method       = :smtp
+  config.action_mailer.perform_deliveries    = true
+  config.action_mailer.raise_delivery_errors = true   # SMTP failures surface as failed Solid Queue jobs
+  config.action_mailer.default_url_options   = { host: "azulzin.com.br", protocol: "https" }
+  config.action_mailer.smtp_settings = {
+    address:   "smtp.resend.com",
+    port:      465,
+    tls:       true,
+    user_name: "resend",
+    password:  Rails.application.credentials.dig(:resend, :api_key)
+  }
 
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "example.com" }
-
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
-
-  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
-  # the I18n.default_locale when a translation cannot be found).
-  config.i18n.fallbacks = true
+  # Locale fallbacks: end every chain at :en (matches config/application.rb).
+  # NOT `true` — that would fall back to default_locale (pt-BR) and show Portuguese
+  # to English users. See ADR 0006 / docs/i18n.md.
+  config.i18n.fallbacks = [ :en ]
 
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
