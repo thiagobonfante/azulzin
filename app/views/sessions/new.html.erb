@@ -28,4 +28,12 @@
       </div>
     </div>
   <% end %>
+
+  <details class="mt-6 text-sm">
+    <summary class="cursor-pointer text-gray-500"><%= t(".resend_summary") %></summary>
+    <%= form_with url: resend_email_verification_path, class: "mt-3 flex gap-2" do |form| %>
+      <%= form.email_field :email_address, required: true, autocomplete: "username", placeholder: t(".resend_placeholder"), class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 flex-1" %>
+      <%= form.submit t(".resend_submit"), class: "rounded-md px-3.5 py-2.5 bg-gray-600 hover:bg-gray-500 text-white font-medium cursor-pointer" %>
+    <% end %>
+  </details>
 </div>

@@ -3,3 +3,41 @@
 # rails-i18n supplies date/number/currency formats and pluralization for pt-BR.
 pt-BR:
   hello: "Olá mundo"
+  shared:
+    rate_limited: "Muitas tentativas. Tente novamente daqui a alguns minutos."
+  activerecord:
+    attributes:
+      user:
+        email_address: "E-mail"
+        password: "Senha"
+        password_confirmation: "Confirmação de senha"
+  registrations:
+    new:
+      title: "Crie sua conta"
+      submit: "Criar conta"
+      sign_in_prompt: "Já tem uma conta?"
+      sign_in_link: "Entrar"
+    create:
+      check_email: "Enviamos um e-mail para você confirmar sua conta. Confirme e depois faça login."
+  sessions:
+    new:
+      resend_summary: "Não recebeu o e-mail de confirmação?"
+      resend_submit: "Reenviar"
+      resend_placeholder: "voce@exemplo.com"
+    create:
+      unverified: "Confirme seu e-mail antes de entrar — verifique sua caixa de entrada ou reenvie o link abaixo."
+      invalid: "E-mail ou senha incorretos. Tente novamente."
+  email_verifications:
+    show:
+      confirmed: "E-mail confirmado — boas-vindas ao azulzin!"
+      invalid: "Este link de confirmação é inválido ou expirou."
+    create:
+      sent: "Se esse endereço ainda precisar de confirmação, acabamos de enviar um novo link."
+  user_mailer:
+    email_verification:
+      subject: "Confirme seu e-mail no azulzin"
+      greeting: "Boas-vindas ao azulzin!"
+      instructions: "Confirme seu endereço de e-mail para ativar sua conta."
+      confirm: "Confirmar meu e-mail"
+      expiry: "Este link expira em 24 horas."
+      ignore: "Se você não criou uma conta, pode ignorar este e-mail com tranquilidade."

@@ -19,4 +19,10 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert cookies[:session_id].blank?
   end
+
+  test "an unconfirmed user cannot sign in with a password" do
+    post session_url, params: { email_address: "unconfirmed@example.com", password: "password123" }
+    assert_redirected_to new_session_url
+    assert cookies[:session_id].blank?
+  end
 end

@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   resource :session
+  resource :registration, only: %i[new create]
   resources :passwords, param: :token
+  get  "email_verification/:token", to: "email_verifications#show",   as: :email_verification
+  post "email_verification",        to: "email_verifications#create", as: :resend_email_verification
   resource :locale, only: :update            # PATCH /locale
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

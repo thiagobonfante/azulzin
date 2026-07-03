@@ -1,31 +1,42 @@
-# Files in the config/locales directory are used for internationalization and
-# are automatically loaded by Rails. If you want to use locales other than
-# English, add the necessary files in this directory.
-#
-# To use the locales, use `I18n.t`:
-#
-#     I18n.t "hello"
-#
-# In views, this is aliased to just `t`:
-#
-#     <%= t("hello") %>
-#
-# To use a different locale, set it with `I18n.locale`:
-#
-#     I18n.locale = :es
-#
-# This would use the information in config/locales/es.yml.
-#
-# To learn more about the API, please read the Rails Internationalization guide
-# at https://guides.rubyonrails.org/i18n.html.
-#
-# Be aware that YAML interprets the following case-insensitive strings as
-# booleans: `true`, `false`, `on`, `off`, `yes`, `no`. Therefore, these strings
-# must be quoted to be interpreted as strings. For example:
-#
-#     en:
-#       "yes": yup
-#       enabled: "ON"
-
+# Shared English base. :"en-US" inherits these app strings via the dash-split fallback.
+# pt-BR is the default UI locale (ADR 0006 / docs/i18n.md); :en is never shown as a UI option.
 en:
   hello: "Hello world"
+  shared:
+    rate_limited: "Too many attempts. Please try again in a few minutes."
+  activerecord:
+    attributes:
+      user:
+        email_address: "Email address"
+        password: "Password"
+        password_confirmation: "Password confirmation"
+  registrations:
+    new:
+      title: "Create your account"
+      submit: "Create account"
+      sign_in_prompt: "Already have an account?"
+      sign_in_link: "Sign in"
+    create:
+      check_email: "Check your email to confirm your account, then sign in."
+  sessions:
+    new:
+      resend_summary: "Didn't get the confirmation email?"
+      resend_submit: "Resend"
+      resend_placeholder: "you@example.com"
+    create:
+      unverified: "Please confirm your email first — check your inbox, or resend the link below."
+      invalid: "Try another email address or password."
+  email_verifications:
+    show:
+      confirmed: "Email confirmed — welcome to azulzin."
+      invalid: "That confirmation link is invalid or has expired."
+    create:
+      sent: "If that address still needs confirming, we've sent a new link."
+  user_mailer:
+    email_verification:
+      subject: "Confirm your email for azulzin"
+      greeting: "Welcome to azulzin!"
+      instructions: "Confirm your email address to activate your account."
+      confirm: "Confirm my email"
+      expiry: "This link expires in 24 hours."
+      ignore: "If you didn't create an account, you can safely ignore this email."
