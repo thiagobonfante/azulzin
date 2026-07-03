@@ -1,0 +1,15 @@
+confirmed:
+  email_address: confirmed@example.com
+  password_digest: <%= BCrypt::Password.create("password123", cost: BCrypt::Engine::MIN_COST) %>
+  confirmed_at: <%= Time.current.to_fs(:db) %>
+
+unconfirmed:
+  email_address: unconfirmed@example.com
+  password_digest: <%= BCrypt::Password.create("password123", cost: BCrypt::Engine::MIN_COST) %>
+  # locale omitted → defaults to "pt-BR"
+
+english:
+  email_address: english@example.com
+  password_digest: <%= BCrypt::Password.create("password123", cost: BCrypt::Engine::MIN_COST) %>
+  confirmed_at: <%= Time.current.to_fs(:db) %>
+  locale: en-US
