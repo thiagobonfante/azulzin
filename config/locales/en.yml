@@ -4,6 +4,11 @@ en:
   hello: "Hello world"
   shared:
     rate_limited: "Too many attempts. Please try again in a few minutes."
+    continue_with_google: "Continue with Google"
+  omniauth:
+    signed_in: "Signed in with Google."
+    could_not_sign_in: "We couldn't sign you in. Add an email to your account and try again."
+    failure: "Authentication failed. Please try again."
   activerecord:
     attributes:
       user:

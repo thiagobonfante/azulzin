@@ -36,6 +36,11 @@
     </div>
   <% end %>
 
+  <div class="my-5">
+    <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
+          data: { turbo: false }, class: "btn btn-outline w-full" %>
+  </div>
+
   <div class="mt-6 text-sm text-gray-500">
     <%= t(".sign_in_prompt") %>
     <%= link_to t(".sign_in_link"), new_session_path, class: "text-gray-700 underline hover:no-underline" %>

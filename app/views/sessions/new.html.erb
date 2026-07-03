@@ -29,6 +29,11 @@
     </div>
   <% end %>
 
+  <div class="my-5">
+    <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
+          data: { turbo: false }, class: "btn btn-outline w-full" %>
+  </div>
+
   <details class="mt-6 text-sm">
     <summary class="cursor-pointer text-gray-500"><%= t(".resend_summary") %></summary>
     <%= form_with url: resend_email_verification_path, class: "mt-3 flex gap-2" do |form| %>

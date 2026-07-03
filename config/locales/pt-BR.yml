@@ -5,6 +5,11 @@ pt-BR:
   hello: "Olá mundo"
   shared:
     rate_limited: "Muitas tentativas. Tente novamente daqui a alguns minutos."
+    continue_with_google: "Continuar com o Google"
+  omniauth:
+    signed_in: "Você entrou com o Google."
+    could_not_sign_in: "Não foi possível entrar. Adicione um e-mail à sua conta e tente novamente."
+    failure: "Falha na autenticação. Tente novamente."
   activerecord:
     attributes:
       user:

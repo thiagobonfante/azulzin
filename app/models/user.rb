@@ -23,4 +23,40 @@ class User < ApplicationRecord
 
   def verified? = confirmed_at.present?
   def verify!   = update!(confirmed_at: Time.current)
+
+  def self.from_omniauth(auth)
+    return if auth.nil?   # unconfigured provider slips past the route → refuse, don't 500
+
+    # 1) Known identity → its user (email-independent, primary lookup)
+    if (identity = OauthIdentity.find_by(provider: auth.provider, uid: auth.uid))
+      return identity.user
+    end
+
+    email    = auth.info.email&.strip&.downcase
+    verified = provider_email_verified?(auth)
+
+    transaction do
+      # 2) Link to an existing password account ONLY when the provider verified the email
+      user = (find_by(email_address: email) if verified && email.present?)
+      if user
+        user.update!(confirmed_at: Time.current) unless user.verified?   # backfill on verified link
+      else
+        # 3) Otherwise create a new account with a random (resettable) password
+        user = create!(
+          email_address: email,
+          password:      SecureRandom.base58(32),
+          confirmed_at:  (Time.current if verified)
+        )
+      end
+      user.oauth_identities.create!(provider: auth.provider, uid: auth.uid)
+      user
+    end
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+    nil   # duplicate email (unverified match) or a concurrent-login race → safe refusal
+  end
+
+  def self.provider_email_verified?(auth)
+    auth.provider == "google_oauth2" &&
+      auth.dig("extra", "raw_info", "email_verified").to_s == "true"
+  end
 end

@@ -5,6 +5,12 @@ Rails.application.routes.draw do
   get  "email_verification/:token", to: "email_verifications#show",   as: :email_verification
   post "email_verification",        to: "email_verifications#create", as: :resend_email_verification
   resource :locale, only: :update            # PATCH /locale
+
+  # OAuth: Google only for now (Phase 5 broadens the constraint to include facebook).
+  # The callback is a GET (Rails does not check CSRF on GET) — no skip_forgery_protection needed.
+  get "auth/:provider/callback", to: "omniauth_callbacks#create",
+      constraints: { provider: /google_oauth2/ }
+  get "auth/failure", to: "omniauth_callbacks#failure"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
