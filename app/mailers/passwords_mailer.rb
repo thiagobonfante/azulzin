@@ -1,6 +1,6 @@
 class PasswordsMailer < ApplicationMailer
-  def reset(user)
-    @user = user
-    mail subject: "Reset your password", to: user.email_address
+  def reset
+    @user = params[:user]
+    mail subject: default_i18n_subject, to: @user.email_address
   end
 end

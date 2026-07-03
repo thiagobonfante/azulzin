@@ -33,6 +33,22 @@ pt-BR:
       invalid: "Este link de confirmação é inválido ou expirou."
     create:
       sent: "Se esse endereço ainda precisar de confirmação, acabamos de enviar um novo link."
+  passwords:
+    new:
+      title: "Esqueceu sua senha?"
+      email_placeholder: "Digite seu e-mail"
+      submit: "Enviar instruções de redefinição"
+    edit:
+      title: "Defina uma nova senha"
+      password_placeholder: "Digite a nova senha"
+      password_confirmation_placeholder: "Repita a nova senha"
+      submit: "Salvar"
+    create:
+      notice: "Se houver uma conta com esse e-mail, enviamos as instruções para redefinir a senha."
+    update:
+      success: "Sua senha foi redefinida."
+      mismatch: "As senhas não coincidem."
+    invalid_token: "O link de redefinição de senha é inválido ou expirou."
   user_mailer:
     email_verification:
       subject: "Confirme seu e-mail no azulzin"
@@ -41,3 +57,9 @@ pt-BR:
       confirm: "Confirmar meu e-mail"
       expiry: "Este link expira em 24 horas."
       ignore: "Se você não criou uma conta, pode ignorar este e-mail com tranquilidade."
+  passwords_mailer:
+    reset:
+      subject: "Redefinição de senha no azulzin"
+      intro: "Você pode redefinir sua senha usando o link abaixo."
+      reset_link: "Redefinir minha senha"
+      expiry: "Este link expira em %{duration}."

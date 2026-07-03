@@ -32,6 +32,22 @@ en:
       invalid: "That confirmation link is invalid or has expired."
     create:
       sent: "If that address still needs confirming, we've sent a new link."
+  passwords:
+    new:
+      title: "Forgot your password?"
+      email_placeholder: "Enter your email address"
+      submit: "Email reset instructions"
+    edit:
+      title: "Update your password"
+      password_placeholder: "Enter new password"
+      password_confirmation_placeholder: "Repeat new password"
+      submit: "Save"
+    create:
+      notice: "If an account exists for that email address, we've sent password reset instructions."
+    update:
+      success: "Your password has been reset."
+      mismatch: "Passwords did not match."
+    invalid_token: "The password reset link is invalid or has expired."
   user_mailer:
     email_verification:
       subject: "Confirm your email for azulzin"
@@ -40,3 +56,9 @@ en:
       confirm: "Confirm my email"
       expiry: "This link expires in 24 hours."
       ignore: "If you didn't create an account, you can safely ignore this email."
+  passwords_mailer:
+    reset:
+      subject: "Reset your azulzin password"
+      intro: "You can reset your password using the link below."
+      reset_link: "Reset my password"
+      expiry: "This link will expire in %{duration}."
