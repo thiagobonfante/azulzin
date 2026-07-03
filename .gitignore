@@ -39,3 +39,6 @@
 
 # Local-only working plans (Markdown). Decisions/docs live in /docs and ARE committed.
 /.plans/
+
+# Personal, machine-specific Claude notes (e.g. the home-server ops pointer on wilfred).
+/CLAUDE.local.md
