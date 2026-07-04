@@ -12,12 +12,15 @@ module Whatsapp
 
     module_function
 
-    def model   = ENV.fetch("GROQ_STT_MODEL", "whisper-large-v3-turbo")
-    def api_key = Rails.application.credentials.dig(:groq, :api_key).presence || ENV["GROQ_API_KEY"].presence
+    # config/openrouter.yml → transcription: (Groq). ENV overrides; default is a safe fallback.
+    def settings = (Rails.application.config.x.openrouter["transcription"] || {})
+    def model    = ENV["GROQ_STT_MODEL"].presence || settings["model"].presence || "whisper-large-v3-turbo"
+    def api_key  = Rails.application.credentials.dig(:groq, :api_key).presence || ENV["GROQ_API_KEY"].presence
 
     # media: an ActiveStorage attachment (the ogg/opus voice note). Returns the transcript.
-    def transcribe(media, language: "pt")
+    def transcribe(media, language: nil)
       raise Error, "missing Groq API key" if api_key.blank?
+      language ||= settings["language"].presence || "pt"
       bytes    = media.download
       filename = media.filename.to_s.presence || "audio.ogg"
       content_type = media.content_type.presence || "audio/ogg"

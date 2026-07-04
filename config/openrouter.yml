@@ -1,7 +1,10 @@
-# Per-task model config for the OpenRouter chat/vision client (config.x.openrouter).
-# STT is NOT here — it runs against Groq directly (see SttClient). ALL model slugs are
-# PLACEHOLDERS: verify against the live OpenRouter model list before relying on them
-# (see .plans/whats §4.1 / Review P1-1).
+# Per-task AI model config (config.x.openrouter). Verify every slug against the provider's
+# live model list before relying on it (see .plans/whats §4.1 / Review P1-1).
+#
+# extraction + vision → OpenRouter   (credentials: openrouter.api_key)
+# transcription       → GROQ direct  (credentials: groq.api_key). It lives here too so every
+#   model choice is in one file; OpenRouter has no transcription route. Override with the
+#   GROQ_STT_MODEL env var.
 extraction:
   model: "google/gemini-2.5-flash"
   temperature: 0
@@ -10,3 +13,6 @@ vision:
   model: "google/gemini-2.5-flash"
   temperature: 0
   max_tokens: 1000
+transcription:
+  model: "whisper-large-v3-turbo"   # Groq
+  language: "pt"
