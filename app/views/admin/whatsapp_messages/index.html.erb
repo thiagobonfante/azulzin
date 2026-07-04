@@ -1,0 +1,59 @@
+<% content_for :title, t(".meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t(".subtitle") %></p>
+</header>
+
+<% if @messages.any? %>
+  <div class="flex flex-col gap-3">
+    <% @messages.each do |message| %>
+      <div class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-base-content/50">
+          <span>
+            <span class="badge badge-ghost badge-sm"><%= t("admin.whatsapp_messages.types.#{message.message_type}") %></span>
+            <%= message.user&.email_address || t(".unknown_sender") %>
+          </span>
+          <span class="tabular-nums"><%= l(message.created_at, format: :short) %></span>
+        </div>
+
+        <% if message.body.present? %>
+          <p class="text-sm"><%= message.body %></p>
+        <% end %>
+
+        <% if message.transcription.present? %>
+          <p class="mt-1 text-sm italic text-base-content/70">“<%= message.transcription %>”</p>
+        <% end %>
+
+        <% if message.media.attached? %>
+          <div class="mt-3">
+            <% if message.type_audio? %>
+              <audio controls preload="none" src="<%= url_for(message.media) %>" class="w-full max-w-sm"></audio>
+            <% elsif message.type_image? %>
+              <%= link_to url_for(message.media), target: "_blank", rel: "noopener" do %>
+                <%= image_tag url_for(message.media), alt: "", class: "h-24 w-24 rounded-box object-cover ring-1 ring-base-300/70" %>
+              <% end %>
+            <% else %>
+              <%= link_to t(".download"), url_for(message.media), class: "link link-primary text-sm" %>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if message.ai_result.present? %>
+          <details class="mt-3">
+            <summary class="cursor-pointer text-xs font-medium text-primary"><%= t(".ai_result") %></summary>
+            <pre class="mt-2 overflow-x-auto rounded-box bg-base-200/60 p-3 text-xs"><%= JSON.pretty_generate(message.ai_result) %></pre>
+          </details>
+        <% end %>
+
+        <div class="mt-2 text-right">
+          <%= link_to t(".details"), admin_whatsapp_message_path(message), class: "link text-xs text-base-content/50" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <div class="rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-8 text-center text-sm text-base-content/50">
+    <%= t(".empty") %>
+  </div>
+<% end %>

@@ -1,0 +1,89 @@
+<% content_for :title, t(".meta_title") %>
+
+<%
+  status_badge = {
+    "connected"     => "badge-success",
+    "authenticated" => "badge-warning",
+    "qr_pending"    => "badge-warning",
+    "initializing"  => "badge-warning",
+    "disconnected"  => "badge-ghost",
+    "logged_out"    => "badge-ghost",
+    "error"         => "badge-error"
+  }.fetch(@connection.status, "badge-ghost")
+%>
+
+<div data-controller="whatsapp-connection"
+     data-whatsapp-connection-up-label-value="<%= t(".service_up") %>"
+     data-whatsapp-connection-down-label-value="<%= t(".service_down") %>">
+
+  <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+      <p class="text-sm text-base-content/60"><%= t(".subtitle") %></p>
+    </div>
+    <span class="badge <%= @service_up ? "badge-success" : "badge-error" %>"
+          data-whatsapp-connection-target="serviceBadge">
+      <%= @service_up ? t(".service_up") : t(".service_down") %>
+    </span>
+  </header>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <%# ── Live QR / status ─────────────────────────────────────────────── %>
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-6 shadow-sm">
+      <div class="mb-4 flex items-center gap-2">
+        <span class="text-sm font-medium text-base-content/60"><%= t(".status") %></span>
+        <span class="badge <%= status_badge %>"><%= t("admin.whatsapp_connections.statuses.#{@connection.status}") %></span>
+      </div>
+
+      <div class="flex min-h-64 items-center justify-center rounded-box bg-base-200/60 p-4">
+        <div id="qr-code-display" data-whatsapp-connection-target="display" class="grid place-items-center">
+          <% if @connection.qr_data_url.present? %>
+            <%= image_tag @connection.qr_data_url, alt: "", class: "h-56 w-56 rounded-lg" %>
+          <% elsif @connection.connected? %>
+            <div class="text-center text-success">
+              <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <p class="mt-2 text-sm"><%= t(".connected_as", number: @connection.wa_id.presence || "—") %></p>
+            </div>
+          <% else %>
+            <div class="text-center text-base-content/50">
+              <span class="loading loading-spinner loading-lg"></span>
+              <p class="mt-2 text-sm"><%= t(".waiting_for_qr") %></p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <p class="mt-4 text-center text-xs text-base-content/50"><%= t(".scan_hint") %></p>
+    </div>
+
+    <%# ── Controls + diagnostics ───────────────────────────────────────── %>
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-6 shadow-sm">
+      <h2 class="mb-4 font-display text-lg font-bold"><%= t(".controls") %></h2>
+
+      <div class="flex flex-col gap-3">
+        <%= button_to t(".reconnect"), reconnect_admin_whatsapp_connection_path, method: :post,
+              class: "btn btn-primary btn-block" %>
+        <%= button_to t(".logout"), logout_admin_whatsapp_connection_path, method: :delete,
+              class: "btn btn-outline btn-error btn-block",
+              form: { data: { turbo_confirm: t(".confirm_logout") } } %>
+      </div>
+
+      <dl class="mt-6 space-y-2 text-sm">
+        <div class="flex justify-between gap-3">
+          <dt class="text-base-content/60"><%= t(".number") %></dt>
+          <dd class="tabular-nums"><%= @connection.wa_id.presence || "—" %></dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-base-content/60"><%= t(".last_connected") %></dt>
+          <dd><%= @connection.last_connected_at ? l(@connection.last_connected_at, format: :short) : "—" %></dd>
+        </div>
+        <% if @connection.last_error.present? %>
+          <div class="flex justify-between gap-3">
+            <dt class="text-base-content/60"><%= t(".last_error") %></dt>
+            <dd class="max-w-xs truncate text-error" title="<%= @connection.last_error %>"><%= @connection.last_error %></dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+</div>

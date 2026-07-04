@@ -54,6 +54,8 @@ en:
       dashboard: "Dashboard"
       accounts: "Accounts"
       cards: "Cards"
+      inbox: "Pending"
+      admin: "Admin"
       open_menu: "Open menu"
       close_menu: "Close menu"
   money:
@@ -157,6 +159,98 @@ en:
       created: "Card added."
     destroy:
       removed: "Card removed."
+  transactions:
+    empty: "Nothing pending here. You're all caught up! 🎉"
+    statuses:
+      posted: "Recorded"
+      pending_review: "Review"
+      needs_confirmation: "Confirm"
+      needs_clarification: "Missing info"
+      needs_disambiguation: "Which one?"
+    index:
+      meta_title: "Pending"
+      title: "Pending"
+      subtitle: "Review, fix the account or amount, and confirm the expenses captured over WhatsApp."
+    row:
+      amount: "Amount"
+      merchant: "Merchant"
+      merchant_placeholder: "Where was it?"
+      save: "Save"
+      instrument: "Account or card"
+      unassigned: "No account set"
+      set_instrument: "Set"
+      confirm: "Confirm"
+      reverse: "Undo"
+      discard: "Discard"
+      confirm_discard: "Are you sure?"
+    update:
+      updated: "Expense updated."
+    assign:
+      assigned: "Account set."
+    confirm:
+      confirmed: "Expense confirmed."
+    destroy:
+      removed: "Expense removed."
+  admin:
+    not_authorized: "You don't have access to this area."
+    whatsapp_connections:
+      statuses:
+        disconnected: "Disconnected"
+        initializing: "Initializing"
+        qr_pending: "Waiting for QR"
+        authenticated: "Authenticated"
+        connected: "Connected"
+        logged_out: "Logged out"
+        error: "Error"
+      show:
+        meta_title: "WhatsApp connection"
+        title: "WhatsApp connection"
+        subtitle: "Manage the commercial number: scan the QR, watch the status, and reconnect when needed."
+        service_up: "Service up"
+        service_down: "Service down"
+        status: "Status"
+        controls: "Controls"
+        reconnect: "Connect / Reconnect"
+        logout: "Log out"
+        confirm_logout: "Log out of the WhatsApp session?"
+        number: "Number"
+        last_connected: "Last connected"
+        last_error: "Last error"
+        connected_as: "Connected as %{number}"
+        waiting_for_qr: "Waiting for the QR code…"
+        scan_hint: "Open WhatsApp on your phone › Linked devices › Link a device and scan the code."
+      reconnect:
+        initializing: "Starting the connection. The QR code will appear shortly."
+        failed: "Couldn't start the connection. Please try again."
+      logout:
+        logged_out: "WhatsApp session ended."
+        failed: "Couldn't end the session. Please try again."
+    whatsapp_messages:
+      types:
+        text: "Text"
+        image: "Image"
+        audio: "Audio"
+        document: "Document"
+      index:
+        meta_title: "Inbound messages"
+        title: "Inbound messages"
+        subtitle: "Audit of inbound WhatsApp messages, to calibrate extraction quality."
+        unknown_sender: "Unknown sender"
+        download: "Download attachment"
+        ai_result: "AI result"
+        details: "Details"
+        empty: "No inbound messages yet."
+      show:
+        meta_title: "Inbound message"
+        title: "Inbound message"
+        back: "Back"
+        sender: "Sender"
+        received_at: "Received at"
+        type: "Type"
+        status: "Status"
+        body: "Body"
+        transcription: "Transcription"
+        produced_transactions: "Produced transactions"
   pages:
     home:
       meta_title: "azulzin — calm personal finance"

@@ -1,0 +1,2 @@
+<%# Edited row keeps its inbox slot; re-render it (also renders inline errors on 422). %>
+<%= turbo_stream.replace dom_id(@transaction), partial: "transactions/transaction", locals: { transaction: @transaction } %>

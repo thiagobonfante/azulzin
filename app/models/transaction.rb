@@ -36,6 +36,10 @@ class Transaction < ApplicationRecord
 
   OPEN_ASK_STATUSES = %w[needs_confirmation needs_clarification needs_disambiguation].freeze
 
+  # Statuses that keep a row in the in-app pending inbox (open/pending asks). The inbox ALSO
+  # surfaces posted-but-unassigned rows — see #in_pending_inbox? and the pending_inbox scope.
+  PENDING_INBOX_STATUSES = (OPEN_ASK_STATUSES + %w[pending_review]).freeze
+
   validates :amount_cents, numericality: { only_integer: true }
   validates :occurred_on, presence: true
   validates :confidence, numericality: { in: 0..100 }, allow_nil: true
@@ -43,6 +47,13 @@ class Transaction < ApplicationRecord
   scope :spend, -> { posted.where(direction: "expense") }        # excludes rejected/superseded
   scope :unassigned, -> { where(bank_account_id: nil, credit_card_id: nil) }
   scope :in_app_inbox, -> { where(status: %w[pending_review needs_confirmation needs_clarification needs_disambiguation]) }
+
+  # The in-app pending inbox (.plans/whats §5.8): open/pending asks PLUS posted expenses with
+  # no instrument yet (auto-committed, waiting for the user to pick an account in-app).
+  scope :pending_inbox, lambda {
+    where("status IN (:pending) OR (status = 'posted' AND bank_account_id IS NULL AND credit_card_id IS NULL)",
+          pending: PENDING_INBOX_STATUSES)
+  }
 
   # The single outstanding confirm/clarify question for a user (one open ask per user).
   # The next inbound reply is routed to this. See .plans/whats §5.1.
@@ -55,6 +66,10 @@ class Transaction < ApplicationRecord
   # The instrument an expense is charged to (nil ⇒ unassigned; assign in-app).
   def instrument = bank_account || credit_card
   def assigned?  = instrument.present?
+
+  # Does this row still belong in the pending inbox? Drives whether an in-app action replaces
+  # the row (still pending) or removes it (resolved). Mirrors the pending_inbox scope.
+  def in_pending_inbox? = PENDING_INBOX_STATUSES.include?(status) || (posted? && !assigned?)
 
   # Minimum match strength to auto-assign an instrument on a silent post; below this we
   # post UNASSIGNED (never guess the account) and let the user assign in-app.

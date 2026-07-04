@@ -1,0 +1,10 @@
+<%# Shared by assign + confirm: if the row is still pending, re-render it; otherwise it has
+    left the inbox (assigned/posted) so remove it, restoring the empty state if it was last. %>
+<% if @transaction.in_pending_inbox? %>
+  <%= turbo_stream.replace dom_id(@transaction), partial: "transactions/transaction", locals: { transaction: @transaction } %>
+<% else %>
+  <%= turbo_stream.remove dom_id(@transaction) %>
+  <% unless Current.user.transactions.pending_inbox.exists? %>
+    <%= turbo_stream.append "transactions_list", partial: "transactions/empty" %>
+  <% end %>
+<% end %>

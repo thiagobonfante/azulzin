@@ -48,6 +48,25 @@ Rails.application.routes.draw do
     resources :bank_accounts, only: %i[index create destroy]
     resources :credit_cards,  only: %i[index create destroy]
 
+    # In-app pending inbox — the "fix-in-app" safety net for silent auto-commits
+    # (.plans/whats §5.8). Same guarded transitions as the chat front-end.
+    resources :transactions, only: %i[index update destroy] do
+      member do
+        patch :assign    # pick an account/card for an unassigned row
+        patch :confirm   # commit a pending/needs_* row → posted
+      end
+    end
+
+    # Admin area (privileged, over all users' data). A normal in-app surface, so it lives
+    # inside the on_app host constraint — unlike the server-to-server webhook. See 07 §7.2.
+    namespace :admin do
+      resource :whatsapp_connection, only: :show do
+        post   :reconnect
+        delete :logout
+      end
+      resources :whatsapp_messages, only: %i[index show]   # inbound audit
+    end
+
     # App-host landing. Signed-in users are sent straight to the product app.
     get "/", to: "pages#home", as: :app_root
   end

@@ -1,0 +1,62 @@
+<%# locals: transaction %>
+<div id="<%= dom_id(transaction) %>" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+  <div class="mb-3 flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <span class="badge <%= transaction_status_badge(transaction.status) %> badge-sm">
+        <%= t("transactions.statuses.#{transaction.status}") %>
+      </span>
+      <span class="text-xs text-base-content/50 tabular-nums"><%= l(transaction.occurred_on, format: :short) %></span>
+    </div>
+    <span class="font-display text-lg font-bold tabular-nums"><%= brl(transaction.amount_cents) %></span>
+  </div>
+
+  <% if transaction.errors.any? %>
+    <div class="alert alert-error mb-3 py-2 text-sm" role="alert">
+      <span><%= transaction.errors.full_messages.to_sentence %></span>
+    </div>
+  <% end %>
+
+  <%# ── Edit amount + merchant ───────────────────────────────────────── %>
+  <%= form_with model: transaction, url: transaction_path(transaction), method: :patch,
+        class: "grid gap-3 sm:grid-cols-2" do |f| %>
+    <div class="form-control">
+      <%= f.label :amount_reais, t("transactions.row.amount"), class: "mb-1 block text-xs font-medium text-base-content/60" %>
+      <label class="input input-bordered input-sm flex w-full items-center gap-2">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+      </label>
+    </div>
+    <div class="form-control">
+      <%= f.label :merchant, t("transactions.row.merchant"), class: "mb-1 block text-xs font-medium text-base-content/60" %>
+      <div class="flex items-center gap-2">
+        <%= f.text_field :merchant, placeholder: t("transactions.row.merchant_placeholder"), class: "input input-bordered input-sm w-full" %>
+        <%= f.submit t("transactions.row.save"), class: "btn btn-ghost btn-sm" %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Assign an account / card ─────────────────────────────────────── %>
+  <%= form_with url: assign_transaction_path(transaction), method: :patch,
+        class: "mt-3 flex items-end gap-2" do %>
+    <div class="form-control grow">
+      <label class="mb-1 block text-xs font-medium text-base-content/60"><%= t("transactions.row.instrument") %></label>
+      <%= select_tag "instrument",
+            grouped_options_for_select(instrument_option_groups, current_instrument_token(transaction)),
+            include_blank: t("transactions.row.unassigned"),
+            class: "select select-bordered select-sm w-full" %>
+    </div>
+    <%= submit_tag t("transactions.row.set_instrument"), class: "btn btn-ghost btn-sm" %>
+  <% end %>
+
+  <%# ── Confirm / reverse ────────────────────────────────────────────── %>
+  <div class="mt-4 flex items-center justify-end gap-2 border-t border-base-300/50 pt-3">
+    <% unless transaction.posted? %>
+      <%= button_to t("transactions.row.confirm"), confirm_transaction_path(transaction), method: :patch,
+            class: "btn btn-primary btn-sm" %>
+    <% end %>
+    <%= button_to (transaction.posted? ? t("transactions.row.reverse") : t("transactions.row.discard")),
+          transaction_path(transaction), method: :delete,
+          class: "btn btn-ghost btn-sm text-error",
+          form: { data: { turbo_confirm: t("transactions.row.confirm_discard") } } %>
+  </div>
+</div>

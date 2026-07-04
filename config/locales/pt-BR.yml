@@ -55,6 +55,8 @@ pt-BR:
       dashboard: "Painel"
       accounts: "Contas"
       cards: "Cartões"
+      inbox: "Pendências"
+      admin: "Admin"
       open_menu: "Abrir menu"
       close_menu: "Fechar menu"
   money:
@@ -158,6 +160,98 @@ pt-BR:
       created: "Cartão adicionado."
     destroy:
       removed: "Cartão removido."
+  transactions:
+    empty: "Nada pendente por aqui. Tudo em dia! 🎉"
+    statuses:
+      posted: "Lançado"
+      pending_review: "Revisar"
+      needs_confirmation: "Confirmar"
+      needs_clarification: "Faltam dados"
+      needs_disambiguation: "Qual foi?"
+    index:
+      meta_title: "Pendências"
+      title: "Pendências"
+      subtitle: "Revise, ajuste a conta ou o valor, e confirme os lançamentos capturados pelo WhatsApp."
+    row:
+      amount: "Valor"
+      merchant: "Estabelecimento"
+      merchant_placeholder: "Onde foi?"
+      save: "Salvar"
+      instrument: "Conta ou cartão"
+      unassigned: "Sem conta definida"
+      set_instrument: "Definir"
+      confirm: "Confirmar"
+      reverse: "Apagar"
+      discard: "Descartar"
+      confirm_discard: "Tem certeza?"
+    update:
+      updated: "Lançamento atualizado."
+    assign:
+      assigned: "Conta definida."
+    confirm:
+      confirmed: "Lançamento confirmado."
+    destroy:
+      removed: "Lançamento removido."
+  admin:
+    not_authorized: "Você não tem acesso a esta área."
+    whatsapp_connections:
+      statuses:
+        disconnected: "Desconectado"
+        initializing: "Inicializando"
+        qr_pending: "Aguardando QR"
+        authenticated: "Autenticado"
+        connected: "Conectado"
+        logged_out: "Sessão encerrada"
+        error: "Erro"
+      show:
+        meta_title: "Conexão do WhatsApp"
+        title: "Conexão do WhatsApp"
+        subtitle: "Gerencie o número comercial: escaneie o QR, acompanhe o status e reconecte quando precisar."
+        service_up: "Serviço no ar"
+        service_down: "Serviço fora do ar"
+        status: "Status"
+        controls: "Controles"
+        reconnect: "Conectar / Reconectar"
+        logout: "Encerrar sessão"
+        confirm_logout: "Encerrar a sessão do WhatsApp?"
+        number: "Número"
+        last_connected: "Última conexão"
+        last_error: "Último erro"
+        connected_as: "Conectado como %{number}"
+        waiting_for_qr: "Aguardando o QR code…"
+        scan_hint: "Abra o WhatsApp no celular › Aparelhos conectados › Conectar aparelho e escaneie o código."
+      reconnect:
+        initializing: "Inicializando a conexão. O QR code aparece em instantes."
+        failed: "Não foi possível iniciar a conexão. Tente novamente."
+      logout:
+        logged_out: "Sessão do WhatsApp encerrada."
+        failed: "Não foi possível encerrar a sessão. Tente novamente."
+    whatsapp_messages:
+      types:
+        text: "Texto"
+        image: "Imagem"
+        audio: "Áudio"
+        document: "Documento"
+      index:
+        meta_title: "Mensagens recebidas"
+        title: "Mensagens recebidas"
+        subtitle: "Auditoria das mensagens recebidas pelo WhatsApp, para calibrar a qualidade da extração."
+        unknown_sender: "Remetente desconhecido"
+        download: "Baixar anexo"
+        ai_result: "Resultado da IA"
+        details: "Detalhes"
+        empty: "Nenhuma mensagem recebida ainda."
+      show:
+        meta_title: "Mensagem recebida"
+        title: "Mensagem recebida"
+        back: "Voltar"
+        sender: "Remetente"
+        received_at: "Recebida em"
+        type: "Tipo"
+        status: "Status"
+        body: "Conteúdo"
+        transcription: "Transcrição"
+        produced_transactions: "Lançamentos gerados"
   pages:
     home:
       meta_title: "azulzin — finanças pessoais com tranquilidade"

@@ -1,0 +1,71 @@
+<% content_for :title, t(".meta_title") %>
+
+<header class="mb-6 flex items-center justify-between gap-3">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+  <%= link_to t(".back"), admin_whatsapp_messages_path, class: "btn btn-ghost btn-sm" %>
+</header>
+
+<div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+  <dl class="grid gap-3 sm:grid-cols-2 text-sm">
+    <div>
+      <dt class="text-base-content/50"><%= t(".sender") %></dt>
+      <dd><%= @message.user&.email_address || t("admin.whatsapp_messages.index.unknown_sender") %></dd>
+    </div>
+    <div>
+      <dt class="text-base-content/50"><%= t(".received_at") %></dt>
+      <dd class="tabular-nums"><%= l(@message.created_at, format: :long) %></dd>
+    </div>
+    <div>
+      <dt class="text-base-content/50"><%= t(".type") %></dt>
+      <dd><%= t("admin.whatsapp_messages.types.#{@message.message_type}") %></dd>
+    </div>
+    <div>
+      <dt class="text-base-content/50"><%= t(".status") %></dt>
+      <dd><%= @message.status %></dd>
+    </div>
+  </dl>
+
+  <% if @message.body.present? %>
+    <div class="mt-4">
+      <p class="text-base-content/50 text-sm"><%= t(".body") %></p>
+      <p class="text-sm"><%= @message.body %></p>
+    </div>
+  <% end %>
+
+  <% if @message.transcription.present? %>
+    <div class="mt-4">
+      <p class="text-base-content/50 text-sm"><%= t(".transcription") %></p>
+      <p class="text-sm italic">“<%= @message.transcription %>”</p>
+    </div>
+  <% end %>
+
+  <% if @message.media.attached? %>
+    <div class="mt-4">
+      <% if @message.type_audio? %>
+        <audio controls preload="none" src="<%= url_for(@message.media) %>" class="w-full max-w-sm"></audio>
+      <% elsif @message.type_image? %>
+        <%= image_tag url_for(@message.media), alt: "", class: "max-w-sm rounded-box ring-1 ring-base-300/70" %>
+      <% else %>
+        <%= link_to t("admin.whatsapp_messages.index.download"), url_for(@message.media), class: "link link-primary text-sm" %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @message.ai_result.present? %>
+    <details class="mt-4" open>
+      <summary class="cursor-pointer text-xs font-medium text-primary"><%= t("admin.whatsapp_messages.index.ai_result") %></summary>
+      <pre class="mt-2 overflow-x-auto rounded-box bg-base-200/60 p-3 text-xs"><%= JSON.pretty_generate(@message.ai_result) %></pre>
+    </details>
+  <% end %>
+
+  <% if @message.produced_transactions.any? %>
+    <div class="mt-4">
+      <p class="text-base-content/50 text-sm"><%= t(".produced_transactions") %></p>
+      <ul class="mt-1 list-disc pl-5 text-sm">
+        <% @message.produced_transactions.each do |txn| %>
+          <li class="tabular-nums"><%= brl(txn.amount_cents) %> · <%= txn.status %> · <%= txn.merchant.presence || "—" %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+</div>

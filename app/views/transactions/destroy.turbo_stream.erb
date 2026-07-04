@@ -1,0 +1,6 @@
+<%# Reversed/discarded → rejected, so it leaves the inbox. Remove it; restore the empty state
+    if it was the last pending row. %>
+<%= turbo_stream.remove dom_id(@transaction) %>
+<% unless Current.user.transactions.pending_inbox.exists? %>
+  <%= turbo_stream.append "transactions_list", partial: "transactions/empty" %>
+<% end %>

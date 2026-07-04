@@ -1,0 +1,14 @@
+<% content_for :title, t(".meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t(".subtitle") %></p>
+</header>
+
+<div id="transactions_list" class="flex flex-col gap-3">
+  <% if @transactions.any? %>
+    <%= render @transactions %>
+  <% else %>
+    <%= render "transactions/empty" %>
+  <% end %>
+</div>

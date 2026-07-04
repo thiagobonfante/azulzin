@@ -42,3 +42,10 @@ ignore_unused:
   # WhatsApp reply copy — resolved dynamically via WhatsappReply.deliver(key:) and
   # t("whatsapp.replies.#{...}"); no static literal for the scanner to match.
   - 'whatsapp.replies.*'
+  # Admin panel + inbox status/type labels, looked up dynamically by enum value:
+  #   t("admin.whatsapp_connections.statuses.#{status}")
+  #   t("admin.whatsapp_messages.types.#{message_type}")
+  #   t("transactions.statuses.#{status}")
+  - 'admin.whatsapp_connections.statuses.*'
+  - 'admin.whatsapp_messages.types.*'
+  - 'transactions.statuses.*'
