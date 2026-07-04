@@ -7,6 +7,8 @@
   <p class="mt-1 text-base-content/60"><%= t("dashboard.subtitle") %></p>
 </header>
 
+<%= render "whatsapp/activation", code: @whatsapp_activation_code %>
+
 <%# ── Summary tiles ─────────────────────────────────────────────────── %>
 <section class="grid gap-4 sm:grid-cols-3">
   <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">

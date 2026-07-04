@@ -1,5 +1,8 @@
 class DashboardController < AppController
+  include WhatsappActivation
+
   def show
+    prepare_whatsapp_activation
     @bank_accounts = Current.user.bank_accounts.includes(:institution).order(:created_at)
     @credit_cards  = Current.user.credit_cards.includes(:institution).order(:created_at)
 

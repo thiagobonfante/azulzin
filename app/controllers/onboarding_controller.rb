@@ -2,6 +2,8 @@
 # cards (optional). Accounts and cards themselves are added/removed through
 # BankAccountsController / CreditCardsController; this controller drives the step flow.
 class OnboardingController < ApplicationController
+  include WhatsappActivation
+
   layout "onboarding"
   before_action :redirect_if_onboarded
 
@@ -54,6 +56,7 @@ class OnboardingController < ApplicationController
       case @step
       when "profile"
         @user = Current.user
+        prepare_whatsapp_activation if @user.phone.present?
         render :profile
       when "accounts"
         @bank_accounts = Current.user.bank_accounts.includes(:institution).order(:created_at)

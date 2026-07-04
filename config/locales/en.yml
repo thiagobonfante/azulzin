@@ -338,3 +338,10 @@ en:
       clarify_amount: "I couldn't read the amount. How much was it?"
       unknown_sender: "This number isn't registered with azulzin."
       verified: "WhatsApp activated! ✅ Just send me your expenses here."
+    activation:
+      title: "Activate WhatsApp"
+      subtitle: "Activate WhatsApp to log expenses by audio, photo, or text."
+      code_label: "Your activation code"
+      instructions_html: "Send the word %{code} to our WhatsApp %{number} to activate."
+      instructions_pending_html: "Send the word %{code} as soon as our number is live to activate."
+      refresh: "Already sent — refresh"

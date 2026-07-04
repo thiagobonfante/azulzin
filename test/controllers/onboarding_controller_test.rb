@@ -61,6 +61,25 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert @user.reload.onboarded?
   end
 
+  test "the profile step shows the WhatsApp activation prompt once the phone is set" do
+    complete_profile
+    get onboarding_step_url("profile")
+    assert_response :success
+
+    code = @user.reload.whatsapp_verification_code
+    assert_match(/\AAZUL-[A-Z0-9]{4}\z/, code)
+    assert_includes response.body, code
+    assert_includes response.body, I18n.t("whatsapp.activation.subtitle", locale: :"pt-BR")
+  end
+
+  test "the profile step hides the activation prompt before the phone is set" do
+    # The confirmed fixture starts with no name/phone, so the profile step resolves here.
+    get onboarding_step_url("profile")
+    assert_response :success
+    assert_not_includes response.body, I18n.t("whatsapp.activation.subtitle", locale: :"pt-BR")
+    assert_nil @user.reload.whatsapp_verification_code
+  end
+
   test "already-onboarded users are redirected out of the wizard" do
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
     get onboarding_url
