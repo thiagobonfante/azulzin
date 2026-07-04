@@ -1,2 +1,10 @@
-web: bin/rails server
+# Rails on :3000, the Tailwind watcher, and the WhatsApp sidecar on :3001.
+# The sidecar shares a bearer token with Rails (WHATSAPP_SERVICE_TOKEN ↔ RAILS_API_TOKEN):
+# both default to a dev-only value here; export WHATSAPP_SERVICE_TOKEN to override both.
+# PORT=3001 is forced inline so it wins over foreman's per-process PORT assignment.
+# SKIP_AUTO_RECONNECT keeps the sidecar from launching Chromium until you click "Connect"
+# in /admin/whatsapp_connection — so `bin/dev` boots cleanly with no browser needed.
+# The machine-specific Chromium path lives in whatsapp-sidecar/.env (gitignored).
+web: WHATSAPP_SERVICE_TOKEN=${WHATSAPP_SERVICE_TOKEN:-dev-whatsapp-token} bin/rails server
 css: bin/rails tailwindcss:watch
+sidecar: cd whatsapp-sidecar && PORT=3001 SKIP_AUTO_RECONNECT=true RAILS_WEBHOOK_URL=http://localhost:3000/api/whatsapp/webhook RAILS_API_TOKEN=${WHATSAPP_SERVICE_TOKEN:-dev-whatsapp-token} npm start

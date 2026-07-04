@@ -43,7 +43,7 @@ class OpenRouterClient
   private
 
   def api_key
-    Rails.application.credentials.dig(:openrouter, :key).presence || ENV["OPENROUTER_API_KEY"].presence
+    Rails.application.credentials.dig(:openrouter, :api_key).presence || ENV["OPENROUTER_API_KEY"].presence
   end
 
   def headers

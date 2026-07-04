@@ -13,7 +13,7 @@ module Whatsapp
     module_function
 
     def model   = ENV.fetch("GROQ_STT_MODEL", "whisper-large-v3-turbo")
-    def api_key = Rails.application.credentials.dig(:groq, :key).presence || ENV["GROQ_API_KEY"].presence
+    def api_key = Rails.application.credentials.dig(:groq, :api_key).presence || ENV["GROQ_API_KEY"].presence
 
     # media: an ActiveStorage attachment (the ogg/opus voice note). Returns the transcript.
     def transcribe(media, language: "pt")

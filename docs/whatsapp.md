@@ -51,11 +51,11 @@ Rails reads secrets from encrypted credentials first, then ENV. Add via
 
 ```yml
 openrouter:
-  key: sk-or-...            # or ENV OPENROUTER_API_KEY
+  api_key: sk-or-...        # or ENV OPENROUTER_API_KEY
 groq:
-  key: gsk_...             # or ENV GROQ_API_KEY   (speech-to-text)
+  api_key: gsk_...          # or ENV GROQ_API_KEY    (speech-to-text)
 whatsapp:
-  service_token: <long random shared secret>   # or ENV WHATSAPP_SERVICE_TOKEN
+  service_token: <long random shared secret>   # prod only; dev uses the Procfile default
 ```
 
 Rails ENV (optional overrides): `WHATSAPP_SERVICE_URL` (default `http://localhost:3001`),
@@ -77,9 +77,15 @@ slugs (Review P1-1):
 
 ### 3. Run the sidecar & scan the QR
 
-```
-cd whatsapp-sidecar && npm ci && npm start      # or the Dockerfile, on an always-on host
-```
+**Dev:** `bin/dev` now starts the sidecar (`:3001`) alongside Rails (`:3000`) and the Tailwind
+watcher — one command, defined in `Procfile.dev`. First time only: `cd whatsapp-sidecar && npm ci`.
+The sidecar shares a dev bearer token with Rails via the Procfile (`WHATSAPP_SERVICE_TOKEN`,
+default `dev-whatsapp-token`); its machine-specific Chromium path lives in the gitignored
+`whatsapp-sidecar/.env` (set to your installed Google Chrome). It boots with
+`SKIP_AUTO_RECONNECT=true`, so no browser launches until you click Connect.
+
+**Prod:** run the sidecar from its Dockerfile on an always-on host (persistent volume at
+`/app/.wwebjs_auth`), with `RAILS_API_TOKEN` = `whatsapp.service_token`.
 
 Then in the app, as an **admin**, open `/admin/whatsapp_connection` and click Connect — the
 QR appears live; scan it with the commercial number's WhatsApp (linked-device). Seed the first
