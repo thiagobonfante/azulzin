@@ -5,7 +5,7 @@
 class Admin::WhatsappConnectionsController < Admin::BaseController
   def show
     @connection = WhatsappConnection.instance
-    @service_up = Rails.cache.read(WhatsappServiceHealthCheckJob::CACHE_KEY)
+    @service_up = service_up?
   end
 
   def reconnect
@@ -28,5 +28,16 @@ class Admin::WhatsappConnectionsController < Admin::BaseController
   rescue StandardError => e
     WhatsappConnection.instance.update!(last_error: e.message)
     redirect_to admin_whatsapp_connection_path, alert: t(".failed")
+  end
+
+  private
+
+  # The cache (kept warm every ~30s by WhatsappServiceHealthCheckJob, and live-updated over
+  # ActionCable) is authoritative when present. When it's cold — a fresh boot, or dev, where
+  # the recurring job doesn't run — fall back to a live probe so the badge is accurate on
+  # load instead of defaulting to "down".
+  def service_up?
+    cached = Rails.cache.read(WhatsappServiceHealthCheckJob::CACHE_KEY)
+    cached.nil? ? WhatsappService.health_check : cached
   end
 end
