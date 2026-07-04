@@ -89,6 +89,6 @@ class OnboardingController < ApplicationController
     end
 
     def profile_params
-      params.expect(user: %i[name phone])
+      params.expect(user: %i[name country_code phone_national])
     end
 end

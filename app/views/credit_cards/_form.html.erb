@@ -1,12 +1,10 @@
 <%# locals: credit_card %>
-<%= form_with model: credit_card, url: credit_cards_path, id: "credit_card_form", class: "flex flex-col gap-4" do |f| %>
-  <% if credit_card.errors.any? %>
-    <div class="alert alert-error py-2 text-sm" role="alert">
-      <ul class="list-disc pl-4">
-        <% credit_card.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= form_with model: credit_card, url: credit_cards_path, id: "credit_card_form",
+      data: { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" },
+      class: "flex flex-col gap-4" do |f| %>
+  <div id="credit_card_form_errors">
+    <%= render "credit_cards/form_errors", record: credit_card %>
+  </div>
 
   <%= render "shared/institution_select", form: f, institutions: Institution.for_cards %>
 

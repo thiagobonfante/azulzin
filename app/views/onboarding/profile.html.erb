@@ -19,10 +19,20 @@
             placeholder: t("onboarding.profile.name_placeholder"), class: "input input-bordered w-full" %>
     </div>
 
-    <div class="form-control">
-      <%= f.label :phone, class: "mb-1 block text-sm font-medium" %>
-      <%= f.telephone_field :phone, required: true, autocomplete: "tel",
-            placeholder: t("onboarding.profile.phone_placeholder"), class: "input input-bordered w-full" %>
+    <div class="form-control" data-controller="phone-input">
+      <%= f.label :phone_national, User.human_attribute_name(:phone), class: "mb-1 block text-sm font-medium" %>
+      <div class="flex gap-2">
+        <%= f.select :country_code,
+              User::PHONE_DIAL_CODES.map { |flag, code| [ "#{flag} +#{code}", code ] },
+              { selected: @user.country_code.presence || User::DEFAULT_DIAL_CODE },
+              { data: { phone_input_target: "country", action: "phone-input#reformat" },
+                aria: { label: t("onboarding.profile.country_code") },
+                class: "select select-bordered w-32 shrink-0" } %>
+        <%= f.telephone_field :phone_national, value: @user.phone_national, required: true, autocomplete: "tel-national",
+              placeholder: t("onboarding.profile.phone_placeholder"),
+              data: { phone_input_target: "number", action: "phone-input#reformat" },
+              class: "input input-bordered w-full" %>
+      </div>
       <span class="mt-1.5 flex items-center gap-1.5 text-xs text-base-content/55">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
         <%= t("onboarding.profile.phone_hint") %>

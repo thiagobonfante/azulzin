@@ -27,15 +27,15 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to onboarding_step_url("profile")
   end
 
-  test "profile step saves name and phone then advances to accounts" do
-    patch onboarding_step_url("profile"), params: { user: { name: "Ana", phone: "11912345678" } }
+  test "profile step joins country code + national number then advances to accounts" do
+    patch onboarding_step_url("profile"), params: { user: { name: "Ana", country_code: "55", phone_national: "(45) 98811-5410" } }
     assert_redirected_to onboarding_step_url("accounts")
     assert_equal "Ana", @user.reload.name
-    assert_equal "5511912345678", @user.phone
+    assert_equal "5545988115410", @user.phone
   end
 
   test "an invalid profile re-renders with a 422" do
-    patch onboarding_step_url("profile"), params: { user: { name: "", phone: "" } }
+    patch onboarding_step_url("profile"), params: { user: { name: "", country_code: "55", phone_national: "" } }
     assert_response :unprocessable_entity
   end
 

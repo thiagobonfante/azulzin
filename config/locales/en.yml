@@ -75,6 +75,7 @@ en:
       title: "Welcome to azulzin!"
       subtitle: "First, confirm your details. We use your mobile number to reach you on WhatsApp."
       name_placeholder: "What should we call you?"
+      country_code: "Country code"
       phone_placeholder: "(11) 91234-5678"
       phone_hint: "We'll use this number for WhatsApp updates."
       submit: "Continue"

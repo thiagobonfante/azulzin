@@ -31,9 +31,19 @@ class UserTest < ActiveSupport::TestCase
     end
   end
 
-  test "phone is normalized to digits with the +55 country code" do
-    assert_equal "5511912345678", User.new(phone: "(11) 91234-5678").phone
-    assert_equal "5511912345678", User.new(phone: "5511912345678").phone   # already prefixed
+  test "the profile step joins the country code with the national number into E.164" do
+    user = users(:confirmed)
+    assert user.update_as_profile(name: "Ana", country_code: "55", phone_national: "(45) 98811-5410")
+    assert_equal "Ana", user.reload.name
+    assert_equal "5545988115410", user.phone
+  end
+
+  test "a non-Brazilian country code is honoured; blank defaults to Brazil" do
+    user = users(:confirmed)
+    assert user.update_as_profile(name: "Ana", country_code: "351", phone_national: "912 345 678")
+    assert_equal "351912345678", user.reload.phone
+    assert user.update_as_profile(name: "Ana", country_code: "", phone_national: "45988115410")
+    assert_equal "5545988115410", user.reload.phone
   end
 
   test "the :profile context requires name and phone; sign-up does not" do
@@ -41,15 +51,8 @@ class UserTest < ActiveSupport::TestCase
     assert user.valid?                    # :create context — name/phone not required
     assert_not user.valid?(:profile)
     user.name = "Ana"
-    user.phone = "11912345678"
+    user.phone_national = "45988115410"   # composed to 55… by the :profile validation
     assert user.valid?(:profile)
-  end
-
-  test "update_as_profile persists name and normalized phone" do
-    user = users(:confirmed)
-    assert user.update_as_profile(name: "Ana", phone: "11912345678")
-    assert_equal "Ana", user.reload.name
-    assert_equal "5511912345678", user.phone
   end
 
   test "onboarded? flips after onboard!" do

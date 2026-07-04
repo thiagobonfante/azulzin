@@ -1,12 +1,10 @@
 <%# locals: bank_account %>
-<%= form_with model: bank_account, url: bank_accounts_path, id: "bank_account_form", class: "flex flex-col gap-4" do |f| %>
-  <% if bank_account.errors.any? %>
-    <div class="alert alert-error py-2 text-sm" role="alert">
-      <ul class="list-disc pl-4">
-        <% bank_account.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= form_with model: bank_account, url: bank_accounts_path, id: "bank_account_form",
+      data: { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" },
+      class: "flex flex-col gap-4" do |f| %>
+  <div id="bank_account_form_errors">
+    <%= render "bank_accounts/form_errors", record: bank_account %>
+  </div>
 
   <%= render "shared/institution_select", form: f, institutions: Institution.for_accounts %>
 

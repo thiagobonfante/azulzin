@@ -34,7 +34,7 @@ class BankAccountsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference -> { @user.bank_accounts.count } do
       post bank_accounts_url, as: :turbo_stream, params: { bank_account: { nickname: "x" } }
     end
-    assert_response :success   # re-renders the form with errors
+    assert_response :unprocessable_entity   # streams the form errors; form is not reset
   end
 
   test "destroy removes the account" do

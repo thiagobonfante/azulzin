@@ -7,10 +7,22 @@ export default class extends Controller {
 
   connect() {
     this._onDocumentClick = this.onDocumentClick.bind(this)
+    this._placeholderHTML = this.displayTarget.innerHTML
+    this._form = this.element.closest("form")
+    this._onFormReset = () => this.clearSelection()
+    this._form?.addEventListener("reset", this._onFormReset)
   }
 
   disconnect() {
     document.removeEventListener("click", this._onDocumentClick)
+    this._form?.removeEventListener("reset", this._onFormReset)
+  }
+
+  // Restore the placeholder when the surrounding form is reset (after a successful add).
+  clearSelection() {
+    this.inputTarget.value = ""
+    this.displayTarget.innerHTML = this._placeholderHTML
+    this.displayTarget.classList.add("text-base-content/50")
   }
 
   toggle(event) {

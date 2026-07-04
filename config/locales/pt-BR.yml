@@ -76,6 +76,7 @@ pt-BR:
       title: "Boas-vindas ao azulzin!"
       subtitle: "Antes de tudo, confirme seus dados. Usamos seu celular para falar com você pelo WhatsApp."
       name_placeholder: "Como podemos te chamar?"
+      country_code: "Código do país"
       phone_placeholder: "(11) 91234-5678"
       phone_hint: "Usaremos este número para avisos pelo WhatsApp."
       submit: "Continuar"

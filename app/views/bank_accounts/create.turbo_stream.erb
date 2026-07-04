@@ -1,7 +1,9 @@
 <% if @bank_account.persisted? %>
+  <%# Append the new account and clear any prior errors. The form is NOT replaced — it
+      resets itself client-side (form-reset controller) so the picker stays mounted. %>
   <%= turbo_stream.remove "bank_accounts_empty" %>
   <%= turbo_stream.append "bank_accounts_list", partial: "bank_accounts/bank_account", locals: { bank_account: @bank_account } %>
-  <%= turbo_stream.replace "bank_account_form", partial: "bank_accounts/form", locals: { bank_account: BankAccount.new } %>
+  <%= turbo_stream.update "bank_account_form_errors", "" %>
 <% else %>
-  <%= turbo_stream.replace "bank_account_form", partial: "bank_accounts/form", locals: { bank_account: @bank_account } %>
+  <%= turbo_stream.update "bank_account_form_errors", partial: "bank_accounts/form_errors", locals: { record: @bank_account } %>
 <% end %>

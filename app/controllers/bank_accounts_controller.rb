@@ -12,11 +12,13 @@ class BankAccountsController < ApplicationController
 
   def create
     @bank_account = Current.user.bank_accounts.build(bank_account_params)
-    @bank_account.save
+    saved = @bank_account.save
     respond_to do |format|
-      format.turbo_stream          # create.turbo_stream.erb branches on persisted?
+      # 422 on failure so Turbo's submit-end reports failure and the form is NOT reset
+      # (the create.turbo_stream branches on persisted? to append the row or show errors).
+      format.turbo_stream { render :create, status: (saved ? :ok : :unprocessable_entity) }
       format.html do
-        if @bank_account.persisted?
+        if saved
           redirect_to after_change_path, notice: t(".created")
         else
           redirect_to after_change_path, alert: @bank_account.errors.full_messages.to_sentence

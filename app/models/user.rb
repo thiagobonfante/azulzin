@@ -10,12 +10,22 @@ class User < ApplicationRecord
   has_many :credit_cards,     dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
-  # Store the phone as digits only, in E.164-ish form: a bare DDD+number (10–11 digits)
-  # gets the +55 (Brazil) country code prepended, ready for WhatsApp later.
-  normalizes :phone, with: ->(p) {
-    digits = p.to_s.gsub(/\D/, "")
-    digits.length.in?([ 10, 11 ]) ? "55#{digits}" : digits
-  }
+  # Phone is stored as E.164 digits (country code + national number). The profile form
+  # supplies the two parts separately (country_code + phone_national) and compose_phone
+  # joins them; direct assignment (seeds/tests) is just kept as digits.
+  normalizes :phone, with: ->(p) { p.to_s.gsub(/\D/, "") }
+
+  # Profile phone entry: a country dial code (Brazil by default) + the national number,
+  # joined into E.164 by compose_phone. Both are virtual (form-only, no columns).
+  DEFAULT_DIAL_CODE = "55"
+  # Flag emoji + dial code, Brazil first — the country selector in the profile step.
+  PHONE_DIAL_CODES = [
+    [ "🇧🇷", "55" ], [ "🇵🇹", "351" ], [ "🇺🇸", "1" ],  [ "🇦🇷", "54" ],
+    [ "🇺🇾", "598" ], [ "🇵🇾", "595" ], [ "🇨🇱", "56" ], [ "🇨🇴", "57" ],
+    [ "🇲🇽", "52" ],  [ "🇪🇸", "34" ],  [ "🇬🇧", "44" ], [ "🇫🇷", "33" ],
+    [ "🇩🇪", "49" ],  [ "🇮🇹", "39" ],  [ "🇯🇵", "81" ]
+  ].freeze
+  attr_accessor :country_code, :phone_national
 
   validates :email_address, presence: true, uniqueness: true,
                             format: { with: URI::MailTo::EMAIL_REGEXP }
@@ -31,8 +41,9 @@ class User < ApplicationRecord
 
   # Onboarding step 1 (profile) requirements — enforced only in the :profile context so
   # sign-up and OAuth account creation (which never touch name/phone) stay unaffected.
+  before_validation :compose_phone, on: :profile
   validates :name,  presence: true, length: { maximum: 120 }, on: :profile
-  validates :phone, presence: true, format: { with: /\A55\d{10,11}\z/ }, on: :profile
+  validates :phone, presence: true, format: { with: /\A\d{8,15}\z/ }, on: :profile   # E.164 range
 
   generates_token_for :email_verification, expires_in: 24.hours do
     email_address        # changing the address invalidates a pending link
@@ -100,5 +111,14 @@ class User < ApplicationRecord
   private
     def email_address_on_allowlist
       errors.add(:email_address, :not_allowed) unless email_allowed?
+    end
+
+    # Join the chosen country dial code with the typed national number into E.164 digits.
+    # Only runs in the :profile context and only when the form supplied a national number.
+    def compose_phone
+      return if phone_national.blank?
+
+      dial = country_code.to_s.gsub(/\D/, "").presence || DEFAULT_DIAL_CODE
+      self.phone = "#{dial}#{phone_national.gsub(/\D/, '')}"
     end
 end

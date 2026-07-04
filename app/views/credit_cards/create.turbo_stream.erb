@@ -1,7 +1,9 @@
 <% if @credit_card.persisted? %>
+  <%# Append the new card and clear any prior errors. The form is NOT replaced — it resets
+      itself client-side (form-reset controller) so the picker stays mounted. %>
   <%= turbo_stream.remove "credit_cards_empty" %>
   <%= turbo_stream.append "credit_cards_list", partial: "credit_cards/credit_card", locals: { credit_card: @credit_card } %>
-  <%= turbo_stream.replace "credit_card_form", partial: "credit_cards/form", locals: { credit_card: CreditCard.new } %>
+  <%= turbo_stream.update "credit_card_form_errors", "" %>
 <% else %>
-  <%= turbo_stream.replace "credit_card_form", partial: "credit_cards/form", locals: { credit_card: @credit_card } %>
+  <%= turbo_stream.update "credit_card_form_errors", partial: "credit_cards/form_errors", locals: { record: @credit_card } %>
 <% end %>
