@@ -3,8 +3,8 @@ require "test_helper"
 class UserMailerTest < ActionMailer::TestCase
   test "verification mail is from the azulzin domain, not the placeholder" do
     mail = UserMailer.with(user: users(:unconfirmed)).email_verification
-    assert_equal ["no-reply@azulzin.com.br"], mail.from
-    assert_equal [users(:unconfirmed).email_address], mail.to
+    assert_equal [ "no-reply@azulzin.com.br" ], mail.from
+    assert_equal [ users(:unconfirmed).email_address ], mail.to
   end
 
   test "subject is pinned to pt-BR regardless of the recipient's stored locale" do

@@ -4,6 +4,8 @@ class PagesController < ApplicationController
   allow_unauthenticated_access
 
   def home
+    # On the product-app host, a signed-in visitor belongs in the app, not on marketing.
+    redirect_to dashboard_path if authenticated? && on_app_host?
   end
 
   # Host-aware robots.txt: the marketing apex is crawlable; the product app

@@ -1,0 +1,4 @@
+<%= turbo_stream.remove dom_id(@bank_account) %>
+<% if Current.user.bank_accounts.none? %>
+  <%= turbo_stream.append "bank_accounts_list", partial: "bank_accounts/empty" %>
+<% end %>

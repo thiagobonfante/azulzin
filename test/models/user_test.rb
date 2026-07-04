@@ -30,4 +30,32 @@ class UserTest < ActiveSupport::TestCase
       assert User.create(email_address: "me@example.com", password: "password123").persisted?
     end
   end
+
+  test "phone is normalized to digits with the +55 country code" do
+    assert_equal "5511912345678", User.new(phone: "(11) 91234-5678").phone
+    assert_equal "5511912345678", User.new(phone: "5511912345678").phone   # already prefixed
+  end
+
+  test "the :profile context requires name and phone; sign-up does not" do
+    user = User.new(email_address: "p@example.com", password: "password123")
+    assert user.valid?                    # :create context — name/phone not required
+    assert_not user.valid?(:profile)
+    user.name = "Ana"
+    user.phone = "11912345678"
+    assert user.valid?(:profile)
+  end
+
+  test "update_as_profile persists name and normalized phone" do
+    user = users(:confirmed)
+    assert user.update_as_profile(name: "Ana", phone: "11912345678")
+    assert_equal "Ana", user.reload.name
+    assert_equal "5511912345678", user.phone
+  end
+
+  test "onboarded? flips after onboard!" do
+    user = users(:confirmed)
+    assert_not user.onboarded?
+    user.onboard!
+    assert user.reload.onboarded?
+  end
 end

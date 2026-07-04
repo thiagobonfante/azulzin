@@ -1,0 +1,7 @@
+<% if @bank_account.persisted? %>
+  <%= turbo_stream.remove "bank_accounts_empty" %>
+  <%= turbo_stream.append "bank_accounts_list", partial: "bank_accounts/bank_account", locals: { bank_account: @bank_account } %>
+  <%= turbo_stream.replace "bank_account_form", partial: "bank_accounts/form", locals: { bank_account: BankAccount.new } %>
+<% else %>
+  <%= turbo_stream.replace "bank_account_form", partial: "bank_accounts/form", locals: { bank_account: @bank_account } %>
+<% end %>

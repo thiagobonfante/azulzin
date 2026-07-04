@@ -1,0 +1,36 @@
+# Canonical registry of Brazilian financial institutions for the account & card pickers.
+# Single source of truth — seeded into the `institutions` table by db/seeds.rb (dev/prod)
+# and by test_helper (test). Keyed by the COMPE bank code (string; leading zeros kept)
+# so the code is persisted on the institution entity for future integrations
+# (Open Finance / Pix / reconciliation).
+#
+# logo_path is intentionally NOT listed here: seeds derive it from the presence of
+# app/assets/images/institutions/<code>.svg, so vendoring an SVG auto-enables the real
+# logo and its absence falls back to a brand-color monogram — no data change needed.
+- { code: "260", name: "Nubank",          initials: "NU", brand_color: "#820AD1", position: 1 }
+- { code: "341", name: "Itaú",            initials: "IT", brand_color: "#EC7000", position: 2 }
+- { code: "237", name: "Bradesco",        initials: "BR", brand_color: "#CC092F", position: 3 }
+- { code: "001", name: "Banco do Brasil", initials: "BB", brand_color: "#FAD21E", position: 4 }
+- { code: "104", name: "Caixa",           initials: "CX", brand_color: "#0070B9", position: 5 }
+- { code: "033", name: "Santander",       initials: "SA", brand_color: "#EC0000", position: 6 }
+- { code: "077", name: "Banco Inter",     initials: "IN", brand_color: "#FF7A00", position: 7 }
+- { code: "336", name: "C6 Bank",         initials: "C6", brand_color: "#1D1D1B", position: 8 }
+- { code: "323", name: "Mercado Pago",    initials: "MP", brand_color: "#00A1EA", position: 9 }
+- { code: "380", name: "PicPay",          initials: "PP", brand_color: "#21C25E", position: 10 }
+- { code: "290", name: "PagBank",         initials: "PG", brand_color: "#00A868", position: 11 }
+- { code: "208", name: "BTG Pactual",     initials: "BT", brand_color: "#051C2C", position: 12 }
+- { code: "212", name: "Banco Original",  initials: "OR", brand_color: "#00A650", position: 13 }
+- { code: "348", name: "Banco XP",        initials: "XP", brand_color: "#0F0F0F", position: 14 }
+- { code: "536", name: "Neon",            initials: "NE", brand_color: "#00E1FA", position: 15 }
+- { code: "422", name: "Banco Safra",     initials: "SF", brand_color: "#12284C", position: 16 }
+- { code: "041", name: "Banrisul",        initials: "BS", brand_color: "#00539F", position: 17 }
+- { code: "756", name: "Sicoob",          initials: "SC", brand_color: "#00AE9D", position: 18 }
+- { code: "748", name: "Sicredi",         initials: "SR", brand_color: "#3AAA35", position: 19 }
+- { code: "623", name: "Banco Pan",       initials: "PA", brand_color: "#00A5DF", position: 20 }
+- { code: "655", name: "Banco BV",        initials: "BV", brand_color: "#005EB8", position: 21 }
+- { code: "318", name: "Banco BMG",       initials: "BM", brand_color: "#F58220", position: 22 }
+- { code: "335", name: "Digio",           initials: "DG", brand_color: "#0033A0", position: 23 }
+- { code: "634", name: "Will Bank",       initials: "WB", brand_color: "#FFD200", position: 24 }
+- { code: "121", name: "Agibank",         initials: "AG", brand_color: "#F47920", position: 25 }
+# OTHER — always last; its display name is localized (see Institution#display_name).
+- { code: "000", name: "Outro",           initials: "?",  brand_color: "#6B7280", position: 999 }

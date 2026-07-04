@@ -19,17 +19,143 @@ en:
     could_not_sign_in: "We couldn't sign you in. Add an email to your account and try again."
     failure: "Authentication failed. Please try again."
   activerecord:
+    models:
+      bank_account: "Bank account"
+      credit_card: "Credit card"
+      institution: "Institution"
     attributes:
       user:
         email_address: "Email address"
         password: "Password"
         password_confirmation: "Password confirmation"
+        name: "Name"
+        phone: "Mobile"
+      bank_account:
+        institution: "Institution"
+        institution_id: "Institution"
+        nickname: "Nickname"
+        agency: "Branch"
+        account_number: "Account number"
+        balance_cents: "Balance"
+      credit_card:
+        institution: "Institution"
+        institution_id: "Institution"
+        nickname: "Nickname"
+        credit_limit_cents: "Limit"
+        current_bill_cents: "Current bill"
     errors:
       models:
         user:
           attributes:
             email_address:
               not_allowed: "isn't allowed to sign up."
+  app:
+    nav:
+      dashboard: "Dashboard"
+      accounts: "Accounts"
+      cards: "Cards"
+      open_menu: "Open menu"
+      close_menu: "Close menu"
+  money:
+    symbol: "R$"
+  institutions:
+    other: "Other"
+    label: "Institution"
+    placeholder: "Select an institution"
+    search: "Search bank…"
+  onboarding:
+    back: "Back"
+    finished: "All set! Welcome to azulzin."
+    steps:
+      profile: "Profile"
+      accounts: "Accounts"
+      cards: "Cards"
+    profile:
+      meta_title: "Let's start — your profile"
+      title: "Welcome to azulzin!"
+      subtitle: "First, confirm your details. We use your mobile number to reach you on WhatsApp."
+      name_placeholder: "What should we call you?"
+      phone_placeholder: "(11) 91234-5678"
+      phone_hint: "We'll use this number for WhatsApp updates."
+      submit: "Continue"
+    accounts:
+      meta_title: "Your accounts"
+      title: "Add your accounts"
+      subtitle: "Add the accounts you use. Add as many as you like — the details are optional."
+      continue: "Continue"
+      need_one: "Add at least one account to continue."
+      need_one_hint: "You need at least one account to continue."
+    cards:
+      meta_title: "Your cards"
+      title: "And your credit cards?"
+      subtitle: "Add the cards you have. This step is optional — skip ahead to the dashboard if you like."
+      finish: "Finish"
+      optional_hint: "This step is optional."
+  dashboard:
+    meta_title: "Dashboard"
+    greeting: "Hi, %{name}!"
+    subtitle: "Here's a snapshot of your money."
+    total_balance: "Total balance"
+    accounts_count:
+      zero: "No accounts"
+      one: "%{count} account"
+      other: "%{count} accounts"
+    available_credit: "Available credit"
+    of_limit: "of %{limit} limit"
+    current_bills: "Current bills"
+    cards_count:
+      zero: "No cards"
+      one: "%{count} card"
+      other: "%{count} cards"
+    manage: "Manage"
+    add_accounts: "Add an account"
+    add_cards: "Add a card"
+  bank_accounts:
+    add_title: "Add account"
+    nickname: "Nickname"
+    nickname_placeholder: "e.g. Salary account"
+    optional_details: "Optional details"
+    balance: "Current balance"
+    agency: "Branch"
+    agency_placeholder: "0000"
+    account_number: "Account number"
+    account_number_placeholder: "00000-0"
+    add: "Add account"
+    no_balance: "Balance not set"
+    empty: "No accounts added yet."
+    remove: "Remove account"
+    confirm_remove: "Remove this account?"
+    index:
+      meta_title: "Accounts"
+      title: "Your accounts"
+      subtitle: "Manage the accounts you track in azulzin."
+    create:
+      created: "Account added."
+    destroy:
+      removed: "Account removed."
+  credit_cards:
+    add_title: "Add card"
+    nickname: "Nickname"
+    nickname_placeholder: "e.g. Physical card"
+    optional_details: "Optional details"
+    limit: "Limit"
+    current_bill: "Current bill"
+    current_bill_hint: "How much you have to pay on the next bill."
+    add: "Add card"
+    used: "Used"
+    available: "Available"
+    no_limit: "Limit not set"
+    empty: "No cards added yet."
+    remove: "Remove card"
+    confirm_remove: "Remove this card?"
+    index:
+      meta_title: "Cards"
+      title: "Your cards"
+      subtitle: "Manage the cards you track in azulzin."
+    create:
+      created: "Card added."
+    destroy:
+      removed: "Card removed."
   pages:
     home:
       meta_title: "azulzin — calm personal finance"

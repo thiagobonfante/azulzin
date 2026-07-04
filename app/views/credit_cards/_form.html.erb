@@ -1,0 +1,46 @@
+<%# locals: credit_card %>
+<%= form_with model: credit_card, url: credit_cards_path, id: "credit_card_form", class: "flex flex-col gap-4" do |f| %>
+  <% if credit_card.errors.any? %>
+    <div class="alert alert-error py-2 text-sm" role="alert">
+      <ul class="list-disc pl-4">
+        <% credit_card.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= render "shared/institution_select", form: f, institutions: Institution.for_cards %>
+
+  <div class="form-control">
+    <%= f.label :nickname, t("credit_cards.nickname"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.text_field :nickname, placeholder: t("credit_cards.nickname_placeholder"), class: "input input-bordered w-full" %>
+  </div>
+
+  <%# Optional details — nothing here is required. %>
+  <details class="group">
+    <summary class="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+      <%= t("credit_cards.optional_details") %>
+    </summary>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      <div class="form-control">
+        <%= f.label :credit_limit_reais, t("credit_cards.limit"), class: "mb-1 block text-sm font-medium" %>
+        <label class="input input-bordered flex w-full items-center gap-2">
+          <span class="text-base-content/50"><%= t("money.symbol") %></span>
+          <%= f.text_field :credit_limit_reais, inputmode: "decimal", placeholder: "0,00", class: "grow" %>
+        </label>
+      </div>
+      <div class="form-control">
+        <%= f.label :current_bill_reais, t("credit_cards.current_bill"), class: "mb-1 block text-sm font-medium" %>
+        <label class="input input-bordered flex w-full items-center gap-2">
+          <span class="text-base-content/50"><%= t("money.symbol") %></span>
+          <%= f.text_field :current_bill_reais, inputmode: "decimal", placeholder: "0,00", class: "grow" %>
+        </label>
+        <span class="mt-1 text-xs text-base-content/50"><%= t("credit_cards.current_bill_hint") %></span>
+      </div>
+    </div>
+  </details>
+
+  <div class="flex justify-end">
+    <%= f.submit t("credit_cards.add"), class: "btn btn-primary btn-sm" %>
+  </div>
+<% end %>

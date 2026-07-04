@@ -1,0 +1,25 @@
+<% content_for :title, t("credit_cards.index.meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t("credit_cards.index.title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t("credit_cards.index.subtitle") %></p>
+</header>
+
+<div class="grid gap-6 lg:grid-cols-5">
+  <div class="lg:col-span-3">
+    <div id="credit_cards_list" class="flex flex-col gap-3">
+      <% if @credit_cards.any? %>
+        <%= render @credit_cards %>
+      <% else %>
+        <%= render "credit_cards/empty" %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="lg:col-span-2">
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-4 font-display text-lg font-bold"><%= t("credit_cards.add_title") %></h2>
+      <%= render "credit_cards/form", credit_card: @credit_card %>
+    </div>
+  </div>
+</div>

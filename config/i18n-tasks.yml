@@ -33,5 +33,9 @@ search:
 # :password_confirmation) that the scanner still can't match to a literal key.
 ignore_unused:
   - 'activerecord.attributes.*'
+  # Model human names — used implicitly by Rails (model_name.human); no literal key to scan.
+  - 'activerecord.models.*'
   # Added by errors.add(:email_address, :not_allowed) in User — no literal key to scan.
   - 'activerecord.errors.*'
+  # Looked up dynamically as t("onboarding.steps.#{step}") in the wizard progress bar.
+  - 'onboarding.steps.*'

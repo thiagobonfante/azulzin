@@ -1,0 +1,99 @@
+<% content_for :title, t("dashboard.meta_title") %>
+
+<header class="mb-8">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+    <%= t("dashboard.greeting", name: Current.user.name.to_s.split.first) %>
+  </h1>
+  <p class="mt-1 text-base-content/60"><%= t("dashboard.subtitle") %></p>
+</header>
+
+<%# ── Summary tiles ─────────────────────────────────────────────────── %>
+<section class="grid gap-4 sm:grid-cols-3">
+  <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <p class="text-sm font-medium text-base-content/60"><%= t("dashboard.total_balance") %></p>
+    <p class="mt-1 font-display text-2xl font-extrabold tabular-nums tracking-tight"><%= brl(@total_balance_cents) %></p>
+    <p class="mt-1 text-xs text-base-content/45"><%= t("dashboard.accounts_count", count: @bank_accounts.size) %></p>
+  </div>
+  <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <p class="text-sm font-medium text-base-content/60"><%= t("dashboard.available_credit") %></p>
+    <p class="mt-1 font-display text-2xl font-extrabold tabular-nums tracking-tight text-success"><%= brl(@total_available_cents) %></p>
+    <p class="mt-1 text-xs text-base-content/45"><%= t("dashboard.of_limit", limit: brl(@total_limit_cents)) %></p>
+  </div>
+  <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <p class="text-sm font-medium text-base-content/60"><%= t("dashboard.current_bills") %></p>
+    <p class="mt-1 font-display text-2xl font-extrabold tabular-nums tracking-tight"><%= brl(@total_bill_cents) %></p>
+    <p class="mt-1 text-xs text-base-content/45"><%= t("dashboard.cards_count", count: @credit_cards.size) %></p>
+  </div>
+</section>
+
+<%# ── Accounts ──────────────────────────────────────────────────────── %>
+<section class="mt-10">
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="font-display text-lg font-bold"><%= t("app.nav.accounts") %></h2>
+    <%= link_to t("dashboard.manage"), bank_accounts_path, class: "btn btn-ghost btn-sm text-primary" %>
+  </div>
+
+  <% if @bank_accounts.any? %>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <% @bank_accounts.each do |account| %>
+        <div class="flex items-center gap-3 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
+          <%= institution_avatar(account.institution, size: 40) %>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold"><%= account.display_name %></p>
+            <p class="truncate text-xs text-base-content/50"><%= account.institution.display_name %></p>
+          </div>
+          <p class="shrink-0 font-display text-sm font-bold tabular-nums">
+            <%= account.balance_informed? ? brl(account.balance_cents) : "—" %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <%= link_to bank_accounts_path, class: "block rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-6 text-center text-sm text-base-content/55 hover:border-primary/50 hover:text-primary" do %>
+      <%= t("dashboard.add_accounts") %>
+    <% end %>
+  <% end %>
+</section>
+
+<%# ── Cards ─────────────────────────────────────────────────────────── %>
+<section class="mt-10">
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="font-display text-lg font-bold"><%= t("app.nav.cards") %></h2>
+    <%= link_to t("dashboard.manage"), credit_cards_path, class: "btn btn-ghost btn-sm text-primary" %>
+  </div>
+
+  <% if @credit_cards.any? %>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <% @credit_cards.each do |card| %>
+        <div class="rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
+          <div class="flex items-center gap-3">
+            <%= institution_avatar(card.institution, size: 40) %>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold"><%= card.display_name %></p>
+              <p class="truncate text-xs text-base-content/50"><%= card.institution.display_name %></p>
+            </div>
+          </div>
+          <% if card.limit_informed? %>
+            <% ratio = card.usage_ratio %>
+            <% bar = ratio >= 0.9 ? "bg-error" : ratio >= 0.7 ? "bg-warning" : "bg-primary" %>
+            <div class="mt-3">
+              <div class="h-2 w-full overflow-hidden rounded-full bg-base-200">
+                <div class="h-full rounded-full <%= bar %>" style="width: <%= (ratio * 100).round %>%"></div>
+              </div>
+              <div class="mt-1.5 flex justify-between text-xs text-base-content/50">
+                <span><%= t("credit_cards.available") %> <span class="font-semibold text-success tabular-nums"><%= brl(card.available_cents) %></span></span>
+                <span class="tabular-nums"><%= brl(card.current_bill_cents.to_i) %> / <%= brl(card.credit_limit_cents) %></span>
+              </div>
+            </div>
+          <% else %>
+            <p class="mt-2 text-xs text-base-content/40"><%= t("credit_cards.no_limit") %></p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <%= link_to credit_cards_path, class: "block rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-6 text-center text-sm text-base-content/55 hover:border-primary/50 hover:text-primary" do %>
+      <%= t("dashboard.add_cards") %>
+    <% end %>
+  <% end %>
+</section>

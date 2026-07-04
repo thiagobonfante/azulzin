@@ -15,6 +15,17 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
 
   private
+    # True on the product-app host (always true in dev/test, where the host split is off).
+    def on_app_host?
+      !Rails.env.production? || request.host == Rails.application.config.x.app_host
+    end
+
+    # Onboarding gate: authenticated users who haven't finished the wizard are sent to it.
+    # Runs after require_authentication, so Current.user is present.
+    def require_onboarding
+      redirect_to onboarding_path unless Current.user&.onboarded?
+    end
+
     def switch_locale(&action)
       I18n.with_locale(resolve_locale, &action)
     end

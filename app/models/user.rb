@@ -6,8 +6,16 @@ class User < ApplicationRecord
 
   has_many :sessions,         dependent: :destroy
   has_many :oauth_identities, dependent: :destroy   # table added in Phase 4
+  has_many :bank_accounts,    dependent: :destroy
+  has_many :credit_cards,     dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
+  # Store the phone as digits only, in E.164-ish form: a bare DDD+number (10–11 digits)
+  # gets the +55 (Brazil) country code prepended, ready for WhatsApp later.
+  normalizes :phone, with: ->(p) {
+    digits = p.to_s.gsub(/\D/, "")
+    digits.length.in?([ 10, 11 ]) ? "55#{digits}" : digits
+  }
 
   validates :email_address, presence: true, uniqueness: true,
                             format: { with: URI::MailTo::EMAIL_REGEXP }
@@ -21,12 +29,28 @@ class User < ApplicationRecord
   # in Authentication#start_new_session_for. Blank list ⇒ unrestricted (dev/test).
   validate :email_address_on_allowlist, on: :create
 
+  # Onboarding step 1 (profile) requirements — enforced only in the :profile context so
+  # sign-up and OAuth account creation (which never touch name/phone) stay unaffected.
+  validates :name,  presence: true, length: { maximum: 120 }, on: :profile
+  validates :phone, presence: true, format: { with: /\A55\d{10,11}\z/ }, on: :profile
+
   generates_token_for :email_verification, expires_in: 24.hours do
     email_address        # changing the address invalidates a pending link
   end
 
   def verified? = confirmed_at.present?
   def verify!   = update!(confirmed_at: Time.current)
+
+  # Onboarding wizard: complete once the user has finished the setup steps.
+  def onboarded? = onboarded_at.present?
+  def onboard!   = update!(onboarded_at: Time.current)
+
+  # Step 1 of the wizard. Validates name/phone in the :profile context only, leaving
+  # sign-up untouched.
+  def update_as_profile(attributes)
+    assign_attributes(attributes)
+    save(context: :profile)
+  end
 
   # Single source of truth for the allowlist gate (config.x.allowed_emails, prod only).
   # Blank/unset list ⇒ everyone is allowed, so dev+test stay unrestricted.

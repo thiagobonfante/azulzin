@@ -5,5 +5,5 @@ Rails.application.config.middleware.use OmniAuth::Builder do
            scope: "email,profile", prompt: "select_account"
 end
 
-OmniAuth.config.allowed_request_methods = [:post]   # default; explicit for reviewers
+OmniAuth.config.allowed_request_methods = [ :post ]   # default; explicit for reviewers
 OmniAuth.config.logger = Rails.logger

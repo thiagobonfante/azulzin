@@ -27,7 +27,20 @@ Rails.application.routes.draw do
         constraints: { provider: /google_oauth2/ }
     get "auth/failure", to: "omniauth_callbacks#failure"
 
-    # Landing for the app host. Reuses the marketing page until a dashboard exists.
+    # ── Product app (authenticated) ──────────────────────────────────────
+    get "dashboard", to: "dashboard#show", as: :dashboard
+
+    # First-run setup wizard. `onboarding` (no step) resolves to the current step.
+    get   "onboarding",       to: "onboarding#show", as: :onboarding
+    get   "onboarding/:step", to: "onboarding#show", as: :onboarding_step,
+          constraints: { step: /profile|accounts|cards/ }
+    patch "onboarding/:step", to: "onboarding#update",
+          constraints: { step: /profile|accounts|cards/ }
+
+    resources :bank_accounts, only: %i[index create destroy]
+    resources :credit_cards,  only: %i[index create destroy]
+
+    # App-host landing. Signed-in users are sent straight to the product app.
     get "/", to: "pages#home", as: :app_root
   end
 

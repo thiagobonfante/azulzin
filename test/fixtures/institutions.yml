@@ -1,0 +1,14 @@
+<%# Generated at load from config/institutions.yml (the single source of truth) so the %>
+<%# test registry never drifts from dev/prod seeds. logo_path is derived from the vendored %>
+<%# SVGs, matching Institution.load_registry!. %>
+<% YAML.load_file(Rails.root.join("config/institutions.yml")).each do |i| %>
+inst_<%= i["code"] %>:
+  code: <%= i["code"].inspect %>
+  name: <%= i["name"].inspect %>
+  initials: <%= i["initials"].inspect %>
+  brand_color: <%= i["brand_color"].inspect %>
+  logo_path: <%= Institution.logo_path_for(i["code"])&.inspect || "null" %>
+  supports_account: true
+  supports_card: true
+  position: <%= i["position"] %>
+<% end %>

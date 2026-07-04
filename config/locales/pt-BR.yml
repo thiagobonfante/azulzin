@@ -20,17 +20,143 @@ pt-BR:
     could_not_sign_in: "Não foi possível entrar. Adicione um e-mail à sua conta e tente novamente."
     failure: "Falha na autenticação. Tente novamente."
   activerecord:
+    models:
+      bank_account: "Conta bancária"
+      credit_card: "Cartão de crédito"
+      institution: "Instituição"
     attributes:
       user:
         email_address: "E-mail"
         password: "Senha"
         password_confirmation: "Confirmação de senha"
+        name: "Nome"
+        phone: "Celular"
+      bank_account:
+        institution: "Instituição"
+        institution_id: "Instituição"
+        nickname: "Apelido"
+        agency: "Agência"
+        account_number: "Número da conta"
+        balance_cents: "Saldo"
+      credit_card:
+        institution: "Instituição"
+        institution_id: "Instituição"
+        nickname: "Apelido"
+        credit_limit_cents: "Limite"
+        current_bill_cents: "Fatura atual"
     errors:
       models:
         user:
           attributes:
             email_address:
               not_allowed: "não está autorizado a criar uma conta."
+  app:
+    nav:
+      dashboard: "Painel"
+      accounts: "Contas"
+      cards: "Cartões"
+      open_menu: "Abrir menu"
+      close_menu: "Fechar menu"
+  money:
+    symbol: "R$"
+  institutions:
+    other: "Outro"
+    label: "Instituição"
+    placeholder: "Selecione a instituição"
+    search: "Buscar banco…"
+  onboarding:
+    back: "Voltar"
+    finished: "Tudo pronto! Boas-vindas ao azulzin."
+    steps:
+      profile: "Perfil"
+      accounts: "Contas"
+      cards: "Cartões"
+    profile:
+      meta_title: "Vamos começar — seu perfil"
+      title: "Boas-vindas ao azulzin!"
+      subtitle: "Antes de tudo, confirme seus dados. Usamos seu celular para falar com você pelo WhatsApp."
+      name_placeholder: "Como podemos te chamar?"
+      phone_placeholder: "(11) 91234-5678"
+      phone_hint: "Usaremos este número para avisos pelo WhatsApp."
+      submit: "Continuar"
+    accounts:
+      meta_title: "Suas contas"
+      title: "Adicione suas contas"
+      subtitle: "Inclua as contas que você usa. Adicione quantas quiser — os detalhes são opcionais."
+      continue: "Continuar"
+      need_one: "Adicione pelo menos uma conta para continuar."
+      need_one_hint: "É preciso ter ao menos uma conta para continuar."
+    cards:
+      meta_title: "Seus cartões"
+      title: "E seus cartões de crédito?"
+      subtitle: "Adicione os cartões que você tem. Esta etapa é opcional — se preferir, siga para o painel."
+      finish: "Concluir"
+      optional_hint: "Esta etapa é opcional."
+  dashboard:
+    meta_title: "Painel"
+    greeting: "Olá, %{name}!"
+    subtitle: "Aqui está um resumo do seu dinheiro."
+    total_balance: "Saldo total"
+    accounts_count:
+      zero: "Nenhuma conta"
+      one: "%{count} conta"
+      other: "%{count} contas"
+    available_credit: "Crédito disponível"
+    of_limit: "de %{limit} de limite"
+    current_bills: "Faturas atuais"
+    cards_count:
+      zero: "Nenhum cartão"
+      one: "%{count} cartão"
+      other: "%{count} cartões"
+    manage: "Gerenciar"
+    add_accounts: "Adicionar uma conta"
+    add_cards: "Adicionar um cartão"
+  bank_accounts:
+    add_title: "Adicionar conta"
+    nickname: "Apelido"
+    nickname_placeholder: "Ex.: Conta salário"
+    optional_details: "Detalhes opcionais"
+    balance: "Saldo atual"
+    agency: "Agência"
+    agency_placeholder: "0000"
+    account_number: "Número da conta"
+    account_number_placeholder: "00000-0"
+    add: "Adicionar conta"
+    no_balance: "Saldo não informado"
+    empty: "Nenhuma conta adicionada ainda."
+    remove: "Remover conta"
+    confirm_remove: "Remover esta conta?"
+    index:
+      meta_title: "Contas"
+      title: "Suas contas"
+      subtitle: "Gerencie as contas que você acompanha no azulzin."
+    create:
+      created: "Conta adicionada."
+    destroy:
+      removed: "Conta removida."
+  credit_cards:
+    add_title: "Adicionar cartão"
+    nickname: "Apelido"
+    nickname_placeholder: "Ex.: Cartão físico"
+    optional_details: "Detalhes opcionais"
+    limit: "Limite"
+    current_bill: "Fatura atual"
+    current_bill_hint: "Quanto você tem para pagar na próxima fatura."
+    add: "Adicionar cartão"
+    used: "Usado"
+    available: "Disponível"
+    no_limit: "Limite não informado"
+    empty: "Nenhum cartão adicionado ainda."
+    remove: "Remover cartão"
+    confirm_remove: "Remover este cartão?"
+    index:
+      meta_title: "Cartões"
+      title: "Seus cartões"
+      subtitle: "Gerencie os cartões que você acompanha no azulzin."
+    create:
+      created: "Cartão adicionado."
+    destroy:
+      removed: "Cartão removido."
   pages:
     home:
       meta_title: "azulzin — finanças pessoais com tranquilidade"

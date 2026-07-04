@@ -7,3 +7,8 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+
+# Reference data: the Brazilian financial-institution registry backing the account
+# and card pickers. Idempotent — safe to re-run on every deploy.
+Institution.load_registry!
+Rails.logger.info "Seeded #{Institution.count} institutions."

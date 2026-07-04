@@ -1,0 +1,25 @@
+<% content_for :title, t("bank_accounts.index.meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t("bank_accounts.index.title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t("bank_accounts.index.subtitle") %></p>
+</header>
+
+<div class="grid gap-6 lg:grid-cols-5">
+  <div class="lg:col-span-3">
+    <div id="bank_accounts_list" class="flex flex-col gap-3">
+      <% if @bank_accounts.any? %>
+        <%= render @bank_accounts %>
+      <% else %>
+        <%= render "bank_accounts/empty" %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="lg:col-span-2">
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-4 font-display text-lg font-bold"><%= t("bank_accounts.add_title") %></h2>
+      <%= render "bank_accounts/form", bank_account: @bank_account %>
+    </div>
+  </div>
+</div>
