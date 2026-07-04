@@ -18,16 +18,16 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
     msg.update!(status: "processing")
 
-    text = msg.body                         # Phase 1/2: text only (audio/image in Phases 3/4)
+    text = resolve_text(msg)                # audio → transcript (stored); image → nil; else body
 
     # A reply routed to the user's single open ask (e.g. the "quanto foi?" answer) never
     # starts a new pipeline. Per-user serialization guarantees the ask already exists.
     if (open = Transaction.open_ask_for(msg.user))
-      Whatsapp::ReplyRouter.new(open, msg, text).call
+      Whatsapp::ReplyRouter.new(open, msg, text.to_s).call
       return finish(msg)
     end
 
-    extraction = Whatsapp::Extractor.from_text(msg.user, text, modality: "text")
+    extraction = extract(msg, text)
     match      = Whatsapp::Matcher.new(msg.user, extraction).call
     confidence = Whatsapp::Confidence.new(extraction)
     Whatsapp::Decider.new(msg, extraction, match, confidence).call
@@ -35,6 +35,29 @@ class ProcessInboundWhatsappJob < ApplicationJob
   end
 
   private
+
+  def resolve_text(msg)
+    case msg.message_type
+    when "audio"             then transcribe(msg)
+    when "image", "document" then nil          # vision reads the image directly
+    else msg.body
+    end
+  end
+
+  def transcribe(msg)
+    return msg.body unless msg.media.attached?
+    transcript = Whatsapp::SttClient.transcribe(msg.media)
+    msg.update!(transcription: transcript)
+    transcript
+  end
+
+  def extract(msg, text)
+    if (msg.type_image? || msg.type_document?) && msg.media.attached?
+      Whatsapp::ReceiptExtractor.from_message(msg)
+    else
+      Whatsapp::Extractor.from_text(msg.user, text, modality: msg.type_audio? ? "audio" : "text")
+    end
+  end
 
   def finish(msg) = msg.update!(status: "processed", processed_at: Time.current)
 end

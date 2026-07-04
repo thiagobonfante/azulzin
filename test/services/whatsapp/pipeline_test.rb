@@ -43,7 +43,9 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
   end
 
   test "high confidence + unmatched instrument → posted UNASSIGNED (assign in-app)" do
-    run_pipeline(inbound("gastei 50 no posto"), extraction(amount_cents: 5_000, instrument_phrase: nil, merchant: "posto"))
+    # payment_method "desconhecido" → KIND isn't decisive → no auto-assign → unassigned.
+    run_pipeline(inbound("gastei 50 no posto"),
+                 extraction(amount_cents: 5_000, instrument_phrase: nil, payment_method: "desconhecido", merchant: "posto"))
     txn = @user.transactions.sole
     assert txn.posted?
     assert_not txn.assigned?
