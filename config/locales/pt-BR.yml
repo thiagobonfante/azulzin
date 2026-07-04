@@ -239,6 +239,8 @@ pt-BR:
       expiry: "Este link expira em %{duration}."
   whatsapp:
     replies:
+      posted: "✅ Lançado: %{amount} em %{instrument}."
+      posted_unassigned: "✅ Lançado: %{amount}. Escolha a conta ou o cartão no app."
       parked: "Recebi 👍 Deixei pendente no app para você revisar."
       clarify_amount: "Não consegui identificar o valor. Quanto foi?"
       unknown_sender: "Número não cadastrado no azulzin."

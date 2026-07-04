@@ -18,38 +18,23 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
     msg.update!(status: "processing")
 
-    text = msg.body                         # Phase 1: text only (audio/image in Phases 3/4)
-    extraction = Whatsapp::Extractor.from_text(msg.user, text, modality: "text")
+    text = msg.body                         # Phase 1/2: text only (audio/image in Phases 3/4)
 
-    # Phase 1: no matcher/decider yet — park a pending_review transaction (or ask for the
-    # amount if we couldn't read one). Phase 2 replaces this with Matcher → Confidence → Decider.
-    if extraction.amount_present?
-      txn = park(msg, extraction)
-      WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.parked", transaction: txn)
-      msg.update!(status: "processed", processed_at: Time.current)
-    else
-      WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.clarify_amount")
-      msg.update!(status: "processed", processed_at: Time.current, ai_result: extraction.to_h)
+    # A reply routed to the user's single open ask (e.g. the "quanto foi?" answer) never
+    # starts a new pipeline. Per-user serialization guarantees the ask already exists.
+    if (open = Transaction.open_ask_for(msg.user))
+      Whatsapp::ReplyRouter.new(open, msg, text).call
+      return finish(msg)
     end
+
+    extraction = Whatsapp::Extractor.from_text(msg.user, text, modality: "text")
+    match      = Whatsapp::Matcher.new(msg.user, extraction).call
+    confidence = Whatsapp::Confidence.new(extraction)
+    Whatsapp::Decider.new(msg, extraction, match, confidence).call
+    finish(msg)
   end
 
   private
 
-  def park(msg, extraction)
-    Transaction.find_or_create_by!(source_message_id: msg.wa_message_id) do |t|
-      t.user            = msg.user
-      t.whatsapp_message = msg
-      t.amount_cents    = extraction.amount_cents
-      t.merchant        = extraction.merchant
-      t.payment_method  = extraction.payment_method
-      t.occurred_on     = extraction.occurred_on || today
-      t.status          = "pending_review"
-      t.source          = extraction.source
-      t.confidence      = (extraction.overall_confidence.to_f * 100).round
-      t.extraction      = extraction.to_h.compact
-    end
-  end
-
-  # "hoje" in the app's zone (America/Sao_Paulo) — never UTC (Review P0-2).
-  def today = Time.current.in_time_zone("America/Sao_Paulo").to_date
+  def finish(msg) = msg.update!(status: "processed", processed_at: Time.current)
 end

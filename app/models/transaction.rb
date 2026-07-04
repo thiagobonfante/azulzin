@@ -55,4 +55,32 @@ class Transaction < ApplicationRecord
   # The instrument an expense is charged to (nil ⇒ unassigned; assign in-app).
   def instrument = bank_account || credit_card
   def assigned?  = instrument.present?
+
+  # Minimum match strength to auto-assign an instrument on a silent post; below this we
+  # post UNASSIGNED (never guess the account) and let the user assign in-app.
+  MATCH_ASSIGN_MIN = 0.70
+
+  # Guarded conditional transition: only applies `attrs` if the row is still in one of
+  # `from_statuses`, and returns whether it moved. Prevents the confirm-vs-expiry and
+  # confirm-vs-supersede races (Review P1-3) — a late reply can't commit a row the sweep
+  # already expired. Uses update_all (no callbacks) so it is a single atomic UPDATE.
+  def guarded_update(from_statuses, attrs)
+    n = self.class.where(id: id, status: from_statuses)
+             .update_all(attrs.merge(updated_at: Time.current))
+    reload if n.positive?
+    n.positive?
+  end
+
+  # Reverse a posted transaction (the in-app / "apagar" undo). Excluded from spend once
+  # rejected. Pure record ⇒ nothing to un-bump.
+  def reverse! = update!(status: "rejected")
+
+  # Assign (or reassign) the instrument in-app; clears the other side.
+  def assign_instrument!(record)
+    case record
+    when BankAccount then update!(bank_account: record, credit_card: nil)
+    when CreditCard  then update!(credit_card: record, bank_account: nil)
+    else raise ArgumentError, "not an instrument: #{record.class}"
+    end
+  end
 end
