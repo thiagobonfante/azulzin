@@ -57,4 +57,17 @@ class ProcessInboundWhatsappJobTest < ActiveSupport::TestCase
     assert_equal 0, @user.transactions.spend.count   # nothing posted
     assert_equal "processed", @msg.reload.status
   end
+
+  test "over the per-minute cap → skips AI (no extractor call), marks failed, posts nothing" do
+    (ProcessInboundWhatsappJob::MAX_INBOUND_PER_MINUTE + 1).times do |i|
+      WhatsappMessage.create!(user: @user, direction: "inbound", message_type: "text",
+        wa_message_id: "flood-#{i}", chat_id: "5511999998888@c.us", body: "x", status: "processed")
+    end
+    # No AI stub: if the pipeline weren't short-circuited it would hit OpenRouter and raise.
+    ProcessInboundWhatsappJob.perform_now(@msg.id)
+
+    assert_equal "failed", @msg.reload.status
+    assert_equal "rate_limited", @msg.error
+    assert_equal 0, @user.transactions.count
+  end
 end

@@ -11,12 +11,20 @@ class ProcessInboundWhatsappJob < ApplicationJob
   retry_on Net::OpenTimeout, Net::ReadTimeout, wait: 5.seconds, attempts: 3
   discard_on ActiveJob::DeserializationError
 
+  # Bound AI spend from a chatty or malicious sender. A legit user never sends this many
+  # expenses a minute; over the cap we skip the AI call (the message is still stored).
+  MAX_INBOUND_PER_MINUTE = 20
+
   def perform(message_id)
     msg = WhatsappMessage.find(message_id)
     return if msg.status == "processed"     # re-run guard (idempotent)
     return if msg.user.nil?                 # defense-in-depth; webhook already short-circuits
 
     msg.update!(status: "processing")
+
+    if over_rate_limit?(msg.user)
+      return msg.update!(status: "failed", error: "rate_limited", processed_at: Time.current)
+    end
 
     text = resolve_text(msg)                # audio → transcript (stored); image → nil; else body
 
@@ -57,6 +65,10 @@ class ProcessInboundWhatsappJob < ApplicationJob
     else
       Whatsapp::Extractor.from_text(msg.user, text, modality: msg.type_audio? ? "audio" : "text")
     end
+  end
+
+  def over_rate_limit?(user)
+    user.whatsapp_messages.inbound.where(created_at: 1.minute.ago..).count > MAX_INBOUND_PER_MINUTE
   end
 
   def finish(msg) = msg.update!(status: "processed", processed_at: Time.current)
