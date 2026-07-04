@@ -4,10 +4,12 @@ class User < ApplicationRecord
   # find_by_password_reset_token! remain available (verified in activemodel 8.1.3).
   has_secure_password validations: false
 
-  has_many :sessions,         dependent: :destroy
-  has_many :oauth_identities, dependent: :destroy   # table added in Phase 4
-  has_many :bank_accounts,    dependent: :destroy
-  has_many :credit_cards,     dependent: :destroy
+  has_many :sessions,          dependent: :destroy
+  has_many :oauth_identities,  dependent: :destroy   # table added in Phase 4
+  has_many :bank_accounts,     dependent: :destroy
+  has_many :credit_cards,      dependent: :destroy
+  has_many :transactions,      dependent: :destroy   # WhatsApp/manual money movements
+  has_many :whatsapp_messages, dependent: :destroy   # LGPD: deleting a user erases their WA history
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   # Phone is stored as E.164 digits (country code + national number). The profile form
@@ -106,6 +108,32 @@ class User < ApplicationRecord
   def self.provider_email_verified?(auth)
     auth.provider == "google_oauth2" &&
       auth.dig("extra", "raw_info", "email_verified").to_s == "true"
+  end
+
+  # --- WhatsApp channel identity (see .plans/whats §3.3, Review P0-1) ---
+
+  def phone_verified? = phone_verified_at.present?
+
+  # The verified user for an inbound WhatsApp JID, or nil. NEVER guesses: resolves by
+  # exact equality on the unique `whatsapp_id`, and REFUSES an ambiguous (0 or ≥2) match
+  # rather than attributing money to an arbitrary row.
+  def self.verified_for_wa(jid)
+    ids = wa_id_candidates(jid)
+    return nil if ids.empty?
+    scope = where.not(phone_verified_at: nil).where(whatsapp_id: ids)
+    scope.limit(2).count == 1 ? scope.first : nil   # 0 or ≥2 → refuse
+  end
+
+  # Digits-only candidates for a JID, tolerant of the Brazilian mobile 9th digit which
+  # WhatsApp sometimes includes/omits. Only ever compared against a VERIFIED whatsapp_id.
+  def self.wa_id_candidates(jid)
+    digits = jid.to_s.sub(/@c\.us\z/, "").gsub(/\D/, "")
+    return [] if digits.length < 12
+    cc_ddd, rest = digits[0, 4], digits[4..]
+    out = [ digits ]
+    out << cc_ddd + rest[1..]      if rest.length == 9 && rest[0] == "9"   # drop the 9
+    out << cc_ddd + "9" + rest     if rest.length == 8                     # add the 9
+    out.uniq
   end
 
   private

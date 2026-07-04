@@ -3,6 +3,7 @@ class BankAccount < ApplicationRecord
 
   belongs_to :user
   belongs_to :institution                        # required (belongs_to is non-optional)
+  has_many :transactions, dependent: :nullify    # deleting an account must not erase history
 
   money_column :balance
 

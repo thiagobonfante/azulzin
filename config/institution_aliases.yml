@@ -1,0 +1,33 @@
+# Colloquial names people say/write for each institution, keyed by COMPE code
+# (must match config/institutions.yml). Loaded into the frozen Whatsapp::INSTITUTION_ALIASES
+# hash and used by the Matcher to resolve a spoken/OCR'd instrument phrase to the user's
+# account/card. All entries are normalized (accent-stripped, downcased) at load time.
+# Aliases of <= 4 chars match as a WHOLE TOKEN only (never fuzzy) — see the Matcher.
+#
+# Keep entries lowercase; the loader transliterates accents. Add misses as users surface them.
+
+"260": [nubank, nu, roxinho, roxo, nuconta, ultravioleta]   # Nubank
+"341": [itau, itaucard, personnalite, iti]                  # Itaú
+"237": [bradesco, next, bradescard]                         # Bradesco (+ sub-brand next)
+"001": [banco do brasil, bb, ourocard]                      # Banco do Brasil
+"104": [caixa, cef, caixa economica]                        # Caixa
+"033": [santander, way, esfera, santa]                      # Santander (+ way/esfera)
+"077": [inter, banco inter]                                 # Inter
+"336": [c6, c6 bank, carbon, c six]                         # C6 Bank
+"323": [mercado pago, mp, meli, mercadopago]                # Mercado Pago
+"380": [picpay]                                             # PicPay
+"290": [pagbank, pagseguro, pag]                            # PagBank
+"208": [btg, btg pactual]                                   # BTG Pactual
+"212": [original, banco original]                           # Original
+"348": [xp, banco xp, xp investimentos]                     # XP
+"536": [neon]                                               # Neon
+"422": [safra, banco safra]                                 # Safra
+"041": [banrisul]                                           # Banrisul
+"756": [sicoob]                                             # Sicoob
+"748": [sicredi]                                            # Sicredi
+"623": [pan, banco pan]                                     # Pan
+"655": [bv, banco bv, votorantim]                           # BV
+"318": [bmg, banco bmg]                                     # BMG
+"335": [digio]                                              # Digio
+"634": [will, will bank]                                    # Will Bank
+"121": [agibank, agi]                                       # Agibank

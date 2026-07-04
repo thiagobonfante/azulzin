@@ -3,10 +3,15 @@ class CreditCard < ApplicationRecord
 
   belongs_to :user
   belongs_to :institution                        # required (belongs_to is non-optional)
+  has_many :transactions, dependent: :nullify    # deleting a card must not erase history
 
   money_column :credit_limit, :current_bill
 
+  # Digits-only last four (helps same-bank card disambiguation, e.g. "final 1234").
+  normalizes :last4, with: ->(v) { v.to_s.gsub(/\D/, "").presence }
+
   validates :nickname,           length: { maximum: 80 }, allow_blank: true
+  validates :last4,              format: { with: /\A\d{4}\z/ }, allow_nil: true
   validates :credit_limit_cents, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :current_bill_cents, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 

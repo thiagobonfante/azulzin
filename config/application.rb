@@ -22,12 +22,17 @@ module Azulzin
     config.i18n.available_locales = [ :"pt-BR", :"en-US", :en ]
     config.i18n.fallbacks         = [ :en ]   # NEVER `true` (would fall back to pt-BR)
 
+    # Brazil-first app: render/compute wall-clock time in São Paulo, store in UTC.
+    # Without this the "hoje" default for a WhatsApp-captured transaction is off by one
+    # for evening transactions (UTC rolls to tomorrow). See .plans/whats (Review P0-2).
+    config.time_zone = "America/Sao_Paulo"
+    config.active_record.default_timezone = :utc   # persist UTC, present in zone
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end
