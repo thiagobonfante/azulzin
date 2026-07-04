@@ -1,6 +1,10 @@
 module Authentication
   extend ActiveSupport::Concern
 
+  # Raised when an allowlisted-only deployment refuses to sign a user in.
+  # ApplicationController rescues it back to the sign-in page. See User#email_allowed?.
+  class NotAllowed < StandardError; end
+
   included do
     before_action :require_authentication
     helper_method :authenticated?
@@ -39,6 +43,7 @@ module Authentication
     end
 
     def start_new_session_for(user)
+      raise NotAllowed unless user.email_allowed?   # allowlist gate — covers every sign-in path
       user.sessions.create!(user_agent: request.user_agent, ip_address: request.remote_ip).tap do |session|
         Current.session = session
         cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }

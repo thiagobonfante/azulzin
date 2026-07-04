@@ -86,6 +86,14 @@ Rails.application.configure do
   config.x.marketing_host = "azulzin.com.br"
   config.x.app_host       = "app.azulzin.com.br"
 
+  # Temporary hardcoded allowlist: only these addresses may create an account or
+  # sign in (production only). Blank/unset in dev+test ⇒ unrestricted. See User#email_allowed?.
+  config.x.allowed_emails = %w[
+    thiagobonfante@gmail.com
+    thiago@subbase.io
+    franciane.teixeira02@gmail.com
+  ]
+
   # Enable DNS rebinding protection: only serve the hosts we own.
   config.hosts = [ "azulzin.com.br", "www.azulzin.com.br", "app.azulzin.com.br" ]
 

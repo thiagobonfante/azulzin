@@ -46,4 +46,14 @@ class OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_url
     assert cookies[:session_id].blank?
   end
+
+  test "Google login is refused when the address is off the allowlist" do
+    with_allowed_emails([ "someone-else@example.com" ]) do
+      assert_no_difference [ "User.count", "OauthIdentity.count" ] do
+        google(email: "intruder@example.com")
+      end
+      assert_redirected_to new_session_url
+      assert cookies[:session_id].blank?
+    end
+  end
 end

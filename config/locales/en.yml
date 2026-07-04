@@ -13,6 +13,7 @@ en:
     rate_limited: "Too many attempts. Please try again in a few minutes."
     continue_with_google: "Continue with Google"
     or: "or"
+    not_allowed: "This account isn't allowed to access azulzin."
   omniauth:
     signed_in: "Signed in with Google."
     could_not_sign_in: "We couldn't sign you in. Add an email to your account and try again."
@@ -23,6 +24,12 @@ en:
         email_address: "Email address"
         password: "Password"
         password_confirmation: "Password confirmation"
+    errors:
+      models:
+        user:
+          attributes:
+            email_address:
+              not_allowed: "isn't allowed to sign up."
   pages:
     home:
       meta_title: "azulzin — calm personal finance"

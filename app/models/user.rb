@@ -16,6 +16,10 @@ class User < ApplicationRecord
   # Presence on create catches blank sign-up passwords (password = "" is a no-op the
   # setter drops to nil). OAuth create supplies a random password, so it passes too.
   validates :password, presence: true, on: :create
+  # Hardcoded allowlist gate (config.x.allowed_emails, prod only). Blocks account
+  # creation — password sign-up and OAuth create alike; sign-in is gated separately
+  # in Authentication#start_new_session_for. Blank list ⇒ unrestricted (dev/test).
+  validate :email_address_on_allowlist, on: :create
 
   generates_token_for :email_verification, expires_in: 24.hours do
     email_address        # changing the address invalidates a pending link
@@ -23,6 +27,15 @@ class User < ApplicationRecord
 
   def verified? = confirmed_at.present?
   def verify!   = update!(confirmed_at: Time.current)
+
+  # Single source of truth for the allowlist gate (config.x.allowed_emails, prod only).
+  # Blank/unset list ⇒ everyone is allowed, so dev+test stay unrestricted.
+  def self.email_allowed?(email)
+    allowed = Rails.configuration.x.allowed_emails
+    allowed.blank? || allowed.include?(email.to_s.strip.downcase)
+  end
+
+  def email_allowed? = self.class.email_allowed?(email_address)
 
   def self.from_omniauth(auth)
     return if auth.nil?   # unconfigured provider slips past the route → refuse, don't 500
@@ -59,4 +72,9 @@ class User < ApplicationRecord
     auth.provider == "google_oauth2" &&
       auth.dig("extra", "raw_info", "email_verified").to_s == "true"
   end
+
+  private
+    def email_address_on_allowlist
+      errors.add(:email_address, :not_allowed) unless email_allowed?
+    end
 end

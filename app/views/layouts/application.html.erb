@@ -60,13 +60,9 @@
       <div class="container mx-auto flex flex-col items-center justify-between gap-3 px-5 py-6 text-sm text-base-content/60 sm:flex-row">
         <span class="font-display font-semibold lowercase">azulzin</span>
         <span><%= t("layout.footer.tagline") %></span>
-        <div class="flex items-center gap-1">
-          <% Rails.application.config.x.supported_locales.each do |code, label| %>
-            <%= button_to label, locale_path, method: :patch, params: { locale: code },
-                  data: { turbo: false },
-                  class: "btn btn-ghost btn-xs #{'btn-active' if I18n.locale.to_s == code}" %>
-          <% end %>
-        </div>
+        <%# Language switcher hidden while the UI is pinned to pt-BR
+            (ApplicationController#resolve_locale). Restore this block from git to
+            bring it back when en-US is re-enabled. %>
       </div>
     </footer>
   </body>

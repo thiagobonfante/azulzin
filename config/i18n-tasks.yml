@@ -33,3 +33,5 @@ search:
 # :password_confirmation) that the scanner still can't match to a literal key.
 ignore_unused:
   - 'activerecord.attributes.*'
+  # Added by errors.add(:email_address, :not_allowed) in User — no literal key to scan.
+  - 'activerecord.errors.*'

@@ -12,5 +12,16 @@ module ActiveSupport
     fixtures :all
 
     # Add more helper methods to be used by all tests here...
+
+    # The allowlist gate (config.x.allowed_emails) is production-only, so it is unset
+    # in test. Wrap assertions that exercise it in this helper. Safe under parallel
+    # workers: they fork separate processes, and the ensure restores the prior value.
+    def with_allowed_emails(emails)
+      previous = Rails.configuration.x.allowed_emails
+      Rails.configuration.x.allowed_emails = emails
+      yield
+    ensure
+      Rails.configuration.x.allowed_emails = previous
+    end
   end
 end

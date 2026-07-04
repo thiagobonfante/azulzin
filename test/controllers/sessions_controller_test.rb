@@ -25,4 +25,12 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_url
     assert cookies[:session_id].blank?
   end
+
+  test "a valid password sign-in is refused when the address is off the allowlist" do
+    with_allowed_emails([ "someone-else@example.com" ]) do
+      post session_url, params: { email_address: "confirmed@example.com", password: "password123" }
+      assert_redirected_to new_session_url
+      assert cookies[:session_id].blank?
+    end
+  end
 end

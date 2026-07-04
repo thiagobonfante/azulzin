@@ -14,6 +14,7 @@ pt-BR:
     rate_limited: "Muitas tentativas. Tente novamente daqui a alguns minutos."
     continue_with_google: "Continuar com o Google"
     or: "ou"
+    not_allowed: "Esta conta não está autorizada a acessar o azulzin."
   omniauth:
     signed_in: "Você entrou com o Google."
     could_not_sign_in: "Não foi possível entrar. Adicione um e-mail à sua conta e tente novamente."
@@ -24,6 +25,12 @@ pt-BR:
         email_address: "E-mail"
         password: "Senha"
         password_confirmation: "Confirmação de senha"
+    errors:
+      models:
+        user:
+          attributes:
+            email_address:
+              not_allowed: "não está autorizado a criar uma conta."
   pages:
     home:
       meta_title: "azulzin — finanças pessoais com tranquilidade"

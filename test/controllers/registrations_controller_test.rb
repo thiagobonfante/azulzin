@@ -27,4 +27,24 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :unprocessable_entity
   end
+
+  test "sign-up is blocked for an address off the allowlist" do
+    with_allowed_emails([ "allowed@example.com" ]) do
+      assert_no_difference "User.count" do
+        post registration_url, params: { user: {
+          email_address: "intruder@example.com", password: "password123", password_confirmation: "password123" } }
+      end
+      assert_response :unprocessable_entity
+    end
+  end
+
+  test "sign-up succeeds for an allowlisted address" do
+    with_allowed_emails([ "allowed@example.com" ]) do
+      assert_difference "User.count", 1 do
+        post registration_url, params: { user: {
+          email_address: "allowed@example.com", password: "password123", password_confirmation: "password123" } }
+      end
+      assert_redirected_to new_session_url
+    end
+  end
 end
