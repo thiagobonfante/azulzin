@@ -13,8 +13,8 @@ class CreateTransactions < ActiveRecord::Migration[8.1]
       t.date    :occurred_on,   null: false                  # computed in America/Sao_Paulo
 
       t.string  :status,        null: false, default: "pending_review"
-                # posted | needs_confirmation | needs_clarification | needs_disambiguation
-                # | pending_review | rejected | superseded
+      # posted | needs_confirmation | needs_clarification | needs_disambiguation
+      # | pending_review | rejected | superseded
       t.integer :confidence                                  # 0..100 integer
       t.string  :source                                      # whatsapp_audio|whatsapp_receipt|whatsapp_text|manual
 
@@ -24,7 +24,7 @@ class CreateTransactions < ActiveRecord::Migration[8.1]
       t.datetime :ask_expires_at
 
       t.references :whatsapp_message, foreign_key: true      # the inbound msg that produced it
-      t.string  :source_message_id                           # wa _serialized id — POSTING IDEMPOTENCY
+      t.string :source_message_id                           # wa _serialized id — POSTING IDEMPOTENCY
       t.datetime :confirmed_at
 
       t.timestamps

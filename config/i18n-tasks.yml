@@ -39,3 +39,6 @@ ignore_unused:
   - 'activerecord.errors.*'
   # Looked up dynamically as t("onboarding.steps.#{step}") in the wizard progress bar.
   - 'onboarding.steps.*'
+  # WhatsApp reply copy — resolved dynamically via WhatsappReply.deliver(key:) and
+  # t("whatsapp.replies.#{...}"); no static literal for the scanner to match.
+  - 'whatsapp.replies.*'

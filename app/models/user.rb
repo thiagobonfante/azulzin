@@ -114,6 +114,38 @@ class User < ApplicationRecord
 
   def phone_verified? = phone_verified_at.present?
 
+  # Generate (idempotently, unless :force) the short code the user texts to the commercial
+  # number to prove ownership. Unambiguous alphabet (no O/0/I/1). Retries on the rare
+  # unique-index collision.
+  VERIFICATION_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".chars.freeze
+
+  def whatsapp_verification_code!(force: false)
+    return whatsapp_verification_code if whatsapp_verification_code.present? && !force
+    begin
+      update!(whatsapp_verification_code: "AZUL-#{Array.new(4) { VERIFICATION_ALPHABET.sample }.join}")
+    rescue ActiveRecord::RecordNotUnique
+      retry
+    end
+    whatsapp_verification_code
+  end
+
+  # Bind an inbound sender's number to this account and mark it verified. Called from the
+  # webhook when an unverified sender texts a matching code. Idempotent-safe: the unique
+  # whatsapp_id index refuses a second account claiming the same number.
+  def verify_whatsapp!(sender_jid)
+    digits = sender_jid.to_s.sub(/@c\.us\z/, "").gsub(/\D/, "")
+    update!(whatsapp_id: digits, phone_verified_at: Time.current, whatsapp_verification_code: nil)
+  end
+
+  # Resolve a verification code typed into a WhatsApp message to the user awaiting it, or
+  # nil. Matches the code as a whole token anywhere in the body (case-insensitive), so
+  # "meu codigo AZUL-4F3K" works.
+  def self.awaiting_whatsapp_verification(body)
+    codes = body.to_s.upcase.scan(/AZUL-[A-Z0-9]{4}/)
+    return nil if codes.empty?
+    where(whatsapp_verification_code: codes).where(phone_verified_at: nil).first
+  end
+
   # The verified user for an inbound WhatsApp JID, or nil. NEVER guesses: resolves by
   # exact equality on the unique `whatsapp_id`, and REFUSES an ambiguous (0 or ≥2) match
   # rather than attributing money to an arbitrary row.

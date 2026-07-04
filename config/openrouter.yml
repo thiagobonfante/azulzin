@@ -1,0 +1,12 @@
+# Per-task model config for the OpenRouter chat/vision client (config.x.openrouter).
+# STT is NOT here — it runs against Groq directly (see SttClient). ALL model slugs are
+# PLACEHOLDERS: verify against the live OpenRouter model list before relying on them
+# (see .plans/whats §4.1 / Review P1-1).
+extraction:
+  model: "google/gemini-2.5-flash"
+  temperature: 0
+  max_tokens: 800
+vision:
+  model: "google/gemini-2.5-flash"
+  temperature: 0
+  max_tokens: 1000

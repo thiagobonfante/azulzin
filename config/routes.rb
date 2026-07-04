@@ -13,6 +13,14 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   get "/robots.txt" => "pages#robots"
 
+  # Sidecar → Rails WhatsApp webhook. Server-to-server (bearer token), so it sits OUTSIDE
+  # the on_app/on_marketing host constraints. See .plans/whats §3.1.
+  namespace :api do
+    namespace :whatsapp do
+      post "webhook", to: "webhooks#create"
+    end
+  end
+
   # ── Product app · app.azulzin.com.br ─────────────────────────────────────
   constraints(on_app) do
     resource :session

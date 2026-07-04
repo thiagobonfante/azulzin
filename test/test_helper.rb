@@ -7,6 +7,24 @@ require_relative "../config/environment"
 require "rails/test_help"
 require_relative "test_helpers/session_test_helper"
 
+# minitest 6 dropped `minitest/mock`, and this project pulls in no stubbing gem. This is a
+# minimal block-form `Object#stub` (same alias-based mechanism minitest used) so tests can
+# swap the external boundaries — the sidecar client and the AI client — for the block's
+# duration and restore afterward. Pass a callable (invoked with the call args) or a value.
+class Object
+  def stub(name, value_or_callable)
+    meta = singleton_class
+    meta.send(:alias_method, "__unstubbed_#{name}", name)
+    meta.send(:define_method, name) do |*args, **kwargs, &blk|
+      value_or_callable.respond_to?(:call) ? value_or_callable.call(*args, **kwargs, &blk) : value_or_callable
+    end
+    yield
+  ensure
+    meta.send(:alias_method, name, "__unstubbed_#{name}")
+    meta.send(:remove_method, "__unstubbed_#{name}")
+  end
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers

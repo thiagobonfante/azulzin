@@ -237,3 +237,9 @@ pt-BR:
       intro: "Você pode redefinir sua senha usando o link abaixo."
       reset_link: "Redefinir minha senha"
       expiry: "Este link expira em %{duration}."
+  whatsapp:
+    replies:
+      parked: "Recebi 👍 Deixei pendente no app para você revisar."
+      clarify_amount: "Não consegui identificar o valor. Quanto foi?"
+      unknown_sender: "Número não cadastrado no azulzin."
+      verified: "WhatsApp ativado! ✅ Agora é só me mandar seus gastos por aqui."

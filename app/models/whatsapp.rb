@@ -20,4 +20,11 @@ module Whatsapp
   SHORT_ALIAS_MAX = 4
 
   def self.aliases_for(code) = INSTITUTION_ALIASES.fetch(code.to_s, [].freeze)
+
+  # Shared secret between Rails and the sidecar (both directions). Credentials first, ENV
+  # fallback (the sidecar itself is configured via ENV, so this keeps the two symmetric and
+  # makes tests/local dev easy).
+  def self.service_token
+    Rails.application.credentials.dig(:whatsapp, :service_token).presence || ENV["WHATSAPP_SERVICE_TOKEN"].presence
+  end
 end

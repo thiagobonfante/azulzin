@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_04_213706) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_04_213707) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -147,8 +147,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_04_213706) do
     t.datetime "phone_verified_at"
     t.datetime "updated_at", null: false
     t.string "whatsapp_id"
+    t.string "whatsapp_verification_code"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["whatsapp_id"], name: "index_users_on_whatsapp_id", unique: true, where: "(whatsapp_id IS NOT NULL)"
+    t.index ["whatsapp_verification_code"], name: "index_users_on_whatsapp_verification_code", unique: true, where: "(whatsapp_verification_code IS NOT NULL)"
   end
 
   create_table "whatsapp_connections", force: :cascade do |t|
