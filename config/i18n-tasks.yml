@@ -60,3 +60,9 @@ ignore_unused:
   - 'commitments.kinds.*'
   - 'commitments.occurrences.statuses.*'
   - 'commitments.form.kind_hints.*'
+  # Document-import labels looked up dynamically:
+  #   t("document_imports.kinds.#{kind}"), t("document_imports.errors.#{error_code}"),
+  #   t("document_imports.found.#{group}", count:)
+  - 'document_imports.kinds.*'
+  - 'document_imports.errors.*'
+  - 'document_imports.found.*'

@@ -27,6 +27,7 @@ pt-BR:
       income: "Entrada"
       category: "Categoria"
       commitment: "Compromisso"
+      document_import: "Importação"
     attributes:
       user:
         email_address: "E-mail"
@@ -73,6 +74,8 @@ pt-BR:
         starts_on: "Início"
         ends_on: "Fim"
         installments_count: "Parcelas"
+      document_import:
+        file: "Arquivo"
     errors:
       models:
         user:
@@ -85,6 +88,12 @@ pt-BR:
           attributes:
             transfer_to_bank_account:
               same_account: "não pode ser a mesma conta de origem."
+        document_import:
+          attributes:
+            file:
+              missing: "é obrigatório."
+              too_large: "excede o limite de 10 MB."
+              unsupported_type: "tem um formato não suportado. Envie PDF, CSV ou OFX."
   app:
     nav:
       dashboard: "Painel"
@@ -132,6 +141,10 @@ pt-BR:
       continue: "Continuar"
       need_one: "Adicione pelo menos uma conta para continuar."
       need_one_hint: "É preciso ter ao menos uma conta para continuar."
+      import:
+        title: "Envie seus extratos e faturas — a gente monta tudo pra você."
+        hint: "PDF, CSV ou OFX do seu banco. Até 10 MB por arquivo."
+        divider: "ou adicione manualmente"
     incomes:
       meta_title: "Suas rendas"
       title: "De onde vem seu dinheiro?"
@@ -477,6 +490,47 @@ pt-BR:
       confirmed: "Lançamento confirmado."
     destroy:
       removed: "Lançamento removido."
+  document_imports:
+    choose_files: "Escolher arquivos…"
+    submit: "Enviar"
+    review_button: "Revisar e criar"
+    remove: "Remover"
+    upload_rejected: "%{filename}: %{reason}"
+    kinds:
+      bank_statement: "extrato"
+      card_bill: "fatura"
+    status:
+      processing: "Lendo o documento…"
+      applied: "Criado — tudo certo"
+    found:
+      summary: "%{parts} encontrados"
+      accounts:
+        one: "%{count} conta"
+        other: "%{count} contas"
+      cards:
+        one: "%{count} cartão"
+        other: "%{count} cartões"
+      incomes:
+        one: "%{count} renda"
+        other: "%{count} rendas"
+      commitments:
+        one: "%{count} compromisso"
+        other: "%{count} compromissos"
+    upload:
+      file: "arquivo"
+      bad_type: "Tipo de arquivo não aceito"
+      too_large: "Arquivo acima de 10 MB"
+    errors:
+      password_protected: "Este PDF está protegido por senha. Remova a senha e envie de novo."
+      unsupported_format: "Não conseguimos ler este tipo de arquivo. Envie PDF, CSV ou OFX."
+      too_large: "Arquivo muito grande — o limite é 10 MB."
+      parse_failed: "Não conseguimos ler este documento. Tente outro arquivo ou adicione manualmente."
+      llm_failed: "Algo deu errado na leitura. Tente de novo em instantes."
+      duplicate_file: "Você já enviou este arquivo."
+      daily_cap: "Limite de 10 arquivos por dia atingido. Tente amanhã."
+    create:
+      no_files: "Selecione ao menos um arquivo para enviar."
+      daily_cap: "Limite de %{max} arquivos por dia atingido. Tente amanhã."
   admin:
     not_authorized: "Você não tem acesso a esta área."
     whatsapp_connections:

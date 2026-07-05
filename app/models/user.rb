@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :credit_cards,      dependent: :destroy
   has_many :transactions,      dependent: :destroy   # WhatsApp/manual money movements
   has_many :whatsapp_messages, dependent: :destroy   # LGPD: deleting a user erases their WA history
+  has_many :document_imports,  dependent: :destroy   # .plans/auto — uploaded extratos/faturas + proposals
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   # Phone is stored as E.164 digits (country code + national number). The profile form

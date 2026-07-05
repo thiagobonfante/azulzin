@@ -26,6 +26,7 @@ en:
       income: "Income"
       category: "Category"
       commitment: "Commitment"
+      document_import: "Import"
     attributes:
       user:
         email_address: "Email address"
@@ -72,6 +73,8 @@ en:
         starts_on: "Starts"
         ends_on: "Ends"
         installments_count: "Installments"
+      document_import:
+        file: "File"
     errors:
       models:
         user:
@@ -84,6 +87,12 @@ en:
           attributes:
             transfer_to_bank_account:
               same_account: "can't be the same as the source account."
+        document_import:
+          attributes:
+            file:
+              missing: "is required."
+              too_large: "exceeds the 10 MB limit."
+              unsupported_type: "has an unsupported format. Send a PDF, CSV or OFX."
   app:
     nav:
       dashboard: "Dashboard"
@@ -131,6 +140,10 @@ en:
       continue: "Continue"
       need_one: "Add at least one account to continue."
       need_one_hint: "You need at least one account to continue."
+      import:
+        title: "Send your statements and bills — we set everything up for you."
+        hint: "PDF, CSV or OFX from your bank. Up to 10 MB per file."
+        divider: "or add manually"
     incomes:
       meta_title: "Your income"
       title: "Where does your money come from?"
@@ -476,6 +489,47 @@ en:
       confirmed: "Expense confirmed."
     destroy:
       removed: "Expense removed."
+  document_imports:
+    choose_files: "Choose files…"
+    submit: "Upload"
+    review_button: "Review and create"
+    remove: "Remove"
+    upload_rejected: "%{filename}: %{reason}"
+    kinds:
+      bank_statement: "statement"
+      card_bill: "card bill"
+    status:
+      processing: "Reading the document…"
+      applied: "Created — all set"
+    found:
+      summary: "%{parts} found"
+      accounts:
+        one: "%{count} account"
+        other: "%{count} accounts"
+      cards:
+        one: "%{count} card"
+        other: "%{count} cards"
+      incomes:
+        one: "%{count} income"
+        other: "%{count} incomes"
+      commitments:
+        one: "%{count} commitment"
+        other: "%{count} commitments"
+    upload:
+      file: "file"
+      bad_type: "File type not accepted"
+      too_large: "File over 10 MB"
+    errors:
+      password_protected: "This PDF is password-protected. Remove the password and upload again."
+      unsupported_format: "We can't read this file type. Send a PDF, CSV or OFX."
+      too_large: "File too large — the limit is 10 MB."
+      parse_failed: "We couldn't read this document. Try another file or add it manually."
+      llm_failed: "Something went wrong reading it. Try again in a moment."
+      duplicate_file: "You already uploaded this file."
+      daily_cap: "Daily limit of 10 files reached. Try again tomorrow."
+    create:
+      no_files: "Select at least one file to upload."
+      daily_cap: "Daily limit of %{max} files reached. Try again tomorrow."
   admin:
     not_authorized: "You don't have access to this area."
     whatsapp_connections:

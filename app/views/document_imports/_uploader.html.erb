@@ -1,0 +1,33 @@
+<%# Upload hero (D1) — primary path above the untouched manual form. Reused verbatim by the %>
+<%# onboarding accounts step and the post-onboarding accounts index. `title` overridable. %>
+<% title ||= t("onboarding.accounts.import.title") %>
+<div class="mt-6">
+  <div class="rounded-box border border-primary/30 bg-primary/5 p-5"
+       data-controller="import-upload"
+       data-import-upload-too-large-message-value="<%= t("document_imports.upload.too_large") %>"
+       data-import-upload-bad-type-message-value="<%= t("document_imports.upload.bad_type") %>"
+       data-import-upload-max-bytes-value="<%= DocumentImport::MAX_FILE_BYTES %>"
+       data-import-upload-accept-value=".pdf,.csv,.ofx,.txt">
+    <p class="font-display text-lg font-bold text-primary"><%= title %></p>
+    <p class="mt-1 text-sm text-base-content/70"><%= t("onboarding.accounts.import.hint") %></p>
+
+    <%= form_with url: document_imports_path, method: :post, multipart: true,
+                  class: "mt-4 flex flex-col gap-3 sm:flex-row sm:items-center" do %>
+      <label class="sr-only" for="document_import_files"><%= t("document_imports.choose_files") %></label>
+      <input type="file" id="document_import_files" name="document_import[files][]" multiple
+             accept=".pdf,.csv,.ofx,.txt"
+             class="file-input file-input-bordered w-full sm:max-w-xs"
+             data-import-upload-target="input"
+             data-action="import-upload#validate">
+      <%= submit_tag t("document_imports.submit"), class: "btn btn-primary",
+                     data: { import_upload_target: "submit" } %>
+    <% end %>
+    <p class="mt-2 hidden text-sm text-error" data-import-upload-target="warning"></p>
+  </div>
+
+  <div class="mt-4" data-controller="import-status">
+    <%= turbo_frame_tag :import_status, src: status_document_imports_path %>
+  </div>
+
+  <div class="divider text-xs text-base-content/50"><%= t("onboarding.accounts.import.divider") %></div>
+</div>

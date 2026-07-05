@@ -1,0 +1,13 @@
+<%= turbo_frame_tag :import_status do %>
+  <% if imports.any? %>
+    <div class="flex flex-col gap-2">
+      <%= render partial: "document_imports/import", collection: imports, as: :import %>
+    </div>
+    <% if imports.any? { it.status == "extracted" } %>
+      <div class="mt-3">
+        <%= link_to t("document_imports.review_button"), review_document_imports_path,
+                    class: "btn btn-primary btn-sm" %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

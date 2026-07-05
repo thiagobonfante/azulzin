@@ -1,0 +1,33 @@
+<% active = %w[uploaded processing].include?(import.status) %>
+<div class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm"
+     data-import-active="<%= active %>">
+  <div class="flex items-center justify-between gap-2">
+    <p class="truncate text-sm font-medium">
+      <%= import.file.attached? ? import.file.filename.to_s : t("document_imports.upload.file") %>
+    </p>
+    <% if import.kind.present? && import.kind != "unknown" %>
+      <span class="badge badge-ghost badge-sm"><%= t("document_imports.kinds.#{import.kind}") %></span>
+    <% end %>
+  </div>
+
+  <div class="mt-2 text-sm text-base-content/70" aria-live="polite">
+    <% case import.status %>
+    <% when "uploaded", "processing" %>
+      <span class="loading loading-spinner loading-xs align-middle"></span>
+      <span class="align-middle"><%= t("document_imports.status.processing") %></span>
+    <% when "extracted" %>
+      <%= import_found_summary(import) %>
+    <% when "applied" %>
+      <span class="text-success">✓ <%= t("document_imports.status.applied") %></span>
+    <% when "failed" %>
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-error">
+          <%= t("document_imports.errors.#{import.error_code}",
+                default: t("document_imports.errors.parse_failed")) %>
+        </span>
+        <%= button_to t("document_imports.remove"), document_import_path(import), method: :delete,
+                      class: "btn btn-ghost btn-sm" %>
+      </div>
+    <% end %>
+  </div>
+</div>
