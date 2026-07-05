@@ -6,7 +6,8 @@ class CategoriesController < ApplicationController
 
   def index
     @categories = Current.user.categories.ordered
-    @category   = Category.new
+    # Pre-select a rotating palette color so new categories start colorful (the user can change it).
+    @category = Category.new(color: Category::COLORS[@categories.size % Category::COLORS.size])
   end
 
   def create
@@ -20,6 +21,11 @@ class CategoriesController < ApplicationController
                     alert: (saved ? nil : @category.errors.full_messages.to_sentence)
       end
     end
+  end
+
+  def edit
+    @category = Current.user.categories.find(params[:id])
+    render partial: "categories/edit", locals: { category: @category }
   end
 
   def update
@@ -47,5 +53,5 @@ class CategoriesController < ApplicationController
   end
 
   private
-    def category_params = params.expect(category: %i[name])
+    def category_params = params.expect(category: %i[name color icon])
 end

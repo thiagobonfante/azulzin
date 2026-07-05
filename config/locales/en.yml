@@ -351,6 +351,11 @@ en:
     add_title: "Add category"
     name: "Name"
     name_placeholder: "e.g. Pets"
+    color: "Color"
+    icon: "Icon"
+    no_icon: "No icon"
+    edit: "Edit category"
+    cancel: "Cancel"
     add: "Add"
     save: "Save"
     remove: "Remove category"
@@ -430,12 +435,16 @@ en:
     ledger:
       title: "Activity"
       add: "Add"
+      search_placeholder: "Search activity"
+      no_results: "No matching activity"
+      views:
+        list: "List"
+        category: "Categories"
       filters:
         all: "All"
         expenses: "Spending"
         incomes: "Income"
         transfers: "Transfers"
-      by_category: "By category"
       other_categories: "Other"
       uncategorized: "No category"
       empty: "No activity this month"
@@ -447,6 +456,12 @@ en:
       expense: "Expense"
       income: "Income"
       transfer: "Transfer"
+      payment_method: "Payment method"
+      methods:
+        credito: "Credit"
+        debito: "Debit"
+        pix: "Pix"
+        boleto: "Boleto"
     row:
       amount: "Amount"
       merchant: "Merchant"
@@ -467,6 +482,8 @@ en:
       direction: "Entry type"
     new:
       submit: "Add"
+    create:
+      future_bill: "Added to the %{month} bill — tap to view"
     update:
       updated: "Expense updated."
       created: "Entry added."

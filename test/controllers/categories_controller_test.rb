@@ -50,4 +50,39 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
     patch category_url(cat), as: :turbo_stream, params: { category: { name: "Feira" } }
     assert_equal "Feira", cat.reload.name
   end
+
+  test "create stores a chosen color and icon" do
+    post categories_url, as: :turbo_stream,
+         params: { category: { name: "Pets", color: "#22C55E", icon: "heart" } }
+    cat = @user.categories.order(:id).last
+    assert_equal "#22C55E", cat.color
+    assert_equal "heart", cat.icon
+  end
+
+  test "update changes color and icon" do
+    cat = @user.categories.create!(name: "Mercado")
+    patch category_url(cat), as: :turbo_stream, params: { category: { color: "#EF4444", icon: "cart" } }
+    assert_equal "#EF4444", cat.reload.color
+    assert_equal "cart", cat.icon
+  end
+
+  test "a color or icon outside the curated set is rejected" do
+    post categories_url, as: :turbo_stream, params: { category: { name: "Hax", color: "red; content:evil", icon: "skull" } }
+    assert_response :unprocessable_entity
+  end
+
+  test "edit renders the color and icon pickers" do
+    cat = @user.categories.create!(name: "Mercado")
+    get edit_category_url(cat)
+    assert_response :success
+    assert_select "input[name='category[color]'][value='#3B82F6']"
+    assert_select "input[name='category[icon]'][value='cart']"
+  end
+
+  test "seeded defaults come with a color and icon" do
+    post restore_categories_url
+    mercado = @user.categories.find_by(name: "Mercado")
+    assert_equal "#22C55E", mercado.color
+    assert_equal "cart", mercado.icon
+  end
 end

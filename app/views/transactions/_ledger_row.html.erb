@@ -1,8 +1,23 @@
-<%# locals: transaction — display row; clicking it loads the edit form into this frame (R7). %>
-<%= turbo_frame_tag dom_id(transaction, :row), class: "block border-b border-base-300/40 last:border-0" do %>
-  <% glyph, tone = ledger_row_glyph(transaction) %>
-  <%= link_to edit_transaction_path(transaction, month: params[:month]), class: "flex items-center gap-3 px-1 py-2 hover:bg-base-200/50" do %>
-    <span class="w-4 text-center text-lg <%= tone %>"><%= glyph %></span>
+<%# locals: transaction — display row; clicking it loads the edit form into this frame (R7).
+    The color-coded glyph badge + an optional muted hint make each line scan on its own. %>
+<% glyph, tone = ledger_row_glyph(transaction) %>
+<% search_text = [ transaction.merchant, transaction.description, transaction.category&.name,
+                   transaction.bank_account&.display_name, transaction.credit_card&.display_name,
+                   transaction.transfer_to_bank_account&.display_name ].compact.join(" ").downcase %>
+<%= turbo_frame_tag dom_id(transaction, :row), class: "block",
+      data: { ledger_target: "row", search: search_text } do %>
+  <%= link_to edit_transaction_path(transaction, month: params[:month]),
+        class: "flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-base-300/40" do %>
+    <% cat = transaction.category if transaction.expense? %>
+    <% if cat %>
+      <%# Colored by the category, with its icon (R6) — the category's color reflects here. %>
+      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full"
+            style="background-color: <%= cat.display_color %>1a; color: <%= cat.display_color %>">
+        <%= category_icon_tag(cat.icon, css_class: "h-4 w-4") || glyph %>
+      </span>
+    <% else %>
+      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-base-200 text-base <%= tone %>"><%= glyph %></span>
+    <% end %>
     <div class="min-w-0 flex-1">
       <p class="truncate text-sm">
         <% if transaction.transfer? %>
@@ -15,10 +30,13 @@
           <span class="text-xs text-base-content/50"><%= transaction.installment_number %>/<%= transaction.commitment&.installments_count %></span>
         <% end %>
       </p>
+      <% if transaction.expense? && transaction.category %>
+        <p class="truncate text-xs text-base-content/50"><%= transaction.category.name %></p>
+      <% end %>
     </div>
     <% if transaction.instrument %>
       <%= institution_avatar(transaction.instrument.institution, size: 20) %>
     <% end %>
-    <span class="tabular-nums text-sm <%= tone %>"><%= transaction.income? ? "+" : "" %><%= brl(transaction.amount_cents) %></span>
+    <span class="tabular-nums text-sm font-medium <%= tone %>"><%= transaction.income? ? "+" : "" %><%= brl(transaction.amount_cents) %></span>
   <% end %>
 <% end %>

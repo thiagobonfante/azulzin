@@ -1,0 +1,20 @@
+<%# locals: category — edit-in-place, loaded into the row's frame. Name + color/icon pickers. %>
+<%= turbo_frame_tag dom_id(category), class: "rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm" do %>
+  <%= form_with model: category, url: category_path(category), method: :patch, class: "flex flex-col gap-4" do |f| %>
+    <% if category.errors.any? %>
+      <div class="alert alert-error py-2 text-sm" role="alert"><span><%= category.errors.full_messages.to_sentence %></span></div>
+    <% end %>
+
+    <div class="form-control">
+      <%= f.label :name, t("categories.name"), class: "mb-1 block text-sm font-medium" %>
+      <%= f.text_field :name, required: true, class: "input input-bordered input-sm w-full" %>
+    </div>
+
+    <%= render "categories/fields", f: f, category: category %>
+
+    <div class="flex justify-end gap-2">
+      <%= link_to t("categories.cancel"), categories_path, data: { turbo_frame: dom_id(category) }, class: "btn btn-ghost btn-sm" %>
+      <%= f.submit t("categories.save"), class: "btn btn-primary btn-sm" %>
+    </div>
+  <% end %>
+<% end %>

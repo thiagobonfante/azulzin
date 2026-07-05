@@ -1,0 +1,31 @@
+<%# locals: rows, month, filter — the grouped, day-sectioned list. Rendered inside the ledger
+    frame and re-rendered wholesale on create so a first entry replaces the empty state cleanly. %>
+<div id="ledger_list" class="flex flex-col">
+  <% if rows.any? %>
+    <% limit = params[:show_all].present? ? rows.size : 200 %>
+    <% rows.first(limit).group_by(&:occurred_on).each do |day, day_rows| %>
+      <div data-ledger-target="group">
+        <div class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-xs font-medium text-base-content/60"><%= l(day, format: :weekday_day) %></div>
+        <div class="divide-y divide-base-300/50 [&>turbo-frame:nth-of-type(even)]:bg-base-200/40">
+          <% day_rows.each do |txn| %>
+            <%= render "transactions/ledger_row", transaction: txn %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <p data-ledger-target="noResults" hidden class="px-2 py-6 text-center text-sm text-base-content/50">
+      <%= t("transactions.ledger.no_results") %>
+    </p>
+
+    <% if rows.size > limit %>
+      <div class="mt-3 text-center">
+        <%= link_to t("transactions.ledger.show_more"),
+              transactions_path(month: month.strftime("%Y-%m"), filter: (filter == "all" ? nil : filter), show_all: 1),
+              class: "btn btn-ghost btn-sm text-primary" %>
+      </div>
+    <% end %>
+  <% else %>
+    <%= render "transactions/ledger_empty", month: month %>
+  <% end %>
+</div>

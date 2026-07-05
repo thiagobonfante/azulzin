@@ -352,6 +352,11 @@ pt-BR:
     add_title: "Adicionar categoria"
     name: "Nome"
     name_placeholder: "Ex.: Pets"
+    color: "Cor"
+    icon: "Ícone"
+    no_icon: "Sem ícone"
+    edit: "Editar categoria"
+    cancel: "Cancelar"
     add: "Adicionar"
     save: "Salvar"
     remove: "Remover categoria"
@@ -431,12 +436,16 @@ pt-BR:
     ledger:
       title: "Movimentos"
       add: "Adicionar"
+      search_placeholder: "Buscar movimentos"
+      no_results: "Nenhum movimento encontrado"
+      views:
+        list: "Lista"
+        category: "Categorias"
       filters:
         all: "Tudo"
         expenses: "Saídas"
         incomes: "Entradas"
         transfers: "Transferências"
-      by_category: "Por categoria"
       other_categories: "Outros"
       uncategorized: "Sem categoria"
       empty: "Nenhum movimento neste mês"
@@ -448,6 +457,12 @@ pt-BR:
       expense: "Despesa"
       income: "Receita"
       transfer: "Transferência"
+      payment_method: "Forma de pagamento"
+      methods:
+        credito: "Crédito"
+        debito: "Débito"
+        pix: "Pix"
+        boleto: "Boleto"
     row:
       amount: "Valor"
       merchant: "Estabelecimento"
@@ -468,6 +483,8 @@ pt-BR:
       direction: "Tipo de lançamento"
     new:
       submit: "Adicionar"
+    create:
+      future_bill: "Lançado na fatura de %{month} — toque para ver"
     update:
       updated: "Lançamento atualizado."
       created: "Lançamento adicionado."

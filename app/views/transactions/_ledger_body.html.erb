@@ -1,0 +1,56 @@
+<%# locals: ledger, month — the inner content of the "ledger" turbo frame. Extracted so create
+    can re-render the whole thing (toolbar + list), which is what makes a first entry replace the
+    empty state cleanly. Filtered server-side (kind tabs); searched / view-switched client-side. %>
+<% current_filter = %w[expenses incomes transfers].include?(params[:filter]) ? params[:filter] : "all" %>
+<% all_rows      = ledger.to_a %>
+<% has_expenses  = all_rows.any? { |r| r.direction == "expense" } %>
+<% multi_account = Current.user.bank_accounts.count >= 2 %>
+
+<div data-controller="ledger">
+  <% if all_rows.any? %>
+    <%# Toolbar — search (list view) + List/Categories switch. The switch is pinned right with
+        ml-auto so hiding the search in Categories view never makes it jump (issue 6a). %>
+    <div class="mb-3 flex items-center gap-2">
+      <label data-ledger-target="searchBox" class="input input-bordered input-sm flex flex-1 items-center gap-2 sm:max-w-xs">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" /></svg>
+        <input type="search" data-ledger-target="search" data-action="input->ledger#filter"
+               placeholder="<%= t('transactions.ledger.search_placeholder') %>"
+               class="grow border-0 bg-transparent p-0 focus:outline-none" autocomplete="off">
+      </label>
+
+      <% if has_expenses %>
+        <div class="join ml-auto shrink-0">
+          <button type="button" data-ledger-target="viewBtn" data-view="list" data-action="ledger#showList"
+                  class="btn btn-xs join-item btn-primary"><%= t("transactions.ledger.views.list") %></button>
+          <button type="button" data-ledger-target="viewBtn" data-view="category" data-action="ledger#showCategory"
+                  class="btn btn-xs join-item btn-ghost"><%= t("transactions.ledger.views.category") %></button>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Kind filters (list view only) — the Transferências tab is hidden with a single account (R5). %>
+    <div data-ledger-target="filters" class="mb-3 flex flex-wrap gap-1">
+      <% (multi_account ? %w[all expenses incomes transfers] : %w[all expenses incomes]).each do |f| %>
+        <%= link_to t("transactions.ledger.filters.#{f}"),
+              transactions_path(month: month.strftime("%Y-%m"), filter: (f == "all" ? nil : f)),
+              class: "btn btn-xs #{current_filter == f ? "btn-primary" : "btn-ghost"}" %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# List view %>
+  <div data-ledger-target="listView">
+    <% rows = all_rows
+       rows = rows.select { |r| r.direction == "expense" }  if current_filter == "expenses"
+       rows = rows.select { |r| r.direction == "income" }   if current_filter == "incomes"
+       rows = rows.select { |r| r.direction == "transfer" } if current_filter == "transfers" %>
+    <%= render "transactions/ledger_list", rows: rows, month: month, filter: current_filter %>
+  </div>
+
+  <%# By-category view (R6) — toggled in, never a nested disclosure %>
+  <% if has_expenses %>
+    <div data-ledger-target="categoryView" hidden class="pt-1">
+      <%= render "transactions/category_bars", rows: all_rows %>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,50 @@
+<%# locals: accounts, cards, selected_token, placeholder — brand-avatar account/card picker.
+    Binds to the surrounding form's entry-instrument controller (payment method drives it). %>
+<%= hidden_field_tag :instrument, selected_token, data: { entry_instrument_target: "input" } %>
+
+<button type="button" data-entry-instrument-target="button" data-action="entry-instrument#toggle"
+        class="input input-bordered input-sm flex w-full items-center justify-between gap-2 text-left font-normal">
+  <span data-entry-instrument-target="display" class="flex items-center gap-2 <%= "text-base-content/50" unless selected_token %>">
+    <%= placeholder %>
+  </span>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+</button>
+
+<div data-entry-instrument-target="panel" hidden class="relative">
+  <div class="absolute z-40 mt-1 w-full rounded-box border border-base-300/70 bg-base-100 p-2 shadow-lg">
+    <input type="text" data-entry-instrument-target="search"
+           data-action="input->entry-instrument#applySearch keydown->entry-instrument#onKeydown"
+           placeholder="<%= t('institutions.search') %>" class="input input-bordered input-sm mb-2 w-full" autocomplete="off">
+    <ul class="max-h-56 overflow-y-auto">
+      <% accounts.each do |account| %>
+        <li data-entry-instrument-target="option" data-value="bank_account-<%= account.id %>" data-type="bank_account"
+            data-name="<%= account.display_name.downcase %>" data-action="click->entry-instrument#pick"
+            class="flex cursor-pointer items-center gap-3 rounded-box px-2 py-2 hover:bg-base-200">
+          <span data-label class="flex items-center gap-2">
+            <%= institution_avatar(account.institution, size: 24) %>
+            <span class="text-sm"><%= account.display_name %></span>
+          </span>
+        </li>
+      <% end %>
+      <% cards.each do |card| %>
+        <li data-entry-instrument-target="option" data-value="credit_card-<%= card.id %>" data-type="credit_card"
+            data-name="<%= card.display_name.downcase %>" data-action="click->entry-instrument#pick"
+            class="flex cursor-pointer items-center gap-3 rounded-box px-2 py-2 hover:bg-base-200">
+          <span data-label class="flex items-center gap-2">
+            <%= institution_avatar(card.institution, size: 24) %>
+            <span class="text-sm"><%= card.display_name %></span>
+            <span class="badge badge-ghost badge-xs"><%= t("app.nav.cards") %></span>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+</div>
+
+<noscript>
+  <% groups = [] %>
+  <% groups << [ t("app.nav.accounts"), accounts.map { |a| [ a.display_name, "bank_account-#{a.id}" ] } ] if accounts.any? %>
+  <% groups << [ t("app.nav.cards"), cards.map { |c| [ c.display_name, "credit_card-#{c.id}" ] } ] if cards.any? %>
+  <%= select_tag :instrument, grouped_options_for_select(groups, selected_token),
+        include_blank: placeholder, class: "select select-bordered select-sm w-full" %>
+</noscript>
