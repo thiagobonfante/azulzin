@@ -200,7 +200,14 @@ pt-BR:
   credit_cards:
     add_title: "Adicionar cartão"
     nickname: "Apelido"
-    nickname_placeholder: "Ex.: Cartão físico"
+    nickname_placeholder: "Ex.: Meu azulzin"
+    card_type: "Tipo de cartão"
+    card_types:
+      physical: "Físico"
+      virtual: "Virtual"
+    last4: "Final do cartão"
+    last4_placeholder: "1234"
+    ending: "final %{last4}"
     optional_details: "Detalhes opcionais"
     limit: "Limite"
     current_bill: "Fatura atual"
@@ -209,7 +216,7 @@ pt-BR:
     save: "Salvar"
     bill_due_day: "Dia do vencimento"
     bill_due_day_unknown: "Não sei"
-    closing_offset_days: "Fecha quantos dias antes?"
+    closing_offset_days: "Fechamento"
     closing_offset_option:
       zero: "no dia do vencimento"
       one: "%{count} dia antes"
@@ -236,10 +243,12 @@ pt-BR:
       removed: "Cartão removido."
   incomes:
     add_title: "Adicionar renda"
+    edit_title: "Editar renda"
     name: "Nome"
     name_placeholder: "ex.: salário, pensão, aluguel"
     amount: "Valor"
     bank_account: "Entra em qual conta?"
+    bank_account_placeholder: "Selecione a conta"
     schedule: "Quando cai?"
     schedule_kinds:
       fixed_day: "Todo dia"
@@ -251,6 +260,7 @@ pt-BR:
       nth_business_day: "%{nth}º dia útil"
       into_account: "entra em %{account}"
     add: "Adicionar"
+    save: "Salvar"
     remove: "Remover renda"
     confirm_remove: "Remover esta renda?"
     empty: "Nenhuma renda cadastrada ainda"
@@ -260,6 +270,8 @@ pt-BR:
       subtitle: "O que entra todo mês, e em qual conta"
     create:
       created: "Renda adicionada."
+    update:
+      updated: "Renda atualizada."
     destroy:
       removed: "Renda removida."
   commitments:

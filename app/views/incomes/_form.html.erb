@@ -1,6 +1,10 @@
 <%# locals: income %>
-<%= form_with model: income, url: incomes_path, id: "income_form",
-      data: { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" },
+<%# The create form (index/onboarding) posts to a Turbo Stream and resets on success; the
+    full-page edit form PATCHes and redirects, so it skips form-reset. %>
+<%= form_with model: income,
+      url: (income.persisted? ? income_path(income) : incomes_path),
+      id: "income_form",
+      data: (income.persisted? ? {} : { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" }),
       class: "flex flex-col gap-4" do |f| %>
   <div id="income_form_errors">
     <% if income.errors.any? %>
@@ -21,11 +25,9 @@
     </label>
   </div>
 
-  <div class="form-control">
-    <%= f.label :bank_account_id, t("incomes.bank_account"), class: "mb-1 block text-sm font-medium" %>
-    <%= f.collection_select :bank_account_id, Current.user.bank_accounts.includes(:institution).order(:created_at),
-          :id, :display_name, {}, class: "select select-bordered w-full", required: true %>
-  </div>
+  <%= render "shared/account_select", form: f,
+        accounts: Current.user.bank_accounts.includes(:institution).order(:created_at),
+        label: t("incomes.bank_account"), placeholder: t("incomes.bank_account_placeholder") %>
 
   <div class="grid gap-4 sm:grid-cols-2" data-controller="schedule-fields">
     <div class="form-control">
@@ -45,6 +47,6 @@
   </div>
 
   <div class="flex justify-end">
-    <%= f.submit t("incomes.add"), class: "btn btn-primary btn-sm" %>
+    <%= f.submit (income.persisted? ? t("incomes.save") : t("incomes.add")), class: "btn btn-primary btn-sm" %>
   </div>
 <% end %>

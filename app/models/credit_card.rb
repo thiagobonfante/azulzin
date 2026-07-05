@@ -8,6 +8,9 @@ class CreditCard < ApplicationRecord
 
   money_column :credit_limit, :current_bill
 
+  enum :card_type, { physical: "physical", virtual: "virtual" }, default: "physical", validate: true
+  # physical / virtual scopes come free from the enum.
+
   # Digits-only last four (helps same-bank card disambiguation, e.g. "final 1234").
   normalizes :last4, with: ->(v) { v.to_s.gsub(/\D/, "").presence }
 

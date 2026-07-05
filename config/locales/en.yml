@@ -199,7 +199,14 @@ en:
   credit_cards:
     add_title: "Add card"
     nickname: "Nickname"
-    nickname_placeholder: "e.g. Physical card"
+    nickname_placeholder: "e.g. My azulzin"
+    card_type: "Card type"
+    card_types:
+      physical: "Physical"
+      virtual: "Virtual"
+    last4: "Last 4 digits"
+    last4_placeholder: "1234"
+    ending: "ending %{last4}"
     optional_details: "Optional details"
     limit: "Limit"
     current_bill: "Current bill"
@@ -208,7 +215,7 @@ en:
     save: "Save"
     bill_due_day: "Due day"
     bill_due_day_unknown: "I don't know"
-    closing_offset_days: "Closes how many days before?"
+    closing_offset_days: "Closing"
     closing_offset_option:
       zero: "on the due day"
       one: "%{count} day before"
@@ -235,10 +242,12 @@ en:
       removed: "Card removed."
   incomes:
     add_title: "Add income"
+    edit_title: "Edit income"
     name: "Name"
     name_placeholder: "e.g. salary, pension, rent"
     amount: "Amount"
     bank_account: "Which account receives it?"
+    bank_account_placeholder: "Select the account"
     schedule: "When does it arrive?"
     schedule_kinds:
       fixed_day: "Same day every month"
@@ -250,6 +259,7 @@ en:
       nth_business_day: "%{nth} business day"
       into_account: "goes into %{account}"
     add: "Add"
+    save: "Save"
     remove: "Remove income"
     confirm_remove: "Remove this income?"
     empty: "No income added yet"
@@ -259,6 +269,8 @@ en:
       subtitle: "What comes in every month, and into which account"
     create:
       created: "Income added."
+    update:
+      updated: "Income updated."
     destroy:
       removed: "Income removed."
   commitments:

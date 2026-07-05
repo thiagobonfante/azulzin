@@ -57,8 +57,8 @@ class CreditCardsController < ApplicationController
 
   private
     def credit_card_params
-      params.expect(credit_card: %i[institution_id nickname credit_limit_reais current_bill_reais
-                                    bill_due_day closing_offset_days])
+      params.expect(credit_card: %i[institution_id nickname last4 card_type credit_limit_reais
+                                    current_bill_reais bill_due_day closing_offset_days])
     end
 
     def after_change_path

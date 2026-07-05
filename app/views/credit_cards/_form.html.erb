@@ -23,6 +23,19 @@
     <%= f.text_field :nickname, placeholder: t("credit_cards.nickname_placeholder"), class: "input input-bordered w-full" %>
   </div>
 
+  <%# Physical vs virtual — identification only, no billing effect. %>
+  <div class="form-control">
+    <label class="mb-1 block text-sm font-medium"><%= t("credit_cards.card_type") %></label>
+    <div class="join">
+      <% CreditCard.card_types.each_key do |ct| %>
+        <label class="join-item btn btn-sm font-normal has-checked:btn-primary">
+          <%= f.radio_button :card_type, ct, class: "hidden", checked: (credit_card.card_type == ct) %>
+          <%= t("credit_cards.card_types.#{ct}") %>
+        </label>
+      <% end %>
+    </div>
+  </div>
+
   <%# ── Billing config (R2) — primary fields; R11 correctness depends on them ─────────── %>
   <% offset = credit_card.closing_offset_days || 7 %>
   <div class="grid gap-4 sm:grid-cols-2" data-controller="billing-hint"
@@ -60,6 +73,11 @@
       <%= t("credit_cards.optional_details") %>
     </summary>
     <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      <div class="form-control">
+        <%= f.label :last4, t("credit_cards.last4"), class: "mb-1 block text-sm font-medium" %>
+        <%= f.text_field :last4, inputmode: "numeric", maxlength: 4,
+              placeholder: t("credit_cards.last4_placeholder"), class: "input input-bordered w-full" %>
+      </div>
       <div class="form-control">
         <%= f.label :credit_limit_reais, t("credit_cards.limit"), class: "mb-1 block text-sm font-medium" %>
         <label class="input input-bordered flex w-full items-center gap-2">

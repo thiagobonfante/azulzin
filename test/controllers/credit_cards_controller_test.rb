@@ -24,6 +24,27 @@ class CreditCardsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 234050, card.current_bill_cents
   end
 
+  test "create accepts last4 (digits-only) and card_type" do
+    post credit_cards_url, as: :turbo_stream,
+         params: { credit_card: { institution_id: @itau.id, last4: "1234", card_type: "virtual" } }
+    card = @user.credit_cards.last
+    assert_equal "1234", card.last4
+    assert card.virtual?
+  end
+
+  test "create defaults card_type to physical" do
+    post credit_cards_url, as: :turbo_stream, params: { credit_card: { institution_id: @itau.id } }
+    assert @user.credit_cards.last.physical?
+  end
+
+  test "update changes last4 and card_type" do
+    card = @user.credit_cards.create!(institution: @itau)
+    patch credit_card_url(card), params: { credit_card: { last4: "9876", card_type: "virtual" } }
+    card.reload
+    assert_equal "9876", card.last4
+    assert card.virtual?
+  end
+
   test "destroy removes the card" do
     card = @user.credit_cards.create!(institution: @itau)
     assert_difference -> { @user.credit_cards.count }, -1 do

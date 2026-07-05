@@ -46,7 +46,7 @@ Rails.application.routes.draw do
           constraints: { step: /profile|accounts|incomes|cards/ }
 
     resources :bank_accounts, only: %i[index create edit update destroy]  # edit/update: nickname, kind & balance
-    resources :incomes,       only: %i[index create destroy]   # R1 — recurring income schedules
+    resources :incomes,       only: %i[index create edit update destroy]   # R1 — recurring income schedules
     resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
 
     # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the

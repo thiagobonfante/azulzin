@@ -11,12 +11,7 @@ class IncomesController < ApplicationController
   end
 
   def create
-    attrs = income_params.to_h
-    # Reject a forged bank_account_id pointing at another user's account (belongs_to then fails).
-    if attrs["bank_account_id"].present? && !Current.user.bank_accounts.exists?(attrs["bank_account_id"])
-      attrs["bank_account_id"] = nil
-    end
-    @income = Current.user.incomes.build(attrs)
+    @income = Current.user.incomes.build(sanitized_income_params)
     saved = @income.save
     respond_to do |format|
       format.turbo_stream { render :create, status: (saved ? :ok : :unprocessable_entity) }
@@ -24,6 +19,20 @@ class IncomesController < ApplicationController
         redirect_to after_change_path, notice: (saved ? t(".created") : nil),
                     alert: (saved ? nil : @income.errors.full_messages.to_sentence)
       end
+    end
+  end
+
+  # Full-page edit — name, amount, destination account and schedule.
+  def edit
+    @income = Current.user.incomes.find(params[:id])
+  end
+
+  def update
+    @income = Current.user.incomes.find(params[:id])
+    if @income.update(sanitized_income_params)
+      redirect_to incomes_path, notice: t(".updated")
+    else
+      render :edit, status: :unprocessable_entity
     end
   end
 
@@ -39,6 +48,15 @@ class IncomesController < ApplicationController
   private
     def income_params
       params.expect(income: %i[name amount_reais bank_account_id schedule_kind schedule_day])
+    end
+
+    # Reject a forged bank_account_id pointing at another user's account (belongs_to then fails).
+    def sanitized_income_params
+      attrs = income_params.to_h
+      if attrs["bank_account_id"].present? && !Current.user.bank_accounts.exists?(attrs["bank_account_id"])
+        attrs["bank_account_id"] = nil
+      end
+      attrs
     end
 
     def after_change_path

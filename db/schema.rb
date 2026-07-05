@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_05_000007) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_05_000008) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -99,6 +99,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_05_000007) do
 
   create_table "credit_cards", force: :cascade do |t|
     t.integer "bill_due_day"
+    t.string "card_type", default: "physical", null: false
     t.integer "closing_offset_days", default: 7, null: false
     t.datetime "created_at", null: false
     t.bigint "credit_limit_cents"

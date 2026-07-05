@@ -3,8 +3,16 @@
   <div class="flex items-center gap-3">
     <%= institution_avatar(credit_card.institution, size: 40) %>
     <div class="min-w-0 flex-1">
-      <p class="truncate text-sm font-semibold"><%= credit_card.display_name %></p>
-      <p class="truncate text-xs text-base-content/50"><%= credit_card.institution.display_name %></p>
+      <p class="flex items-center gap-1.5 truncate text-sm font-semibold">
+        <span class="truncate"><%= credit_card.display_name %></span>
+        <% if credit_card.virtual? %>
+          <span class="badge badge-info badge-xs"><%= t("credit_cards.card_types.virtual") %></span>
+        <% end %>
+      </p>
+      <p class="truncate text-xs text-base-content/50">
+        <%= credit_card.institution.display_name %>
+        <% if credit_card.last4.present? %>· <%= t("credit_cards.ending", last4: credit_card.last4) %><% end %>
+      </p>
     </div>
     <%= link_to edit_credit_card_path(credit_card),
           class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-primary",
