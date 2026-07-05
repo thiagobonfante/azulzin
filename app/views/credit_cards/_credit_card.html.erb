@@ -6,6 +6,11 @@
       <p class="truncate text-sm font-semibold"><%= credit_card.display_name %></p>
       <p class="truncate text-xs text-base-content/50"><%= credit_card.institution.display_name %></p>
     </div>
+    <%= link_to edit_credit_card_path(credit_card),
+          class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-primary",
+          aria: { label: t("credit_cards.edit_title") } do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
+    <% end %>
     <%= button_to credit_card_path(credit_card), method: :delete,
           class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-error",
           form: { data: { turbo_confirm: t("credit_cards.confirm_remove") } },
@@ -14,12 +19,23 @@
     <% end %>
   </div>
 
+  <%# Billing config summary (R2) or a quiet nudge to set it. %>
+  <% if credit_card.billing_configured? %>
+    <p class="mt-2 text-xs text-base-content/50">
+      <%= t("transactions.bills.due_on", day: credit_card.bill_due_day) %> ·
+      <%= t("transactions.bills.closes_on", day: credit_card.closing_date(credit_card.current_open_bill_month).day) %>
+    </p>
+  <% else %>
+    <%= link_to t("transactions.bills.setup_billing"), edit_credit_card_path(credit_card),
+          class: "mt-2 inline-block text-xs font-medium text-primary hover:underline" %>
+  <% end %>
+
   <% if credit_card.limit_informed? %>
     <% ratio = credit_card.usage_ratio %>
     <% bar = ratio >= 0.9 ? "bg-error" : ratio >= 0.7 ? "bg-warning" : "bg-primary" %>
     <div class="mt-3">
       <div class="flex items-baseline justify-between text-xs">
-        <span class="text-base-content/50"><%= t("credit_cards.used") %> <span class="font-medium tabular-nums text-base-content/70"><%= brl(credit_card.current_bill_cents.to_i) %></span></span>
+        <span class="text-base-content/50"><%= t("credit_cards.used") %> <span class="font-medium tabular-nums text-base-content/70"><%= brl(credit_card.used_cents) %></span></span>
         <span class="text-base-content/50"><%= t("credit_cards.limit") %> <span class="font-medium tabular-nums text-base-content/70"><%= brl(credit_card.credit_limit_cents) %></span></span>
       </div>
       <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-base-200">

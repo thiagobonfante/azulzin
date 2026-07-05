@@ -1,0 +1,26 @@
+<%# locals: pending — the R8 safety net, re-homed. Rendered only when it has content. %>
+<% rows = pending.to_a %>
+<% if rows.any? %>
+  <section id="pending_tray" class="rounded-box border border-warning/40 bg-warning/5 p-4">
+    <header class="mb-3 flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+      <span class="text-sm font-semibold"><%= t("transactions.tray.title") %></span>
+      <span id="pending_tray_count" class="badge badge-warning badge-sm"><%= rows.size %></span>
+    </header>
+    <div id="pending_list" class="flex flex-col gap-3">
+      <% rows.first(3).each do |txn| %>
+        <%= render "transactions/transaction", transaction: txn %>
+      <% end %>
+      <% if rows.size > 3 %>
+        <details class="group">
+          <summary class="cursor-pointer list-none text-sm font-medium text-primary"><%= t("transactions.tray.show_all", count: rows.size) %></summary>
+          <div class="mt-3 flex flex-col gap-3">
+            <% rows.drop(3).each do |txn| %>
+              <%= render "transactions/transaction", transaction: txn %>
+            <% end %>
+          </div>
+        </details>
+      <% end %>
+    </div>
+  </section>
+<% end %>

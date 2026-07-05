@@ -1,0 +1,9 @@
+<% if @category.persisted? %>
+  <%= turbo_stream.remove "categories_empty" %>
+  <%= turbo_stream.append "categories_list", partial: "categories/category", locals: { category: @category } %>
+  <%= turbo_stream.update "category_form_errors", "" %>
+<% else %>
+  <%= turbo_stream.update "category_form_errors" do %>
+    <div class="alert alert-error py-2 text-sm" role="alert"><span><%= @category.errors.full_messages.to_sentence %></span></div>
+  <% end %>
+<% end %>

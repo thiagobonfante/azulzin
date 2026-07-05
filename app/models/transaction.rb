@@ -11,6 +11,10 @@ class Transaction < ApplicationRecord
   belongs_to :user
   belongs_to :bank_account, optional: true
   belongs_to :credit_card,  optional: true
+  belongs_to :category,     optional: true                                           # R6
+  belongs_to :commitment,   optional: true                                           # R10/R11 payment/parcel link
+  belongs_to :income,       optional: true                                           # R1 receipt link
+  belongs_to :transfer_to_bank_account, class_name: "BankAccount", optional: true    # R5 destination leg
   belongs_to :whatsapp_message, optional: true, inverse_of: :produced_transactions   # the inbound msg that produced it
 
   # Outbound reply messages about this transaction (audit trail). nullify so destroying a
@@ -42,9 +46,19 @@ class Transaction < ApplicationRecord
 
   validates :amount_cents, numericality: { only_integer: true }
   validates :occurred_on, presence: true
+  validates :billing_month, presence: true
   validates :confidence, numericality: { in: 0..100 }, allow_nil: true
+  # A posted transfer needs both accounts, distinct, and no card. Model-level (not a DB check)
+  # so a low-confidence WA transfer can still park in pending_review with slots missing.
+  validate :transfer_shape, if: -> { posted? && transfer? }
+
+  # The universal month key is computed here (before_validation, so the presence check + DB
+  # NOT NULL both see it) at every non-guarded write path — unless the row was manually moved.
+  # guarded_update (update_all) skips this by design and never touches occurred_on / instrument.
+  before_validation :assign_billing_month
 
   scope :spend, -> { posted.where(direction: "expense") }        # excludes rejected/superseded
+  scope :posted_in, ->(month) { posted.where(billing_month: month) }   # the ledger scope + every aggregate
   scope :unassigned, -> { where(bank_account_id: nil, credit_card_id: nil) }
   scope :in_app_inbox, -> { where(status: %w[pending_review needs_confirmation needs_clarification needs_disambiguation]) }
 
@@ -90,12 +104,39 @@ class Transaction < ApplicationRecord
   # rejected. Pure record ⇒ nothing to un-bump.
   def reverse! = update!(status: "rejected")
 
-  # Assign (or reassign) the instrument in-app; clears the other side.
+  # Assign (or reassign) the instrument in-app; clears the other side. Resets the manual
+  # billing-month flag (the override was per-card context) and lets assign_billing_month
+  # recompute — update! fires callbacks (unlike guarded_update).
   def assign_instrument!(record)
     case record
-    when BankAccount then update!(bank_account: record, credit_card: nil)
-    when CreditCard  then update!(credit_card: record, bank_account: nil)
+    when BankAccount then update!(bank_account: record, credit_card: nil, billing_month_manual: false)
+    when CreditCard  then update!(credit_card: record, bank_account: nil, billing_month_manual: false)
     else raise ArgumentError, "not an instrument: #{record.class}"
     end
   end
+
+  private
+    # Recompute billing_month from occurred_on + instrument, unless the row was manually moved
+    # (R2 sticky). Card rows use the closing rule; card PARCELS stagger by installment_number so
+    # every recompute reproduces the fan-out instead of collapsing it. Bank/unassigned rows =
+    # calendar month. Never NULL.
+    def assign_billing_month
+      return if billing_month_manual? || occurred_on.blank?
+      self.billing_month =
+        if credit_card
+          m = credit_card.billing_month_for(occurred_on)
+          installment_number ? m >> (installment_number - 1) : m
+        else
+          occurred_on.beginning_of_month
+        end
+    end
+
+    def transfer_shape
+      if bank_account_id.blank? || transfer_to_bank_account_id.blank?
+        errors.add(:transfer_to_bank_account_id, :blank)
+      elsif transfer_to_bank_account_id == bank_account_id
+        errors.add(:transfer_to_bank_account_id, :same_account)
+      end
+      errors.add(:credit_card_id, :present) if credit_card_id.present?
+    end
 end

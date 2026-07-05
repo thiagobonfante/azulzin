@@ -1,0 +1,10 @@
+<% if @commitment&.persisted? %>
+  <%= turbo_stream.update "commitments_list", partial: "commitments/grouped_list", locals: {
+        commitments: Current.user.commitments.active.includes(:bank_account, :credit_card, :category).order(:kind, :created_at),
+        archived: Current.user.commitments.where.not(archived_at: nil).includes(:bank_account, :credit_card) } %>
+  <%= turbo_stream.update "commitment_form_errors", "" %>
+<% else %>
+  <%= turbo_stream.update "commitment_form_errors" do %>
+    <div class="alert alert-error py-2 text-sm" role="alert"><span><%= @commitment&.errors&.full_messages&.to_sentence %></span></div>
+  <% end %>
+<% end %>

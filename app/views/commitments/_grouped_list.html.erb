@@ -1,0 +1,27 @@
+<%# locals: commitments, archived — the grouped list body (re-rendered on create/destroy). %>
+<% if commitments.any? %>
+  <% grouped = commitments.group_by(&:kind) %>
+  <% %w[installment fixed subscription].each do |kind| %>
+    <% next unless grouped[kind] %>
+    <div>
+      <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-base-content/50"><%= t("commitments.kinds.#{kind}") %></h2>
+      <div class="flex flex-col gap-2"><%= render grouped[kind] %></div>
+    </div>
+  <% end %>
+<% else %>
+  <%= render "commitments/empty" %>
+<% end %>
+
+<% if archived.any? %>
+  <details class="group">
+    <summary class="cursor-pointer list-none text-sm text-base-content/50"><%= t("commitments.index.archived", count: archived.size) %></summary>
+    <div class="mt-2 flex flex-col gap-2 opacity-60"><%= render archived %></div>
+  </details>
+<% end %>
+
+<% if commitments.any? %>
+  <div class="flex items-center justify-between border-t border-base-300/50 pt-3 text-sm">
+    <span class="text-base-content/60"><%= t("commitments.index.total_committed") %></span>
+    <span class="font-display font-bold tabular-nums"><%= brl(commitments.sum(&:amount_cents)) %></span>
+  </div>
+<% end %>

@@ -19,6 +19,7 @@
   <%# ── Edit amount + merchant ───────────────────────────────────────── %>
   <%= form_with model: transaction, url: transaction_path(transaction), method: :patch,
         class: "grid gap-3 sm:grid-cols-2" do |f| %>
+    <%= hidden_field_tag :month, params[:month] %>
     <div class="form-control">
       <%= f.label :amount_reais, t("transactions.row.amount"), class: "mb-1 block text-xs font-medium text-base-content/60" %>
       <label class="input input-bordered input-sm flex w-full items-center gap-2">
@@ -33,11 +34,19 @@
         <%= f.submit t("transactions.row.save"), class: "btn btn-ghost btn-sm" %>
       </div>
     </div>
+    <% if transaction.expense? %>
+      <div class="form-control sm:col-span-2">
+        <%= f.label :category_id, t("transactions.row.category"), class: "mb-1 block text-xs font-medium text-base-content/60" %>
+        <%= f.collection_select :category_id, Current.user.categories.ordered, :id, :name,
+              { include_blank: t("transactions.ledger.uncategorized") }, class: "select select-bordered select-sm w-full" %>
+      </div>
+    <% end %>
   <% end %>
 
   <%# ── Assign an account / card ─────────────────────────────────────── %>
   <%= form_with url: assign_transaction_path(transaction), method: :patch,
         class: "mt-3 flex items-end gap-2" do %>
+    <%= hidden_field_tag :month, params[:month] %>
     <div class="form-control grow">
       <label class="mb-1 block text-xs font-medium text-base-content/60"><%= t("transactions.row.instrument") %></label>
       <%= select_tag "instrument",
@@ -52,10 +61,10 @@
   <div class="mt-4 flex items-center justify-end gap-2 border-t border-base-300/50 pt-3">
     <% unless transaction.posted? %>
       <%= button_to t("transactions.row.confirm"), confirm_transaction_path(transaction), method: :patch,
-            class: "btn btn-primary btn-sm" %>
+            params: { month: params[:month] }, class: "btn btn-primary btn-sm" %>
     <% end %>
     <%= button_to (transaction.posted? ? t("transactions.row.reverse") : t("transactions.row.discard")),
-          transaction_path(transaction), method: :delete,
+          transaction_path(transaction), method: :delete, params: { month: params[:month] },
           class: "btn btn-ghost btn-sm text-error",
           form: { data: { turbo_confirm: t("transactions.row.confirm_discard") } } %>
   </div>

@@ -1,0 +1,15 @@
+<%# locals: month — plain Turbo Drive links; the URL is the only state (A). %>
+<div class="flex items-center justify-between">
+  <div class="flex items-center gap-1">
+    <%= link_to transactions_path(month: (month << 1).strftime("%Y-%m")),
+          class: "btn btn-ghost btn-sm btn-square", aria: { label: t("transactions.month.prev") } do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+    <% end %>
+    <h1 class="font-display text-xl font-extrabold capitalize tracking-tight"><%= l(month, format: :month_year) %></h1>
+    <%= link_to transactions_path(month: (month >> 1).strftime("%Y-%m")),
+          class: "btn btn-ghost btn-sm btn-square", aria: { label: t("transactions.month.next") } do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+    <% end %>
+  </div>
+  <%= link_to t("transactions.month.today"), transactions_path, class: "btn btn-ghost btn-sm" %>
+</div>

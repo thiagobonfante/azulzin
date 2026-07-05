@@ -13,6 +13,20 @@
     <%= f.text_field :nickname, placeholder: t("bank_accounts.nickname_placeholder"), class: "input input-bordered w-full" %>
   </div>
 
+  <%# Checking vs savings (R4) — a savings account is treated as a "caixinha" by the metrics. %>
+  <div class="form-control">
+    <label class="mb-1 block text-sm font-medium"><%= t("activerecord.attributes.bank_account.kind") %></label>
+    <div class="join">
+      <% BankAccount.kinds.each_key do |k| %>
+        <label class="join-item btn btn-sm font-normal has-checked:btn-primary">
+          <%= f.radio_button :kind, k, class: "hidden", checked: (bank_account.kind == k) %>
+          <%= t("bank_accounts.kinds.#{k}") %>
+        </label>
+      <% end %>
+    </div>
+    <span class="mt-1 text-xs text-base-content/50"><%= t("bank_accounts.form.kind_hint") %></span>
+  </div>
+
   <%# Optional details — nothing here is required. %>
   <details class="group">
     <summary class="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-primary">

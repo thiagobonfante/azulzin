@@ -35,10 +35,16 @@ class ProcessInboundWhatsappJob < ApplicationJob
       return finish(msg)
     end
 
-    extraction = extract(msg, text)
-    match      = Whatsapp::Matcher.new(msg.user, extraction).call
-    confidence = Whatsapp::Confidence.new(extraction)
-    Whatsapp::Decider.new(msg, extraction, match, confidence).call
+    if (msg.type_image? || msg.type_document?) && msg.media.attached?
+      # Receipts: the unchanged expense path (ReceiptExtractor → Matcher → Confidence → Decider).
+      extraction = Whatsapp::ReceiptExtractor.from_message(msg)
+      match      = Whatsapp::Matcher.new(msg.user, extraction).call
+      confidence = Whatsapp::Confidence.new(extraction)
+      Whatsapp::Decider.new(msg, extraction, match, confidence).call
+    else
+      # Text / audio: the intent layer (07 §2) — extracts + classifies + dispatches.
+      Whatsapp::Interpreter.new(msg, text).call
+    end
     finish(msg)
   end
 
@@ -57,14 +63,6 @@ class ProcessInboundWhatsappJob < ApplicationJob
     transcript = Whatsapp::SttClient.transcribe(msg.media)
     msg.update!(transcription: transcript)
     transcript
-  end
-
-  def extract(msg, text)
-    if (msg.type_image? || msg.type_document?) && msg.media.attached?
-      Whatsapp::ReceiptExtractor.from_message(msg)
-    else
-      Whatsapp::Extractor.from_text(msg.user, text, modality: msg.type_audio? ? "audio" : "text")
-    end
   end
 
   def over_rate_limit?(user)

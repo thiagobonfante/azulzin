@@ -1,2 +1,17 @@
-<%# Edited row keeps its inbox slot; re-render it (also renders inline errors on 422). %>
-<%= turbo_stream.replace dom_id(@transaction), partial: "transactions/transaction", locals: { transaction: @transaction } %>
+<% if params[:from] == "ledger" %>
+  <%# Ledger edit-in-place (R7). %>
+  <% if @saved %>
+    <% if @transaction.billing_month == viewed_month %>
+      <%= turbo_stream.replace dom_id(@transaction, :row), partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
+    <% else %>
+      <%# occurred_on / Fatura move pushed the row to another month's page. %>
+      <%= turbo_stream.remove dom_id(@transaction, :row) %>
+    <% end %>
+    <%= render "transactions/hub_figures" %>
+  <% else %>
+    <%= turbo_stream.replace dom_id(@transaction, :row), partial: "transactions/edit_row", locals: { transaction: @transaction } %>
+  <% end %>
+<% else %>
+  <%# Pending-tray amount/merchant edit — re-render the tray row (renders inline errors on 422). %>
+  <%= turbo_stream.replace dom_id(@transaction), partial: "transactions/transaction", locals: { transaction: @transaction } %>
+<% end %>

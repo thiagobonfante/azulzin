@@ -1,0 +1,70 @@
+require "test_helper"
+
+class CommitmentTest < ActiveSupport::TestCase
+  setup do
+    @user = users(:confirmed)
+    @inst = Institution.find_by(code: "260")
+    @account = BankAccount.create!(user: @user, institution: @inst)
+    @card    = CreditCard.create!(user: @user, institution: @inst, bill_due_day: 10, closing_offset_days: 7)
+  end
+
+  test "requires exactly one instrument (model mirror of the DB check)" do
+    assert_not Commitment.new(user: @user, name: "x", kind: "fixed", amount_cents: 1,
+                              schedule_day: 5, starts_on: Date.current).valid?
+    both = Commitment.new(user: @user, bank_account: @account, credit_card: @card, name: "x",
+                          kind: "fixed", amount_cents: 1, schedule_day: 5, starts_on: Date.current)
+    assert_not both.valid?
+  end
+
+  test "the DB check rejects two instruments" do
+    assert_raises(ActiveRecord::StatementInvalid) do
+      Commitment.new(user: @user, bank_account: @account, credit_card: @card, name: "x",
+                     kind: "fixed", amount_cents: 1, schedule_day: 5, starts_on: Date.current)
+        .save!(validate: false)
+    end
+  end
+
+  test "installment kind requires a count; other kinds forbid it" do
+    assert_not Commitment.new(user: @user, credit_card: @card, name: "x", kind: "installment",
+                              amount_cents: 1, starts_on: Date.current).valid?
+    assert_not Commitment.new(user: @user, bank_account: @account, name: "x", kind: "fixed",
+                              amount_cents: 1, schedule_day: 5, installments_count: 3,
+                              starts_on: Date.current).valid?
+  end
+
+  test "the DB check pairs kind='installment' with installments_count" do
+    assert_raises(ActiveRecord::StatementInvalid) do
+      Commitment.new(user: @user, credit_card: @card, name: "x", kind: "installment",
+                     amount_cents: 1, starts_on: Date.current).save!(validate: false)
+    end
+  end
+
+  test "active_in?, last_month, installment_no for an installment plan" do
+    c = Commitment.create!(user: @user, credit_card: @card, name: "celular", kind: "installment",
+                           amount_cents: 50_000, installments_count: 10, starts_on: Date.new(2026, 8, 1))
+    assert_equal Date.new(2027, 5, 1), c.last_month              # Aug 2026 + 9 months
+    assert c.active_in?(Date.new(2026, 8, 1))
+    assert c.active_in?(Date.new(2027, 5, 1))
+    assert_not c.active_in?(Date.new(2027, 6, 1))
+    assert_not c.active_in?(Date.new(2026, 7, 1))
+    assert_equal 14, c.installment_no(Date.new(2027, 9, 1))     # 13 months after Aug 2026
+  end
+
+  test "subscription allows a nil schedule_day; due_on defaults to end of month" do
+    c = Commitment.create!(user: @user, credit_card: @card, name: "Netflix", kind: "subscription",
+                           amount_cents: 5_590, starts_on: Date.new(2026, 7, 1))
+    assert c.valid?
+    assert_equal Date.new(2026, 7, 31), c.due_on(Date.new(2026, 7, 1))
+    assert_nil c.last_month
+    assert c.active_in?(Date.new(2030, 1, 1))                   # open-ended
+  end
+
+  test "paid_in? reflects a posted payment in the month" do
+    c = Commitment.create!(user: @user, bank_account: @account, name: "aluguel", kind: "fixed",
+                           amount_cents: 100_000, schedule_day: 5, starts_on: Date.new(2026, 7, 1))
+    assert_not c.paid_in?(Date.new(2026, 7, 1))
+    Transaction.create!(user: @user, bank_account: @account, commitment: c, status: "posted",
+                        amount_cents: 100_000, occurred_on: Date.new(2026, 7, 5))
+    assert c.paid_in?(Date.new(2026, 7, 1))
+  end
+end

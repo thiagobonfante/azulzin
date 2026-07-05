@@ -1,0 +1,27 @@
+<% content_for :title, t("onboarding.incomes.meta_title") %>
+
+<div>
+  <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl"><%= t("onboarding.incomes.title") %></h1>
+  <p class="mt-2 text-base-content/70"><%= t("onboarding.incomes.subtitle") %></p>
+
+  <div id="incomes_list" class="mt-6 flex flex-col gap-3">
+    <% if @incomes.any? %>
+      <%= render @incomes %>
+    <% else %>
+      <%= render "incomes/empty" %>
+    <% end %>
+  </div>
+
+  <div class="mt-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="mb-4 font-display text-lg font-bold"><%= t("incomes.add_title") %></h2>
+    <%= render "incomes/form", income: @income %>
+  </div>
+
+  <div class="mt-8 flex items-center justify-between">
+    <%= link_to t("onboarding.back"), onboarding_step_path("accounts"), class: "btn btn-ghost" %>
+    <%= form_with url: onboarding_step_path("incomes"), method: :patch do |f| %>
+      <%= f.submit t("onboarding.incomes.continue"), class: "btn btn-primary" %>
+    <% end %>
+  </div>
+  <p class="mt-3 text-right text-xs text-base-content/50"><%= t("onboarding.incomes.need_one_hint") %></p>
+</div>

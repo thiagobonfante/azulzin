@@ -1,0 +1,6 @@
+<% if params[:from] == "hub" %>
+  <%= turbo_stream.replace "a_pagar", partial: "transactions/a_pagar", locals: { occurrences: hub_occurrences, month: viewed_month } %>
+  <%= render "transactions/hub_figures" %>
+<% else %>
+  <%= turbo_stream.replace occurrence_dom_id(@occurrence), partial: "commitments/occurrence", locals: { occurrence: @occurrence, context: :show } %>
+<% end %>

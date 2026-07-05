@@ -1,0 +1,27 @@
+<%# locals: occurrence, context (:hub | :show | :previsto) %>
+<% c = occurrence.commitment %>
+<div id="<%= occurrence_dom_id(occurrence) %>" class="flex items-center gap-2 py-2 <%= "opacity-70" if context == :previsto %>">
+  <div class="min-w-0 flex-1">
+    <p class="truncate text-sm">
+      <%= link_to c.name, commitment_path(c), class: "hover:underline" %>
+      <% if c.installment? %><span class="text-xs text-base-content/50"><%= occurrence.installment_no %>/<%= c.installments_count %></span><% end %>
+    </p>
+    <p class="text-xs <%= occurrence.status == :due ? "text-error" : "text-base-content/50" %>">
+      <%= l(occurrence.due_on, format: :short) %><% if c.category %> · <%= c.category.name %><% end %>
+    </p>
+  </div>
+  <span class="badge <%= occurrence_status_badge(occurrence.status) %> badge-xs"><%= t("commitments.occurrences.statuses.#{occurrence.status}") %></span>
+  <span class="tabular-nums text-sm"><%= brl(c.amount_cents) %></span>
+  <% if occurrence.card? %>
+    <span class="text-xs text-base-content/50"><%= t("commitments.occurrences.on_bill") %></span>
+  <% elsif context != :previsto && !occurrence.paid? %>
+    <%= button_to t("commitments.occurrences.mark_paid"),
+          pay_commitment_occurrence_path(occurrence, month: params[:month], from: context),
+          method: :patch, class: "btn btn-primary btn-xs" %>
+  <% elsif context == :show && occurrence.payment %>
+    <%= button_to t("commitments.occurrences.unmark_paid"),
+          unpay_commitment_occurrence_path(occurrence), method: :patch,
+          class: "btn btn-ghost btn-xs text-error",
+          form: { data: { turbo_confirm: t("transactions.row.confirm_discard") } } %>
+  <% end %>
+</div>

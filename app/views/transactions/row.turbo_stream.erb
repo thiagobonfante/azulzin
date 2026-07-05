@@ -1,10 +1,34 @@
-<%# Shared by assign + confirm: if the row is still pending, re-render it; otherwise it has
-    left the inbox (assigned/posted) so remove it, restoring the empty state if it was last. %>
-<% if @transaction.in_pending_inbox? %>
+<%# Shared by assign + confirm. Tray row: re-render if still pending, else remove. On confirm
+    the row travels into the viewed month's ledger; on assign the ledger row is refreshed. A
+    confirmed installment stub is superseded and fans out into the viewed month's parcels. %>
+<% if @expanded %>
+  <%= turbo_stream.remove dom_id(@transaction) %>
+  <% @expanded.payments.posted.where(billing_month: viewed_month).order(:installment_number).each do |parcel| %>
+    <%= turbo_stream.prepend "ledger_list", partial: "transactions/ledger_row", locals: { transaction: parcel } %>
+  <% end %>
+<% elsif @transaction.in_pending_inbox? %>
   <%= turbo_stream.replace dom_id(@transaction), partial: "transactions/transaction", locals: { transaction: @transaction } %>
 <% else %>
   <%= turbo_stream.remove dom_id(@transaction) %>
-  <% unless Current.user.transactions.pending_inbox.exists? %>
-    <%= turbo_stream.append "transactions_list", partial: "transactions/empty" %>
+<% end %>
+
+<%= turbo_stream.replace "sidebar_pending_count", pending_nav_badge %>
+<% if Current.user.transactions.pending_inbox.exists? %>
+  <%= turbo_stream.replace "pending_tray_count" do %>
+    <span id="pending_tray_count" class="badge badge-warning badge-sm"><%= Current.user.transactions.pending_inbox.count %></span>
   <% end %>
+<% else %>
+  <%= turbo_stream.remove "pending_tray" %>
+<% end %>
+
+<% if @transaction.posted? && @transaction.billing_month == viewed_month %>
+  <% if @confirmed %>
+    <%= turbo_stream.prepend "ledger_list", partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
+  <% else %>
+    <%= turbo_stream.replace dom_id(@transaction, :row), partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
+  <% end %>
+<% end %>
+
+<% if @transaction.posted? || @expanded %>
+  <%= render "transactions/hub_figures" %>
 <% end %>

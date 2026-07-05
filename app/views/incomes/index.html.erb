@@ -1,0 +1,25 @@
+<% content_for :title, t("incomes.index.meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t("incomes.index.title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t("incomes.index.subtitle") %></p>
+</header>
+
+<div class="grid gap-6 lg:grid-cols-5">
+  <div class="lg:col-span-3">
+    <div id="incomes_list" class="flex flex-col gap-3">
+      <% if @incomes.any? %>
+        <%= render @incomes %>
+      <% else %>
+        <%= render "incomes/empty" %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="lg:col-span-2">
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-4 font-display text-lg font-bold"><%= t("incomes.add_title") %></h2>
+      <%= render "incomes/form", income: @income %>
+    </div>
+  </div>
+</div>

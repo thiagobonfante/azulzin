@@ -1,0 +1,4 @@
+<%= turbo_stream.remove dom_id(@income) %>
+<% if Current.user.incomes.active.none? %>
+  <%= turbo_stream.append "incomes_list", partial: "incomes/empty" %>
+<% end %>

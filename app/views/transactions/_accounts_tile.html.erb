@@ -1,0 +1,46 @@
+<%# locals: summary — Zone D, Contas. "What do I have, and how much is put away?" %>
+<section id="accounts_tile" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+  <header class="mb-3 flex items-baseline justify-between">
+    <h2 class="text-sm font-semibold"><%= t("transactions.accounts.title") %></h2>
+    <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.accounts_total_cents) %></span>
+  </header>
+
+  <% if summary.guardado_total_cents.positive? %>
+    <p class="mb-3 text-xs text-base-content/50">
+      <%= t("transactions.accounts.saved_total") %>
+      <span class="font-semibold text-success tabular-nums"><%= brl(summary.guardado_total_cents) %></span>
+    </p>
+  <% end %>
+
+  <% accounts = Current.user.bank_accounts.includes(:institution).order(:created_at) %>
+  <% if accounts.any? %>
+    <ul class="flex flex-col gap-2">
+      <% accounts.each do |account| %>
+        <li class="flex items-center gap-2">
+          <%= institution_avatar(account.institution, size: 28) %>
+          <span class="flex min-w-0 flex-1 items-center gap-1.5 truncate text-sm">
+            <span class="truncate"><%= account.display_name %></span>
+            <% if account.savings? %>
+              <span class="badge badge-ghost badge-xs"><%= t("transactions.accounts.savings_badge") %></span>
+            <% end %>
+          </span>
+          <span class="tabular-nums text-sm">
+            <%= summary.account_balances[account.id] ? brl(summary.account_balances[account.id]) : "—" %>
+          </span>
+          <% if account.savings? %>
+            <%= link_to t("transactions.accounts.save_money"),
+                  new_transaction_path(kind: :transfer, to: account.id),
+                  data: { turbo_frame: "new_entry" }, class: "btn btn-ghost btn-xs text-primary" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <%= link_to t("dashboard.add_accounts"), bank_accounts_path,
+          class: "block rounded-box border border-dashed border-base-300 px-4 py-6 text-center text-sm text-primary" %>
+  <% end %>
+
+  <div class="mt-3 text-right">
+    <%= link_to t("app.nav.accounts"), bank_accounts_path, class: "text-xs text-primary hover:underline" %>
+  </div>
+</section>

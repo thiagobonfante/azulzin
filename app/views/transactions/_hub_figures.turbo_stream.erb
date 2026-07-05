@@ -1,0 +1,5 @@
+<%# Re-render the hero + tiles after any action that moves money. summary / viewed_month are
+    controller helper_methods (built lazily for the viewed month). %>
+<%= turbo_stream.replace "hero", partial: "transactions/hero", locals: { summary: summary, month: viewed_month } %>
+<%= turbo_stream.replace "accounts_tile", partial: "transactions/accounts_tile", locals: { summary: summary } %>
+<%= turbo_stream.replace "bills_tile", partial: "transactions/bills_tile", locals: { summary: summary, month: viewed_month } %>

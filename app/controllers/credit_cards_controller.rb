@@ -26,6 +26,26 @@ class CreditCardsController < ApplicationController
     end
   end
 
+  # Full-page edit — the first edit surface in the app; the billing config (R2) lives here.
+  def edit
+    @credit_card = Current.user.credit_cards.find(params[:id])
+  end
+
+  # Saving a billing config re-buckets the card's history into real faturas (02 §3.2-5).
+  def update
+    @credit_card = Current.user.credit_cards.find(params[:id])
+    was_unconfigured = !@credit_card.billing_configured?
+    if @credit_card.update(credit_card_params)
+      if @credit_card.billing_configured? &&
+         (@credit_card.saved_change_to_bill_due_day? || @credit_card.saved_change_to_closing_offset_days?)
+        @credit_card.recompute_billing_months!(first_time: was_unconfigured)
+      end
+      redirect_to return_path, notice: t(".updated")
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
   def destroy
     @credit_card = Current.user.credit_cards.find(params[:id])
     @credit_card.destroy
@@ -37,10 +57,17 @@ class CreditCardsController < ApplicationController
 
   private
     def credit_card_params
-      params.expect(credit_card: %i[institution_id nickname credit_limit_reais current_bill_reais])
+      params.expect(credit_card: %i[institution_id nickname credit_limit_reais current_bill_reais
+                                    bill_due_day closing_offset_days])
     end
 
     def after_change_path
       Current.user.onboarded? ? credit_cards_path : onboarding_step_path("cards")
+    end
+
+    # Whitelisted return: the hub nudge passes the token "transactions" (never a URL, so no
+    # open-redirect surface); anything else falls back to the cards page.
+    def return_path
+      params[:return_to] == "transactions" ? transactions_path(month: params[:month].presence) : credit_cards_path
     end
 end

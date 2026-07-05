@@ -1,0 +1,64 @@
+<%# locals: summary, month — Zone D, Faturas do mês. "What will the cards take this month?" %>
+<section id="bills_tile" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+  <header class="mb-3 flex items-baseline justify-between">
+    <h2 class="text-sm font-semibold"><%= t("transactions.bills.title") %></h2>
+    <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.faturas_cents) %></span>
+  </header>
+
+  <% cards = Current.user.credit_cards.includes(:institution).order(:created_at) %>
+  <% if cards.any? %>
+    <ul class="flex flex-col gap-3">
+      <% cards.each do |card| %>
+        <li>
+          <div class="flex items-center gap-2">
+            <%= institution_avatar(card.institution, size: 28) %>
+            <span class="min-w-0 flex-1 truncate text-sm"><%= card.display_name %></span>
+            <span class="tabular-nums text-sm font-medium"><%= brl(summary.bill_totals[card].to_i) %></span>
+          </div>
+
+          <% if card.billing_configured? %>
+            <p class="mt-0.5 pl-9 text-xs text-base-content/50">
+              <%= t("transactions.bills.due_on", day: card.bill_due_day) %> ·
+              <%= t("transactions.bills.closes_on", day: card.closing_date(card.current_open_bill_month).day) %>
+            </p>
+            <% if card.limit_informed? %>
+              <% ratio = card.usage_ratio %>
+              <% bar = ratio >= 0.9 ? "bg-error" : ratio >= 0.7 ? "bg-warning" : "bg-primary" %>
+              <div class="mt-1 ml-9 h-2 overflow-hidden rounded-full bg-base-200">
+                <div class="h-full rounded-full <%= bar %>" style="width: <%= (ratio * 100).round %>%"></div>
+              </div>
+            <% end %>
+            <% lines = card.transactions.posted.where(billing_month: month).order(:occurred_on).to_a %>
+            <% if lines.any? %>
+              <details class="mt-1 ml-9 group">
+                <summary class="cursor-pointer list-none text-xs text-primary"><%= t("transactions.bills.view_bill") %></summary>
+                <ul class="mt-2 flex flex-col gap-1">
+                  <% lines.each do |line| %>
+                    <li class="flex items-center justify-between text-xs text-base-content/60">
+                      <span class="truncate">
+                        <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
+                        · <%= l(line.occurred_on, format: :short) %>
+                      </span>
+                      <span class="tabular-nums"><%= brl(line.amount_cents) %></span>
+                    </li>
+                  <% end %>
+                </ul>
+              </details>
+            <% end %>
+          <% else %>
+            <%= link_to t("transactions.bills.setup_billing"),
+                  edit_credit_card_path(card, return_to: "transactions", month: month.strftime("%Y-%m")),
+                  class: "mt-1 ml-9 inline-block text-xs font-medium text-primary hover:underline" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <%= link_to t("dashboard.add_cards"), credit_cards_path,
+          class: "block rounded-box border border-dashed border-base-300 px-4 py-6 text-center text-sm text-primary" %>
+  <% end %>
+
+  <div class="mt-3 text-right">
+    <%= link_to t("app.nav.cards"), credit_cards_path, class: "text-xs text-primary hover:underline" %>
+  </div>
+</section>

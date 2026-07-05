@@ -1,6 +1,15 @@
-<%# Reversed/discarded → rejected, so it leaves the inbox. Remove it; restore the empty state
-    if it was the last pending row. %>
+<%# Reversed/discarded → rejected: leaves both the tray and the ledger. Remove from each
+    (no-op where absent); refresh the tray chrome and the hub figures (spend/sobra dropped). %>
 <%= turbo_stream.remove dom_id(@transaction) %>
-<% unless Current.user.transactions.pending_inbox.exists? %>
-  <%= turbo_stream.append "transactions_list", partial: "transactions/empty" %>
+<%= turbo_stream.remove dom_id(@transaction, :row) %>
+
+<%= turbo_stream.replace "sidebar_pending_count", pending_nav_badge %>
+<% if Current.user.transactions.pending_inbox.exists? %>
+  <%= turbo_stream.replace "pending_tray_count" do %>
+    <span id="pending_tray_count" class="badge badge-warning badge-sm"><%= Current.user.transactions.pending_inbox.count %></span>
+  <% end %>
+<% else %>
+  <%= turbo_stream.remove "pending_tray" %>
 <% end %>
+
+<%= render "transactions/hub_figures" %>

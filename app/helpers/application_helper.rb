@@ -30,13 +30,22 @@ module ApplicationHelper
     end
   end
 
-  # Sidebar nav item — active styling derived from the caller's `active` flag.
-  def sidebar_link(label, path, active:, &icon)
+  # Sidebar nav item — active styling derived from the caller's `active` flag. An optional
+  # `badge` element (e.g. the pending-tray count) is rendered right-aligned.
+  def sidebar_link(label, path, active:, badge: nil, &icon)
     base  = "flex items-center gap-3 rounded-box px-3 py-2 text-sm font-medium transition-colors"
     state = active ? "bg-primary/10 text-primary" : "text-base-content/70 hover:bg-base-200"
     link_to path, class: "#{base} #{state}", aria: { current: ("page" if active) } do
-      safe_join([ capture(&icon), tag.span(label) ])
+      safe_join([ capture(&icon), tag.span(label, class: "flex-1"), badge ].compact)
     end
+  end
+
+  # The sidebar pending-tray count badge — always rendered (with a stable id so Turbo Streams
+  # can replace it after an in-app resolve), hidden at zero.
+  def pending_nav_badge
+    count = Current.user.transactions.pending_inbox.count
+    tag.span(count.positive? ? count : "", id: "sidebar_pending_count",
+             class: "badge badge-warning badge-sm#{' hidden' if count.zero?}")
   end
 
   # Vendored SVG sources are immutable first-party assets — read each file once and cache

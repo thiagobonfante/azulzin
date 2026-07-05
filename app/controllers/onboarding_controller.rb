@@ -7,7 +7,7 @@ class OnboardingController < ApplicationController
   layout "onboarding"
   before_action :redirect_if_onboarded
 
-  STEPS = %w[profile accounts cards].freeze
+  STEPS = %w[profile accounts incomes cards].freeze
 
   def show
     step = params[:step]
@@ -27,6 +27,7 @@ class OnboardingController < ApplicationController
     case @step
     when "profile"  then update_profile
     when "accounts" then advance_from_accounts
+    when "incomes"  then advance_from_incomes
     when "cards"    then finish
     end
   end
@@ -42,6 +43,7 @@ class OnboardingController < ApplicationController
       user = Current.user
       return "profile"  if user.name.blank? || user.phone.blank?
       return "accounts" if user.bank_accounts.none?
+      return "incomes"  if user.incomes.none?
       "cards"
     end
 
@@ -62,6 +64,10 @@ class OnboardingController < ApplicationController
         @bank_accounts = Current.user.bank_accounts.includes(:institution).order(:created_at)
         @bank_account  = BankAccount.new
         render :accounts
+      when "incomes"
+        @incomes = Current.user.incomes.active.includes(:bank_account).order(:created_at)
+        @income  = Income.new
+        render :incomes
       when "cards"
         @credit_cards = Current.user.credit_cards.includes(:institution).order(:created_at)
         @credit_card  = CreditCard.new
@@ -80,9 +86,17 @@ class OnboardingController < ApplicationController
 
     def advance_from_accounts
       if Current.user.bank_accounts.any?
-        redirect_to onboarding_step_path("cards")
+        redirect_to onboarding_step_path("incomes")
       else
         redirect_to onboarding_step_path("accounts"), alert: t("onboarding.accounts.need_one")
+      end
+    end
+
+    def advance_from_incomes
+      if Current.user.incomes.any?
+        redirect_to onboarding_step_path("cards")
+      else
+        redirect_to onboarding_step_path("incomes"), alert: t("onboarding.incomes.need_one")
       end
     end
 

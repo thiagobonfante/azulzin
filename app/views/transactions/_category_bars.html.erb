@@ -1,0 +1,35 @@
+<%# locals: rows — top-5 spend categories as proportional bars (R6). Hidden with no spend. %>
+<% expenses = rows.select { |r| r.direction == "expense" } %>
+<% if expenses.any? %>
+  <% by_cat = expenses.group_by(&:category).transform_values { |rs| rs.sum(&:amount_cents) }.sort_by { |_, v| -v } %>
+  <% top = by_cat.first(5) %>
+  <% other = by_cat.drop(5).sum { |_, v| v } %>
+  <% max = (top.map { |_, v| v } + [ other ]).max.to_f %>
+  <details class="group mb-3">
+    <summary class="cursor-pointer list-none text-xs font-medium text-primary"><%= t("transactions.ledger.by_category") %></summary>
+    <ul class="mt-2 flex flex-col gap-1.5">
+      <% top.each do |category, cents| %>
+        <li>
+          <div class="flex items-baseline justify-between text-xs">
+            <span class="text-base-content/70"><%= category&.name || t("transactions.ledger.uncategorized") %></span>
+            <span class="tabular-nums text-base-content/60"><%= brl(cents) %></span>
+          </div>
+          <div class="mt-0.5 h-1.5 overflow-hidden rounded-full bg-base-200">
+            <div class="h-full rounded-full bg-primary" style="width: <%= (cents / max * 100).round %>%"></div>
+          </div>
+        </li>
+      <% end %>
+      <% if other.positive? %>
+        <li>
+          <div class="flex items-baseline justify-between text-xs">
+            <span class="text-base-content/50"><%= t("transactions.ledger.other_categories") %></span>
+            <span class="tabular-nums text-base-content/50"><%= brl(other) %></span>
+          </div>
+          <div class="mt-0.5 h-1.5 overflow-hidden rounded-full bg-base-200">
+            <div class="h-full rounded-full bg-base-content/30" style="width: <%= (other / max * 100).round %>%"></div>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  </details>
+<% end %>

@@ -67,6 +67,10 @@ module Whatsapp
         t.merchant         = @extraction.merchant
         t.payment_method   = @extraction.payment_method
         t.occurred_on      = @extraction.occurred_on || today
+        # Explicit billing_month write site (02 §3.2-1): the closing rule for a matched card,
+        # calendar month otherwise. Computed here, not left solely to the before_validation net.
+        t.billing_month    = billing_month_for(instrument, t.occurred_on)
+        t.category_id      = resolve_category      # R6 guess resolved in Ruby (≥ 0.75), never an LLM id
         t.status           = status
         t.confirmed_at     = (Time.current if status == "posted")
         t.source           = @extraction.source
@@ -76,7 +80,36 @@ module Whatsapp
         t.ask              = ask
         t.ask_expires_at   = ask_expires_at
         assign_instrument(t, instrument)
+        # Capture-time subscription reconciliation (05 §5.7 pass 1): a posted card charge similar
+        # to an active card subscription/fixed commitment on that card adopts its commitment_id,
+        # so the bill projection drops out (no double-count).
+        t.commitment_id = link_card_commitment(t) if status == "posted" && instrument.is_a?(CreditCard)
       end
+    end
+
+    def resolve_category
+      guess = @extraction.category
+      return nil if guess.blank?
+      term = Whatsapp.normalize(guess)
+      best = @msg.user.categories.max_by { |c| Whatsapp.similarity(term, Whatsapp.normalize(c.name)) }
+      best&.id if best && Whatsapp.similarity(term, Whatsapp.normalize(best.name)) >= 0.75
+    end
+
+    def link_card_commitment(txn)
+      card = txn.credit_card
+      return nil unless card
+      candidates = card.commitments.active.select do |c|
+        %w[subscription fixed].include?(c.kind) && c.active_in?(txn.billing_month) &&
+          !c.paid_in?(txn.billing_month) && amount_close?(txn.amount_cents, c.amount_cents)
+      end
+      best = candidates.max_by { |c| Whatsapp.similarity(Whatsapp.normalize(txn.merchant.to_s), Whatsapp.normalize(c.name)) }
+      return nil unless best && Whatsapp.similarity(Whatsapp.normalize(txn.merchant.to_s), Whatsapp.normalize(best.name)) >= Transaction::MATCH_ASSIGN_MIN
+      best.id
+    end
+
+    def amount_close?(a, b)
+      tol = [ (b.to_i * 0.2).round, 500 ].max
+      (a.to_i - b.to_i).abs <= tol
     end
 
     def assign_instrument(txn, instrument)
@@ -84,6 +117,11 @@ module Whatsapp
       when BankAccount then txn.bank_account = instrument
       when CreditCard  then txn.credit_card = instrument
       end
+    end
+
+    # Card rows follow the closing rule; everything else buckets by calendar month.
+    def billing_month_for(instrument, occurred_on)
+      instrument.is_a?(CreditCard) ? instrument.billing_month_for(occurred_on) : occurred_on.beginning_of_month
     end
 
     def reply(key, txn, **args) = WhatsappReply.deliver(user: @msg.user, key: key, transaction: txn, **args)

@@ -1,0 +1,9 @@
+<%# locals: month %>
+<% if month >= hub_today.beginning_of_month %>
+  <div class="rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-8 text-center">
+    <p class="text-sm text-base-content/60"><%= t("transactions.ledger.empty") %></p>
+    <p class="mt-1 text-xs text-base-content/40"><%= t("transactions.ledger.empty_hint") %></p>
+  </div>
+<% else %>
+  <p class="px-2 py-6 text-center text-sm text-base-content/50"><%= t("transactions.ledger.empty_past", month: l(month, format: :month_year)) %></p>
+<% end %>

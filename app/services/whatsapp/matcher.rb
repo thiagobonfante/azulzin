@@ -13,10 +13,20 @@ module Whatsapp
     FILLER = %w[banco cartao conta de do da no na meu minha pelo pela com a o para].to_set.freeze
     CREDIT_RE = /cart[aã]o|cr[eé]dito|fatura|parcelad/i
     DEBIT_RE  = /d[eé]bito|conta|pix|boleto|ted|doc/i
+    # R4 keyword layer: a savings/caixinha phrase narrows candidates to savings accounts.
+    SAVINGS_RE = /caixinha|poupan[cç]a|reserva|cofrinho|guardad/i
 
-    def initialize(user, extraction)
+    def initialize(user, extraction, restrict_kind: nil)
       @user = user
       @extraction = extraction
+      @restrict_kind = restrict_kind   # :account restricts to bank accounts (transfer legs)
+    end
+
+    # Public entry for resolving a single phrase to an instrument (07 §3): used by transfers
+    # (source + destination), passing kind: :account (cards are never transfer legs).
+    def self.match_phrase(user, phrase, payment_method: nil, kind: nil)
+      ex = Extraction.new(instrument_phrase: phrase, payment_method: payment_method || "desconhecido")
+      new(user, ex, restrict_kind: kind).call
     end
 
     def call
@@ -79,9 +89,11 @@ module Whatsapp
     def candidates_for_kind
       text = "#{@extraction.instrument_phrase} #{@extraction.payment_method}"
       accounts = @user.bank_accounts.includes(:institution)
+      accounts = accounts.where(kind: "savings") if SAVINGS_RE.match?(@extraction.instrument_phrase.to_s)
       cards    = @user.credit_cards.includes(:institution)
       list =
-        if text.match?(CREDIT_RE) && !text.match?(DEBIT_RE) then cards
+        if @restrict_kind == :account then accounts
+        elsif text.match?(CREDIT_RE) && !text.match?(DEBIT_RE) then cards
         elsif text.match?(DEBIT_RE) && !text.match?(CREDIT_RE) then accounts
         else accounts.to_a + cards.to_a
         end

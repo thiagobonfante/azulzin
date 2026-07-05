@@ -1,0 +1,9 @@
+<% if @income.persisted? %>
+  <%= turbo_stream.remove "incomes_empty" %>
+  <%= turbo_stream.append "incomes_list", partial: "incomes/income", locals: { income: @income } %>
+  <%= turbo_stream.update "income_form_errors", "" %>
+<% else %>
+  <%= turbo_stream.update "income_form_errors" do %>
+    <div class="alert alert-error py-2 text-sm" role="alert"><span><%= @income.errors.full_messages.to_sentence %></span></div>
+  <% end %>
+<% end %>

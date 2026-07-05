@@ -1,0 +1,5 @@
+<div id="categories_empty" class="rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-8 text-center">
+  <p class="text-sm text-base-content/50"><%= t("categories.empty") %></p>
+  <%= button_to t("categories.restore_defaults"), restore_categories_path, method: :post,
+        class: "btn btn-ghost btn-sm mt-3 text-primary" %>
+</div>

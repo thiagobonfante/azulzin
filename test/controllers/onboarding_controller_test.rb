@@ -46,16 +46,66 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_not @user.reload.onboarded?
   end
 
-  test "accounts step advances once there is at least one account" do
+  def add_account = @account ||= @user.bank_accounts.create!(institution: @nubank)
+
+  def add_income
+    add_account
+    @user.incomes.create!(bank_account: @account, name: "salário", amount_cents: 450_000,
+                          schedule_kind: "fixed_day", schedule_day: 5)
+  end
+
+  test "accounts step advances to the incomes step once there is at least one account" do
     complete_profile
-    @user.bank_accounts.create!(institution: @nubank)
+    add_account
     patch onboarding_step_url("accounts")
+    assert_redirected_to onboarding_step_url("incomes")
+  end
+
+  test "the incomes and cards steps render their forms" do
+    complete_profile
+    add_account
+    get onboarding_step_url("incomes")
+    assert_response :success
+    assert_select "form#income_form"
+    add_income
+    get onboarding_step_url("cards")
+    assert_response :success
+    assert_select "form#credit_card_form"
+  end
+
+  test "incomes step will not advance with zero incomes" do
+    complete_profile
+    add_account
+    patch onboarding_step_url("incomes")
+    assert_redirected_to onboarding_step_url("incomes")
+    assert_not @user.reload.onboarded?
+  end
+
+  test "incomes step advances to cards once there is at least one income" do
+    complete_profile
+    add_income
+    patch onboarding_step_url("incomes")
     assert_redirected_to onboarding_step_url("cards")
   end
 
-  test "cards step finishes onboarding and lands on the dashboard" do
+  test "PATCH onboarding/cards with zero incomes redirects back to the incomes step" do
     complete_profile
-    @user.bank_accounts.create!(institution: @nubank)
+    add_account # account but no income → resume is incomes; cards is ahead
+    patch onboarding_step_url("cards")
+    assert_redirected_to onboarding_step_url("incomes")
+    assert_not @user.reload.onboarded?
+  end
+
+  test "GET onboarding/cards with zero incomes deep-links back to incomes" do
+    complete_profile
+    add_account
+    get onboarding_step_url("cards")
+    assert_redirected_to onboarding_step_url("incomes")
+  end
+
+  test "cards step finishes onboarding once profile, accounts and incomes are done" do
+    complete_profile
+    add_income
     patch onboarding_step_url("cards")
     assert_redirected_to dashboard_url
     assert @user.reload.onboarded?

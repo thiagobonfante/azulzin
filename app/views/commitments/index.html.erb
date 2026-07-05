@@ -1,0 +1,21 @@
+<% content_for :title, t("commitments.index.meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t("commitments.index.title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t("commitments.index.subtitle") %></p>
+</header>
+
+<div class="grid gap-6 lg:grid-cols-5">
+  <div class="lg:col-span-3">
+    <div id="commitments_list" class="flex flex-col gap-4">
+      <%= render "commitments/grouped_list", commitments: @commitments, archived: @archived %>
+    </div>
+  </div>
+
+  <div class="lg:col-span-2">
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-4 font-display text-lg font-bold"><%= t("commitments.index.new") %></h2>
+      <%= render "commitments/form", commitment: @commitment %>
+    </div>
+  </div>
+</div>

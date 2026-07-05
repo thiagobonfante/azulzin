@@ -1,0 +1,65 @@
+<%# locals: transaction — edit-in-place form, replaces the display inside the row's frame. %>
+<%= turbo_frame_tag dom_id(transaction, :row), class: "block border-b border-base-300/40 last:border-0" do %>
+  <%= form_with model: transaction, url: transaction_path(transaction), method: :patch,
+        class: "grid gap-2 p-2 sm:grid-cols-2" do |f| %>
+    <%= hidden_field_tag :from, "ledger" %>
+    <%= hidden_field_tag :month, params[:month] %>
+    <% if transaction.errors.any? %>
+      <div class="alert alert-error col-span-full py-1 text-xs" role="alert"><span><%= transaction.errors.full_messages.to_sentence %></span></div>
+    <% end %>
+
+    <div class="form-control">
+      <%= f.label :amount_reais, t("transactions.row.amount"), class: "mb-1 text-xs text-base-content/60" %>
+      <label class="input input-bordered input-sm flex items-center gap-1">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%= f.text_field :amount_reais, inputmode: "decimal", class: "grow" %>
+      </label>
+    </div>
+    <div class="form-control">
+      <%= f.label :merchant, t("transactions.row.merchant"), class: "mb-1 text-xs text-base-content/60" %>
+      <%= f.text_field :merchant, class: "input input-bordered input-sm w-full" %>
+    </div>
+    <div class="form-control">
+      <%= f.label :occurred_on, t("transactions.row.date"), class: "mb-1 text-xs text-base-content/60" %>
+      <%= f.date_field :occurred_on, class: "input input-bordered input-sm w-full" %>
+    </div>
+
+    <% if transaction.transfer? %>
+      <div class="form-control">
+        <%= f.label :transfer_to_bank_account_id, t("transfers.form.to"), class: "mb-1 text-xs text-base-content/60" %>
+        <%= f.collection_select :transfer_to_bank_account_id, Current.user.bank_accounts.includes(:institution).order(:created_at),
+              :id, :display_name, {}, class: "select select-bordered select-sm w-full" %>
+      </div>
+    <% elsif transaction.credit_card_id %>
+      <div class="form-control">
+        <%= f.label :billing_month, t("transactions.row.bill_month"), class: "mb-1 text-xs text-base-content/60" %>
+        <%= f.select :billing_month, fatura_month_options(transaction),
+              { selected: transaction.billing_month.strftime("%Y-%m-%d") }, class: "select select-bordered select-sm w-full" %>
+      </div>
+    <% end %>
+
+    <% unless transaction.transfer? %>
+      <div class="form-control">
+        <%= f.label :category_id, t("transactions.row.category"), class: "mb-1 text-xs text-base-content/60" %>
+        <%= f.collection_select :category_id, Current.user.categories.ordered, :id, :name,
+              { include_blank: t("transactions.ledger.uncategorized") }, class: "select select-bordered select-sm w-full" %>
+      </div>
+    <% end %>
+
+    <%# Direction fix-up (R7) — rare, kept behind a disclosure. %>
+    <details class="form-control col-span-full">
+      <summary class="cursor-pointer list-none text-xs text-base-content/50"><%= t("transactions.row.direction") %></summary>
+      <%= f.select :direction, Transaction.directions.keys.map { |d| [ t("transactions.new_entry.#{d}"), d ] },
+            { selected: transaction.direction }, class: "select select-bordered select-sm mt-1 w-full" %>
+    </details>
+
+    <div class="col-span-full flex items-center justify-end gap-2 pt-1">
+      <%= link_to t("transactions.row.cancel"), transactions_path(month: params[:month]),
+            data: { turbo_frame: dom_id(transaction, :row) }, class: "btn btn-ghost btn-sm" %>
+      <%= button_to t("transactions.row.reverse"), transaction_path(transaction, month: params[:month], from: "ledger"),
+            method: :delete, class: "btn btn-ghost btn-sm text-error",
+            form: { data: { turbo_confirm: t("transactions.row.confirm_discard") } } %>
+      <%= f.submit t("transactions.row.save"), class: "btn btn-primary btn-sm" %>
+    </div>
+  <% end %>
+<% end %>

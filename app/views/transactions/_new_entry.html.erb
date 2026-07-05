@@ -1,0 +1,81 @@
+<%# locals: transaction, kind — inline add form; kind tabs are server-rendered links (no JS). %>
+<%= turbo_frame_tag "new_entry" do %>
+  <div class="mb-3 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
+    <div class="mb-2 flex gap-1">
+      <% %w[expense income transfer].each do |k| %>
+        <%= link_to t("transactions.new_entry.#{k}"), new_transaction_path(kind: k, month: params[:month]),
+              class: "btn btn-xs #{kind == k ? "btn-primary" : "btn-ghost"}" %>
+      <% end %>
+    </div>
+
+    <% if kind == "transfer" %>
+      <%= form_with url: transfers_path(month: params[:month]), method: :post, class: "grid gap-2 sm:grid-cols-2" do %>
+        <% if transaction.errors.any? %>
+          <div class="alert alert-error col-span-full py-1 text-xs" role="alert"><span><%= transaction.errors.full_messages.to_sentence %></span></div>
+        <% end %>
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.from") %></label>
+          <%= collection_select :transfer, :bank_account_id, Current.user.bank_accounts.includes(:institution).order(:created_at), :id, :display_name,
+                { include_blank: false }, class: "select select-bordered select-sm w-full" %>
+        </div>
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.to") %></label>
+          <%= collection_select :transfer, :transfer_to_bank_account_id, Current.user.bank_accounts.includes(:institution).order(:created_at), :id, :display_name,
+                { include_blank: false, selected: params[:to] }, class: "select select-bordered select-sm w-full" %>
+        </div>
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.amount") %></label>
+          <label class="input input-bordered input-sm flex items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= text_field_tag "transfer[amount_reais]", params[:amount], inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+          </label>
+        </div>
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.date") %></label>
+          <%= date_field_tag "transfer[occurred_on]", transaction.occurred_on, class: "input input-bordered input-sm w-full" %>
+        </div>
+        <div class="col-span-full flex justify-end gap-2 pt-1">
+          <%= link_to t("transactions.row.cancel"), transactions_path(month: params[:month]), data: { turbo_frame: "new_entry" }, class: "btn btn-ghost btn-sm" %>
+          <%= submit_tag t("transfers.form.submit"), class: "btn btn-primary btn-sm" %>
+        </div>
+      <% end %>
+    <% else %>
+      <%= form_with model: transaction, url: transactions_path(kind: kind, month: params[:month]), method: :post, class: "grid gap-2 sm:grid-cols-2" do |f| %>
+        <% if transaction.errors.any? %>
+          <div class="alert alert-error col-span-full py-1 text-xs" role="alert"><span><%= transaction.errors.full_messages.to_sentence %></span></div>
+        <% end %>
+        <div class="form-control">
+          <%= f.label :amount_reais, t("transactions.row.amount"), class: "mb-1 text-xs text-base-content/60" %>
+          <label class="input input-bordered input-sm flex items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+          </label>
+        </div>
+        <div class="form-control">
+          <%= f.label :merchant, t("transactions.row.merchant"), class: "mb-1 text-xs text-base-content/60" %>
+          <%= f.text_field :merchant, placeholder: t("transactions.row.merchant_placeholder"), class: "input input-bordered input-sm w-full" %>
+        </div>
+        <div class="form-control">
+          <%= f.label :occurred_on, t("transactions.row.date"), class: "mb-1 text-xs text-base-content/60" %>
+          <%= f.date_field :occurred_on, value: transaction.occurred_on, class: "input input-bordered input-sm w-full" %>
+        </div>
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60"><%= t("transactions.row.instrument") %></label>
+          <%= select_tag "instrument", grouped_options_for_select(instrument_option_groups),
+                include_blank: t("transactions.row.unassigned"), class: "select select-bordered select-sm w-full" %>
+        </div>
+        <% if kind == "expense" %>
+          <div class="form-control sm:col-span-2">
+            <%= f.label :category_id, t("transactions.row.category"), class: "mb-1 text-xs text-base-content/60" %>
+            <%= f.collection_select :category_id, Current.user.categories.ordered, :id, :name,
+                  { include_blank: t("transactions.ledger.uncategorized") }, class: "select select-bordered select-sm w-full" %>
+          </div>
+        <% end %>
+        <div class="col-span-full flex justify-end gap-2 pt-1">
+          <%= link_to t("transactions.row.cancel"), transactions_path(month: params[:month]), data: { turbo_frame: "new_entry" }, class: "btn btn-ghost btn-sm" %>
+          <%= f.submit t("transactions.new.submit"), class: "btn btn-primary btn-sm" %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

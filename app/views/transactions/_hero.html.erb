@@ -1,0 +1,51 @@
+<%# locals: summary, month — Zone C. The product's one number. Blue ≥ 0, red < 0 (never green). %>
+<section id="hero" class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+  <% label = case summary.mode
+             when :future then t("transactions.hero.remaining_projected")
+             when :past   then t("transactions.hero.month_result")
+             else              t("transactions.hero.remaining")
+             end %>
+  <div class="flex items-center gap-2">
+    <span class="text-sm text-base-content/60"><%= label %></span>
+    <% if summary.mode == :future %>
+      <span class="badge badge-ghost badge-sm"><%= t("transactions.month.projection_badge") %></span>
+    <% end %>
+  </div>
+
+  <div class="mt-1 flex flex-wrap items-baseline gap-3">
+    <span class="font-display text-4xl font-extrabold tabular-nums <%= summary.in_the_blue? ? "text-primary" : "text-error" %>">
+      <%= brl(summary.remaining_cents) %>
+    </span>
+    <span class="badge badge-ghost">
+      <%= summary.in_the_blue? ? t("transactions.hero.in_the_blue") : t("transactions.hero.in_the_red") %>
+    </span>
+  </div>
+
+  <%# Equation strip — the sobra math stays inspectable. %>
+  <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-base-content/50 tabular-nums">
+    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.incomes") %> <span class="font-medium"><%= brl(summary.entradas_cents) %></span></a>
+    <span aria-hidden="true">·</span>
+    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.expenses") %> <span class="font-medium"><%= brl(summary.saidas_cents) %></span></a>
+    <span aria-hidden="true">·</span>
+    <a href="#bills_tile" class="hover:text-base-content"><%= t("transactions.hero.bills") %> <span class="font-medium"><%= brl(summary.faturas_cents) %></span></a>
+    <% if summary.guardado_cents.positive? %>
+      <span aria-hidden="true">·</span>
+      <a href="#accounts_tile" class="hover:text-base-content"><%= t("transactions.accounts.saved_total") %> <span class="font-medium"><%= brl(summary.guardado_cents) %></span></a>
+    <% end %>
+  </div>
+
+  <% if show_sparkline?(Current.user) %>
+    <div class="mt-4 text-primary"><%= monthly_flow_sparkline(Current.user, month) %></div>
+  <% end %>
+
+  <%# Guardar na caixinha (R4) — the brand moment; only when there's a surplus and a savings account. %>
+  <% savings = Current.user.bank_accounts.savings.first %>
+  <% if summary.mode == :current && summary.remaining_cents.positive? && savings %>
+    <div class="mt-4">
+      <%= link_to t("transactions.hero.save_cta"),
+            new_transaction_path(kind: :transfer, month: month.strftime("%Y-%m"),
+              amount: format("%.2f", summary.remaining_cents / 100.0), to: savings.id),
+            data: { turbo_frame: "new_entry" }, class: "btn btn-primary btn-sm" %>
+    </div>
+  <% end %>
+</section>

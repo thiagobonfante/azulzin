@@ -23,6 +23,9 @@ en:
       bank_account: "Bank account"
       credit_card: "Credit card"
       institution: "Institution"
+      income: "Income"
+      category: "Category"
+      commitment: "Commitment"
     attributes:
       user:
         email_address: "Email address"
@@ -43,23 +46,62 @@ en:
         nickname: "Nickname"
         credit_limit_cents: "Limit"
         current_bill_cents: "Current bill"
+        bill_due_day: "Due day"
+        closing_offset_days: "Closing"
+      bank_account:
+        kind: "Account type"
+      income:
+        name: "Name"
+        amount_cents: "Amount"
+        bank_account: "Receiving account"
+        bank_account_id: "Receiving account"
+        schedule_kind: "Recurrence"
+        schedule_day: "Day"
+      category:
+        name: "Name"
+      commitment:
+        name: "Name"
+        kind: "Type"
+        amount_cents: "Amount"
+        total_cents: "Total"
+        bank_account: "Account"
+        credit_card: "Card"
+        category: "Category"
+        schedule_kind: "Recurrence"
+        schedule_day: "Day"
+        starts_on: "Starts"
+        ends_on: "Ends"
+        installments_count: "Installments"
     errors:
       models:
         user:
           attributes:
             email_address:
               not_allowed: "isn't allowed to sign up."
+        commitment:
+          one_instrument: "must have exactly one account or card."
+        transaction:
+          attributes:
+            transfer_to_bank_account:
+              same_account: "can't be the same as the source account."
   app:
     nav:
       dashboard: "Dashboard"
       accounts: "Accounts"
+      incomes: "Income"
       cards: "Cards"
-      inbox: "Pending"
+      transactions: "Transactions"
+      commitments: "Commitments"
+      categories: "Categories"
       admin: "Admin"
       open_menu: "Open menu"
       close_menu: "Close menu"
   money:
     symbol: "R$"
+  date:
+    formats:
+      month_year: "%B %Y"
+      weekday_day: "%a, %b %d"
   institutions:
     other: "Other"
     label: "Institution"
@@ -71,6 +113,7 @@ en:
     steps:
       profile: "Profile"
       accounts: "Accounts"
+      incomes: "Income"
       cards: "Cards"
     profile:
       meta_title: "Let's start — your profile"
@@ -88,10 +131,17 @@ en:
       continue: "Continue"
       need_one: "Add at least one account to continue."
       need_one_hint: "You need at least one account to continue."
+    incomes:
+      meta_title: "Your income"
+      title: "Where does your money come from?"
+      subtitle: "Add what you receive each month so azulzin can project your month before it starts."
+      continue: "Continue"
+      need_one: "Add at least one income to continue."
+      need_one_hint: "You need at least one income to continue."
     cards:
       meta_title: "Your cards"
       title: "And your credit cards?"
-      subtitle: "Add the cards you have. This step is optional — skip ahead to the dashboard if you like."
+      subtitle: "Add your cards and their due day — so every purchase lands on the right bill. Optional step."
       finish: "Finish"
       optional_hint: "This step is optional."
   dashboard:
@@ -115,6 +165,11 @@ en:
     add_cards: "Add a card"
   bank_accounts:
     add_title: "Add account"
+    kinds:
+      checking: "Checking"
+      savings: "Savings"
+    form:
+      kind_hint: "You can change this later — the numbers adjust on their own."
     nickname: "Nickname"
     nickname_placeholder: "e.g. Salary account"
     optional_details: "Optional details"
@@ -144,6 +199,18 @@ en:
     limit: "Limit"
     current_bill: "Current bill"
     current_bill_hint: "How much you have to pay on the next bill."
+    edit_title: "Edit card"
+    save: "Save"
+    bill_due_day: "Due day"
+    bill_due_day_unknown: "I don't know"
+    closing_offset_days: "Closes how many days before?"
+    closing_offset_option:
+      zero: "on the due day"
+      one: "%{count} day before"
+      other: "%{count} days before"
+    billing_explainer: "The bill closes %{offset} days before the due day. Purchases after closing land on the next bill."
+    best_purchase_day: "Best purchase day: the %{day}"
+    billing_hint: "With the due day set, purchases are assigned to the right bill automatically."
     add: "Add card"
     used: "Used"
     available: "Available"
@@ -157,8 +224,145 @@ en:
       subtitle: "Manage the cards you track in azulzin."
     create:
       created: "Card added."
+    update:
+      updated: "Card updated."
     destroy:
       removed: "Card removed."
+  incomes:
+    add_title: "Add income"
+    name: "Name"
+    name_placeholder: "e.g. salary, pension, rent"
+    amount: "Amount"
+    bank_account: "Which account receives it?"
+    schedule: "When does it arrive?"
+    schedule_kinds:
+      fixed_day: "Same day every month"
+      nth_business_day: "Business day"
+    day_option: "Day %{day}"
+    business_day_option: "%{nth} business day"
+    row:
+      fixed_day: "Every month on day %{day}"
+      nth_business_day: "%{nth} business day"
+      into_account: "goes into %{account}"
+    add: "Add"
+    remove: "Remove income"
+    confirm_remove: "Remove this income?"
+    empty: "No income added yet"
+    index:
+      meta_title: "Income"
+      title: "Your income"
+      subtitle: "What comes in every month, and into which account"
+    create:
+      created: "Income added."
+    destroy:
+      removed: "Income removed."
+  commitments:
+    default_installment_name: "Installment purchase"
+    kinds:
+      installment: "Installments"
+      fixed: "Fixed"
+      subscription: "Subscription"
+    instrument:
+      credit: "credit"
+      debit: "debit"
+    row:
+      progress: "%{paid} of %{count} paid"
+      every_day: "Every month on the %{day}"
+      next_due: "Next: %{date}"
+    occurrences:
+      mark_paid: "Mark paid"
+      unmark_paid: "Undo payment"
+      on_bill: "On the card bill"
+      paid: "Payment recorded."
+      statuses:
+        paid: "Paid"
+        due: "Due"
+        upcoming: "Upcoming"
+    form:
+      name: "Name"
+      amount: "Amount"
+      installments_count: "Installments"
+      installments_paid: "Already paid"
+      schedule_day: "Every month on the"
+      schedule_day_optional: "Day (optional)"
+      ends_on: "Has an end date?"
+      day_card_hint: "lands on the bill per the card's closing date"
+      instrument: "Paid with"
+      submit: "Add"
+      kind_hints:
+        installment: "e.g. financed car, phone in 12×"
+        fixed: "e.g. alimony, rent, tuition"
+        subscription: "e.g. Netflix, Spotify"
+    index:
+      meta_title: "Commitments"
+      title: "Commitments"
+      subtitle: "What repeats every month"
+      new: "New commitment"
+      empty: "No commitments yet. Add what repeats every month."
+      archived:
+        one: "Ended (%{count})"
+        other: "Ended (%{count})"
+      total_committed: "Total committed per month"
+    show:
+      vencimentos: "Due dates"
+      remaining: "%{amount} remaining"
+      edit: "Edit commitment"
+      finish: "End commitment"
+      finish_hint: "History is kept; new due dates stop appearing."
+      finish_confirm: "End this commitment?"
+      updated: "Commitment updated."
+    create:
+      created: "Commitment added."
+    destroy:
+      removed: "Commitment ended."
+  categories:
+    # Seeded per user at onboarding (Categories::SeedDefaults) in the user's locale. Read
+    # dynamically — kept in ignore_unused. Both locales MUST have the same length (seed asserts).
+    defaults:
+      - "Groceries"
+      - "Dining out"
+      - "Transport"
+      - "Housing"
+      - "Bills & utilities"
+      - "Health"
+      - "Education"
+      - "Leisure"
+      - "Subscriptions"
+      - "Clothing"
+      - "Travel"
+      - "Other"
+    add_title: "Add category"
+    name: "Name"
+    name_placeholder: "e.g. Pets"
+    add: "Add"
+    save: "Save"
+    remove: "Remove category"
+    confirm_delete:
+      zero: "Remove this category?"
+      one: "%{count} movement will lose its category. Remove?"
+      other: "%{count} movements will lose their category. Remove?"
+    empty: "No categories. Restore the defaults to get started."
+    restore_defaults: "Restore defaults"
+    index:
+      meta_title: "Categories"
+      title: "Categories"
+      subtitle: "Organize your spending in whatever way makes sense to you."
+    create:
+      created: "Category added."
+    destroy:
+      removed: "Category removed."
+    restore:
+      restored: "Default categories restored."
+  transfers:
+    form:
+      from: "From account"
+      to: "To account"
+      amount: "Amount"
+      date: "Date"
+      submit: "Transfer"
+    create:
+      created: "Transfer recorded."
+    saved_celebration: "%{amount} saved! Total this month: %{total} 💙"
   transactions:
     empty: "Nothing pending here. You're all caught up! 🎉"
     statuses:
@@ -168,9 +372,64 @@ en:
       needs_clarification: "Missing info"
       needs_disambiguation: "Which one?"
     index:
-      meta_title: "Pending"
-      title: "Pending"
-      subtitle: "Review, fix the account or amount, and confirm the expenses captured over WhatsApp."
+      meta_title: "Transactions"
+    hub:
+      add_incomes_prompt: "Add your incomes to see the month projection"
+    month:
+      prev: "Previous month"
+      next: "Next month"
+      today: "Today"
+      projection_badge: "Projection"
+    tray:
+      title: "To review"
+      show_all: "Show all (%{count})"
+    hero:
+      remaining: "Left this month"
+      remaining_projected: "Projected leftover"
+      month_result: "Month result"
+      in_the_blue: "In the blue"
+      in_the_red: "In the red"
+      incomes: "Income"
+      expenses: "Spending"
+      bills: "Card bills"
+      sparkline_label: "Leftover by month"
+      save_cta: "Move to savings"
+    accounts:
+      title: "Accounts"
+      saved_total: "Saved"
+      savings_badge: "Savings"
+      save_money: "Save money"
+    bills:
+      title: "This month's bills"
+      due_on: "Due on the %{day}"
+      closes_on: "Closes on the %{day}"
+      view_bill: "View bill"
+      setup_billing: "Set closing and due day"
+    due:
+      title: "To pay this month"
+    projection:
+      notice: "Projected from your incomes and commitments — day-to-day spending not included"
+      expected: "Expected"
+    ledger:
+      title: "Activity"
+      add: "Add"
+      filters:
+        all: "All"
+        expenses: "Spending"
+        incomes: "Income"
+        transfers: "Transfers"
+      by_category: "By category"
+      other_categories: "Other"
+      uncategorized: "No category"
+      empty: "No activity this month"
+      empty_hint: "Send a voice note on WhatsApp and we'll log it for you"
+      empty_past: "No activity in %{month}."
+      empty_future: "Nothing projected for %{month}. Add your commitments to see the month before it arrives."
+      show_more: "Show more"
+    new_entry:
+      expense: "Expense"
+      income: "Income"
+      transfer: "Transfer"
     row:
       amount: "Amount"
       merchant: "Merchant"
@@ -183,8 +442,17 @@ en:
       reverse: "Undo"
       discard: "Discard"
       confirm_discard: "Are you sure?"
+      date: "Date"
+      bill_month: "Bill month"
+      bill_auto: "automatic"
+      cancel: "Cancel"
+      category: "Category"
+      direction: "Entry type"
+    new:
+      submit: "Add"
     update:
       updated: "Expense updated."
+      created: "Entry added."
     assign:
       assigned: "Account set."
     confirm:
@@ -339,6 +607,35 @@ en:
       media_too_large: "That file is too large for me to read. Could you resend a smaller photo or PDF?"
       unknown_sender: "This number isn't registered with azulzin."
       verified: "WhatsApp activated! ✅ Just send me your expenses here."
+      income_posted: "💙 Received: %{amount} in %{instrument}."
+      income_posted_linked: "💙 Received: %{amount} in %{instrument}."
+      income_posted_unassigned: "💙 Received: %{amount}. Pick the account in the app."
+      transfer_posted: "🔁 Transferred: %{amount} from %{from} to %{to}."
+      transfer_saved: "💙 Saved: %{amount} to %{instrument}. Nice!"
+      ask_transfer_to: "To which account? Reply with the number:\n%{options}"
+      ask_transfer_from: "From which account? Reply with the number:\n%{options}"
+      installments_posted: "✅ Installments: %{count}x of %{parcel} on %{instrument}. First installment on the %{month} bill."
+      installment_commitment_created: "✅ Noted: %{count}x of %{parcel} (%{name}), monthly on %{instrument}. I'll remind you to mark it paid."
+      ask_installments_count: "In how many installments?"
+      commitment_paid: "✅ %{name} installment paid: %{amount} (%{month}). %{remaining} of %{count} remaining."
+      commitment_paid_simple: "✅ %{name} paid: %{amount} (%{month})."
+      commitment_already_paid: "%{name} is already paid for %{month} 👍 Nothing to do."
+      commitment_on_bill: "%{name} lands directly on the %{instrument} bill — no need to mark it. 😉"
+      ask_commitment_pick: "Which one? Reply with the number:\n%{options}"
+      commitment_not_found: "I couldn't find that commitment. Check Commitments in the app."
+      edited: "✅ Fixed: %{amount} on %{instrument}."
+      edit_unclear: "I didn't get the correction. Try: 'it was actually 54.90' — or edit it in the app."
+      nothing_to_edit: "I couldn't find a recent entry to fix."
+      undone: "🗑️ Undone: %{amount} at %{merchant}."
+      undone_installments: "🗑️ Undone: installment plan of %{count}x of %{parcel} on %{instrument}."
+      nothing_to_undo: "I couldn't find anything recent to undo."
+      balance_answer: "%{lines}\nTotal: %{total}"
+      balance_line: "%{name}: %{amount}"
+      month_answer_blue: "%{month}: %{remaining} left — in the blue 💙\nIncome %{entradas} · Spending %{saidas} · Bills %{faturas}"
+      month_answer_red: "%{month}: %{remaining} — in the red 🔴\nIncome %{entradas} · Spending %{saidas} · Bills %{faturas}"
+      card_bill_answer: "%{name}'s %{month} bill: %{amount} (closes on the %{closes}, due on the %{due})."
+      savings_answer: "Saved: %{total} 💙 This month you moved %{month} to savings."
+      help: "I didn't get that 🤔 You can send me things like:\n• \"groceries 84.90 on debit\"\n• \"saved 200 to savings\"\n• \"paid the car installment\"\n• \"bought a phone, 5000 in 10x\"\n• \"how's the month?\""
     activation:
       title: "Activate WhatsApp"
       subtitle: "Activate WhatsApp to log expenses by audio, photo, or text."

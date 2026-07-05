@@ -1,0 +1,10 @@
+<% if @saved %>
+  <%= turbo_stream.update "new_entry", "" %>
+  <% if @transaction.billing_month == viewed_month %>
+    <%= turbo_stream.prepend "ledger_list", partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
+  <% end %>
+  <%= render "transactions/hub_figures" %>
+<% else %>
+  <%= turbo_stream.replace "new_entry", partial: "transactions/new_entry",
+        locals: { transaction: @transaction, kind: @transaction.direction } %>
+<% end %>

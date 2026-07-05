@@ -81,4 +81,110 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal @card, txn.reload.credit_card
   end
+
+  # ── Phase 1 hub VERIFY ───────────────────────────────────────────────────
+
+  test "month resolver: garbage/out-of-range params behave" do
+    get transactions_url(month: "2026-13"); assert_response :success           # invalid → today
+    get transactions_url(month: "garbage"); assert_response :success           # invalid → today
+    high = Date.current.in_time_zone("America/Sao_Paulo").to_date.beginning_of_month >> 12
+    get transactions_url(month: "2050-01")                                     # out of range → clamp
+    assert_redirected_to transactions_path(month: high.strftime("%Y-%m"))
+  end
+
+  test "month default is the São Paulo month, not UTC's, near midnight" do
+    travel_to Time.utc(2026, 8, 1, 1, 0) do # 22:00 on Jul 31 in São Paulo
+      get transactions_url
+      assert_includes @response.body, "julho de 2026"
+    end
+  end
+
+  test "a d10/f7 card expense lands on the August fatura and August ledger" do
+    @card.update!(bill_due_day: 10, closing_offset_days: 7)
+    txn = @user.transactions.create!(amount_cents: 5_000, occurred_on: Date.new(2026, 7, 4),
+                                     status: "posted", direction: "expense", credit_card: @card)
+    assert_equal Date.new(2026, 8, 1), txn.billing_month
+    get transactions_url(month: "2026-08")
+    assert_select "##{ActionView::RecordIdentifier.dom_id(txn, :row)}"
+    get transactions_url(month: "2026-07")
+    assert_select "##{ActionView::RecordIdentifier.dom_id(txn, :row)}", count: 0
+  end
+
+  test "row edit Fatura select sets the manual flag; a later occurred_on edit leaves it" do
+    @card.update!(bill_due_day: 10, closing_offset_days: 7)
+    txn = @user.transactions.create!(amount_cents: 5_000, occurred_on: Date.new(2026, 7, 4),
+                                     status: "posted", direction: "expense", credit_card: @card)
+    # move to setembro
+    patch transaction_url(txn), params: { from: "ledger", month: "2026-08",
+      transaction: { amount_reais: "50,00", merchant: "", occurred_on: "2026-07-04", billing_month: "2026-09-01" } }
+    txn.reload
+    assert_equal Date.new(2026, 9, 1), txn.billing_month
+    assert txn.billing_month_manual?
+    # editing occurred_on must NOT clobber the manual move
+    patch transaction_url(txn), params: { from: "ledger", month: "2026-09",
+      transaction: { amount_reais: "50,00", merchant: "", occurred_on: "2026-06-01", billing_month: "2026-09-01" } }
+    assert_equal Date.new(2026, 9, 1), txn.reload.billing_month
+    assert txn.billing_month_manual?
+  end
+
+  test "confirming a pending row travels it into the viewed month's ledger" do
+    txn = pending_txn(bank_account: @account, occurred_on: Date.new(2026, 7, 10))
+    patch confirm_transaction_url(txn), params: { month: "2026-07" }, as: :turbo_stream
+    assert_response :success
+    assert txn.reload.posted?
+    assert_includes @response.body, ActionView::RecordIdentifier.dom_id(txn, :row) # prepended into ledger
+    assert_includes @response.body, "hero"                                          # figures re-rendered
+  end
+
+  test "reversing a posted row never writes balance_cents / current_bill_cents (pure record)" do
+    @account.update!(balance_cents: 100_000)
+    @card.update!(current_bill_cents: 50_000)
+    txn = @user.transactions.create!(amount_cents: 5_000, occurred_on: Date.current,
+                                     status: "posted", direction: "expense", bank_account: @account)
+    delete transaction_url(txn), params: { from: "ledger", month: Date.current.strftime("%Y-%m") }, as: :turbo_stream
+    assert txn.reload.rejected?
+    assert_equal 100_000, @account.reload.balance_cents
+    assert_equal 50_000, @card.reload.current_bill_cents
+    assert_equal 0, @user.transactions.spend.count
+  end
+
+  test "confirming a parked installment stub fans out the plan and supersedes the stub" do
+    @card.update!(bill_due_day: 10, closing_offset_days: 10)
+    stub = pending_txn(amount_cents: 500_000, merchant: "celular", occurred_on: Date.new(2026, 7, 3),
+                       billing_month: Date.new(2026, 7, 1), credit_card: @card,
+                       extraction: { "installments_count" => 10, "installment_total_raw" => "5000" })
+    assert_difference -> { @user.transactions.where.not(installment_number: nil).count }, 10 do
+      patch confirm_transaction_url(stub), params: { month: "2026-07" }, as: :turbo_stream
+    end
+    assert_equal "superseded", stub.reload.status
+    assert_equal 1, @user.commitments.installment.count
+
+    # A second confirm must NOT re-expand (the stub is already superseded).
+    assert_no_difference -> { @user.transactions.where.not(installment_number: nil).count } do
+      patch confirm_transaction_url(stub), params: { month: "2026-07" }, as: :turbo_stream
+    end
+  end
+
+  test "a ledger month with 250 rows shows the show-more link; show_all renders them" do
+    month = Date.current.beginning_of_month
+    250.times do
+      @user.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
+                                 amount_cents: 100, occurred_on: Date.current, billing_month: month)
+    end
+    get transactions_url(month: month.strftime("%Y-%m"))
+    assert_select "a", text: I18n.t("transactions.ledger.show_more", locale: :"pt-BR")
+    get transactions_url(month: month.strftime("%Y-%m"), show_all: 1)
+    assert_response :success
+  end
+
+  test "create adds a posted expense and prepends it to the ledger" do
+    assert_difference -> { @user.transactions.spend.count }, 1 do
+      post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
+           params: { transaction: { amount_reais: "12,00", merchant: "Feira", occurred_on: Date.current.to_s },
+                     instrument: "bank_account-#{@account.id}" }
+    end
+    txn = @user.transactions.order(:id).last
+    assert_equal 1_200, txn.amount_cents
+    assert_equal @account, txn.bank_account
+  end
 end

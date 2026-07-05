@@ -83,4 +83,22 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     assert txn.rejected?
     assert_equal 0, @user.transactions.spend.count
   end
+
+  # --- Phase 0 regression: the pipeline is unchanged except every row now carries a billing_month.
+
+  test "regression: a posted WA expense on an UNCONFIGURED card buckets by calendar month" do
+    run_pipeline(inbound("gastei 13,23 no mercado no cartão Nubank"))
+    txn = @user.transactions.sole
+    assert txn.posted?
+    assert_equal @card, txn.credit_card
+    assert_equal txn.occurred_on.beginning_of_month, txn.billing_month
+  end
+
+  test "a WA expense on a CONFIGURED card buckets by the closing rule (d10/f7, 07-04 → August)" do
+    @card.update!(bill_due_day: 10, closing_offset_days: 7)
+    run_pipeline(inbound("gastei 13,23 no cartão Nubank"), extraction(occurred_on: Date.new(2026, 7, 4)))
+    txn = @user.transactions.sole
+    assert_equal @card, txn.credit_card
+    assert_equal Date.new(2026, 8, 1), txn.billing_month
+  end
 end

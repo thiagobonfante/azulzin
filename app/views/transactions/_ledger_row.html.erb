@@ -1,0 +1,24 @@
+<%# locals: transaction — display row; clicking it loads the edit form into this frame (R7). %>
+<%= turbo_frame_tag dom_id(transaction, :row), class: "block border-b border-base-300/40 last:border-0" do %>
+  <% glyph, tone = ledger_row_glyph(transaction) %>
+  <%= link_to edit_transaction_path(transaction, month: params[:month]), class: "flex items-center gap-3 px-1 py-2 hover:bg-base-200/50" do %>
+    <span class="w-4 text-center text-lg <%= tone %>"><%= glyph %></span>
+    <div class="min-w-0 flex-1">
+      <p class="truncate text-sm">
+        <% if transaction.transfer? %>
+          <%= transaction.bank_account&.display_name %> → <%= transaction.transfer_to_bank_account&.display_name %>
+        <% else %>
+          <%= transaction.merchant.presence || transaction.description.presence ||
+                t("transactions.hero.#{transaction.income? ? "incomes" : "expenses"}") %>
+        <% end %>
+        <% if transaction.installment_number %>
+          <span class="text-xs text-base-content/50"><%= transaction.installment_number %>/<%= transaction.commitment&.installments_count %></span>
+        <% end %>
+      </p>
+    </div>
+    <% if transaction.instrument %>
+      <%= institution_avatar(transaction.instrument.institution, size: 20) %>
+    <% end %>
+    <span class="tabular-nums text-sm <%= tone %>"><%= transaction.income? ? "+" : "" %><%= brl(transaction.amount_cents) %></span>
+  <% end %>
+<% end %>

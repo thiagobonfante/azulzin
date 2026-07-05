@@ -1,0 +1,50 @@
+<%# locals: income %>
+<%= form_with model: income, url: incomes_path, id: "income_form",
+      data: { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" },
+      class: "flex flex-col gap-4" do |f| %>
+  <div id="income_form_errors">
+    <% if income.errors.any? %>
+      <div class="alert alert-error py-2 text-sm" role="alert"><span><%= income.errors.full_messages.to_sentence %></span></div>
+    <% end %>
+  </div>
+
+  <div class="form-control">
+    <%= f.label :name, t("incomes.name"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.text_field :name, placeholder: t("incomes.name_placeholder"), required: true, class: "input input-bordered w-full" %>
+  </div>
+
+  <div class="form-control">
+    <%= f.label :amount_reais, t("incomes.amount"), class: "mb-1 block text-sm font-medium" %>
+    <label class="input input-bordered flex w-full items-center gap-2">
+      <span class="text-base-content/50"><%= t("money.symbol") %></span>
+      <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+    </label>
+  </div>
+
+  <div class="form-control">
+    <%= f.label :bank_account_id, t("incomes.bank_account"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.collection_select :bank_account_id, Current.user.bank_accounts.includes(:institution).order(:created_at),
+          :id, :display_name, {}, class: "select select-bordered w-full", required: true %>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2" data-controller="schedule-fields">
+    <div class="form-control">
+      <label class="mb-1 block text-sm font-medium"><%= t("incomes.schedule") %></label>
+      <%= f.select :schedule_kind, Income.schedule_kinds.keys.map { |k| [ t("incomes.schedule_kinds.#{k}"), k ] },
+            {}, class: "select select-bordered w-full",
+            data: { schedule_fields_target: "kind", action: "schedule-fields#toggle" } %>
+    </div>
+    <div class="form-control">
+      <label class="mb-1 block text-sm font-medium">&nbsp;</label>
+      <%= f.select :schedule_day,
+            (1..31).map { |n| [ t("incomes.day_option", day: n), n,
+              { data: { fixed: t("incomes.day_option", day: n), nth: t("incomes.business_day_option", nth: nth_ordinal(n)) } } ] },
+            { selected: income.schedule_day || 5 },
+            class: "select select-bordered w-full", data: { schedule_fields_target: "day" } %>
+    </div>
+  </div>
+
+  <div class="flex justify-end">
+    <%= f.submit t("incomes.add"), class: "btn btn-primary btn-sm" %>
+  </div>
+<% end %>

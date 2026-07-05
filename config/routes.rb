@@ -41,20 +41,34 @@ Rails.application.routes.draw do
     # First-run setup wizard. `onboarding` (no step) resolves to the current step.
     get   "onboarding",       to: "onboarding#show", as: :onboarding
     get   "onboarding/:step", to: "onboarding#show", as: :onboarding_step,
-          constraints: { step: /profile|accounts|cards/ }
+          constraints: { step: /profile|accounts|incomes|cards/ }
     patch "onboarding/:step", to: "onboarding#update",
-          constraints: { step: /profile|accounts|cards/ }
+          constraints: { step: /profile|accounts|incomes|cards/ }
 
     resources :bank_accounts, only: %i[index create destroy]
-    resources :credit_cards,  only: %i[index create destroy]
+    resources :incomes,       only: %i[index create destroy]   # R1 — recurring income schedules
+    resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
 
-    # In-app pending inbox — the "fix-in-app" safety net for silent auto-commits
-    # (.plans/whats §5.8). Same guarded transitions as the chat front-end.
-    resources :transactions, only: %i[index update destroy] do
+    # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the
+    # ledger's inline add + edit-in-place, and assign/confirm keep the guarded-transition inbox.
+    resources :transactions, only: %i[index new create edit update destroy] do
       member do
         patch :assign    # pick an account/card for an unassigned row
         patch :confirm   # commit a pending/needs_* row → posted
       end
+    end
+    resources :transfers,  only: :create                         # R5 — single-row transfer between accounts
+
+    # R10/R11 — recurring commitments and their computed occurrences.
+    resources :commitments, only: %i[index show create update destroy]
+    resources :commitment_occurrences, only: [] do
+      member do
+        patch :pay
+        patch :unpay
+      end
+    end
+    resources :categories, only: %i[index create update destroy] do  # R6 — user-owned spend categories
+      post :restore, on: :collection                                  # re-seed the locale defaults
     end
 
     # Admin area (privileged, over all users' data). A normal in-app surface, so it lives

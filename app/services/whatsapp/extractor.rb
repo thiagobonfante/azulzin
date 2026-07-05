@@ -4,23 +4,45 @@ module Whatsapp
   # multiplies (Review P1-2). One shared schema for text + transcript. See .plans/whats §4.5.
   class Extractor
     SYSTEM_PROMPT = <<~PT.freeze
-      Você extrai UMA transação financeira de uma mensagem em português do Brasil.
+      Você classifica a intenção e extrai os campos de UMA mensagem financeira em português do Brasil.
+      Não invente. Se um campo não estiver na mensagem, retorne null com confiança 0.
+      intents:
+      - expense: gasto/compra à vista ("mercado 84,90 no débito").
+      - income: recebimento ("recebi o salário, 4500", "caiu 1200 de pensão").
+      - transfer: transferência entre contas, incluindo "guardar na caixinha/poupança/reserva".
+      - installment_purchase: compra parcelada ("comprei um celular, 5000 em 10x", "6x de 300").
+      - pay_commitment: pagamento de compromisso/parcela/conta fixa ("paguei a parcela do carro", "pensão paga").
+      - move_bill: mover uma compra para outra fatura ("joga pra próxima fatura").
+      - edit_last: corrigir o último lançamento ("na verdade foi 54,90", "era no crédito").
+      - undo_last: desfazer/cancelar o último ("apaga o último", "cancela isso").
+      - query: consulta de saldo/fatura/mês ("quanto tenho na nubank?", "como tá o mês?").
+      - other: qualquer outra coisa.
       Regras:
-      - Não invente. Se um campo não estiver na mensagem, retorne null com confiança 0.
-      - Nunca fabrique valor, estabelecimento ou data.
-      - Devolva o valor EXATAMENTE como dito (ex.: "13,23", "1.234,56"), sem converter para centavos.
-      - instrument_phrase = as palavras exatas da conta/cartão citado (ex.: "cartão Nubank"), ou null.
-      - occurred_on: data ISO só se explícita na mensagem; caso contrário null (será considerado hoje).
+      - intent_confidence de 0 a 1 (quão certa é a classificação).
+      - Devolva valores EXATAMENTE como ditos (ex.: "13,23", "1.234,56"), sem converter para centavos.
+      - instrument_phrase = conta/cartão citado (expense/income) ou a ORIGEM da transferência.
+      - to_instrument_phrase = DESTINO da transferência ("pra caixinha", "pra poupança").
+      - installments_count = número de parcelas ("em 10x" → 10). installment_total_raw / installment_parcel_raw conforme dito.
+      - commitment_phrase = o compromisso citado ("o carro", "a pensão", "netflix").
+      - occurred_on: data ISO só se explícita; caso contrário null.
       - payment_method: debito, credito, pix, dinheiro, boleto ou desconhecido.
+      - category: um palpite de categoria do gasto, se der (será resolvido no app).
     PT
 
     SCHEMA = {
       name: "transaction_extraction",
       schema: {
         "type" => "object", "additionalProperties" => false,
-        "required" => %w[amount_raw currency merchant occurred_on payment_method
-                         instrument_phrase field_confidence overall_confidence],
+        "required" => %w[intent intent_confidence amount_raw currency merchant occurred_on payment_method
+                         instrument_phrase field_confidence overall_confidence
+                         to_instrument_phrase installments_count installment_total_raw
+                         installment_parcel_raw commitment_phrase target_bill_raw
+                         edit_field_hint query_kind category],
         "properties" => {
+          "intent"            => { "type" => "string",
+                                   "enum" => %w[expense income transfer installment_purchase pay_commitment
+                                                move_bill edit_last undo_last query other] },
+          "intent_confidence" => { "type" => "number" },
           "amount_raw"        => { "type" => %w[string null] },
           "currency"          => { "type" => "string", "enum" => %w[BRL] },
           "merchant"          => { "type" => %w[string null] },
@@ -34,7 +56,16 @@ module Whatsapp
             "properties" => %w[amount merchant date payment_method instrument]
               .index_with { { "type" => "number" } }
           },
-          "overall_confidence" => { "type" => "number" }
+          "overall_confidence"     => { "type" => "number" },
+          "to_instrument_phrase"   => { "type" => %w[string null] },
+          "installments_count"     => { "type" => %w[integer null] },
+          "installment_total_raw"  => { "type" => %w[string null] },
+          "installment_parcel_raw" => { "type" => %w[string null] },
+          "commitment_phrase"      => { "type" => %w[string null] },
+          "target_bill_raw"        => { "type" => %w[string null] },
+          "edit_field_hint"        => { "type" => %w[string null], "enum" => [ "amount", "merchant", "instrument", "date", nil ] },
+          "query_kind"             => { "type" => %w[string null], "enum" => [ "account_balance", "card_bill", "month_summary", "savings_total", nil ] },
+          "category"               => { "type" => %w[string null] }
         }
       }
     }.freeze
@@ -64,7 +95,18 @@ module Whatsapp
         overall_confidence: parsed["overall_confidence"] || 0.0,
         modality:           modality,
         source:             source,
-        raw:                parsed.merge("transcript" => text).compact
+        raw:                parsed.merge("transcript" => text).compact,
+        intent:                 parsed["intent"].presence || "expense",
+        intent_confidence:      parsed["intent_confidence"] || 0.0,
+        to_instrument_phrase:   parsed["to_instrument_phrase"].presence,
+        installments_count:     parsed["installments_count"],
+        installment_total_raw:  parsed["installment_total_raw"].presence,
+        installment_parcel_raw: parsed["installment_parcel_raw"].presence,
+        commitment_phrase:      parsed["commitment_phrase"].presence,
+        target_bill_raw:        parsed["target_bill_raw"].presence,
+        edit_field_hint:        parsed["edit_field_hint"].presence,
+        query_kind:             parsed["query_kind"].presence,
+        category:               parsed["category"].presence
       )
     end
 

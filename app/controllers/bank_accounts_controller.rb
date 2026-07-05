@@ -38,7 +38,7 @@ class BankAccountsController < ApplicationController
 
   private
     def bank_account_params
-      params.expect(bank_account: %i[institution_id nickname agency account_number balance_reais])
+      params.expect(bank_account: %i[institution_id nickname agency account_number balance_reais kind])
     end
 
     # Where the no-JS fallback lands: back to the wizard step mid-onboarding, else the

@@ -3,7 +3,12 @@
   <%= institution_avatar(bank_account.institution, size: 40) %>
 
   <div class="min-w-0 flex-1">
-    <p class="truncate text-sm font-semibold"><%= bank_account.display_name %></p>
+    <p class="flex items-center gap-1.5 truncate text-sm font-semibold">
+      <span class="truncate"><%= bank_account.display_name %></span>
+      <% if bank_account.savings? %>
+        <span class="badge badge-success badge-xs"><%= t("bank_accounts.kinds.savings") %></span>
+      <% end %>
+    </p>
     <p class="truncate text-xs text-base-content/50">
       <%= bank_account.institution.display_name %>
       <% details = [ bank_account.agency, bank_account.account_number ].compact_blank %>

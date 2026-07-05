@@ -24,6 +24,9 @@ pt-BR:
       bank_account: "Conta bancária"
       credit_card: "Cartão de crédito"
       institution: "Instituição"
+      income: "Entrada"
+      category: "Categoria"
+      commitment: "Compromisso"
     attributes:
       user:
         email_address: "E-mail"
@@ -44,23 +47,62 @@ pt-BR:
         nickname: "Apelido"
         credit_limit_cents: "Limite"
         current_bill_cents: "Fatura atual"
+        bill_due_day: "Vencimento"
+        closing_offset_days: "Fechamento"
+      bank_account:
+        kind: "Tipo de conta"
+      income:
+        name: "Nome"
+        amount_cents: "Valor"
+        bank_account: "Conta que recebe"
+        bank_account_id: "Conta que recebe"
+        schedule_kind: "Recorrência"
+        schedule_day: "Dia"
+      category:
+        name: "Nome"
+      commitment:
+        name: "Nome"
+        kind: "Tipo"
+        amount_cents: "Valor"
+        total_cents: "Total"
+        bank_account: "Conta"
+        credit_card: "Cartão"
+        category: "Categoria"
+        schedule_kind: "Recorrência"
+        schedule_day: "Dia"
+        starts_on: "Início"
+        ends_on: "Fim"
+        installments_count: "Parcelas"
     errors:
       models:
         user:
           attributes:
             email_address:
               not_allowed: "não está autorizado a criar uma conta."
+        commitment:
+          one_instrument: "deve ter exatamente uma conta ou um cartão."
+        transaction:
+          attributes:
+            transfer_to_bank_account:
+              same_account: "não pode ser a mesma conta de origem."
   app:
     nav:
       dashboard: "Painel"
       accounts: "Contas"
+      incomes: "Rendas"
       cards: "Cartões"
-      inbox: "Pendências"
+      transactions: "Transações"
+      commitments: "Compromissos"
+      categories: "Categorias"
       admin: "Admin"
       open_menu: "Abrir menu"
       close_menu: "Fechar menu"
   money:
     symbol: "R$"
+  date:
+    formats:
+      month_year: "%B de %Y"
+      weekday_day: "%a, %d %b"
   institutions:
     other: "Outro"
     label: "Instituição"
@@ -72,6 +114,7 @@ pt-BR:
     steps:
       profile: "Perfil"
       accounts: "Contas"
+      incomes: "Rendas"
       cards: "Cartões"
     profile:
       meta_title: "Vamos começar — seu perfil"
@@ -89,10 +132,17 @@ pt-BR:
       continue: "Continuar"
       need_one: "Adicione pelo menos uma conta para continuar."
       need_one_hint: "É preciso ter ao menos uma conta para continuar."
+    incomes:
+      meta_title: "Suas rendas"
+      title: "De onde vem seu dinheiro?"
+      subtitle: "Cadastre o que você recebe todo mês. Assim o azulzin projeta seu mês antes de ele começar."
+      continue: "Continuar"
+      need_one: "Cadastre pelo menos uma renda para continuar."
+      need_one_hint: "É preciso ter ao menos uma renda para continuar."
     cards:
       meta_title: "Seus cartões"
       title: "E seus cartões de crédito?"
-      subtitle: "Adicione os cartões que você tem. Esta etapa é opcional — se preferir, siga para o painel."
+      subtitle: "Adicione seus cartões e o dia do vencimento — assim cada compra cai na fatura certa. Etapa opcional."
       finish: "Concluir"
       optional_hint: "Esta etapa é opcional."
   dashboard:
@@ -116,6 +166,11 @@ pt-BR:
     add_cards: "Adicionar um cartão"
   bank_accounts:
     add_title: "Adicionar conta"
+    kinds:
+      checking: "Conta corrente"
+      savings: "Poupança"
+    form:
+      kind_hint: "Você pode mudar depois — os números se ajustam sozinhos."
     nickname: "Apelido"
     nickname_placeholder: "Ex.: Conta salário"
     optional_details: "Detalhes opcionais"
@@ -145,6 +200,18 @@ pt-BR:
     limit: "Limite"
     current_bill: "Fatura atual"
     current_bill_hint: "Quanto você tem para pagar na próxima fatura."
+    edit_title: "Editar cartão"
+    save: "Salvar"
+    bill_due_day: "Dia do vencimento"
+    bill_due_day_unknown: "Não sei"
+    closing_offset_days: "Fecha quantos dias antes?"
+    closing_offset_option:
+      zero: "no dia do vencimento"
+      one: "%{count} dia antes"
+      other: "%{count} dias antes"
+    billing_explainer: "A fatura fecha %{offset} dias antes do vencimento. Compras depois do fechamento entram na fatura seguinte."
+    best_purchase_day: "Melhor dia de compra: dia %{day}"
+    billing_hint: "Com o vencimento configurado, suas compras passam a cair na fatura certa automaticamente."
     add: "Adicionar cartão"
     used: "Usado"
     available: "Disponível"
@@ -158,8 +225,145 @@ pt-BR:
       subtitle: "Gerencie os cartões que você acompanha no azulzin."
     create:
       created: "Cartão adicionado."
+    update:
+      updated: "Cartão atualizado."
     destroy:
       removed: "Cartão removido."
+  incomes:
+    add_title: "Adicionar renda"
+    name: "Nome"
+    name_placeholder: "ex.: salário, pensão, aluguel"
+    amount: "Valor"
+    bank_account: "Entra em qual conta?"
+    schedule: "Quando cai?"
+    schedule_kinds:
+      fixed_day: "Todo dia"
+      nth_business_day: "Dia útil"
+    day_option: "Dia %{day}"
+    business_day_option: "%{nth}º dia útil"
+    row:
+      fixed_day: "Todo dia %{day}"
+      nth_business_day: "%{nth}º dia útil"
+      into_account: "entra em %{account}"
+    add: "Adicionar"
+    remove: "Remover renda"
+    confirm_remove: "Remover esta renda?"
+    empty: "Nenhuma renda cadastrada ainda"
+    index:
+      meta_title: "Rendas"
+      title: "Suas rendas"
+      subtitle: "O que entra todo mês, e em qual conta"
+    create:
+      created: "Renda adicionada."
+    destroy:
+      removed: "Renda removida."
+  commitments:
+    default_installment_name: "Compra parcelada"
+    kinds:
+      installment: "Parcelamento"
+      fixed: "Fixo"
+      subscription: "Assinatura"
+    instrument:
+      credit: "crédito"
+      debit: "débito"
+    row:
+      progress: "%{paid} de %{count} pagas"
+      every_day: "Todo dia %{day}"
+      next_due: "Próximo: %{date}"
+    occurrences:
+      mark_paid: "Pagar"
+      unmark_paid: "Desfazer pagamento"
+      on_bill: "Entra na fatura"
+      paid: "Pagamento registrado."
+      statuses:
+        paid: "Paga"
+        due: "Pendente"
+        upcoming: "Prevista"
+    form:
+      name: "Nome"
+      amount: "Valor"
+      installments_count: "Parcelas"
+      installments_paid: "Já pagas"
+      schedule_day: "Todo dia"
+      schedule_day_optional: "Dia (opcional)"
+      ends_on: "Tem data de término?"
+      day_card_hint: "entra na fatura conforme o fechamento do cartão"
+      instrument: "Paga com"
+      submit: "Adicionar"
+      kind_hints:
+        installment: "ex.: carro financiado, celular em 12×"
+        fixed: "ex.: pensão, aluguel, mensalidade"
+        subscription: "ex.: Netflix, Spotify"
+    index:
+      meta_title: "Compromissos"
+      title: "Compromissos"
+      subtitle: "O que se repete todo mês"
+      new: "Novo compromisso"
+      empty: "Nenhum compromisso ainda. Cadastre o que se repete todo mês."
+      archived:
+        one: "Encerrados (%{count})"
+        other: "Encerrados (%{count})"
+      total_committed: "Total mensal comprometido"
+    show:
+      vencimentos: "Vencimentos"
+      remaining: "Faltam %{amount}"
+      edit: "Editar compromisso"
+      finish: "Encerrar compromisso"
+      finish_hint: "O histórico é mantido; novos vencimentos param de aparecer."
+      finish_confirm: "Encerrar este compromisso?"
+      updated: "Compromisso atualizado."
+    create:
+      created: "Compromisso adicionado."
+    destroy:
+      removed: "Compromisso encerrado."
+  categories:
+    # Seeded per user at onboarding (Categories::SeedDefaults) in the user's locale. Read
+    # dynamically — kept in ignore_unused. Both locales MUST have the same length (seed asserts).
+    defaults:
+      - "Mercado"
+      - "Restaurantes"
+      - "Transporte"
+      - "Moradia"
+      - "Contas"
+      - "Saúde"
+      - "Educação"
+      - "Lazer"
+      - "Assinaturas"
+      - "Vestuário"
+      - "Viagem"
+      - "Outros"
+    add_title: "Adicionar categoria"
+    name: "Nome"
+    name_placeholder: "Ex.: Pets"
+    add: "Adicionar"
+    save: "Salvar"
+    remove: "Remover categoria"
+    confirm_delete:
+      zero: "Remover esta categoria?"
+      one: "%{count} lançamento ficará sem categoria. Remover?"
+      other: "%{count} lançamentos ficarão sem categoria. Remover?"
+    empty: "Nenhuma categoria. Restaure as padrão para começar."
+    restore_defaults: "Restaurar padrões"
+    index:
+      meta_title: "Categorias"
+      title: "Categorias"
+      subtitle: "Organize seus gastos do jeito que fizer sentido para você."
+    create:
+      created: "Categoria adicionada."
+    destroy:
+      removed: "Categoria removida."
+    restore:
+      restored: "Categorias padrão restauradas."
+  transfers:
+    form:
+      from: "De conta"
+      to: "Para conta"
+      amount: "Valor"
+      date: "Data"
+      submit: "Transferir"
+    create:
+      created: "Transferência registrada."
+    saved_celebration: "%{amount} guardados! Total no mês: %{total} 💙"
   transactions:
     empty: "Nada pendente por aqui. Tudo em dia! 🎉"
     statuses:
@@ -169,9 +373,64 @@ pt-BR:
       needs_clarification: "Faltam dados"
       needs_disambiguation: "Qual foi?"
     index:
-      meta_title: "Pendências"
-      title: "Pendências"
-      subtitle: "Revise, ajuste a conta ou o valor, e confirme os lançamentos capturados pelo WhatsApp."
+      meta_title: "Transações"
+    hub:
+      add_incomes_prompt: "Cadastre suas rendas para ver a projeção do mês"
+    month:
+      prev: "Mês anterior"
+      next: "Próximo mês"
+      today: "Hoje"
+      projection_badge: "Projeção"
+    tray:
+      title: "Para revisar"
+      show_all: "Ver todas (%{count})"
+    hero:
+      remaining: "Sobra do mês"
+      remaining_projected: "Sobra prevista"
+      month_result: "Resultado do mês"
+      in_the_blue: "No azul"
+      in_the_red: "No vermelho"
+      incomes: "Entradas"
+      expenses: "Saídas"
+      bills: "Faturas"
+      sparkline_label: "Sobra por mês"
+      save_cta: "Guardar na caixinha"
+    accounts:
+      title: "Contas"
+      saved_total: "Guardado"
+      savings_badge: "Caixinha"
+      save_money: "Guardar dinheiro"
+    bills:
+      title: "Faturas do mês"
+      due_on: "Vence dia %{day}"
+      closes_on: "Fecha dia %{day}"
+      view_bill: "Ver fatura"
+      setup_billing: "Configurar fechamento e vencimento"
+    due:
+      title: "A pagar no mês"
+    projection:
+      notice: "Projeção com suas rendas e compromissos — não inclui gastos do dia a dia"
+      expected: "Previsto"
+    ledger:
+      title: "Movimentos"
+      add: "Adicionar"
+      filters:
+        all: "Tudo"
+        expenses: "Saídas"
+        incomes: "Entradas"
+        transfers: "Transferências"
+      by_category: "Por categoria"
+      other_categories: "Outros"
+      uncategorized: "Sem categoria"
+      empty: "Nenhum movimento neste mês"
+      empty_hint: "Mande um áudio no WhatsApp que a gente lança pra você"
+      empty_past: "Nenhum movimento em %{month}."
+      empty_future: "Nada previsto para %{month}. Cadastre seus compromissos para ver o mês antes de ele chegar."
+      show_more: "Mostrar mais"
+    new_entry:
+      expense: "Despesa"
+      income: "Receita"
+      transfer: "Transferência"
     row:
       amount: "Valor"
       merchant: "Estabelecimento"
@@ -184,8 +443,17 @@ pt-BR:
       reverse: "Apagar"
       discard: "Descartar"
       confirm_discard: "Tem certeza?"
+      date: "Data"
+      bill_month: "Fatura"
+      bill_auto: "automático"
+      cancel: "Cancelar"
+      category: "Categoria"
+      direction: "Tipo de lançamento"
+    new:
+      submit: "Adicionar"
     update:
       updated: "Lançamento atualizado."
+      created: "Lançamento adicionado."
     assign:
       assigned: "Conta definida."
     confirm:
@@ -340,6 +608,35 @@ pt-BR:
       media_too_large: "Esse arquivo é muito grande para eu ler. Pode reenviar uma foto ou PDF menor?"
       unknown_sender: "Número não cadastrado no azulzin."
       verified: "WhatsApp ativado! ✅ Agora é só me mandar seus gastos por aqui."
+      income_posted: "💙 Entrou: %{amount} em %{instrument}."
+      income_posted_linked: "💙 Recebido: %{amount} em %{instrument}."
+      income_posted_unassigned: "💙 Entrou: %{amount}. Escolha a conta no app."
+      transfer_posted: "🔁 Transferido: %{amount} de %{from} para %{to}."
+      transfer_saved: "💙 Guardado: %{amount} na %{instrument}. Boa!"
+      ask_transfer_to: "Pra qual conta? Responde com o número:\n%{options}"
+      ask_transfer_from: "De qual conta saiu? Responde com o número:\n%{options}"
+      installments_posted: "✅ Parcelado: %{count}x de %{parcel} em %{instrument}. Primeira parcela na fatura de %{month}."
+      installment_commitment_created: "✅ Anotado: %{count}x de %{parcel} (%{name}), todo mês na %{instrument}. Te lembro de marcar como paga."
+      ask_installments_count: "Em quantas vezes?"
+      commitment_paid: "✅ Parcela de %{name} paga: %{amount} (%{month}). Faltam %{remaining} de %{count}."
+      commitment_paid_simple: "✅ %{name} paga: %{amount} (%{month})."
+      commitment_already_paid: "%{name} já está paga em %{month} 👍 Nada a fazer."
+      commitment_on_bill: "%{name} entra direto na fatura do %{instrument} — não precisa marcar. 😉"
+      ask_commitment_pick: "Qual deles? Responde com o número:\n%{options}"
+      commitment_not_found: "Não achei esse compromisso. Dá uma olhada em Compromissos no app."
+      edited: "✅ Corrigido: %{amount} em %{instrument}."
+      edit_unclear: "Não entendi a correção. Me diz assim: 'na verdade foi 54,90' — ou ajusta no app."
+      nothing_to_edit: "Não achei um lançamento recente pra corrigir."
+      undone: "🗑️ Desfeito: %{amount} em %{merchant}."
+      undone_installments: "🗑️ Desfeito: parcelamento de %{count}x de %{parcel} em %{instrument}."
+      nothing_to_undo: "Não achei nada recente pra desfazer."
+      balance_answer: "%{lines}\nTotal: %{total}"
+      balance_line: "%{name}: %{amount}"
+      month_answer_blue: "%{month}: sobra de %{remaining} — no azul 💙\nEntradas %{entradas} · Saídas %{saidas} · Faturas %{faturas}"
+      month_answer_red: "%{month}: %{remaining} — no vermelho 🔴\nEntradas %{entradas} · Saídas %{saidas} · Faturas %{faturas}"
+      card_bill_answer: "Fatura de %{month} do %{name}: %{amount} (fecha dia %{closes}, vence dia %{due})."
+      savings_answer: "Guardado: %{total} 💙 Esse mês você moveu %{month} pra caixinha."
+      help: "Não entendi 🤔 Você pode me mandar coisas como:\n• \"mercado 84,90 no débito\"\n• \"guardei 200 na caixinha\"\n• \"paguei a parcela do carro\"\n• \"comprei um celular, 5000 em 10x\"\n• \"como tá o mês?\""
     activation:
       title: "Ative o WhatsApp"
       subtitle: "Ative o WhatsApp para lançar gastos por áudio, foto ou texto."

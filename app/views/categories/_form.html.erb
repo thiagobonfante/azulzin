@@ -1,0 +1,19 @@
+<%# locals: category %>
+<%= form_with model: category, url: categories_path, id: "category_form",
+      data: { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" },
+      class: "flex flex-col gap-3" do |f| %>
+  <div id="category_form_errors">
+    <% if category.errors.any? %>
+      <div class="alert alert-error py-2 text-sm" role="alert"><span><%= category.errors.full_messages.to_sentence %></span></div>
+    <% end %>
+  </div>
+
+  <div class="form-control">
+    <%= f.label :name, t("categories.name"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.text_field :name, placeholder: t("categories.name_placeholder"), required: true, class: "input input-bordered w-full" %>
+  </div>
+
+  <div class="flex justify-end">
+    <%= f.submit t("categories.add"), class: "btn btn-primary btn-sm" %>
+  </div>
+<% end %>

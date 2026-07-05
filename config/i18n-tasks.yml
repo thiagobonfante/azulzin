@@ -49,3 +49,14 @@ ignore_unused:
   - 'admin.whatsapp_connections.statuses.*'
   - 'admin.whatsapp_messages.types.*'
   - 'transactions.statuses.*'
+  # Default category names, seeded per user in their locale via t("categories.defaults").
+  - 'categories.defaults'
+  # Date format strings referenced only via l(date, format: :month_year) — the scanner
+  # can't match the symbol to a literal key.
+  - 'date.formats.*'
+  # Income schedule-kind labels, looked up dynamically by enum value.
+  - 'incomes.schedule_kinds.*'
+  # Commitment labels looked up dynamically by enum value / occurrence status.
+  - 'commitments.kinds.*'
+  - 'commitments.occurrences.statuses.*'
+  - 'commitments.form.kind_hints.*'

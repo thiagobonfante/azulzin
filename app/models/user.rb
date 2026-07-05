@@ -6,6 +6,12 @@ class User < ApplicationRecord
 
   has_many :sessions,          dependent: :destroy
   has_many :oauth_identities,  dependent: :destroy   # table added in Phase 4
+  # LGPD cascade order matters: commitments/incomes reference accounts/cards/categories with
+  # NO-ACTION FKs (and incomes are restrict_with_error on their account), so they must be
+  # destroyed BEFORE the instruments they point at.
+  has_many :commitments,       dependent: :destroy   # R10/R11 — reference accounts/cards/categories
+  has_many :incomes,           dependent: :destroy   # R1 — reference (and restrict) their account
+  has_many :categories,        dependent: :destroy   # R6 — referenced by commitments (already gone)
   has_many :bank_accounts,     dependent: :destroy
   has_many :credit_cards,      dependent: :destroy
   has_many :transactions,      dependent: :destroy   # WhatsApp/manual money movements
@@ -54,9 +60,13 @@ class User < ApplicationRecord
   def verified? = confirmed_at.present?
   def verify!   = update!(confirmed_at: Time.current)
 
-  # Onboarding wizard: complete once the user has finished the setup steps.
+  # Onboarding wizard: complete once the user has finished the setup steps. Seeds the default
+  # categories (idempotent) as part of finishing.
   def onboarded? = onboarded_at.present?
-  def onboard!   = update!(onboarded_at: Time.current)
+  def onboard!
+    Categories::SeedDefaults.call(self)
+    update!(onboarded_at: Time.current)
+  end
 
   # Step 1 of the wizard. Validates name/phone in the :profile context only, leaving
   # sign-up untouched.
