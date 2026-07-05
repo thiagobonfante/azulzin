@@ -20,14 +20,27 @@
     <% when "applied" %>
       <span class="text-success">✓ <%= t("document_imports.status.applied") %></span>
     <% when "failed" %>
-      <div class="flex items-center justify-between gap-2">
-        <span class="text-error">
-          <%= t("document_imports.errors.#{import.error_code}",
-                default: t("document_imports.errors.parse_failed")) %>
-        </span>
+      <% if import.error_code == "password_protected" %>
+        <p class="text-error"><%= t("document_imports.errors.password_protected") %></p>
+        <%= form_with url: unlock_document_import_path(import), method: :post,
+                      class: "mt-2 flex flex-wrap items-center gap-2" do %>
+          <%= password_field_tag :password, nil, autocomplete: "off",
+                placeholder: t("document_imports.password_placeholder"),
+                class: "input input-bordered input-sm" %>
+          <%= submit_tag t("document_imports.unlock"), class: "btn btn-primary btn-sm" %>
+        <% end %>
         <%= button_to t("document_imports.remove"), document_import_path(import), method: :delete,
-                      class: "btn btn-ghost btn-sm" %>
-      </div>
+                      class: "btn btn-ghost btn-xs mt-1" %>
+      <% else %>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-error">
+            <%= t("document_imports.errors.#{import.error_code}",
+                  default: t("document_imports.errors.parse_failed")) %>
+          </span>
+          <%= button_to t("document_imports.remove"), document_import_path(import), method: :delete,
+                        class: "btn btn-ghost btn-sm" %>
+        </div>
+      <% end %>
     <% end %>
   </div>
 </div>

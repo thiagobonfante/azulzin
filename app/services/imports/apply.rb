@@ -87,6 +87,7 @@ module Imports
     def create_record!(proposal)
       case proposal["kind"]
       when "bank_account" then create_bank_account!(proposal["payload"])
+      when "credit_card"  then create_credit_card!(proposal["payload"])
       else raise Imports::Error, "unsupported proposal kind: #{proposal["kind"]}"
       end
     end
@@ -104,6 +105,20 @@ module Imports
       account
     end
 
+    # ONE CreditCard per fatura, never per plastic (D5). Billing recompute is NOT called — its only
+    # call site is the card UPDATE controller, and a fresh card has zero transactions (credit_card.rb).
+    def create_credit_card!(payload)
+      @user.credit_cards.create!(
+        institution:         institution_for(payload["institution_code"]),
+        last4:               payload["last4"],
+        nickname:            payload["nickname"].presence,
+        bill_due_day:        payload["bill_due_day"],
+        closing_offset_days: payload["closing_offset_days"] || 7,
+        credit_limit_cents:  payload["credit_limit_cents"],
+        current_bill_cents:  payload["current_bill_cents"]
+      )
+    end
+
     # stamp_balance_anchor overwrites balance_anchored_at with Time.current on any balance change
     # (bank_account.rb), so set the document's period-end anchor AFTER create, bypassing the callback.
     def stamp_balance_anchor!(account, as_of)
@@ -116,7 +131,16 @@ module Imports
     def existing_match(proposal)
       case proposal["kind"]
       when "bank_account" then match_bank_account(proposal["payload"])
+      when "credit_card"  then match_credit_card(proposal["payload"])
       end
+    end
+
+    def match_credit_card(payload)
+      last4 = Imports.digits(payload["last4"])
+      return nil if last4.empty?
+
+      institution = institution_for(payload["institution_code"])
+      @user.credit_cards.where(institution: institution).detect { |card| card.last4.to_s == last4 }
     end
 
     def match_bank_account(payload)

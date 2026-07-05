@@ -1,0 +1,38 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 607 >>
+stream
+BT /F1 11 Tf 40 740 Td (Banco Santander Brasil S.A. Extrato de Conta Corrente) Tj ET
+BT /F1 11 Tf 40 724 Td (Agencia 1616 Conta 01003172-6 Titular THIAGO EXEMPLO) Tj ET
+BT /F1 11 Tf 40 708 Td (Periodo 01/06/2026 a 30/06/2026) Tj ET
+BT /F1 11 Tf 40 692 Td (03/06 PIX RECEBIDO SOMA COOP MATRIZ 48.025,80 Saldo 51.000,00) Tj ET
+BT /F1 11 Tf 40 676 Td (22/06 PREST CR IM FINANCIAMENTO IMOBILIARIO -5.012,16 Saldo 45.987,84) Tj ET
+BT /F1 11 Tf 40 660 Td (30/06 DEBITO AUT COPEL ENERGIA -317,41 Saldo 3.221,79) Tj ET
+BT /F1 11 Tf 40 644 Td (Saldo final do periodo 3.221,79 alphanumeric padding content here) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000899 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+969
+%%EOF

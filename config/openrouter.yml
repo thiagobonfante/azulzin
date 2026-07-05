@@ -16,3 +16,14 @@ vision:
 transcription:
   model: "whisper-large-v3-turbo"   # Groq
   language: "pt"
+
+# Document import (.plans/auto): statements/faturas are long — hence the larger token ceiling
+# than the short WhatsApp extraction/vision tasks above.
+import_extraction:
+  model: "google/gemini-2.5-flash"
+  temperature: 0
+  max_tokens: 8000
+import_vision:
+  model: "google/gemini-2.5-flash"
+  temperature: 0
+  max_tokens: 8000

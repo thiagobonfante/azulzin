@@ -25,9 +25,7 @@ class ProcessDocumentImportJob < ApplicationJob
     return fail!(import, "unsupported_format") if format.nil?
 
     import.update!(source_format: format)
-    return fail!(import, "unsupported_format") if import.format_pdf? # PDF lands in Phase 2
-
-    import.update!(extraction: parse(format, bytes))
+    import.update!(extraction: extract(format, bytes, import))
     Imports::ProposalBuilder.call(import)
   rescue Imports::PasswordProtected then fail!(import, "password_protected")
   rescue Imports::TooLarge          then fail!(import, "too_large")
@@ -39,11 +37,27 @@ class ProcessDocumentImportJob < ApplicationJob
 
   private
 
-  def parse(format, bytes)
+  def extract(format, bytes, import)
     case format
     when "csv" then Imports::CsvParser.call(bytes)
     when "ofx" then Imports::OfxParser.call(bytes)
+    when "pdf" then extract_pdf(bytes, import)
     end
+  end
+
+  def extract_pdf(bytes, import)
+    pdf = pre_extracted_pages(import) || Imports::PdfTextExtractor.call(bytes)
+    # Scanned/garbled text layer → vision fallback (stubbed until Phase 4).
+    raise Imports::ParseError, "scanned pdf — vision fallback lands in Phase 4" unless pdf["text_usable"]
+
+    Imports::DocumentExtractor.call(pdf, import: import)
+  end
+
+  # The password-unlock flow (P1-3) decrypts in-request and stashes the extracted TEXT here, so the
+  # job never re-opens the encrypted blob (the password never reaches the job args / DB).
+  def pre_extracted_pages(import)
+    extraction = import.extraction
+    extraction if extraction.is_a?(Hash) && extraction["pages"].present? && extraction.key?("text_usable")
   end
 
   # Defense-in-depth behind the controller's cap: concurrent submits can race past it. Over the

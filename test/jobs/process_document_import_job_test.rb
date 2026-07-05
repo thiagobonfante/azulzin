@@ -1,7 +1,53 @@
 require "test_helper"
+require_relative "../test_helpers/import_extraction_fixtures"
 
 class ProcessDocumentImportJobTest < ActiveJob::TestCase
+  include ImportExtractionFixtures
+
   setup { @user = users(:confirmed) }
+
+  test "PDF runs text extraction + LLM to extracted with a credit_card proposal" do
+    import = upload_bytes(file_fixture("imports/statement.pdf").binread, "fatura.pdf", "application/pdf")
+    Imports::DocumentExtractor.stub(:call, ->(_pdf, **_k) { fatura_extraction }) do
+      ProcessDocumentImportJob.perform_now(import.id)
+    end
+    import.reload
+    assert_equal "extracted", import.status
+    assert_equal "pdf", import.source_format
+    assert_equal "card_bill", import.kind
+    assert import.proposals.any? { it["kind"] == "credit_card" }
+  end
+
+  test "an encrypted PDF fails password_protected" do
+    import = upload_bytes(file_fixture("imports/statement.pdf").binread, "enc.pdf", "application/pdf")
+    Imports::PdfTextExtractor.stub(:call, ->(*_a, **_k) { raise Imports::PasswordProtected }) do
+      ProcessDocumentImportJob.perform_now(import.id)
+    end
+    assert_equal "failed", import.reload.status
+    assert_equal "password_protected", import.error_code
+  end
+
+  test "a scanned PDF (no text layer) fails parse_failed without an LLM call" do
+    import = upload_bytes(file_fixture("imports/no_text.pdf").binread, "scan.pdf", "application/pdf")
+    called = false
+    Imports::DocumentExtractor.stub(:call, ->(*_a, **_k) { called = true; {} }) do
+      ProcessDocumentImportJob.perform_now(import.id)
+    end
+    assert_equal "failed", import.reload.status
+    assert_equal "parse_failed", import.error_code
+    assert_not called
+  end
+
+  test "a PDF over the page cap fails too_large without an LLM call" do
+    import = upload_bytes(file_fixture("imports/pages26.pdf").binread, "big.pdf", "application/pdf")
+    called = false
+    Imports::DocumentExtractor.stub(:call, ->(*_a, **_k) { called = true; {} }) do
+      ProcessDocumentImportJob.perform_now(import.id)
+    end
+    assert_equal "failed", import.reload.status
+    assert_equal "too_large", import.error_code
+    assert_not called
+  end
 
   test "OFX runs the deterministic pipeline to extracted with a bank_account proposal" do
     import = upload("nubank.ofx", "application/x-ofx")
@@ -24,13 +70,6 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
     assert_equal "extracted", import.status
     assert_equal "csv", import.source_format
     assert_empty import.proposals
-  end
-
-  test "PDF short-circuits to failed/unsupported_format in Phase 1" do
-    import = upload_bytes("%PDF-1.7\nfake pdf body", "fatura.pdf", "application/pdf")
-    ProcessDocumentImportJob.perform_now(import.id)
-    assert_equal "failed", import.reload.status
-    assert_equal "unsupported_format", import.error_code
   end
 
   test "terminal imports are not reprocessed (idempotent, no duplicate proposals)" do

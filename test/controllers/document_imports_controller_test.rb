@@ -128,6 +128,29 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#bank_accounts_list", text: /.+/
   end
 
+  test "unlock decrypts with the password in-request, re-enqueues, and never stores the password" do
+    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "pdf",
+                                        status: "failed", error_code: "password_protected")
+    import.file.attach(io: File.open(file_fixture("imports/statement.pdf")),
+                       filename: "enc.pdf", content_type: "application/pdf")
+    import.save!
+
+    seen = nil
+    stub_pages = { "pages" => [ "text" ], "page_count" => 1, "text_usable" => true }
+    assert_enqueued_with(job: ProcessDocumentImportJob, args: [ import.id ]) do
+      Imports::PdfTextExtractor.stub(:call, ->(_bytes, password: nil) { seen = password; stub_pages }) do
+        post unlock_document_import_url(import), params: { password: "cpf1234" }
+      end
+    end
+
+    assert_equal "cpf1234", seen # password used in-request
+    import.reload
+    assert_equal "uploaded", import.status
+    assert_nil import.error_code
+    assert_equal [ "text" ], import.extraction["pages"]
+    assert_not_includes import.reload.attributes.to_s, "cpf1234" # password not persisted
+  end
+
   test "discard rejects a single proposal without creating a record" do
     import = extracted_ofx_import
     pid = import.proposals.first["pid"]

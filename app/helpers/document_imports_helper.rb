@@ -38,6 +38,13 @@ module DocumentImportsHelper
     when "bank_account"
       cents = proposal.dig("payload", "balance_cents")
       t("document_imports.review.balance", amount: brl(cents)) if cents
+    when "credit_card"
+      bits = []
+      last4 = proposal.dig("payload", "last4")
+      day   = proposal.dig("payload", "bill_due_day")
+      bits << t("credit_cards.ending", last4: last4) if last4.present?
+      bits << t("document_imports.review.due_day", day: day) if day.present?
+      bits.join(" · ").presence
     end
   end
 

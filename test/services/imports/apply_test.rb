@@ -1,10 +1,27 @@
 require "test_helper"
+require_relative "../../test_helpers/import_extraction_fixtures"
 
 class Imports::ApplyTest < ActiveSupport::TestCase
+  include ImportExtractionFixtures
+
   setup do
     @user   = users(:confirmed)
     @import = extracted_import
     @pid    = @import.proposals.first["pid"]
+  end
+
+  test "creates ONE CreditCard, billing configured, without a billing recompute" do
+    card_import = pdf_card_import
+    pid = card_import.proposals.first["pid"]
+    assert_difference -> { @user.credit_cards.count }, 1 do
+      Imports::Apply.call(user: @user, accepted: { card_import.id => [ pid ] })
+    end
+    card = @user.credit_cards.last
+    assert_equal "8431", card.last4
+    assert_equal 10, card.bill_due_day
+    assert_equal 7, card.closing_offset_days
+    assert card.billing_configured?
+    assert_equal "applied", card_import.reload.status
   end
 
   test "creates a BankAccount with the balance anchored to the period end, not Time.current" do
@@ -55,6 +72,16 @@ class Imports::ApplyTest < ActiveSupport::TestCase
   end
 
   private
+
+  def pdf_card_import
+    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "pdf")
+    import.file.attach(io: File.open(file_fixture("imports/statement.pdf")),
+                       filename: "fatura.pdf", content_type: "application/pdf")
+    import.extraction = fatura_extraction
+    import.save!
+    Imports::ProposalBuilder.call(import)
+    import.reload
+  end
 
   def extracted_import
     import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")

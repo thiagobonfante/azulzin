@@ -495,6 +495,8 @@ pt-BR:
     submit: "Enviar"
     review_button: "Revisar e criar"
     remove: "Remover"
+    unlock: "Desbloquear"
+    password_placeholder: "Senha do PDF"
     upload_rejected: "%{filename}: %{reason}"
     kinds:
       bank_statement: "extrato"
@@ -521,7 +523,8 @@ pt-BR:
       bad_type: "Tipo de arquivo não aceito"
       too_large: "Arquivo acima de 10 MB"
     errors:
-      password_protected: "Este PDF está protegido por senha. Remova a senha e envie de novo."
+      password_protected: "Este PDF tem senha. Digite a senha para desbloquear — usamos só para ler, não guardamos."
+      wrong_password: "Senha incorreta. Tente novamente."
       unsupported_format: "Não conseguimos ler este tipo de arquivo. Envie PDF, CSV ou OFX."
       too_large: "Arquivo muito grande — o limite é 10 MB."
       parse_failed: "Não conseguimos ler este documento. Tente outro arquivo ou adicione manualmente."
@@ -537,9 +540,11 @@ pt-BR:
       subtitle: "Encontramos isto nos seus documentos. Desmarque o que não quiser criar — dá para ajustar tudo depois."
       groups:
         bank_accounts: "Contas"
+        credit_cards: "Cartões"
       check_badge: "conferir"
       seen_in: "visto em: %{source} · %{date} · %{amount}"
       balance: "Saldo %{amount}"
+      due_day: "vence dia %{day}"
       create_selected: "Criar selecionados"
       discard: "Descartar"
       unchecked_kept: "Itens desmarcados ficam guardados — você pode revisar depois."

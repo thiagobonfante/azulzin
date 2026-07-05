@@ -26,6 +26,21 @@ class DocumentImportsController < ApplicationController
     redirect_to after_upload_path
   end
 
+  # Unlock a password-protected PDF (P1-3): decrypt + extract the TEXT here, in the request, and
+  # hand the job the extracted pages via `extraction`. The password is used in memory only and is
+  # NEVER written to the DB or the job args.
+  def unlock
+    import = Current.user.document_imports.find(params[:id])
+    pages  = Imports::PdfTextExtractor.call(import.file.download, password: params[:password])
+    import.update!(extraction: pages, status: "uploaded", error_code: nil)
+    ProcessDocumentImportJob.perform_later(import.id)
+    redirect_to after_upload_path
+  rescue Imports::PasswordProtected
+    redirect_to after_upload_path, alert: t("document_imports.errors.wrong_password")
+  rescue Imports::ParseError, Imports::TooLarge
+    redirect_to after_upload_path, alert: t("document_imports.errors.parse_failed")
+  end
+
   # Turbo Frame polled by import_status_controller every 2s.
   def status
     imports = Current.user.document_imports.where.not(status: "dismissed").order(created_at: :desc)

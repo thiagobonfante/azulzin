@@ -494,6 +494,8 @@ en:
     submit: "Upload"
     review_button: "Review and create"
     remove: "Remove"
+    unlock: "Unlock"
+    password_placeholder: "PDF password"
     upload_rejected: "%{filename}: %{reason}"
     kinds:
       bank_statement: "statement"
@@ -520,7 +522,8 @@ en:
       bad_type: "File type not accepted"
       too_large: "File over 10 MB"
     errors:
-      password_protected: "This PDF is password-protected. Remove the password and upload again."
+      password_protected: "This PDF is password-protected. Enter the password to unlock — used only to read it, never stored."
+      wrong_password: "Wrong password. Please try again."
       unsupported_format: "We can't read this file type. Send a PDF, CSV or OFX."
       too_large: "File too large — the limit is 10 MB."
       parse_failed: "We couldn't read this document. Try another file or add it manually."
@@ -536,9 +539,11 @@ en:
       subtitle: "We found this in your documents. Uncheck anything you don't want — you can adjust everything later."
       groups:
         bank_accounts: "Accounts"
+        credit_cards: "Cards"
       check_badge: "check this"
       seen_in: "seen in: %{source} · %{date} · %{amount}"
       balance: "Balance %{amount}"
+      due_day: "due on day %{day}"
       create_selected: "Create selected"
       discard: "Discard"
       unchecked_kept: "Unchecked items are kept — you can review them later."
