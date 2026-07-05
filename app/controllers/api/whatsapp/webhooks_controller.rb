@@ -50,8 +50,12 @@ module Api
           m.status       = "received"
           m.user         = user
         end
+        # Capture "newly created" BEFORE attach_media — attaching media re-saves the record,
+        # which flips previously_new_record? to false and would skip the enqueue for every
+        # audio/receipt message.
+        newly_created = msg.previously_new_record?
         attach_media(msg, data["media"]) if data["media"].present? && !msg.media.attached?
-        ProcessInboundWhatsappJob.perform_later(msg.id) if msg.previously_new_record?
+        ProcessInboundWhatsappJob.perform_later(msg.id) if newly_created
       rescue ActiveRecord::RecordNotUnique
         # redelivered webhook — already have it, no-op (still 200 in #create)
       end

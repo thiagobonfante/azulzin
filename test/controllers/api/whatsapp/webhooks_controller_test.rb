@@ -41,6 +41,22 @@ class Api::Whatsapp::WebhooksControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "an audio message with media still enqueues the job (media attach must not skip enqueue)" do
+    base64 = Base64.strict_encode64("fake-ogg-bytes")
+    assert_difference -> { WhatsappMessage.inbound.count }, 1 do
+      assert_enqueued_with(job: ProcessInboundWhatsappJob) do
+        post api_whatsapp_webhook_path,
+             params: message_payload(message_id_serialized: "true_5511999998888@c.us_AUDIO",
+                                     type: "ptt", has_media: true,
+                                     media: { mimetype: "audio/ogg", data: base64, filename: "a.ogg" }),
+             as: :json, headers: @headers
+      end
+    end
+    msg = WhatsappMessage.find_by(wa_message_id: "true_5511999998888@c.us_AUDIO")
+    assert msg.media.attached?
+    assert_equal "audio", msg.message_type
+  end
+
   test "unknown sender: no message, no job, one throttled reply" do
     sent = []
     WhatsappService.stub(:send_message, ->(phone, body) { sent << [ phone, body ]; { id: "x" } }) do
