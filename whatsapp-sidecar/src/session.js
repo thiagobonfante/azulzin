@@ -156,10 +156,11 @@ class SessionService {
         return;
       }
 
-      // Filter 2 — non-@c.us: drop groups (@g.us), broadcasts and status updates.
+      // Filter 2 — keep 1:1 DMs only. WhatsApp delivers those as @c.us OR @lid (its newer
+      // linked-identity / privacy addressing); drop groups (@g.us), broadcasts and status.
       const from = message.from || '';
-      if (!from.endsWith('@c.us')) {
-        this.logger.info(`Dropping non-@c.us message from ${from}`);
+      if (!from.endsWith('@c.us') && !from.endsWith('@lid')) {
+        this.logger.info(`Dropping non-DM message from ${from}`);
         return;
       }
 
@@ -181,6 +182,10 @@ class SessionService {
       }
 
       const contact = await message.getContact();
+      this.logger.info(
+        `Contact resolved: number=${contact && contact.number} ` +
+        `id=${contact && contact.id && contact.id._serialized}`
+      );
 
       const data = {
         message_id: message.id.id,
