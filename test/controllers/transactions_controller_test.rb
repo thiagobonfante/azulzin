@@ -240,15 +240,13 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-entry-instrument-target='option'][data-value='bank_account-#{@account.id}']"
   end
 
-  test "index renders the monthly sobra chart once there is a trajectory to show (item 1)" do
-    month = Date.current.beginning_of_month
-    @user.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
-                               amount_cents: 100, occurred_on: Date.current, billing_month: month)
-    @user.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
-                               amount_cents: 100, occurred_on: Date.current.prev_month, billing_month: month.prev_month)
+  test "index renders the spend-allocation chart when the month has spending (item 1)" do
+    cat = @user.categories.create!(name: "Mercado", color: "#22C55E", icon: "cart")
+    @user.transactions.create!(bank_account: @account, category: cat, direction: "expense", status: "posted",
+                               amount_cents: 100, occurred_on: Date.current, billing_month: Date.current.beginning_of_month)
     get transactions_url
     assert_response :success
-    assert_select "[role='img'][aria-label=?]", I18n.t("transactions.hero.sparkline_label", locale: :"pt-BR")
+    assert_select "[role='img'][aria-label=?]", I18n.t("transactions.hero.allocation_label", locale: :"pt-BR")
   end
 
   test "the transfer tab is hidden with a single account and shown with two (R5)" do
@@ -258,5 +256,30 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     @user.bank_accounts.create!(institution: @inst, nickname: "Segunda")
     get new_transaction_url(kind: "expense")
     assert_select "a[href*='kind=transfer']"
+  end
+
+  test "a future month renders the editable ledger like the current month (parity)" do
+    get transactions_url(month: (Date.current.beginning_of_month >> 2).strftime("%Y-%m"))
+    assert_response :success
+    assert_select "turbo-frame#movements_ledger"   # editable ledger, not the read-only Previsto
+    assert_select "a[href*='transactions/new']"     # the Adicionar affordance
+  end
+
+  test "the add form on a future month defaults the date into that month" do
+    future = Date.current.beginning_of_month >> 2
+    get new_transaction_url(kind: "expense", month: future.strftime("%Y-%m"))
+    assert_response :success
+    assert_select "input[name='transaction[occurred_on]'][value=?]", future.to_s
+  end
+
+  test "a future-dated income posts to that month (bonus use case)" do
+    future = Date.current.beginning_of_month >> 1
+    post transactions_url(kind: "income", month: future.strftime("%Y-%m")), as: :turbo_stream,
+         params: { transaction: { amount_reais: "2000,00", occurred_on: future.to_s },
+                   instrument: "bank_account-#{@account.id}" }
+    txn = @user.transactions.order(:id).last
+    assert_equal "income", txn.direction
+    assert_equal future, txn.billing_month
+    assert_predicate txn, :posted?
   end
 end

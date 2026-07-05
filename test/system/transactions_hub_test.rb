@@ -3,6 +3,8 @@ require "application_system_test_case"
 # Drives the real add → assign → delete flow in a browser, so the Stimulus auto-select and the
 # Turbo Stream re-render (which unit tests can't exercise) are actually verified.
 class TransactionsHubTest < ApplicationSystemTestCase
+  include ActionView::RecordIdentifier   # dom_id(...) for asserting the row frame is gone
+
   setup do
     @user = users(:confirmed)
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
@@ -42,12 +44,47 @@ class TransactionsHubTest < ApplicationSystemTestCase
     assert_selector "input[type='search']", count: 1
     assert_no_text I18n.t("transactions.ledger.empty")   # empty state replaced (issue 6)
 
-    # The row opens into an editable form again — the collision that made rows inert is gone, so
-    # delete (the "Apagar" button) is reachable (issue 5). The destroy itself, behind a native
-    # confirm that headless Chrome won't surface to Capybara, is covered in the controller test.
+    # The row opens into an editable form again (issue 5), so delete is reachable. Deleting goes
+    # through our on-brand confirm modal — a real DOM <dialog> we can drive with actual clicks,
+    # unlike the native confirm() headless Chrome never surfaces to Capybara.
     find("#ledger_list a", text: "Mercado").click
-    assert_button I18n.t("transactions.row.reverse")
     assert_button I18n.t("transactions.row.save")
+    txn = @user.transactions.order(:id).last
+    click_link I18n.t("transactions.row.reverse")   # "Apagar"
+
+    # The modal must be actually VISIBLE — Capybara will happily click a transparent overlay, so
+    # a daisyUI/CSS regression that leaves the box at opacity:0 would otherwise pass unnoticed.
+    assert_selector "dialog.modal[open]"
+    assert_equal "1", page.evaluate_script("getComputedStyle(document.querySelector('dialog.modal .modal-box')).opacity"),
+                 "the confirm modal must be visible, not a transparent overlay"
+
+    within "dialog.modal[open]" do                   # our modal, not the native dialog
+      assert_text I18n.t("transactions.row.confirm_discard")
+      click_button I18n.t("shared.confirm")
+    end
+
+    # Confirm streamed the removal + reversal: the row frame is gone and the record is rejected.
+    assert_no_selector "##{dom_id(txn, :row)}"
+    assert_equal "rejected", txn.reload.status
+  end
+
+  test "the confirm modal Cancel button aborts the delete — row and record stay put" do
+    txn = @user.transactions.create!(bank_account: @account, category: @user.categories.first,
+                                     direction: "expense", status: "posted", amount_cents: 3_100,
+                                     occurred_on: Date.current, billing_month: Date.current.beginning_of_month,
+                                     merchant: "Farmácia")
+    visit transactions_path
+
+    find("#ledger_list a", text: "Farmácia").click
+    click_link I18n.t("transactions.row.reverse")
+
+    within "dialog.modal[open]" do
+      click_button I18n.t("shared.cancel")
+    end
+
+    assert_no_selector "dialog.modal[open]"          # modal closed
+    assert_selector "##{dom_id(txn, :row)}"          # the row is still there
+    assert_equal "posted", txn.reload.status         # nothing was reversed
   end
 
   test "switching to Categories keeps the toggle in place and hides the search (issue 6a)" do

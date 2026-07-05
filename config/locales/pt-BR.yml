@@ -15,6 +15,8 @@ pt-BR:
     continue_with_google: "Continuar com o Google"
     or: "ou"
     not_allowed: "Esta conta não está autorizada a acessar o azulzin."
+    confirm: "Confirmar"
+    cancel: "Cancelar"
   omniauth:
     signed_in: "Você entrou com o Google."
     could_not_sign_in: "Não foi possível entrar. Adicione um e-mail à sua conta e tente novamente."
@@ -415,7 +417,7 @@ pt-BR:
       incomes: "Entradas"
       expenses: "Saídas"
       bills: "Faturas"
-      sparkline_label: "Sobra por mês"
+      allocation_label: "Gastos por categoria e sobra"
       save_cta: "Guardar na caixinha"
     accounts:
       title: "Contas"
@@ -430,9 +432,6 @@ pt-BR:
       setup_billing: "Configurar fechamento e vencimento"
     due:
       title: "A pagar no mês"
-    projection:
-      notice: "Projeção com suas rendas e compromissos — não inclui gastos do dia a dia"
-      expected: "Previsto"
     ledger:
       title: "Movimentos"
       add: "Adicionar"
@@ -451,7 +450,6 @@ pt-BR:
       empty: "Nenhum movimento neste mês"
       empty_hint: "Mande um áudio no WhatsApp que a gente lança pra você"
       empty_past: "Nenhum movimento em %{month}."
-      empty_future: "Nada previsto para %{month}. Cadastre seus compromissos para ver o mês antes de ele chegar."
       show_more: "Mostrar mais"
     new_entry:
       expense: "Despesa"

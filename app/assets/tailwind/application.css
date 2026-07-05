@@ -26,6 +26,23 @@
   --font-display: "Bricolage Grotesque", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* daisyUI 5.6.10's modal opens via @starting-style + allow-discrete transitions that don't
+   reliably advance (the box and backdrop stayed fully transparent in testing), and its open
+   modal-box opacity rule is wrapped in a zero-specificity :where() that loses to the base
+   .modal-box{opacity:0}. Make an open native <dialog> appear instantly and opaque — no fragile
+   entry animation to depend on. */
+.modal[open],
+.modal.modal-open {
+  transition: none;
+}
+.modal[open] .modal-box,
+.modal.modal-open .modal-box {
+  opacity: 1;
+  scale: 1;
+  translate: 0;
+  transition: none;
+}
+
 /* ── azulzin: the little-blue light theme (default) ─────────────────────── */
 @plugin "./daisyui-theme.mjs" {
   name: "azulzin";

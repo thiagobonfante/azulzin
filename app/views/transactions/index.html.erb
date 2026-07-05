@@ -24,15 +24,10 @@
     <%= render "transactions/bills_tile", summary: @summary, month: @month %>
   </div>
 
-  <%# E — A pagar no mês (R10) — current/past only; future occurrences live in the Previsto list %>
-  <% unless @summary.mode == :future %>
-    <%= render "transactions/a_pagar", occurrences: @occurrences, month: @month %>
-  <% end %>
+  <%# E — A pagar no mês (R10) — shown in every month (future included) for full parity. %>
+  <%= render "transactions/a_pagar", occurrences: @occurrences, month: @month %>
 
-  <%# F — ledger (R7) for current/past, the Previsto list for future months %>
-  <% if @summary.mode == :future %>
-    <%= render "transactions/previsto", occurrences: @occurrences, income_occurrences: @income_occurrences, ledger: @ledger, month: @month %>
-  <% else %>
-    <%= render "transactions/ledger", ledger: @ledger, month: @month %>
-  <% end %>
+  <%# F — ledger (R7) — editable in every month, future included: add, search and edit
+      the same way as the current month (a future date bills to that month). %>
+  <%= render "transactions/ledger", ledger: @ledger, month: @month %>
 </div>

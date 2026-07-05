@@ -14,6 +14,8 @@ en:
     continue_with_google: "Continue with Google"
     or: "or"
     not_allowed: "This account isn't allowed to access azulzin."
+    confirm: "Confirm"
+    cancel: "Cancel"
   omniauth:
     signed_in: "Signed in with Google."
     could_not_sign_in: "We couldn't sign you in. Add an email to your account and try again."
@@ -414,7 +416,7 @@ en:
       incomes: "Income"
       expenses: "Spending"
       bills: "Card bills"
-      sparkline_label: "Leftover by month"
+      allocation_label: "Spending by category and leftover"
       save_cta: "Move to savings"
     accounts:
       title: "Accounts"
@@ -429,9 +431,6 @@ en:
       setup_billing: "Set closing and due day"
     due:
       title: "To pay this month"
-    projection:
-      notice: "Projected from your incomes and commitments — day-to-day spending not included"
-      expected: "Expected"
     ledger:
       title: "Activity"
       add: "Add"
@@ -450,7 +449,6 @@ en:
       empty: "No activity this month"
       empty_hint: "Send a voice note on WhatsApp and we'll log it for you"
       empty_past: "No activity in %{month}."
-      empty_future: "Nothing projected for %{month}. Add your commitments to see the month before it arrives."
       show_more: "Show more"
     new_entry:
       expense: "Expense"
