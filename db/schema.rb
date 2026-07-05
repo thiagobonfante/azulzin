@@ -131,7 +131,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_05_000010) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["institution_id"], name: "index_document_imports_on_institution_id"
-    t.index ["user_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL ((ARRAY['dismissed'::character varying, 'failed'::character varying])::text[]))"
+    t.index ["user_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL (ARRAY[('dismissed'::character varying)::text, ('failed'::character varying)::text]))"
     t.index ["user_id", "status"], name: "index_document_imports_on_user_id_and_status"
     t.index ["user_id"], name: "index_document_imports_on_user_id"
   end
