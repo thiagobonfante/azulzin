@@ -211,20 +211,31 @@ class SessionService {
    * Send a text message. Throws a NOT_CONNECTED error if the session is down.
    * Applies the global throttle + a human-like typing indicator and 1–4s delay.
    */
-  async sendMessage(phoneNumber, message) {
+  async sendMessage(target, message) {
     if (this.status !== 'connected' || !this.client) {
       const err = new Error('not_connected');
       err.code = 'NOT_CONNECTED';
       throw err;
     }
 
-    const chatId = `${String(phoneNumber).replace(/\D/g, '')}@c.us`;
+    // A full JID (contains '@', e.g. an @lid or @c.us) is used as-is; a bare number is
+    // turned into a @c.us chat id. Replying to the exact inbound JID is what makes @lid
+    // contacts (WhatsApp's linked-identity addressing) reachable.
+    const chatId = String(target).includes('@')
+      ? String(target)
+      : `${String(target).replace(/\D/g, '')}@c.us`;
 
     await this._throttle();
 
-    const chat = await this.client.getChatById(chatId);
-    await chat.sendStateTyping();
-    await this.sleep(1000 + Math.random() * 3000); // 1–4s randomized delay (anti-ban)
+    // The typing indicator is best-effort — getChatById can fail for some @lid contacts;
+    // don't let that block the actual send.
+    try {
+      const chat = await this.client.getChatById(chatId);
+      await chat.sendStateTyping();
+      await this.sleep(1000 + Math.random() * 3000); // 1–4s randomized delay (anti-ban)
+    } catch (err) {
+      this.logger.warn(`getChatById(${chatId}) failed (${err.message}); sending without typing indicator`);
+    }
 
     const sent = await this.client.sendMessage(chatId, message);
     this.logger.info(`Message sent to ${chatId}`);

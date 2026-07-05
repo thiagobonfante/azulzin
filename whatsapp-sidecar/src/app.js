@@ -59,12 +59,13 @@ function createApp({ config, session }) {
   });
 
   app.post('/messages', async (req, res, next) => {
-    const { phone_number, message } = req.body || {};
-    if (!phone_number || !message) {
-      return res.status(400).json({ error: 'phone_number and message are required' });
+    const { phone_number, chat_id, message } = req.body || {};
+    const target = chat_id || phone_number; // a full JID (@lid/@c.us) or a bare number
+    if (!target || !message) {
+      return res.status(400).json({ error: 'phone_number (or chat_id) and message are required' });
     }
     try {
-      const result = await session.sendMessage(phone_number, message);
+      const result = await session.sendMessage(target, message);
       res.json(result);
     } catch (err) {
       if (err.code === 'NOT_CONNECTED') {

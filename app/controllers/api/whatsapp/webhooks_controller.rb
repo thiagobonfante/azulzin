@@ -40,6 +40,8 @@ module Api
         # (Review P1-6). Try the verification handshake first, else a rate-limited reply.
         return handle_unverified_sender(jid, data) if user.nil?
 
+        user.refresh_whatsapp_jid!(jid)   # keep the outbound reply address current (@lid/@c.us)
+
         msg = WhatsappMessage.find_or_create_by!(wa_message_id: data["message_id_serialized"]) do |m|
           m.direction    = "inbound"
           m.chat_id      = jid

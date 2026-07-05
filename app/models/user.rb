@@ -133,8 +133,16 @@ class User < ApplicationRecord
   # webhook when an unverified sender texts a matching code. Idempotent-safe: the unique
   # whatsapp_id index refuses a second account claiming the same number.
   def verify_whatsapp!(sender_jid)
-    digits = sender_jid.to_s.sub(/@c\.us\z/, "").gsub(/\D/, "")
-    update!(whatsapp_id: digits, phone_verified_at: Time.current, whatsapp_verification_code: nil)
+    digits = sender_jid.to_s.gsub(/\D/, "")   # strips @c.us / @lid → stable numeric identity
+    update!(whatsapp_id: digits, whatsapp_jid: sender_jid.to_s, phone_verified_at: Time.current,
+            whatsapp_verification_code: nil)
+  end
+
+  # Keep the outbound reply address current (the JID can move between @c.us and @lid). Called
+  # from the webhook on every inbound message from an already-verified user. update_column so
+  # it never trips validations or touches updated_at noise on a hot path.
+  def refresh_whatsapp_jid!(sender_jid)
+    update_column(:whatsapp_jid, sender_jid.to_s) if sender_jid.present? && whatsapp_jid != sender_jid.to_s
   end
 
   # Resolve a verification code typed into a WhatsApp message to the user awaiting it, or

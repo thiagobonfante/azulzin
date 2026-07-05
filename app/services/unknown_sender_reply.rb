@@ -12,6 +12,6 @@ class UnknownSenderReply
     return unless Rails.cache.write(key, true, expires_in: WINDOW, unless_exist: true)
 
     body = I18n.with_locale(I18n.default_locale) { I18n.t("whatsapp.replies.unknown_sender") }
-    WhatsappService.send_message(digits, body)
+    WhatsappService.send_message(jid, body)   # reply to the exact JID (@lid/@c.us), not bare digits
   end
 end

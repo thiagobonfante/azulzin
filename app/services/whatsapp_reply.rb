@@ -10,7 +10,9 @@ class WhatsappReply
       user: user, direction: "outbound", message_type: "text",
       body: body, status: "sent", linked_transaction: transaction
     )
-    res = WhatsappService.send_message(user.phone, body)
+    # Reply to the exact JID we last heard from (kept current by the webhook) so @lid
+    # contacts are reachable; fall back to the phone for a not-yet-seen number.
+    res = WhatsappService.send_message(user.whatsapp_jid.presence || user.phone, body)
     outbound.update(wa_message_id: res[:id]) if res[:id]
     outbound
   end

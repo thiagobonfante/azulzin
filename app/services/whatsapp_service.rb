@@ -6,7 +6,12 @@ class WhatsappService
     def base_url = ENV.fetch("WHATSAPP_SERVICE_URL", "http://localhost:3001")
     def token    = Whatsapp.service_token
 
-    def send_message(phone, body) = request(:post, "/messages", { phone_number: phone, message: body })
+    # target may be a bare number OR a full JID ("…@lid"/"…@c.us"). A JID is passed as
+    # chat_id so the sidecar addresses it exactly — required for @lid contacts.
+    def send_message(target, body)
+      field = target.to_s.include?("@") ? :chat_id : :phone_number
+      request(:post, "/messages", { field => target, message: body })
+    end
     def initialize_session        = request(:post, "/session/initialize", {}, timeout: 30)
     def disconnect                = request(:delete, "/session")
     def status                    = request(:get, "/session/status")
