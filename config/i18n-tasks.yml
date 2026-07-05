@@ -66,3 +66,5 @@ ignore_unused:
   - 'document_imports.kinds.*'
   - 'document_imports.errors.*'
   - 'document_imports.found.*'
+  # Review group headings looked up as t("document_imports.review.groups.#{key}").
+  - 'document_imports.review.groups.*'

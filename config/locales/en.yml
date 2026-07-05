@@ -530,6 +530,28 @@ en:
     create:
       no_files: "Select at least one file to upload."
       daily_cap: "Daily limit of %{max} files reached. Try again tomorrow."
+    review:
+      meta_title: "Review import"
+      title: "Check what we found"
+      subtitle: "We found this in your documents. Uncheck anything you don't want — you can adjust everything later."
+      groups:
+        bank_accounts: "Accounts"
+      check_badge: "check this"
+      seen_in: "seen in: %{source} · %{date} · %{amount}"
+      balance: "Balance %{amount}"
+      create_selected: "Create selected"
+      discard: "Discard"
+      unchecked_kept: "Unchecked items are kept — you can review them later."
+      applied:
+        one: "%{count} item created"
+        other: "%{count} items created"
+      some_failed:
+        one: "%{count} item could not be created"
+        other: "%{count} items could not be created"
+      back: "Back"
+      empty_title: "We didn't find anything to create"
+      empty_body: "We couldn't identify accounts or commitments in the documents. Add them manually — it takes a minute."
+      back_to_wizard: "Go back and add manually"
   admin:
     not_authorized: "You don't have access to this area."
     whatsapp_connections:

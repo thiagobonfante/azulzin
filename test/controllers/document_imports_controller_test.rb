@@ -103,7 +103,52 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#bank_accounts_list" # manual path unchanged
   end
 
+  test "deterministic slice: upload OFX → review pre-checked → apply → account in the wizard list" do
+    perform_enqueued_jobs do
+      post document_imports_url,
+           params: { document_import: { files: [ fixture_file_upload("imports/nubank.ofx", "application/x-ofx") ] } }
+    end
+    import = @user.document_imports.last
+    assert_equal "extracted", import.status
+    assert_equal 1, import.proposals.size
+
+    get review_document_imports_url
+    assert_response :success
+    assert_select "input[type=checkbox][checked=checked]" # ≥0.8 renders pre-checked
+
+    pid = import.proposals.first["pid"]
+    assert_difference -> { @user.bank_accounts.count }, 1 do
+      post apply_document_imports_url, params: { check: { pid => "1" } }
+    end
+    assert_redirected_to onboarding_step_url("accounts")
+    assert_equal 357625, @user.bank_accounts.last.balance_cents
+    assert_equal "applied", import.reload.status
+
+    get onboarding_step_url("accounts")
+    assert_select "#bank_accounts_list", text: /.+/
+  end
+
+  test "discard rejects a single proposal without creating a record" do
+    import = extracted_ofx_import
+    pid = import.proposals.first["pid"]
+    assert_no_difference -> { @user.bank_accounts.count } do
+      post apply_document_imports_url, params: { discard: pid }
+    end
+    assert_equal "rejected", import.reload.proposals.first["state"]
+    assert_equal "applied", import.status # no proposed left
+  end
+
   private
+
+  def extracted_ofx_import
+    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")
+    import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")),
+                       filename: "nubank.ofx", content_type: "application/x-ofx")
+    import.extraction = Imports::OfxParser.call(file_fixture("imports/nubank.ofx").read)
+    import.save!
+    Imports::ProposalBuilder.call(import)
+    import.reload
+  end
 
   def csv_upload
     fixture_file_upload("imports/sample.csv", "text/csv")

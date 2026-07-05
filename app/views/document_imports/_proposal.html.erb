@@ -1,0 +1,22 @@
+<% checked = proposal["confidence"].to_f >= 0.8 %>
+<% pid = proposal["pid"] %>
+<div class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+  <div class="flex items-start gap-3">
+    <%= check_box_tag "check[#{pid}]", "1", checked, id: "check_#{pid}", class: "checkbox checkbox-sm mt-1" %>
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <%= text_field_tag "edits[#{pid}][name]", proposal_name(proposal),
+                           class: "input input-bordered input-sm", "aria-labelledby": "check_#{pid}" %>
+        <% if (summary = proposal_summary(proposal)) %>
+          <span class="text-sm text-base-content/70"><%= summary %></span>
+        <% end %>
+        <% unless checked %>
+          <span class="badge badge-warning badge-sm"><%= t("document_imports.review.check_badge") %></span>
+        <% end %>
+      </div>
+      <p class="mt-1 text-xs text-base-content/50"><%= proposal_evidence(proposal) %></p>
+    </div>
+    <%= button_to t("document_imports.review.discard"), apply_document_imports_path,
+                  params: { discard: pid }, method: :post, class: "btn btn-ghost btn-xs shrink-0" %>
+  </div>
+</div>

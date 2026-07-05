@@ -3,7 +3,8 @@
 # There is no index/show and no route that serves the raw blob back: files go in, only derived
 # data (proposals) comes out.
 class DocumentImportsController < ApplicationController
-  layout "app"
+  layout :resolve_layout
+  helper_method :after_upload_path
 
   def create
     files = Array(upload_params[:files]).select { it.respond_to?(:tempfile) }
@@ -31,7 +32,26 @@ class DocumentImportsController < ApplicationController
     render partial: "document_imports/status", locals: { imports: imports }
   end
 
+  # ONE review page over ALL the user's extracted imports (D6).
+  def review
+    @imports = Current.user.document_imports.awaiting_review.order(:created_at).to_a
+    @groups  = Imports::Review.groups(@imports)
+  end
+
+  # Checked pids create records (Imports::Apply); discard[pid] rejects a single proposal.
+  def apply
+    return discard(params[:discard]) if params[:discard].present?
+
+    fold_edits_into_proposals
+    result = Imports::Apply.call(user: Current.user, accepted: build_accepted)
+    redirect_to after_review_path, **apply_flash(result)
+  end
+
   private
+
+  def resolve_layout
+    Current.user&.onboarded? ? "app" : "onboarding"
+  end
 
   def upload_params
     params.expect(document_import: [ files: [] ])
@@ -47,7 +67,12 @@ class DocumentImportsController < ApplicationController
 
     import.file.attach(io: uploaded, filename: uploaded.original_filename,
                        content_type: uploaded.content_type)
-    import.save ? [ :created, import ] : [ :invalid, import ]
+    if import.save
+      ProcessDocumentImportJob.perform_later(import.id)
+      [ :created, import ]
+    else
+      [ :invalid, import ]
+    end
   rescue ActiveRecord::RecordNotUnique
     [ :duplicate, import ]
   end
@@ -87,5 +112,65 @@ class DocumentImportsController < ApplicationController
 
   def after_upload_path
     Current.user.onboarded? ? bank_accounts_path : onboarding_step_path("accounts")
+  end
+
+  def after_review_path = after_upload_path
+
+  # {import_id => [checked pid, ...]}. A checkbox posts check[pid]=1 when ticked, nothing when not.
+  def build_accepted
+    checked = params.fetch(:check, {}).keys
+    Current.user.document_imports.awaiting_review.each_with_object({}) do |import, accepted|
+      pids = import.proposals.map { it["pid"] } & checked
+      accepted[import.id] = pids if pids.any?
+    end
+  end
+
+  # Cheap inline edits (name always; income amount) folded into the payload before Apply.
+  def fold_edits_into_proposals
+    edits = params[:edits]
+    return unless edits.respond_to?(:dig)
+
+    Current.user.document_imports.awaiting_review.find_each do |import|
+      changed = false
+      import.proposals.each do |proposal|
+        name   = edits.dig(proposal["pid"], "name")
+        amount = edits.dig(proposal["pid"], "amount_reais")
+        if name.present?
+          proposal["payload"]["nickname"] = name
+          proposal["payload"]["name"]     = name
+          changed = true
+        end
+        if amount.present?
+          proposal["payload"]["amount_cents"] = Money.to_cents(amount)
+          changed = true
+        end
+      end
+      import.save! if changed
+    end
+  end
+
+  def discard(pid)
+    Current.user.document_imports.awaiting_review.find_each do |import|
+      next unless import.proposals.any? { it["pid"] == pid && it["state"] == "proposed" }
+
+      import.with_lock do
+        proposal = import.proposals.find { it["pid"] == pid }
+        proposal.merge!("state" => "rejected") if proposal && proposal["state"] == "proposed"
+        import.status = "applied" if import.proposals.none? { it["state"] == "proposed" }
+        import.save!
+      end
+    end
+    redirect_to after_review_path
+  end
+
+  def apply_flash(result)
+    created = result.created.values.sum
+    flash = {}
+    flash[:notice] = t("document_imports.review.applied", count: created) if created.positive?
+    if result.failed.any?
+      flash[:alert] = [ t("document_imports.review.some_failed", count: result.failed.size),
+                        result.failed.map { it[:message] }.uniq.join("; ") ].join(" ")
+    end
+    flash
   end
 end

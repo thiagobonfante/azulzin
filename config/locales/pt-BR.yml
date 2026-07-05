@@ -531,6 +531,28 @@ pt-BR:
     create:
       no_files: "Selecione ao menos um arquivo para enviar."
       daily_cap: "Limite de %{max} arquivos por dia atingido. Tente amanhã."
+    review:
+      meta_title: "Revisar importação"
+      title: "Confira o que encontramos"
+      subtitle: "Encontramos isto nos seus documentos. Desmarque o que não quiser criar — dá para ajustar tudo depois."
+      groups:
+        bank_accounts: "Contas"
+      check_badge: "conferir"
+      seen_in: "visto em: %{source} · %{date} · %{amount}"
+      balance: "Saldo %{amount}"
+      create_selected: "Criar selecionados"
+      discard: "Descartar"
+      unchecked_kept: "Itens desmarcados ficam guardados — você pode revisar depois."
+      applied:
+        one: "%{count} item criado"
+        other: "%{count} itens criados"
+      some_failed:
+        one: "%{count} item não pôde ser criado"
+        other: "%{count} itens não puderam ser criados"
+      back: "Voltar"
+      empty_title: "Não encontramos nada para criar"
+      empty_body: "Não conseguimos identificar contas ou compromissos nos documentos. Adicione manualmente — leva um minuto."
+      back_to_wizard: "Voltar e adicionar manualmente"
   admin:
     not_authorized: "Você não tem acesso a esta área."
     whatsapp_connections:
