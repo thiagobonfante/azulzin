@@ -57,6 +57,23 @@ class Api::Whatsapp::WebhooksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "audio", msg.message_type
   end
 
+  test "verified sender: oversized media is dropped (no message, no job) and asked to resend" do
+    sent = []
+    WhatsappService.stub(:send_message, ->(jid, body) { sent << [ jid, body ]; { id: "x" } }) do
+      assert_no_difference -> { WhatsappMessage.count } do
+        assert_no_enqueued_jobs(only: ProcessInboundWhatsappJob) do
+          post api_whatsapp_webhook_path,
+               params: message_payload(message_id_serialized: "true_5511999998888@c.us_BIG",
+                                       type: "document", has_media: true, media_too_large: true),
+               as: :json, headers: @headers
+        end
+      end
+    end
+    assert_response :ok
+    assert_equal 1, sent.size
+    assert_equal "5511999998888@c.us", sent.first.first
+  end
+
   test "unknown sender: no message, no job, one throttled reply" do
     sent = []
     WhatsappService.stub(:send_message, ->(phone, body) { sent << [ phone, body ]; { id: "x" } }) do

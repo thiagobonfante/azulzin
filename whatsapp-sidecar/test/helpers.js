@@ -16,6 +16,7 @@ const testConfig = {
   clientId: 'azulzin-main',
   sessionDataPath: './.wwebjs_auth',
   sendMinIntervalMs: 0,
+  mediaMaxBytes: 16 * 1024 * 1024,
 };
 
 /** A mock wwebjs Client: an EventEmitter with the methods SessionService calls. */

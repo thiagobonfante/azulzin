@@ -165,19 +165,35 @@ class SessionService {
       }
 
       let media = null;
+      let mediaTooLarge = false;
       if (message.hasMedia) {
-        try {
-          const downloaded = await message.downloadMedia(); // may return undefined
-          if (downloaded) {
-            media = {
-              mimetype: downloaded.mimetype,
-              data: downloaded.data, // base64
-              filename: downloaded.filename,
-            };
+        // WhatsApp reports the media byte size BEFORE download (message._data.size).
+        // downloadMedia() materializes the whole file as a base64 string in this process's
+        // heap-capped memory, so an oversized file (e.g. a 100MB PDF → ~133MB string) can
+        // OOM the sidecar. Over the cap we skip the download and flag the message so Rails
+        // asks the user to resend something smaller (the reply is localized in Rails — the
+        // sidecar stays a dumb pipe). Unknown size (undefined) falls through and downloads.
+        const mediaSize = message._data && message._data.size;
+        if (mediaSize && mediaSize > this.config.mediaMaxBytes) {
+          mediaTooLarge = true;
+          this.logger.warn(
+            `Skipping oversized media from ${message.from}: ${mediaSize} bytes > ` +
+            `cap ${this.config.mediaMaxBytes} bytes`
+          );
+        } else {
+          try {
+            const downloaded = await message.downloadMedia(); // may return undefined
+            if (downloaded) {
+              media = {
+                mimetype: downloaded.mimetype,
+                data: downloaded.data, // base64
+                filename: downloaded.filename,
+              };
+            }
+          } catch (err) {
+            this.logger.error('Error downloading media:', err);
+            // Forward the message without media — Rails can ask the user to resend.
           }
-        } catch (err) {
-          this.logger.error('Error downloading media:', err);
-          // Forward the message without media — Rails can ask the user to resend.
         }
       }
 
@@ -195,6 +211,7 @@ class SessionService {
         body: message.body,
         timestamp: message.timestamp,
         has_media: message.hasMedia,
+        media_too_large: mediaTooLarge,
         type: message.type,
         contact_name: contact.pushname || contact.name,
         contact_number: contact.number,

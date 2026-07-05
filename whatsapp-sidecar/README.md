@@ -132,6 +132,7 @@ a global throttle (`SEND_MIN_INTERVAL_MS`), a typing indicator, and a randomized
 | `SESSION_DATA_PATH` | `./.wwebjs_auth` | LocalAuth dir — **must be a persistent volume** |
 | `PUPPETEER_EXECUTABLE_PATH` | (bundled) | system Chromium path (`/usr/bin/chromium` in Docker) |
 | `SEND_MIN_INTERVAL_MS` | `1500` | min interval between outbound sends |
+| `MEDIA_MAX_BYTES` | `16777216` | skip download + flag media larger than this (heap guard, 16 MiB) |
 | `SKIP_AUTO_RECONNECT` | `false` | if `true`, don't auto-initialize on boot |
 
 ## Docker

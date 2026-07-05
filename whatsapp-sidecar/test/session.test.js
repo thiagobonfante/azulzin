@@ -52,6 +52,43 @@ describe('SessionService inbound message handling', () => {
 
     const [, data] = webhook.notify.mock.calls[0];
     expect(data.media).toEqual({ mimetype: 'image/jpeg', data: 'QkFTRTY0', filename: 'r.jpg' });
+    expect(data.media_too_large).toBe(false);
+  });
+
+  test('(a3) skips oversized media without downloading and flags media_too_large', async () => {
+    const { session, webhook } = makeSession();
+    session.connectedAt = 1000;
+    const downloadMedia = jest.fn(); // must NOT be called
+    const message = makeMockMessage({
+      hasMedia: true,
+      type: 'document',
+      _data: { size: testConfig.mediaMaxBytes + 1 },
+      downloadMedia,
+    });
+
+    await session._handleMessage(message);
+
+    expect(downloadMedia).not.toHaveBeenCalled();
+    const [, data] = webhook.notify.mock.calls[0];
+    expect(data.media).toBeNull();
+    expect(data.media_too_large).toBe(true);
+  });
+
+  test('(a4) media at the cap still downloads normally', async () => {
+    const { session, webhook } = makeSession();
+    session.connectedAt = 1000;
+    const message = makeMockMessage({
+      hasMedia: true,
+      type: 'image',
+      _data: { size: testConfig.mediaMaxBytes },
+      downloadMedia: async () => ({ mimetype: 'image/jpeg', data: 'QkFTRTY0', filename: 'r.jpg' }),
+    });
+
+    await session._handleMessage(message);
+
+    const [, data] = webhook.notify.mock.calls[0];
+    expect(data.media).toEqual({ mimetype: 'image/jpeg', data: 'QkFTRTY0', filename: 'r.jpg' });
+    expect(data.media_too_large).toBe(false);
   });
 
   test('(b) drops historical messages older than connectedAt', async () => {

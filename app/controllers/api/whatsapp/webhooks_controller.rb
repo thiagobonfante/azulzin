@@ -42,6 +42,10 @@ module Api
 
         user.refresh_whatsapp_jid!(jid)   # keep the outbound reply address current (@lid/@c.us)
 
+        # Sidecar skipped an oversized attachment (heap guard). Nothing to process — just ask
+        # the user to resend a smaller file, in their language. No message stored, no job.
+        return reply_media_too_large(user, jid) if data["media_too_large"]
+
         msg = WhatsappMessage.find_or_create_by!(wa_message_id: data["message_id_serialized"]) do |m|
           m.direction    = "inbound"
           m.chat_id      = jid
@@ -68,6 +72,11 @@ module Api
         else
           UnknownSenderReply.throttle(jid)
         end
+      end
+
+      def reply_media_too_large(user, jid)
+        body = I18n.with_locale(user.locale) { I18n.t("whatsapp.replies.media_too_large") }
+        WhatsappService.send_message(jid, body)
       end
 
       def map_type(type)

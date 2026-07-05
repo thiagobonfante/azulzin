@@ -21,6 +21,12 @@ module.exports = {
   // Global outbound send throttle (ms).
   sendMinIntervalMs: parseInt(process.env.SEND_MIN_INTERVAL_MS || '1500', 10),
 
+  // Max media byte size to download. WhatsApp reports the size before download, so over
+  // this cap we skip downloadMedia() entirely — it would otherwise materialize the whole
+  // file as a base64 string in this process's (heap-capped) memory and can OOM it. Rails
+  // then asks the user to resend a smaller file. Default 16 MiB (WhatsApp's own media cap).
+  mediaMaxBytes: parseInt(process.env.MEDIA_MAX_BYTES || String(16 * 1024 * 1024), 10),
+
   // Skip auto-initialize on boot (wait for POST /session/initialize instead).
   skipAutoReconnect: process.env.SKIP_AUTO_RECONNECT === 'true',
 
