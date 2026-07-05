@@ -35,7 +35,7 @@
   </div>
 
   <% if show_sparkline?(Current.user) %>
-    <div class="mt-4 text-primary"><%= monthly_flow_sparkline(Current.user, month) %></div>
+    <div class="mt-4"><%= monthly_flow_chart(Current.user, month) %></div>
   <% end %>
 
   <%# Guardar na caixinha (R4) — the brand moment; only when there's a surplus and a savings account. %>

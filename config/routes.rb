@@ -80,7 +80,7 @@ Rails.application.routes.draw do
         patch :unpay
       end
     end
-    resources :categories, only: %i[index create update destroy] do  # R6 — user-owned spend categories
+    resources :categories, only: %i[index create edit update destroy] do  # R6 — user-owned spend categories
       post :restore, on: :collection                                  # re-seed the locale defaults
     end
 

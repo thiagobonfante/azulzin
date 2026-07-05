@@ -177,7 +177,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "create adds a posted expense and prepends it to the ledger" do
+  test "create adds a posted expense and re-renders the ledger frame (not the h2 anchor)" do
     assert_difference -> { @user.transactions.spend.count }, 1 do
       post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
            params: { transaction: { amount_reais: "12,00", merchant: "Feira", occurred_on: Date.current.to_s },
@@ -186,5 +186,77 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     txn = @user.transactions.order(:id).last
     assert_equal 1_200, txn.amount_cents
     assert_equal @account, txn.bank_account
+    # Guards the id collision that duplicated the list: the stream targets the frame, not #ledger.
+    assert_select "turbo-stream[action='replace'][target='movements_ledger']"
+    assert_select "turbo-stream[action='replace'][target='ledger']", count: 0
+  end
+
+  test "manual create auto-assigns the lone card for crédito without an instrument token (issue 3)" do
+    post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
+         params: { transaction: { amount_reais: "30,00", occurred_on: Date.current.to_s, payment_method: "credito" } }
+    txn = @user.transactions.order(:id).last
+    assert_equal @card, txn.credit_card
+    assert_nil txn.bank_account
+    assert txn.assigned?, "should not land unassigned in the review tray"
+  end
+
+  test "manual create auto-assigns the lone account for pix without an instrument token (issue 3)" do
+    post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
+         params: { transaction: { amount_reais: "30,00", occurred_on: Date.current.to_s, payment_method: "pix" } }
+    txn = @user.transactions.order(:id).last
+    assert_equal @account, txn.bank_account
+    assert_nil txn.credit_card
+  end
+
+  test "an entry that lands on another month shows a toast pointing there (issue 4)" do
+    post transactions_url(kind: "expense", month: "2026-07"), as: :turbo_stream,
+         params: { transaction: { amount_reais: "12,00", occurred_on: "2026-08-15", payment_method: "pix" },
+                   instrument: "bank_account-#{@account.id}" }
+    assert_select "turbo-stream[action='prepend'][target='toasts']"
+  end
+
+  test "create stores the payment_method chosen on the form" do
+    post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
+         params: { transaction: { amount_reais: "20,00", occurred_on: Date.current.to_s, payment_method: "credito" },
+                   instrument: "credit_card-#{@card.id}" }
+    assert_equal "credito", @user.transactions.order(:id).last.payment_method
+  end
+
+  test "new expense form renders the payment-method control and avatar instrument options" do
+    get new_transaction_url(kind: "expense", month: Date.current.strftime("%Y-%m"))
+    assert_response :success
+    assert_select "[data-controller='entry-instrument']"
+    assert_select "button[data-method='credito']"
+    assert_select "button[data-method='pix']"
+    assert_select "[data-entry-instrument-target='option'][data-value='credit_card-#{@card.id}']"
+    assert_select "[data-entry-instrument-target='option'][data-value='bank_account-#{@account.id}']"
+  end
+
+  test "new income form offers accounts only — no cards, no payment method (item 4)" do
+    get new_transaction_url(kind: "income", month: Date.current.strftime("%Y-%m"))
+    assert_response :success
+    assert_select "button[data-method]", count: 0
+    assert_select "[data-entry-instrument-target='option'][data-type='credit_card']", count: 0
+    assert_select "[data-entry-instrument-target='option'][data-value='bank_account-#{@account.id}']"
+  end
+
+  test "index renders the monthly sobra chart once there is a trajectory to show (item 1)" do
+    month = Date.current.beginning_of_month
+    @user.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
+                               amount_cents: 100, occurred_on: Date.current, billing_month: month)
+    @user.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
+                               amount_cents: 100, occurred_on: Date.current.prev_month, billing_month: month.prev_month)
+    get transactions_url
+    assert_response :success
+    assert_select "[role='img'][aria-label=?]", I18n.t("transactions.hero.sparkline_label", locale: :"pt-BR")
+  end
+
+  test "the transfer tab is hidden with a single account and shown with two (R5)" do
+    get new_transaction_url(kind: "expense")
+    assert_select "a[href*='kind=transfer']", count: 0
+
+    @user.bank_accounts.create!(institution: @inst, nickname: "Segunda")
+    get new_transaction_url(kind: "expense")
+    assert_select "a[href*='kind=transfer']"
   end
 end

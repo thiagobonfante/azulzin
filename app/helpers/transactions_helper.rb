@@ -38,40 +38,57 @@ module TransactionsHelper
       user.transactions.posted.distinct.count(:billing_month) >= 2
   end
 
-  # Hand-rolled inline-SVG sparkline of per-month sobra (M−3 … M+3), zero JS. Each dot is a
-  # link to that month — the sparkline IS the long-range month navigation. Theme CSS vars only.
-  def monthly_flow_sparkline(user, month)
+  # Per-month sobra as a labeled diverging bar chart (M−3 … M+3), zero JS. Each column is a
+  # link to that month (the chart IS the long-range navigation), captioned with the month and
+  # emphasized for the current one; positive months read primary, negative read error, future
+  # months dim. Bars are proportional to |sobra| around a shared zero line.
+  def monthly_flow_chart(user, month)
     months  = (-3..3).map { |o| month >> o }
     values  = months.map { |m| MonthSummary.new(user, m).remaining_cents }
-    w, h, pad = 320, 48, 8
-    min, max  = values.min, values.max
-    span      = [ max - min, 1 ].max
-    y_for = ->(v) { h - pad - (v - min).fdiv(span) * (h - 2 * pad) }
-    x_for = ->(i) { pad + i * (w - 2 * pad).fdiv(months.size - 1) }
-    pts   = values.each_index.map { |i| [ x_for.call(i), y_for.call(values[i]) ] }
-    zero_y = (y_for.call(0) if min < 0 && max > 0)
+    today   = hub_today.beginning_of_month
+    max_pos = values.select(&:positive?).max || 0
+    max_neg = values.select(&:negative?).map(&:abs).max || 0
+    span    = [ max_pos + max_neg, 1 ].max
+    zero_top = max_pos.fdiv(span) * 100                 # % from top where zero sits
+    straddles = max_pos.positive? && max_neg.positive?
 
-    content_tag(:svg, class: "h-12 w-full", viewBox: "0 0 #{w} #{h}", preserveAspectRatio: "none",
-                role: "img", "aria-label": t("transactions.hero.sparkline_label")) do
-      parts = []
-      if zero_y
-        parts << tag.line(x1: pad, y1: zero_y, x2: w - pad, y2: zero_y,
-                          stroke: "currentColor", "stroke-opacity": "0.2", "stroke-dasharray": "3 3")
-      end
-      parts << tag.polyline(points: pts.map { |x, y| "#{x.round(1)},#{y.round(1)}" }.join(" "),
-                            fill: "none", stroke: "var(--color-primary)", "stroke-width": "2")
-      months.each_with_index do |m, i|
-        x, y = pts[i]
-        is_current = m == Date.current.in_time_zone("America/Sao_Paulo").to_date.beginning_of_month
-        fill = values[i] >= 0 ? "var(--color-primary)" : "var(--color-error)"
-        opacity = m > Date.current ? "0.5" : "1"
-        dot = tag.circle(cx: x.round(1), cy: y.round(1), r: (is_current ? 5 : 3), fill: fill,
-                         "fill-opacity": opacity, stroke: (is_current ? "var(--color-base-100)" : "none"),
-                         "stroke-width": (is_current ? 2 : 0))
-        parts << content_tag(:a, dot, href: transactions_path(month: m.strftime("%Y-%m")),
-                             "aria-label": l(m, format: :month_year))
-      end
-      safe_join(parts)
+    content_tag(:div, class: "flex items-stretch gap-1", role: "img",
+                "aria-label": t("transactions.hero.sparkline_label")) do
+      safe_join(months.each_with_index.map do |m, i|
+        v          = values[i]
+        is_current = m == today
+        future     = m > today
+        height_pct = v.zero? ? 0 : [ v.abs.fdiv(span) * 100, 3 ].max
+        top_pct    = v.negative? ? zero_top : zero_top - height_pct
+        bar_color  = bar_tone(v, current: is_current, future: future)
+
+        bar_area = content_tag(:span, class: "relative block h-16 w-full") do
+          parts = []
+          parts << content_tag(:span, "", class: "absolute inset-x-0 border-t border-base-content/15",
+                               style: "top: #{zero_top.round(1)}%") if straddles
+          parts << content_tag(:span, "", class: "absolute inset-x-1 rounded-sm #{bar_color} #{'ring-2 ring-primary/30' if is_current}",
+                               style: "top: #{top_pct.round(1)}%; height: #{height_pct.round(1)}%")
+          safe_join(parts)
+        end
+        caption = content_tag(:span, l(m, format: "%b").capitalize,
+                              class: "text-[10px] leading-none #{is_current ? 'font-semibold text-base-content/80' : 'text-base-content/40'}")
+
+        link_to transactions_path(month: m.strftime("%Y-%m")),
+                title: "#{l(m, format: :month_year)} · #{brl(v)}",
+                class: "flex flex-1 flex-col items-center gap-1.5",
+                aria: { label: l(m, format: :month_year) } do
+          safe_join([ bar_area, caption ])
+        end
+      end)
+    end
+  end
+
+  # Full literal Tailwind classes (JIT-safe) for a sobra bar: blue in the black, red under it,
+  # dimmed for future months, full-strength for the current one.
+  def bar_tone(value, current:, future:)
+    if future     then value.negative? ? "bg-error/40" : "bg-primary/40"
+    elsif current then value.negative? ? "bg-error"    : "bg-primary"
+    else               value.negative? ? "bg-error/70" : "bg-primary/70"
     end
   end
 

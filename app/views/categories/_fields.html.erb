@@ -1,0 +1,32 @@
+<%# locals: f, category — the color + icon pickers, shared by the add and edit forms. Pure
+    radio inputs (peer-checked) — no JS. Both sets are validated server-side. %>
+<div class="form-control">
+  <label class="mb-1.5 block text-sm font-medium"><%= t("categories.color") %></label>
+  <div class="flex flex-wrap gap-2">
+    <% Category::COLORS.each do |hex| %>
+      <label class="cursor-pointer">
+        <%= f.radio_button :color, hex, class: "peer sr-only" %>
+        <span class="block h-7 w-7 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-base-100 transition peer-checked:ring-base-content peer-focus-visible:ring-base-content/50"
+              style="background-color: <%= hex %>"></span>
+      </label>
+    <% end %>
+  </div>
+</div>
+
+<div class="form-control">
+  <label class="mb-1.5 block text-sm font-medium"><%= t("categories.icon") %></label>
+  <div class="flex flex-wrap gap-1.5">
+    <label class="cursor-pointer" title="<%= t("categories.no_icon") %>">
+      <%= f.radio_button :icon, "", class: "peer sr-only" %>
+      <span class="grid h-9 w-9 place-items-center rounded-lg border border-base-300 text-base-content/40 transition peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary">—</span>
+    </label>
+    <% Category::ICON_KEYS.each do |key| %>
+      <label class="cursor-pointer">
+        <%= f.radio_button :icon, key, class: "peer sr-only" %>
+        <span class="grid h-9 w-9 place-items-center rounded-lg border border-base-300 text-base-content/70 transition peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary">
+          <%= category_icon_tag(key, css_class: "h-5 w-5") %>
+        </span>
+      </label>
+    <% end %>
+  </div>
+</div>

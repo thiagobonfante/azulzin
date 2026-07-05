@@ -16,9 +16,7 @@ class TransactionsController < ApplicationController
     @summary     = summary
     @pending     = Current.user.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
     @occurrences = CommitmentOccurrence.for_month(Current.user, @month)          # zone E (R10)
-    @ledger      = Current.user.transactions.posted_in(@month)
-                          .includes(:bank_account, :credit_card, :transfer_to_bank_account, :commitment)
-                          .order(occurred_on: :desc, id: :desc)
+    @ledger      = month_ledger
     # Future months render the Previsto list instead of the editable ledger (§4.8).
     @income_occurrences = Current.user.incomes.active.includes(:bank_account).to_a if @summary.mode == :future
   end
@@ -35,7 +33,9 @@ class TransactionsController < ApplicationController
     @transaction = Current.user.transactions.new(attrs)
     @transaction.assign_attributes(direction: new_kind, status: "posted", confirmed_at: Time.current, source: "manual")
     assign_instrument_from_token(params[:instrument])
+    auto_assign_instrument      # server-side mirror of the form's auto-select (robust to JS)
     @saved = @transaction.save
+    @ledger = month_ledger if @saved
     respond_to do |format|
       format.turbo_stream { render :create, status: (@saved ? :ok : :unprocessable_entity) }
       format.html { redirect_to transactions_path(month: params[:month]), notice: t("transactions.update.created") }
@@ -103,6 +103,14 @@ class TransactionsController < ApplicationController
       @transaction = Current.user.transactions.find(params[:id])
     end
 
+    # The viewed month's posted ledger, ordered newest-first. Shared by index and create (which
+    # re-renders the whole list so a first entry cleanly replaces the empty state).
+    def month_ledger
+      Current.user.transactions.posted_in(viewed_month)
+             .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment)
+             .order(occurred_on: :desc, id: :desc)
+    end
+
     # A parked WhatsApp installment purchase (07 §4.4): confirming it fans out the real plan
     # rather than posting a single expense. Only while still pending (a superseded stub is done).
     def installment_stub?(txn)
@@ -143,7 +151,7 @@ class TransactionsController < ApplicationController
 
     def new_kind = %w[expense income].include?(params[:kind]) ? params[:kind] : "expense"
 
-    def new_entry_params = params.expect(transaction: %i[amount_reais merchant occurred_on category_id])
+    def new_entry_params = params.expect(transaction: %i[amount_reais merchant occurred_on category_id payment_method])
 
     def transaction_params
       params.expect(transaction: %i[amount_reais merchant occurred_on billing_month
@@ -176,6 +184,20 @@ class TransactionsController < ApplicationController
       case record
       when BankAccount then @transaction.bank_account = record
       when CreditCard  then @transaction.credit_card  = record
+      end
+    end
+
+    # Manual add safety net: if no instrument came through (JS off / didn't fire), mirror the
+    # form's auto-select on the server — a lone card for crédito, a lone account otherwise — so
+    # a quick entry never silently lands in the "para revisar" tray as unassigned (R4/item 4).
+    def auto_assign_instrument
+      return if @transaction.bank_account_id || @transaction.credit_card_id
+      if @transaction.payment_method == "credito"
+        cards = Current.user.credit_cards.to_a
+        @transaction.credit_card = cards.first if cards.one?
+      else
+        accounts = Current.user.bank_accounts.to_a
+        @transaction.bank_account = accounts.first if accounts.one?
       end
     end
 

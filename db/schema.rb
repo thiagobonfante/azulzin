@@ -59,7 +59,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_05_000009) do
   end
 
   create_table "categories", force: :cascade do |t|
+    t.string "color"
     t.datetime "created_at", null: false
+    t.string "icon"
     t.citext "name", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
