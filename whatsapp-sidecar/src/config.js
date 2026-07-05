@@ -23,4 +23,9 @@ module.exports = {
 
   // Skip auto-initialize on boot (wait for POST /session/initialize instead).
   skipAutoReconnect: process.env.SKIP_AUTO_RECONNECT === 'true',
+
+  // Skip the historical-message filter. That filter compares WhatsApp's message timestamp
+  // to the machine clock (connectedAt); a skewed dev clock (e.g. set to the future) makes
+  // every live message look "historical" and get dropped. Turn ON in dev, keep OFF in prod.
+  skipHistoryFilter: process.env.SKIP_HISTORY_FILTER === 'true',
 };

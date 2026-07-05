@@ -4,7 +4,9 @@
 # PORT=3001 is forced inline so it wins over foreman's per-process PORT assignment.
 # SKIP_AUTO_RECONNECT keeps the sidecar from launching Chromium until you click "Connect"
 # in /admin/whatsapp_connection — so `bin/dev` boots cleanly with no browser needed.
+# SKIP_HISTORY_FILTER=true because this dev machine's clock is ahead of WhatsApp's message
+# timestamps, which would otherwise drop every live message as "historical" (prod: leave off).
 # The machine-specific Chromium path lives in whatsapp-sidecar/.env (gitignored).
 web: WHATSAPP_SERVICE_TOKEN=${WHATSAPP_SERVICE_TOKEN:-dev-whatsapp-token} bin/rails server
 css: bin/rails tailwindcss:watch
-sidecar: cd whatsapp-sidecar && PORT=3001 SKIP_AUTO_RECONNECT=true RAILS_WEBHOOK_URL=http://localhost:3000/api/whatsapp/webhook RAILS_API_TOKEN=${WHATSAPP_SERVICE_TOKEN:-dev-whatsapp-token} npm start
+sidecar: cd whatsapp-sidecar && PORT=3001 SKIP_AUTO_RECONNECT=true SKIP_HISTORY_FILTER=true RAILS_WEBHOOK_URL=http://localhost:3000/api/whatsapp/webhook RAILS_API_TOKEN=${WHATSAPP_SERVICE_TOKEN:-dev-whatsapp-token} npm start

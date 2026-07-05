@@ -139,9 +139,17 @@ class SessionService {
    */
   async _handleMessage(message) {
     try {
+      this.logger.info(
+        `Inbound message: from=${message.from} type=${message.type} ` +
+        `ts=${message.timestamp} connectedAt=${this.connectedAt} hasMedia=${message.hasMedia}`
+      );
+
       // Filter 1 — historical messages: without this a fresh QR scan replays
-      // months of chat history as "transactions".
-      if (this.connectedAt !== null && message.timestamp < this.connectedAt) {
+      // months of chat history as "transactions". Skippable (SKIP_HISTORY_FILTER) because
+      // it compares the machine clock (connectedAt) to WhatsApp's message timestamp — a
+      // skewed dev clock drops every live message. Keep it ON in production.
+      if (!this.config.skipHistoryFilter &&
+          this.connectedAt !== null && message.timestamp < this.connectedAt) {
         this.logger.info(
           `Dropping historical message (ts ${message.timestamp} < connectedAt ${this.connectedAt})`
         );
