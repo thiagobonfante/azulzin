@@ -405,6 +405,9 @@ en:
       meta_title: "Transactions"
     hub:
       add_incomes_prompt: "Add your incomes to see the month projection"
+      import_review_prompt:
+        one: "You have %{count} import suggestion to review"
+        other: "You have %{count} import suggestions to review"
     month:
       prev: "Previous month"
       next: "Next month"
@@ -490,6 +493,7 @@ en:
     destroy:
       removed: "Expense removed."
   document_imports:
+    hero_title: "Import a statement"
     choose_files: "Choose files…"
     submit: "Upload"
     review_button: "Review and create"

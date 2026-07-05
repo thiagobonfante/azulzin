@@ -29,15 +29,20 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
     assert_equal "password_protected", import.error_code
   end
 
-  test "a scanned PDF (no text layer) fails parse_failed without an LLM call" do
+  test "a scanned PDF (no text layer) routes to the vision fallback and caps confidence" do
     import = upload_bytes(file_fixture("imports/no_text.pdf").binread, "scan.pdf", "application/pdf")
-    called = false
-    Imports::DocumentExtractor.stub(:call, ->(*_a, **_k) { called = true; {} }) do
-      ProcessDocumentImportJob.perform_now(import.id)
+    vision = fatura_extraction.merge("vision" => true)
+    stub_classifier do
+      Imports::PdfRasterizer.stub(:call, ->(*_a, **_k) { [ "png-bytes" ] }) do
+        Imports::DocumentExtractor.stub(:call_vision, ->(*_a, **_k) { vision }) do
+          ProcessDocumentImportJob.perform_now(import.id)
+        end
+      end
     end
-    assert_equal "failed", import.reload.status
-    assert_equal "parse_failed", import.error_code
-    assert_not called
+    import.reload
+    assert_equal "extracted", import.status
+    assert import.proposals.any?
+    assert import.proposals.all? { it["confidence"] <= Imports::Confidence::VISION_CAP }
   end
 
   test "a PDF over the page cap fails too_large without an LLM call" do

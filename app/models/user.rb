@@ -69,6 +69,11 @@ class User < ApplicationRecord
     update!(onboarded_at: Time.current)
   end
 
+  # Import proposals still awaiting a decision — drives the derived hub nudge (.plans/auto, D6).
+  def proposed_import_count
+    document_imports.awaiting_review.sum { it.proposed_items.size }
+  end
+
   # Step 1 of the wizard. Validates name/phone in the :profile context only, leaving
   # sign-up untouched.
   def update_as_profile(attributes)

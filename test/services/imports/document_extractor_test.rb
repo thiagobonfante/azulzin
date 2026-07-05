@@ -45,4 +45,17 @@ class Imports::DocumentExtractorTest < ActiveSupport::TestCase
     Imports::DocumentExtractor.call({ "pages" => pages }, client: client)
     assert_equal 1 + (6.0 / Imports::DocumentExtractor::PAGES_PER_BATCH).ceil, client.calls
   end
+
+  test "call_vision sends image_url data-URLs and flags the extraction vision" do
+    seen = nil
+    client = Object.new
+    client.define_singleton_method(:chat) { |messages:, schema:| seen = messages; FakeResult.new(FATURA_RESPONSE) }
+
+    extraction = Imports::DocumentExtractor.call_vision([ "\x89PNGfakebytes" ], client: client)
+
+    assert extraction["vision"]
+    content = seen.last[:content]
+    image_part = content.find { it["type"] == "image_url" }
+    assert image_part.dig("image_url", "url").start_with?("data:image/png;base64,")
+  end
 end

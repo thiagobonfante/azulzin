@@ -24,7 +24,10 @@ module Imports
 
       instruments = build_instrument_proposals(parsed, kind, institution)
       recurring   = build_recurring_proposals(parsed, kind, institution, instruments.first, client)
-      import.proposals = instruments + recurring
+      proposals   = instruments + recurring
+      # A vision (OCR) extraction is never trusted enough to pre-check — cap every proposal.
+      proposals.each { it["confidence"] = [ it["confidence"], Confidence::VISION_CAP ].min } if parsed["vision"]
+      import.proposals = proposals
       import.status = "extracted"
       import.save!
     end

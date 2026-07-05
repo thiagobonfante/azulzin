@@ -8,6 +8,7 @@ module Imports
 
     REVIEW_FLOOR = 0.8
     SIGNAL_FLOOR = 0.9
+    VISION_CAP   = 0.75 # OCR-grade reads always land in "Para revisar"
     DETERMINISTIC = %w[installment_counter debito_automatico pix_automatico mensalidade
                        prestacao boleto known_subscription].freeze
 

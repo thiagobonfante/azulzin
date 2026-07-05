@@ -1,3 +1,5 @@
+require "base64"
+
 # PDF text → structured extraction (D4, §3). Mirrors Whatsapp::Extractor's law: the LLM emits
 # VERBATIM *_raw strings and NEVER computes cents, picks IDs, or infers years — Ruby does all of
 # that in `build` (Money.to_cents, period-anchored year inference, running-Saldo balance anchor).
@@ -100,6 +102,29 @@ module Imports
       raise ParseError, "empty llm extraction" if parsed.blank?
 
       build(parsed)
+    end
+
+    # Vision fallback (§5): scanned pages rendered to PNG → the same SCHEMA via the multimodal
+    # import_vision task. Flags the extraction `vision: true` so every proposal gets the OCR cap.
+    def call_vision(images, client: nil)
+      raise ParseError, "no pages to rasterize" if Array(images).empty?
+
+      client ||= OpenRouterClient.new(task: :import_vision)
+      parsed = chat_vision(client, Array(images))
+      raise ParseError, "empty vision extraction" if parsed.blank?
+
+      build(parsed).merge("vision" => true)
+    end
+
+    def chat_vision(client, images)
+      content = [ { "type" => "text", "text" => "Extraia os dados deste documento financeiro." } ]
+      images.each { |png| content << { "type" => "image_url", "image_url" => { "url" => data_url(png) } } }
+      messages = [ { role: "system", content: SYSTEM_PROMPT }, { role: "user", content: content } ]
+      client.chat(messages: messages, schema: SCHEMA).parsed || {}
+    end
+
+    def data_url(png)
+      "data:image/png;base64,#{Base64.strict_encode64(png)}"
     end
 
     def extract_single(pages, client)

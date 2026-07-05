@@ -406,6 +406,9 @@ pt-BR:
       meta_title: "Transações"
     hub:
       add_incomes_prompt: "Cadastre suas rendas para ver a projeção do mês"
+      import_review_prompt:
+        one: "Você tem %{count} sugestão da importação para revisar"
+        other: "Você tem %{count} sugestões da importação para revisar"
     month:
       prev: "Mês anterior"
       next: "Próximo mês"
@@ -491,6 +494,7 @@ pt-BR:
     destroy:
       removed: "Lançamento removido."
   document_imports:
+    hero_title: "Importar extrato"
     choose_files: "Escolher arquivos…"
     submit: "Enviar"
     review_button: "Revisar e criar"

@@ -47,10 +47,11 @@ class ProcessDocumentImportJob < ApplicationJob
 
   def extract_pdf(bytes, import)
     pdf = pre_extracted_pages(import) || Imports::PdfTextExtractor.call(bytes)
-    # Scanned/garbled text layer → vision fallback (stubbed until Phase 4).
-    raise Imports::ParseError, "scanned pdf — vision fallback lands in Phase 4" unless pdf["text_usable"]
+    return Imports::DocumentExtractor.call(pdf, import: import) if pdf["text_usable"]
 
-    Imports::DocumentExtractor.call(pdf, import: import)
+    # Scanned/garbled text layer → render pages to images and extract via the vision task (§5).
+    images = Imports::PdfRasterizer.call(bytes)
+    Imports::DocumentExtractor.call_vision(images)
   end
 
   # The password-unlock flow (P1-3) decrypts in-request and stashes the extracted TEXT here, so the

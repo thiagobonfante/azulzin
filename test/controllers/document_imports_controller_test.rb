@@ -132,6 +132,25 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#bank_accounts_list", text: /.+/
   end
 
+  test "the hub shows the import-review nudge only while proposals await a decision" do
+    @user.update!(onboarded_at: Time.current)
+
+    get transactions_url
+    assert_select "a[href=?]", review_document_imports_path, false
+
+    seed_extracted_import([ { "pid" => "p1", "kind" => "bank_account", "state" => "proposed", "confidence" => 0.9, "payload" => {} } ])
+    get transactions_url
+    assert_select "a[href=?]", review_document_imports_path
+  end
+
+  test "the accounts index shows the import uploader for onboarded users" do
+    @user.update!(onboarded_at: Time.current)
+    get bank_accounts_url
+    assert_response :success
+    assert_select "[data-controller='import-upload']"
+    assert_select "#bank_accounts_list"
+  end
+
   test "review renders every group including the commitment subgroups" do
     import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
     import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")), filename: "n.ofx", content_type: "application/x-ofx")
@@ -190,6 +209,14 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     import.save!
     stub_classifier { Imports::ProposalBuilder.call(import) }
     import.reload
+  end
+
+  def seed_extracted_import(proposals)
+    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
+    import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")), filename: "n.ofx", content_type: "application/x-ofx")
+    import.save!
+    import.update!(status: "extracted", proposals: proposals)
+    import
   end
 
   def full_review_proposals
