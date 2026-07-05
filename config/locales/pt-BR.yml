@@ -541,10 +541,21 @@ pt-BR:
       groups:
         bank_accounts: "Contas"
         credit_cards: "Cartões"
+        incomes: "Rendas"
+        commitments: "Compromissos"
+        subscriptions: "Assinaturas"
+        installments: "Parcelamentos"
+        fixed_bills: "Contas fixas"
       check_badge: "conferir"
       seen_in: "visto em: %{source} · %{date} · %{amount}"
       balance: "Saldo %{amount}"
       due_day: "vence dia %{day}"
+      per_month: "%{amount}/mês"
+      on_card: "no cartão"
+      installment_label: "Parcela %{current}/%{total}"
+      more_evidence:
+        one: "e mais %{count} ocorrência"
+        other: "e mais %{count} ocorrências"
       create_selected: "Criar selecionados"
       discard: "Descartar"
       unchecked_kept: "Itens desmarcados ficam guardados — você pode revisar depois."
@@ -558,6 +569,10 @@ pt-BR:
       empty_title: "Não encontramos nada para criar"
       empty_body: "Não conseguimos identificar contas ou compromissos nos documentos. Adicione manualmente — leva um minuto."
       back_to_wizard: "Voltar e adicionar manualmente"
+  imports:
+    apply:
+      errors:
+        missing_instrument: "precisa de uma conta ou cartão que também tenha sido criado."
   admin:
     not_authorized: "Você não tem acesso a esta área."
     whatsapp_connections:

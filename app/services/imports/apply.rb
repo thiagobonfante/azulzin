@@ -62,8 +62,14 @@ module Imports
       mark_applied(proposal, record)
       @result.created[proposal["kind"]] += 1
     rescue ActiveRecord::RecordInvalid => e
-      proposal.merge!("state" => "failed", "error" => e.record.errors.full_messages.to_sentence)
-      @result.failed << { pid: proposal["pid"], kind: proposal["kind"], message: proposal["error"] }
+      fail_proposal(proposal, e.record.errors.full_messages.to_sentence)
+    rescue Imports::MissingInstrument
+      fail_proposal(proposal, I18n.t("imports.apply.errors.missing_instrument"))
+    end
+
+    def fail_proposal(proposal, message)
+      proposal.merge!("state" => "failed", "error" => message)
+      @result.failed << { pid: proposal["pid"], kind: proposal["kind"], message: message }
     end
 
     def mark_applied(proposal, record)
@@ -88,7 +94,62 @@ module Imports
       case proposal["kind"]
       when "bank_account" then create_bank_account!(proposal["payload"])
       when "credit_card"  then create_credit_card!(proposal["payload"])
+      when "income"       then create_income!(proposal["payload"])
+      when "commitment"   then create_commitment!(proposal["payload"])
       else raise Imports::Error, "unsupported proposal kind: #{proposal["kind"]}"
+      end
+    end
+
+    def create_income!(payload)
+      account = resolve_instrument(payload["instrument_ref"])
+      raise Imports::MissingInstrument unless account.is_a?(BankAccount)
+
+      @user.incomes.create!(
+        bank_account:  account,
+        name:          payload["name"],
+        amount_cents:  payload["amount_cents"],
+        schedule_kind: payload["schedule_kind"].presence || "fixed_day",
+        schedule_day:  payload["schedule_day"]
+      )
+    end
+
+    # source: "import", source_message_id: nil (safe under the partial unique index). Installments
+    # create the bare Commitment — NO posted parcel Transactions (that's the v1.1 transaction import);
+    # already-elapsed parcels render as presumed-paid from starts_on vs created_at (commitment.rb).
+    def create_commitment!(payload)
+      instrument = resolve_instrument(payload["instrument_ref"])
+      attrs = {
+        name:          payload["name"],
+        kind:          payload["commitment_kind"],
+        amount_cents:  payload["amount_cents"],
+        schedule_kind: payload["schedule_kind"].presence || "fixed_day",
+        schedule_day:  payload["schedule_day"],
+        starts_on:     parse_date(payload["starts_on"]) || Date.current,
+        source:        "import"
+      }
+      if payload["commitment_kind"] == "installment"
+        attrs[:installments_count] = payload["installments_count"]
+        attrs[:total_cents]        = payload["total_cents"]
+      end
+      case instrument
+      when CreditCard  then attrs[:credit_card]  = instrument
+      when BankAccount then attrs[:bank_account] = instrument
+      else raise Imports::MissingInstrument
+      end
+      @user.commitments.create!(attrs)
+    end
+
+    def resolve_instrument(ref)
+      return nil if ref.blank?
+
+      if ref["pid"] then @refs[ref["pid"]]
+      elsif ref["fingerprint"] then match_fingerprint(ref["fingerprint"])
+      end
+    end
+
+    def match_fingerprint(fingerprint)
+      if fingerprint["last4"] then match_credit_card(fingerprint)
+      elsif fingerprint["account_number"] then match_bank_account(fingerprint)
       end
     end
 

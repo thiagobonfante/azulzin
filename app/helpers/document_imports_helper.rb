@@ -45,20 +45,65 @@ module DocumentImportsHelper
       bits << t("credit_cards.ending", last4: last4) if last4.present?
       bits << t("document_imports.review.due_day", day: day) if day.present?
       bits.join(" · ").presence
+    when "commitment"
+      commitment_summary(proposal)
     end
   end
 
-  # "visto em: extrato Nubank · ter, 30 jun · 1 / 9100349-6" — from the first evidence entry.
-  def proposal_evidence(proposal)
-    evidence = Array(proposal["evidence"]).first
-    return if evidence.blank?
+  def commitment_summary(proposal)
+    amount = brl(proposal.dig("payload", "amount_cents"))
+    case proposal.dig("payload", "commitment_kind")
+    when "installment"
+      [ installment_label(proposal), amount ].compact.join(" · ")
+    when "subscription"
+      [ t("document_imports.review.per_month", amount: amount), t("document_imports.review.on_card") ].join(" · ")
+    else
+      day = proposal.dig("payload", "schedule_day")
+      [ amount, (t("document_imports.review.due_day", day: day) if day.present?) ].compact.join(" · ")
+    end
+  end
 
-    source = [ t("document_imports.kinds.#{evidence["kind"]}", default: nil), evidence["institution"] ]
+  def installment_label(proposal)
+    total = proposal.dig("payload", "installments_count")
+    return unless total
+
+    current = Array(proposal["evidence"]).filter_map { it["installment"]&.first }.first || 1
+    t("document_imports.review.installment_label", current: current, total: total)
+  end
+
+  # commitment proposals → ordered {subscriptions, installments, fixed_bills} => [proposal, ...].
+  COMMITMENT_SUBGROUPS = { "subscription" => "subscriptions", "installment" => "installments",
+                           "fixed" => "fixed_bills" }.freeze
+
+  def commitment_subgroups(proposals)
+    proposals.group_by { COMMITMENT_SUBGROUPS.fetch(it.dig("payload", "commitment_kind"), "fixed_bills") }
+             .sort_by { |key, _| COMMITMENT_SUBGROUPS.values.index(key) || 99 }
+             .to_h
+  end
+
+  # cents → the pt-BR decimal string the income amount input round-trips through Money.to_cents.
+  def reais_value(cents)
+    return if cents.nil?
+
+    format("%.2f", cents / 100.0).tr(".", ",")
+  end
+
+  # "visto em: extrato Nubank · ter, 30 jun · 1 / 9100349-6" — from the first evidence entry,
+  # with a "+N ocorrências" tail when a proposal merged multiple rows (e.g. Google One).
+  def proposal_evidence(proposal)
+    evidence = Array(proposal["evidence"])
+    first = evidence.first
+    return if first.blank?
+
+    source = [ t("document_imports.kinds.#{first["kind"]}", default: nil), first["institution"] ]
              .compact_blank.join(" ")
-    t("document_imports.review.seen_in",
-      source: source.presence || "—",
-      date:   evidence_date(evidence["date"]),
-      amount: evidence["description"].presence || evidence_amount(evidence["amount_cents"]))
+    line = t("document_imports.review.seen_in",
+             source: source.presence || "—",
+             date:   evidence_date(first["date"]),
+             amount: first["description"].presence || evidence_amount(first["amount_cents"]))
+    return line if evidence.size < 2
+
+    "#{line} #{t('document_imports.review.more_evidence', count: evidence.size - 1)}"
   end
 
   private

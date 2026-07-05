@@ -7,7 +7,13 @@
       <div class="flex flex-wrap items-center gap-2">
         <%= text_field_tag "edits[#{pid}][name]", proposal_name(proposal),
                            class: "input input-bordered input-sm", "aria-labelledby": "check_#{pid}" %>
-        <% if (summary = proposal_summary(proposal)) %>
+        <% if proposal["kind"] == "income" %>
+          <label class="input input-bordered input-sm flex items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= text_field_tag "edits[#{pid}][amount_reais]", reais_value(proposal.dig("payload", "amount_cents")),
+                               inputmode: "decimal", class: "w-24 border-0 bg-transparent p-0 focus:outline-none" %>
+          </label>
+        <% elsif (summary = proposal_summary(proposal)) %>
           <span class="text-sm text-base-content/70"><%= summary %></span>
         <% end %>
         <% unless checked %>

@@ -8,8 +8,10 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
 
   test "PDF runs text extraction + LLM to extracted with a credit_card proposal" do
     import = upload_bytes(file_fixture("imports/statement.pdf").binread, "fatura.pdf", "application/pdf")
-    Imports::DocumentExtractor.stub(:call, ->(_pdf, **_k) { fatura_extraction }) do
-      ProcessDocumentImportJob.perform_now(import.id)
+    stub_classifier do
+      Imports::DocumentExtractor.stub(:call, ->(_pdf, **_k) { fatura_extraction }) do
+        ProcessDocumentImportJob.perform_now(import.id)
+      end
     end
     import.reload
     assert_equal "extracted", import.status
@@ -51,21 +53,20 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
 
   test "OFX runs the deterministic pipeline to extracted with a bank_account proposal" do
     import = upload("nubank.ofx", "application/x-ofx")
-    ProcessDocumentImportJob.perform_now(import.id)
+    stub_classifier { ProcessDocumentImportJob.perform_now(import.id) }
     import.reload
 
     assert_equal "extracted", import.status
     assert_equal "ofx", import.source_format
     assert_equal "0260", import.fingerprint["bank_code"]
     assert_equal 357625, import.fingerprint["ledger_balance_cents"]
-    assert_equal 1, import.proposals.size
-    assert_equal "bank_account", import.proposals.first["kind"]
+    assert import.proposals.any? { it["kind"] == "bank_account" }
     assert_equal "260", import.institution.code
   end
 
   test "CSV extracts but proposes no bank_account (no account identity)" do
     import = upload("sample.csv", "text/csv")
-    ProcessDocumentImportJob.perform_now(import.id)
+    stub_classifier { ProcessDocumentImportJob.perform_now(import.id) }
     import.reload
     assert_equal "extracted", import.status
     assert_equal "csv", import.source_format
@@ -74,10 +75,12 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
 
   test "terminal imports are not reprocessed (idempotent, no duplicate proposals)" do
     import = upload("nubank.ofx", "application/x-ofx")
-    ProcessDocumentImportJob.perform_now(import.id)
-    proposals = import.reload.proposals
-    ProcessDocumentImportJob.perform_now(import.id)
-    assert_equal proposals, import.reload.proposals
+    stub_classifier do
+      ProcessDocumentImportJob.perform_now(import.id)
+      proposals = import.reload.proposals
+      ProcessDocumentImportJob.perform_now(import.id)
+      assert_equal proposals, import.reload.proposals
+    end
   end
 
   test "a parse failure marks failed/parse_failed" do

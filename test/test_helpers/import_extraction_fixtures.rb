@@ -60,4 +60,11 @@ module ImportExtractionFixtures
 
   def fatura_extraction  = Imports::DocumentExtractor.build(FATURA_RESPONSE)
   def extrato_extraction = Imports::DocumentExtractor.build(EXTRATO_RESPONSE)
+
+  # Stub the recurring-classifier LLM call (DI). `response` is the row-label array it returns; the
+  # default [] means non-signal rows fall to one_off (deterministic-signal rows still classify in
+  # Ruby). Wrap any ProposalBuilder.call / job.perform that processes rows.
+  def stub_classifier(response = [])
+    Imports::RecurringClassifier.stub(:call, ->(_rows, **_kwargs) { response }) { yield }
+  end
 end

@@ -6,6 +6,7 @@ module Imports
   ParseError        = Class.new(Error)   # → error_code: parse_failed
   PasswordProtected = Class.new(Error)   # → error_code: password_protected
   TooLarge          = Class.new(Error)   # → error_code: too_large (PDF page cap)
+  MissingInstrument = Class.new(Error)   # dependent proposal whose account/card wasn't applied
 
   module_function
 

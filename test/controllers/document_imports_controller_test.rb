@@ -1,7 +1,9 @@
 require "test_helper"
+require_relative "../test_helpers/import_extraction_fixtures"
 
 class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
+  include ImportExtractionFixtures
 
   setup do
     @user = users(:confirmed)
@@ -104,28 +106,44 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "deterministic slice: upload OFX → review pre-checked → apply → account in the wizard list" do
-    perform_enqueued_jobs do
-      post document_imports_url,
-           params: { document_import: { files: [ fixture_file_upload("imports/nubank.ofx", "application/x-ofx") ] } }
+    stub_classifier do
+      perform_enqueued_jobs do
+        post document_imports_url,
+             params: { document_import: { files: [ fixture_file_upload("imports/nubank.ofx", "application/x-ofx") ] } }
+      end
     end
     import = @user.document_imports.last
     assert_equal "extracted", import.status
-    assert_equal 1, import.proposals.size
+    assert import.proposals.any? { it["kind"] == "bank_account" }
 
     get review_document_imports_url
     assert_response :success
     assert_select "input[type=checkbox][checked=checked]" # ≥0.8 renders pre-checked
 
-    pid = import.proposals.first["pid"]
+    pid = import.proposals.find { it["kind"] == "bank_account" }["pid"]
     assert_difference -> { @user.bank_accounts.count }, 1 do
       post apply_document_imports_url, params: { check: { pid => "1" } }
     end
     assert_redirected_to onboarding_step_url("accounts")
     assert_equal 357625, @user.bank_accounts.last.balance_cents
-    assert_equal "applied", import.reload.status
+    assert_equal "applied", import.reload.proposals.find { it["kind"] == "bank_account" }["state"]
 
     get onboarding_step_url("accounts")
     assert_select "#bank_accounts_list", text: /.+/
+  end
+
+  test "review renders every group including the commitment subgroups" do
+    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
+    import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")), filename: "n.ofx", content_type: "application/x-ofx")
+    import.save!
+    import.update!(status: "extracted", proposals: full_review_proposals)
+
+    get review_document_imports_url
+    assert_response :success
+    assert_select "h2", text: I18n.t("document_imports.review.groups.incomes")
+    assert_select "h3", text: I18n.t("document_imports.review.groups.installments")
+    assert_select "h3", text: I18n.t("document_imports.review.groups.subscriptions")
+    assert_select "input[name=?]", "edits[inc1][amount_reais]" # income amount is editable
   end
 
   test "unlock decrypts with the password in-request, re-enqueues, and never stores the password" do
@@ -153,12 +171,13 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
 
   test "discard rejects a single proposal without creating a record" do
     import = extracted_ofx_import
-    pid = import.proposals.first["pid"]
+    pid = import.proposals.find { it["kind"] == "bank_account" }["pid"]
     assert_no_difference -> { @user.bank_accounts.count } do
       post apply_document_imports_url, params: { discard: pid }
     end
-    assert_equal "rejected", import.reload.proposals.first["state"]
-    assert_equal "applied", import.status # no proposed left
+    rejected = import.reload.proposals.find { it["pid"] == pid }
+    assert_equal "rejected", rejected["state"]
+    assert_equal "extracted", import.status # a sibling commitment is still proposed
   end
 
   private
@@ -169,8 +188,29 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
                        filename: "nubank.ofx", content_type: "application/x-ofx")
     import.extraction = Imports::OfxParser.call(file_fixture("imports/nubank.ofx").read)
     import.save!
-    Imports::ProposalBuilder.call(import)
+    stub_classifier { Imports::ProposalBuilder.call(import) }
     import.reload
+  end
+
+  def full_review_proposals
+    ref = { "pid" => "acct1" }
+    [
+      { "pid" => "acct1", "kind" => "bank_account", "state" => "proposed", "confidence" => 0.9,
+        "payload" => { "institution_code" => "260", "balance_cents" => 357_625 },
+        "evidence" => [ { "kind" => "bank_statement", "date" => "2026-06-30", "amount_cents" => 357_625 } ] },
+      { "pid" => "inc1", "kind" => "income", "state" => "proposed", "confidence" => 0.7,
+        "payload" => { "name" => "Salário", "amount_cents" => 4_802_580, "instrument_ref" => ref },
+        "evidence" => [ { "kind" => "bank_statement", "date" => "2026-06-03", "amount_cents" => 4_802_580 } ] },
+      { "pid" => "fix1", "kind" => "commitment", "state" => "proposed", "confidence" => 0.95,
+        "payload" => { "commitment_kind" => "fixed", "name" => "Copel", "amount_cents" => 31_741, "schedule_day" => 22, "instrument_ref" => ref },
+        "evidence" => [ { "kind" => "bank_statement", "date" => "2026-06-22", "amount_cents" => 31_741 } ] },
+      { "pid" => "sub1", "kind" => "commitment", "state" => "proposed", "confidence" => 0.9,
+        "payload" => { "commitment_kind" => "subscription", "name" => "Netflix", "amount_cents" => 3_990, "instrument_ref" => ref },
+        "evidence" => [ { "kind" => "bank_statement", "date" => "2026-06-15", "amount_cents" => 3_990 } ] },
+      { "pid" => "ins1", "kind" => "commitment", "state" => "proposed", "confidence" => 0.9,
+        "payload" => { "commitment_kind" => "installment", "name" => "Seguro", "amount_cents" => 32_853, "installments_count" => 36, "instrument_ref" => ref },
+        "evidence" => [ { "kind" => "bank_statement", "date" => "2026-06-05", "amount_cents" => 32_853, "installment" => [ 27, 36 ] } ] }
+    ]
   end
 
   def csv_upload

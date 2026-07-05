@@ -540,10 +540,21 @@ en:
       groups:
         bank_accounts: "Accounts"
         credit_cards: "Cards"
+        incomes: "Income"
+        commitments: "Commitments"
+        subscriptions: "Subscriptions"
+        installments: "Installment plans"
+        fixed_bills: "Fixed bills"
       check_badge: "check this"
       seen_in: "seen in: %{source} · %{date} · %{amount}"
       balance: "Balance %{amount}"
       due_day: "due on day %{day}"
+      per_month: "%{amount}/mo"
+      on_card: "on the card"
+      installment_label: "Installment %{current}/%{total}"
+      more_evidence:
+        one: "and %{count} more occurrence"
+        other: "and %{count} more occurrences"
       create_selected: "Create selected"
       discard: "Discard"
       unchecked_kept: "Unchecked items are kept — you can review them later."
@@ -557,6 +568,10 @@ en:
       empty_title: "We didn't find anything to create"
       empty_body: "We couldn't identify accounts or commitments in the documents. Add them manually — it takes a minute."
       back_to_wizard: "Go back and add manually"
+  imports:
+    apply:
+      errors:
+        missing_instrument: "needs an account or card that was also created."
   admin:
     not_authorized: "You don't have access to this area."
     whatsapp_connections:

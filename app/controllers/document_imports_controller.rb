@@ -47,8 +47,10 @@ class DocumentImportsController < ApplicationController
     render partial: "document_imports/status", locals: { imports: imports }
   end
 
-  # ONE review page over ALL the user's extracted imports (D6).
+  # ONE review page over ALL the user's extracted imports (D6). The Reconciler runs first — it
+  # suppresses income proposals that are really cross-account self-transfers (§9).
   def review
+    Imports::Reconciler.call(Current.user)
     @imports = Current.user.document_imports.awaiting_review.order(:created_at).to_a
     @groups  = Imports::Review.groups(@imports)
   end
