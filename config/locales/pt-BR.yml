@@ -166,11 +166,13 @@ pt-BR:
     add_cards: "Adicionar um cartão"
   bank_accounts:
     add_title: "Adicionar conta"
+    edit_title: "Editar conta"
     kinds:
       checking: "Conta corrente"
       savings: "Poupança"
+      investment: "Investimento"
     form:
-      kind_hint: "Você pode mudar depois — os números se ajustam sozinhos."
+      kind_hint: "Você pode mudar o tipo depois."
     nickname: "Apelido"
     nickname_placeholder: "Ex.: Conta salário"
     optional_details: "Detalhes opcionais"
@@ -180,6 +182,7 @@ pt-BR:
     account_number: "Número da conta"
     account_number_placeholder: "00000-0"
     add: "Adicionar conta"
+    save: "Salvar"
     no_balance: "Saldo não informado"
     empty: "Nenhuma conta adicionada ainda."
     remove: "Remover conta"
@@ -190,6 +193,8 @@ pt-BR:
       subtitle: "Gerencie as contas que você acompanha no azulzin."
     create:
       created: "Conta adicionada."
+    update:
+      updated: "Conta atualizada."
     destroy:
       removed: "Conta removida."
   credit_cards:

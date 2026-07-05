@@ -11,6 +11,18 @@ export default class extends Controller {
     this._form = this.element.closest("form")
     this._onFormReset = () => this.clearSelection()
     this._form?.addEventListener("reset", this._onFormReset)
+    this.showInitialSelection()
+  }
+
+  // On the edit form the hidden input arrives pre-filled — reflect it in the button label
+  // so the picker opens already showing the account's institution.
+  showInitialSelection() {
+    const value = this.inputTarget.value
+    if (!value) return
+    const option = this.optionTargets.find((opt) => opt.dataset.value === value)
+    if (!option) return
+    this.displayTarget.innerHTML = option.querySelector("[data-label]").innerHTML
+    this.displayTarget.classList.remove("text-base-content/50")
   }
 
   disconnect() {

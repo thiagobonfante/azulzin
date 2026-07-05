@@ -10,8 +10,8 @@ class BankAccount < ApplicationRecord
 
   money_column :balance
 
-  enum :kind, { checking: "checking", savings: "savings" }, default: "checking", validate: true
-  # savings / checking scopes come free from the enum.
+  enum :kind, { checking: "checking", savings: "savings", investment: "investment" }, default: "checking", validate: true
+  # checking / savings / investment scopes come free from the enum.
 
   validates :nickname,       length: { maximum: 80 }, allow_blank: true
   validates :agency,         length: { maximum: 20 }, allow_blank: true

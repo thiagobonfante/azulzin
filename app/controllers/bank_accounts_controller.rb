@@ -27,6 +27,20 @@ class BankAccountsController < ApplicationController
     end
   end
 
+  # Full-page edit — nickname, kind and balance. Editing the balance re-anchors it (model).
+  def edit
+    @bank_account = Current.user.bank_accounts.find(params[:id])
+  end
+
+  def update
+    @bank_account = Current.user.bank_accounts.find(params[:id])
+    if @bank_account.update(bank_account_params)
+      redirect_to bank_accounts_path, notice: t(".updated")
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
   def destroy
     @bank_account = Current.user.bank_accounts.find(params[:id])
     @bank_account.destroy

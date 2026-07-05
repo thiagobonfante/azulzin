@@ -1,6 +1,10 @@
 <%# locals: bank_account %>
-<%= form_with model: bank_account, url: bank_accounts_path, id: "bank_account_form",
-      data: { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" },
+<%# The create form (index/onboarding) posts to a Turbo Stream and resets on success; the
+    full-page edit form PATCHes and redirects, so it skips form-reset. %>
+<%= form_with model: bank_account,
+      url: (bank_account.persisted? ? bank_account_path(bank_account) : bank_accounts_path),
+      id: "bank_account_form",
+      data: (bank_account.persisted? ? {} : { controller: "form-reset", action: "turbo:submit-end->form-reset#reset" }),
       class: "flex flex-col gap-4" do |f| %>
   <div id="bank_account_form_errors">
     <%= render "bank_accounts/form_errors", record: bank_account %>
@@ -24,11 +28,12 @@
         </label>
       <% end %>
     </div>
-    <span class="mt-1 text-xs text-base-content/50"><%= t("bank_accounts.form.kind_hint") %></span>
+    <p class="mt-2 text-xs text-base-content/50"><%= t("bank_accounts.form.kind_hint") %></p>
   </div>
 
-  <%# Optional details — nothing here is required. %>
-  <details class="group">
+  <%# Optional details — nothing here is required. Opened up-front on edit when already set. %>
+  <% has_details = bank_account.balance_informed? || bank_account.agency.present? || bank_account.account_number.present? %>
+  <details class="group" <%= "open" if has_details %>>
     <summary class="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-primary">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
       <%= t("bank_accounts.optional_details") %>
@@ -53,6 +58,6 @@
   </details>
 
   <div class="flex justify-end">
-    <%= f.submit t("bank_accounts.add"), class: "btn btn-primary btn-sm" %>
+    <%= f.submit (bank_account.persisted? ? t("bank_accounts.save") : t("bank_accounts.add")), class: "btn btn-primary btn-sm" %>
   </div>
 <% end %>

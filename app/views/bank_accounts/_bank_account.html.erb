@@ -5,8 +5,8 @@
   <div class="min-w-0 flex-1">
     <p class="flex items-center gap-1.5 truncate text-sm font-semibold">
       <span class="truncate"><%= bank_account.display_name %></span>
-      <% if bank_account.savings? %>
-        <span class="badge badge-success badge-xs"><%= t("bank_accounts.kinds.savings") %></span>
+      <% unless bank_account.checking? %>
+        <span class="badge badge-xs <%= bank_account.savings? ? "badge-success" : "badge-info" %>"><%= t("bank_accounts.kinds.#{bank_account.kind}") %></span>
       <% end %>
     </p>
     <p class="truncate text-xs text-base-content/50">
@@ -23,6 +23,12 @@
       <p class="text-xs text-base-content/40"><%= t("bank_accounts.no_balance") %></p>
     <% end %>
   </div>
+
+  <%= link_to edit_bank_account_path(bank_account),
+        class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-primary",
+        aria: { label: t("bank_accounts.edit_title") } do %>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
+  <% end %>
 
   <%= button_to bank_account_path(bank_account), method: :delete,
         class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-error",
