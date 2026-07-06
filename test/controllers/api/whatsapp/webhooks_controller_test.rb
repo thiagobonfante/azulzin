@@ -105,6 +105,27 @@ class Api::Whatsapp::WebhooksControllerTest < ActionDispatch::IntegrationTest
     assert_nil pending.whatsapp_verification_code
   end
 
+  test "double phone-bind: a colliding verify replies phone_already_linked instead of silence" do
+    # Two verified users make the JID ambiguous (9th-digit tolerance), so a 3rd user's code scan
+    # reaches verify_whatsapp!, which then collides on the unique whatsapp_id index (doc 04 §8.2).
+    @user.update!(whatsapp_id: "5511999998888")                       # with the 9th digit
+    User.create!(email_address: "a2@example.com", password: "password123",
+                 whatsapp_id: "551199998888", phone_verified_at: Time.current)   # without it
+    claimant = User.create!(email_address: "claim@example.com", password: "password123", locale: "pt-BR")
+    code = claimant.whatsapp_verification_code!
+
+    sent = []
+    WhatsappService.stub(:send_message, ->(_p, body) { sent << body; { id: "x" } }) do
+      post api_whatsapp_webhook_path,
+           params: message_payload(from: "5511999998888@c.us", body: "meu codigo #{code}",
+                                   message_id_serialized: "dup-bind"),
+           as: :json, headers: @headers
+    end
+    assert_response :ok
+    assert_equal I18n.t("whatsapp.replies.phone_already_linked", locale: "pt-BR"), sent.last
+    assert_nil claimant.reload.whatsapp_id, "the claimant is NOT bound to the taken number"
+  end
+
   test "connection events update the singleton" do
     post api_whatsapp_webhook_path,
          params: { event: "qr_code", data: { qr_data_url: "data:image/png;base64,XX" } },

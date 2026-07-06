@@ -65,14 +65,40 @@ module Api
         # redelivered webhook — already have it, no-op (still 200 in #create)
       end
 
+      # A guessed AZUL-XXXX now binds into a FAMILY tenant (read/write over shared money), and
+      # pending codes are outstanding more often (each new member holds one). So cap code-shaped
+      # guesses per JID before the scan, and turn the silent double-bind into a localized reply.
+      CODE_ATTEMPT_CAP = 10   # per JID per day; codes are 32^4 ≈ 1.05M → brute force is hopeless (§8.1)
+
       def handle_unverified_sender(jid, data)
+        return if code_attempt_over_cap?(jid, data["body"])   # §8.1 — over the cap: ignore silently
         if (u = User.awaiting_whatsapp_verification(data["body"]))
-          u.verify_whatsapp!(jid)
-          body = I18n.with_locale(u.locale) { I18n.t("whatsapp.replies.verified") }
-          WhatsappService.send_message(jid, body)
+          begin
+            u.verify_whatsapp!(jid)
+            send_wa_reply(jid, u.locale, "whatsapp.replies.verified")
+          rescue ActiveRecord::RecordNotUnique
+            # §8.2: this phone is already bound to another user — one phone = one user, absolute.
+            send_wa_reply(jid, u.locale, "whatsapp.replies.phone_already_linked")
+          end
         else
           UnknownSenderReply.throttle(jid)
         end
+      end
+
+      # Count only code-SHAPED attempts (a real user's expense text is never capped here — it
+      # falls through to the unknown-sender throttle). Read-modify-write is fine for a heuristic;
+      # under the test null_store it is a no-op (never caps), correct in prod (memory/redis).
+      def code_attempt_over_cap?(jid, body)
+        return false unless /AZUL-[A-Z0-9]{4}/i.match?(body.to_s)
+        key   = "wa:code_attempts:#{jid.to_s.gsub(/\D/, '')}:#{Date.current}"
+        count = (Rails.cache.read(key) || 0) + 1
+        Rails.cache.write(key, count, expires_in: 1.day)
+        count > CODE_ATTEMPT_CAP
+      end
+
+      def send_wa_reply(jid, locale, key)
+        body = I18n.with_locale(locale) { I18n.t(key) }
+        WhatsappService.send_message(jid, body)
       end
 
       def reply_media_too_large(user, jid)

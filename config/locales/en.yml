@@ -899,6 +899,7 @@ en:
       media_too_large: "That file is too large for me to read. Could you resend a smaller photo or PDF?"
       unknown_sender: "This number isn't registered with azulzin."
       verified: "WhatsApp activated! ✅ Just send me your expenses here."
+      phone_already_linked: "This number is already linked to another azulzin account. A number can only belong to one person."
       income_posted: "💙 Received: %{amount} in %{instrument}."
       income_posted_linked: "💙 Received: %{amount} in %{instrument}."
       income_posted_unassigned: "💙 Received: %{amount}. Pick the account in the app."
