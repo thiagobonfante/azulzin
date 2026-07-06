@@ -1,3 +1,6 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const SessionService = require('../src/session');
 const { silentLogger, testConfig, makeMockClient, makeMockMessage } = require('./helpers');
 
@@ -203,5 +206,29 @@ describe('SessionService event wiring', () => {
       platform: 'android',
       pushname: 'azulzin',
     });
+  });
+});
+
+describe('SessionService stale-lock cleanup', () => {
+  test('removes leftover Chrome singleton locks before init', () => {
+    const dataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'wwebjs-'));
+    const profileDir = path.join(dataPath, 'session-azulzin-main');
+    fs.mkdirSync(profileDir, { recursive: true });
+    const lock = path.join(profileDir, 'SingletonLock');
+    fs.writeFileSync(lock, 'stale');
+
+    const session = new SessionService({
+      config: { ...testConfig, sessionDataPath: dataPath },
+      logger: silentLogger,
+      webhook: { notify: jest.fn() },
+      clientFactory: () => makeMockClient(),
+      sleep: () => Promise.resolve(),
+    });
+
+    expect(fs.existsSync(lock)).toBe(true);
+    session._clearSingletonLocks();
+    expect(fs.existsSync(lock)).toBe(false);
+
+    fs.rmSync(dataPath, { recursive: true, force: true });
   });
 });

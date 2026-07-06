@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const qrcode = require('qrcode');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -66,6 +68,7 @@ class SessionService {
     }
     this.logger.info('Initializing WhatsApp client');
     this.status = 'initializing';
+    this._clearSingletonLocks();
     this.client = this.clientFactory();
     this._setupEvents();
 
@@ -75,6 +78,23 @@ class SessionService {
       this.logger.error('Error initializing client:', err);
       this.client = null;
       throw err;
+    }
+  }
+
+  // Chrome writes SingletonLock/Cookie/Socket into its profile dir and removes them on a clean
+  // exit. When the container is killed (redeploy / reboot) they survive, and the next launch
+  // aborts: "The profile appears to be in use by another Google Chrome process" (Failed to
+  // launch, Code 21). This is a single-owner profile on a private volume, so clearing the stale
+  // locks on boot is safe and makes restarts self-healing.
+  _clearSingletonLocks() {
+    if (!this.config || !this.config.sessionDataPath || !this.config.clientId) return;
+    const dir = path.join(this.config.sessionDataPath, `session-${this.config.clientId}`);
+    for (const name of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
+      try {
+        fs.rmSync(path.join(dir, name), { force: true, recursive: true });
+      } catch (err) {
+        this.logger.error(`Error clearing ${name}:`, err.message);
+      }
     }
   }
 
@@ -318,6 +338,8 @@ class SessionService {
   async _markConnected(reason) {
     const info = (this.client && this.client.info) || {};
     this.status = 'connected';
+    // client.info carries the number only when `ready` fires; when it doesn't, this stays null
+    // and the app falls back to the configured WHATSAPP_DISPLAY_NUMBER for display.
     this.phoneNumber = info.wid ? info.wid.user : this.phoneNumber || null;
     this.platform = info.platform || this.platform || null;
     this.pushname = info.pushname || this.pushname || null;
