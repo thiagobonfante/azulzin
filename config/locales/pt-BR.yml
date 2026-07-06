@@ -17,6 +17,10 @@ pt-BR:
     not_allowed: "Esta conta não está autorizada a acessar o azulzin."
     confirm: "Confirmar"
     deleted_suffix: "(excluído)"
+    attribution:
+      by: "por %{name}"
+      edited_by: "editado por %{name}"
+      removed_user: "usuário removido"
     cancel: "Cancelar"
   omniauth:
     signed_in: "Você entrou com o Google."

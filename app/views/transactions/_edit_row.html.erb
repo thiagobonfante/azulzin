@@ -5,6 +5,7 @@
     <div class="flex items-center gap-3 border-b border-base-300/40 px-2 py-2.5">
       <%= render "transactions/row_display", transaction: transaction %>
     </div>
+    <%= render "shared/attribution", record: transaction, full: true %>
     <%= form_with model: transaction, url: transaction_path(transaction), method: :patch,
           class: "grid gap-2 p-2 sm:grid-cols-2" do |f| %>
       <%= hidden_field_tag :from, "ledger" %>

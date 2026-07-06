@@ -17,6 +17,10 @@ en:
     confirm: "Confirm"
     cancel: "Cancel"
     deleted_suffix: "(deleted)"
+    attribution:
+      by: "by %{name}"
+      edited_by: "edited by %{name}"
+      removed_user: "removed user"
   omniauth:
     signed_in: "Signed in with Google."
     could_not_sign_in: "We couldn't sign you in. Add an email to your account and try again."

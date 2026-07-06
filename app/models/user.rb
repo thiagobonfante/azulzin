@@ -56,6 +56,9 @@ class User < ApplicationRecord
   def verified? = confirmed_at.present?
   def verify!   = update!(confirmed_at: Time.current)
 
+  # Human label for the members list + attribution chips (doc 06). Never blank.
+  def display_name = name.to_s.strip.presence || email_address
+
   # Onboarding wizard: complete once the user has finished the setup steps. Seeds the default
   # categories (idempotent) as part of finishing.
   def onboarded? = onboarded_at.present?

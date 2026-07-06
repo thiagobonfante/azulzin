@@ -14,6 +14,7 @@
         <% if credit_card.last4.present? %>· <%= t("credit_cards.ending", last4: credit_card.last4) %><% end %>
       </p>
     </div>
+    <%= render "shared/attribution", record: credit_card %>
     <%= link_to edit_credit_card_path(credit_card),
           class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-primary",
           aria: { label: t("credit_cards.edit_title") } do %>

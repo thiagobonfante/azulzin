@@ -9,6 +9,7 @@
       <%= income_schedule_label(income) %> · <%= t("incomes.row.into_account", account: income.bank_account.display_name) %>
     </p>
   </div>
+  <%= render "shared/attribution", record: income %>
   <span class="shrink-0 font-display text-sm font-bold tabular-nums text-success"><%= brl(income.amount_cents) %></span>
   <%= link_to edit_income_path(income),
         class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-primary",

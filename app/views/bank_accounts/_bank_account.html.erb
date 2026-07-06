@@ -16,6 +16,8 @@
     </p>
   </div>
 
+  <%= render "shared/attribution", record: bank_account %>
+
   <div class="shrink-0 text-right">
     <% if bank_account.balance_informed? %>
       <p class="font-display text-sm font-bold tabular-nums"><%= brl(bank_account.derived_balance_cents) %></p>

@@ -8,6 +8,7 @@
     <% if import.kind.present? && import.kind != "unknown" %>
       <span class="badge badge-ghost badge-sm"><%= t("document_imports.kinds.#{import.kind}") %></span>
     <% end %>
+    <%= render "shared/attribution", record: import %>
   </div>
 
   <div class="mt-2 text-sm text-base-content/70" aria-live="polite">

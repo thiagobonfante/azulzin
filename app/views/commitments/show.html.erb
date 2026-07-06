@@ -68,6 +68,7 @@
       </span>
     </div>
   </div>
+  <%= render "shared/attribution", record: @commitment, full: true %>
   <p class="flex flex-wrap items-center gap-x-1.5 text-sm text-base-content/60">
     <% if (instrument = @commitment.instrument) %>
       <%= institution_avatar(instrument.institution, size: 20) %>
