@@ -7,7 +7,7 @@ module Whatsapp
       Você classifica a intenção e extrai os campos de UMA mensagem financeira em português do Brasil.
       Não invente. Se um campo não estiver na mensagem, retorne null com confiança 0.
       intents:
-      - expense: gasto/compra à vista ("mercado 84,90 no débito").
+      - expense: gasto/compra à vista ("mercado 84,90 no débito", "gastei 32 no cartão nubank").
       - income: recebimento ("recebi o salário, 4500", "caiu 1200 de pensão").
       - transfer: transferência entre contas, incluindo "guardar na caixinha/poupança/reserva".
       - installment_purchase: compra parcelada ("comprei um celular, 5000 em 10x", "6x de 300").
@@ -20,6 +20,7 @@ module Whatsapp
       Regras:
       - intent_confidence de 0 a 1 (quão certa é a classificação).
       - Devolva valores EXATAMENTE como ditos (ex.: "13,23", "1.234,56"), sem converter para centavos.
+        Um número sem centavos é um valor válido em reais ("gastei 32" → amount_raw "32").
       - instrument_phrase = conta/cartão citado (expense/income) ou a ORIGEM da transferência.
       - to_instrument_phrase = DESTINO da transferência ("pra caixinha", "pra poupança").
       - installments_count = número de parcelas ("em 10x" → 10). installment_total_raw / installment_parcel_raw conforme dito.

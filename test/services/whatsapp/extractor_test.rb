@@ -25,6 +25,18 @@ class Whatsapp::ExtractorTest < ActiveSupport::TestCase
     assert ex.instrument_named?
   end
 
+  test "a bare integer amount ('gastei 32') converts to whole reais" do
+    client = client_returning({
+      "amount_raw" => "32", "payment_method" => "credito", "instrument_phrase" => "cartão Nubank",
+      "field_confidence" => { "amount" => 0.9 }, "overall_confidence" => 0.85
+    })
+    ex = Whatsapp::Extractor.from_text(users(:confirmed), "Gastei 32 no cartão Nubank", modality: "audio", client: client)
+
+    assert_equal 3_200, ex.amount_cents
+    assert ex.amount_present?
+    assert_equal "whatsapp_audio", ex.source
+  end
+
   test "rejects a future occurred_on and keeps a nil amount nil" do
     client = client_returning({ "amount_raw" => nil, "occurred_on" => (Date.current + 5).iso8601 })
     ex = Whatsapp::Extractor.from_text(users(:confirmed), "sei la", client: client)
