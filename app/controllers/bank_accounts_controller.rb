@@ -12,6 +12,9 @@ class BankAccountsController < ApplicationController
 
   def create
     @bank_account = Current.account.bank_accounts.build(bank_account_params)
+    # Blank balance = the account starts empty. Anchors 0 at creation so every movement
+    # from here on counts — a nil balance would ignore transfers until one was informed.
+    @bank_account.balance_cents ||= 0
     saved = @bank_account.save
     respond_to do |format|
       # 422 on failure so Turbo's submit-end reports failure and the form is NOT reset

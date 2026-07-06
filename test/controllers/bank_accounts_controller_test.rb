@@ -30,6 +30,19 @@ class BankAccountsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 120050, @user.account.bank_accounts.last.balance_cents
   end
 
+  test "create with a blank balance starts at zero and counts later movements" do
+    post bank_accounts_url, as: :turbo_stream,
+         params: { bank_account: { institution_id: @nubank.id, nickname: "Caixinha", kind: "savings" } }
+    acct = @user.account.bank_accounts.last
+    assert_equal 0, acct.balance_cents
+    assert acct.balance_informed?
+
+    @user.account.transactions.create!(bank_account: @user.account.bank_accounts.create!(institution: @nubank),
+                                       direction: "transfer", status: "posted", amount_cents: 500_000,
+                                       occurred_on: Date.current, transfer_to_bank_account_id: acct.id)
+    assert_equal 500_000, acct.derived_balance_cents
+  end
+
   test "create without an institution does not persist" do
     assert_no_difference -> { @user.account.bank_accounts.count } do
       post bank_accounts_url, as: :turbo_stream, params: { bank_account: { nickname: "x" } }
