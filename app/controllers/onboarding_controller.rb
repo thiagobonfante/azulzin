@@ -32,6 +32,14 @@ class OnboardingController < ApplicationController
     end
   end
 
+  # Explicit "skip to the app" for a member joining a stocked account (D5). Same anti-forge
+  # posture as update: the server re-checks the condition and a forged request bounces to
+  # resume_step silently (matching the existing style).
+  def skip
+    return redirect_to onboarding_step_path(resume_step) unless skippable?
+    finish
+  end
+
   private
     def redirect_if_onboarded
       redirect_to dashboard_path if Current.user.onboarded?
@@ -78,11 +86,28 @@ class OnboardingController < ApplicationController
     def update_profile
       @user = Current.user
       if @user.update_as_profile(profile_params)
+        update_owner_account_name
         redirect_to onboarding_step_path("accounts")
       else
         render "profile", status: :unprocessable_entity
       end
     end
+
+    # Decision #4: the owner may set a friendly account name (e.g. "Família Bonfante") on the
+    # profile step. Invited members join an existing account and never rename it, so only an
+    # owner's submission is honored (account_name is not a User attribute — read it separately).
+    def update_owner_account_name
+      name = params.dig(:user, :account_name)
+      Current.account.update(name: name) if account_owner? && name.present?
+    end
+
+    # D5: profile complete (name + phone — phone kept required, decision #13 accepted) AND the
+    # shared account already has instruments. Re-checked server-side so a forged skip bounces.
+    def skippable?
+      Current.user.name.present? && Current.user.phone.present? &&
+        Current.account.bank_accounts.kept.any?
+    end
+    helper_method :skippable?
 
     def advance_from_accounts
       if Current.account.bank_accounts.kept.any?

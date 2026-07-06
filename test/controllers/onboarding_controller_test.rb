@@ -150,4 +150,78 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to onboarding_step_url("profile")
     assert_not @user.reload.onboarded?
   end
+
+  # ── Phase 5: skip affordance (D5) + owner account-name prompt (decision #4) ──
+
+  def skip_label = I18n.t("onboarding.skip_to_app", locale: :"pt-BR")
+
+  # Path A: a fresh owner with an empty account must add ≥1 account — no skip yet.
+  test "a fresh owner with an empty account sees no skip on the accounts step" do
+    complete_profile
+    get onboarding_step_url("accounts")
+    assert_response :success
+    assert_not_includes response.body, skip_label
+  end
+
+  test "an invited member of a stocked account can skip to the app without duplicating categories" do
+    @user.update!(name: "Owner", phone: "5511900000000", onboarded_at: Time.current)
+    add_income
+    @user.onboard!                                                 # owner seeds the 12 categories
+    assert_equal 12, @user.account.categories.kept.count
+
+    member = User.create!(email_address: "bia@example.com", password: "password123", name: "Bia", phone: "5511988887777")
+    @user.account.memberships.create!(user: member, role: "member")
+    sign_out
+    sign_in_as(member)
+
+    get onboarding_step_url("accounts")                            # resume is cards; skip shows here
+    assert_response :success
+    assert_includes response.body, skip_label
+
+    patch onboarding_skip_url
+    assert_redirected_to dashboard_url
+    assert member.reload.onboarded?
+    assert_equal 12, @user.account.categories.kept.count, "no duplicate categories (call-site guard)"
+  end
+
+  test "a member with an incomplete profile cannot skip (bounces to profile, stays not onboarded)" do
+    @user.update!(name: "Owner", phone: "5511900000000", onboarded_at: Time.current)
+    add_income
+    member = User.create!(email_address: "c@example.com", password: "password123")   # no name/phone
+    @user.account.memberships.create!(user: member, role: "member")
+    sign_out
+    sign_in_as(member)
+    patch onboarding_skip_url
+    assert_redirected_to onboarding_step_url("profile")
+    assert_not member.reload.onboarded?
+  end
+
+  test "when the only account is soft-deleted the skip is hidden and skipping bounces" do
+    complete_profile
+    add_account.soft_delete!(by: @user)                           # the only account is soft-deleted
+    get onboarding_step_url("accounts")
+    assert_response :success
+    assert_not_includes response.body, skip_label
+    patch onboarding_skip_url
+    assert_not @user.reload.onboarded?
+  end
+
+  test "the owner names the shared account on the profile step" do
+    patch onboarding_step_url("profile"),
+      params: { user: { name: "Thiago", country_code: "55", phone_national: "11912345678", account_name: "Família Bonfante" } }
+    assert_redirected_to onboarding_step_url("accounts")
+    assert_equal "Família Bonfante", @user.account.reload.name
+  end
+
+  test "an invited member's account_name submission is ignored (not the owner)" do
+    @user.update!(name: "Owner", onboarded_at: Time.current)
+    original = @user.account.name
+    member = User.create!(email_address: "d@example.com", password: "password123")
+    @user.account.memberships.create!(user: member, role: "member")
+    sign_out
+    sign_in_as(member)
+    patch onboarding_step_url("profile"),
+      params: { user: { name: "Bia", country_code: "55", phone_national: "11988887777", account_name: "Hijack" } }
+    assert_equal original, @user.account.reload.name
+  end
 end

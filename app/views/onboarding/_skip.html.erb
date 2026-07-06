@@ -1,0 +1,9 @@
+<%# "Skip to the app" — shown on accounts/incomes/cards when the shared account already has
+    instruments (skippable?). profile never renders it (required-first). D5. %>
+<% if skippable? %>
+  <div class="mt-4 text-center">
+    <%= button_to t("onboarding.skip_to_app"), onboarding_skip_path, method: :patch,
+          class: "btn btn-ghost btn-sm text-base-content/60" %>
+    <p class="mt-1 text-xs text-base-content/50"><%= t("onboarding.skip_hint") %></p>
+  </div>
+<% end %>

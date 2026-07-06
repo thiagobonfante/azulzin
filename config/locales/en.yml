@@ -153,6 +153,8 @@ en:
   onboarding:
     back: "Back"
     finished: "All set! Welcome to azulzin."
+    skip_to_app: "Skip and go to the app"
+    skip_hint: "Your family already set up accounts — you can add yours later."
     steps:
       profile: "Profile"
       accounts: "Accounts"
@@ -166,6 +168,9 @@ en:
       country_code: "Country code"
       phone_placeholder: "(11) 91234-5678"
       phone_hint: "We'll use this number for WhatsApp updates."
+      account_name: "Shared account name"
+      account_name_placeholder: "e.g. The Bonfante Family"
+      account_name_hint: "This is how your family sees the account. You can change it later in settings."
       submit: "Continue"
     accounts:
       meta_title: "Your accounts"

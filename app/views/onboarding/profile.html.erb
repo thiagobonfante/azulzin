@@ -41,6 +41,15 @@
       </span>
     </div>
 
+    <% if account_owner? %>
+      <div class="form-control">
+        <%= label_tag "user_account_name", t("onboarding.profile.account_name"), class: "mb-1 block text-sm font-medium" %>
+        <%= text_field_tag "user[account_name]", Current.account.name, id: "user_account_name",
+              placeholder: t("onboarding.profile.account_name_placeholder"), class: "input input-bordered w-full" %>
+        <span class="mt-1.5 text-xs text-base-content/55"><%= t("onboarding.profile.account_name_hint") %></span>
+      </div>
+    <% end %>
+
     <div class="mt-2 flex justify-end">
       <%= f.submit t("onboarding.profile.submit"), class: "btn btn-primary" %>
     </div>

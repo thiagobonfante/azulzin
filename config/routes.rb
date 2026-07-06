@@ -44,6 +44,7 @@ Rails.application.routes.draw do
           constraints: { step: /profile|accounts|incomes|cards/ }
     patch "onboarding/:step", to: "onboarding#update",
           constraints: { step: /profile|accounts|incomes|cards/ }
+    patch "onboarding/skip", to: "onboarding#skip", as: :onboarding_skip   # invited member: one click into the shared app
 
     # Onboarding via document upload (.plans/auto). No index/show — the status frame renders
     # inside the accounts step and the accounts index; review is ONE page over all imports.

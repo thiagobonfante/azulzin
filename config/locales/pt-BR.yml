@@ -154,6 +154,8 @@ pt-BR:
   onboarding:
     back: "Voltar"
     finished: "Tudo pronto! Boas-vindas ao azulzin."
+    skip_to_app: "Pular e ir para o app"
+    skip_hint: "Sua família já configurou contas — você pode adicionar as suas depois."
     steps:
       profile: "Perfil"
       accounts: "Contas"
@@ -167,6 +169,9 @@ pt-BR:
       country_code: "Código do país"
       phone_placeholder: "(11) 91234-5678"
       phone_hint: "Usaremos este número para avisos pelo WhatsApp."
+      account_name: "Nome da conta compartilhada"
+      account_name_placeholder: "Ex.: Família Bonfante"
+      account_name_hint: "É como sua família enxerga a conta. Você pode mudar depois nas configurações."
       submit: "Continuar"
     accounts:
       meta_title: "Suas contas"
