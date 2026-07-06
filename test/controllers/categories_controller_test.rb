@@ -26,14 +26,15 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, @user.account.categories.where("name ILIKE 'mercado'").count
   end
 
-  test "deleting a category nullifies its movements, never destroys them" do
+  test "deleting a category soft-deletes it; movements keep their category_id (name + suffix)" do
     cat  = @user.account.categories.create!(name: "Mercado")
     acct = @user.account.bank_accounts.create!(institution: Institution.find_by(code: "260"))
     txn  = @user.account.transactions.create!(amount_cents: 100, occurred_on: Date.current, status: "posted",
                                       direction: "expense", category: cat, bank_account: acct)
     delete category_url(cat), as: :turbo_stream
-    assert_nil txn.reload.category_id
-    assert Transaction.exists?(txn.id)
+    assert cat.reload.soft_deleted?
+    assert_equal cat.id, txn.reload.category_id, "soft delete cascades to nothing — the link is kept"
+    assert_not @user.account.categories.kept.exists?(cat.id), "gone from the kept list"
   end
 
   test "restore re-seeds the 12 locale defaults, idempotently" do

@@ -48,7 +48,7 @@ class CreditCardsController < ApplicationController
 
   def destroy
     @credit_card = Current.account.credit_cards.kept.find(params[:id])
-    @credit_card.destroy
+    @credit_card.soft_delete!(by: Current.user)   # children keep their FKs (better history than nullify)
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to after_change_path, notice: t(".removed") }

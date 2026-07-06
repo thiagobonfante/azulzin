@@ -80,6 +80,12 @@ module TransactionsHelper
   # Today's calendar month in the app timezone — the reference for month mode in views.
   def hub_today = Date.current.in_time_zone("America/Sao_Paulo").to_date
 
+  # The one UI trace of a soft delete (doc 05 §2.8): a referenced-but-deleted parent
+  # (category / instrument) renders its name with " (excluído)" appended. nil for kept records.
+  def deleted_suffix(record)
+    " #{t('shared.deleted_suffix')}" if record.respond_to?(:soft_deleted?) && record.soft_deleted?
+  end
+
   private
     # One coloured slice of the allocation bar (colours are validated hexes / a theme var).
     def flow_segment(seg, base)

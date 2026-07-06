@@ -53,16 +53,20 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, c.payments.count
   end
 
-  test "destroy hard-deletes with no payments, archives when payments exist" do
+  test "destroy soft-deletes unconditionally (payment history preserved, never archived)" do
     c = @user.account.commitments.create!(bank_account: @account, name: "x", kind: "fixed", amount_cents: 100, schedule_day: 5, starts_on: Date.current)
     delete commitment_url(c)
-    assert_not Commitment.exists?(c.id)
+    assert c.reload.soft_deleted?
+    assert_not @user.account.commitments.kept.exists?(c.id)
 
+    # With payments the old code archived instead of destroying; now it soft-deletes and the
+    # posted payment stays in the ledger. archived_at is untouched (a separate business state).
     c2 = @user.account.commitments.create!(bank_account: @account, name: "y", kind: "fixed", amount_cents: 100, schedule_day: 5, starts_on: Date.current)
     Commitments::MarkPaid.call(c2, Date.current.beginning_of_month)
     delete commitment_url(c2)
-    assert Commitment.exists?(c2.id)
-    assert c2.reload.archived?
+    assert c2.reload.soft_deleted?
+    assert_not c2.archived?
+    assert_equal 1, c2.payments.posted.kept.count, "the payment survives in the ledger"
   end
 
   test "bill-constancy: a card subscription retroactively links its charge; the bill stays constant" do

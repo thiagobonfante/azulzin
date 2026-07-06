@@ -73,11 +73,13 @@ class BankAccountsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Alheia", account.reload.nickname
   end
 
-  test "destroy removes the account" do
+  test "destroy soft-deletes the account (leaves the kept list, row survives)" do
     account = @user.account.bank_accounts.create!(institution: @nubank)
-    assert_difference -> { @user.account.bank_accounts.count }, -1 do
+    assert_difference -> { @user.account.bank_accounts.kept.count }, -1 do
       delete bank_account_url(account), as: :turbo_stream
     end
+    assert account.reload.soft_deleted?
+    assert BankAccount.exists?(account.id)
   end
 
   test "cannot destroy another user's account" do

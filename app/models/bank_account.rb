@@ -22,6 +22,16 @@ class BankAccount < ApplicationRecord
   # signed posted rows created after the anchor (see MonthSummary §7.1).
   before_save :stamp_balance_anchor, if: :will_save_change_to_balance_cents?
 
+  # Mirrors the hard-destroy restrict_with_error on incomes: an active income needs its deposit
+  # account, so refuse the soft delete while one is kept (doc 05 §2.2).
+  def soft_delete!(by: Current.user)
+    if incomes.kept.exists?
+      errors.add(:base, :has_kept_incomes)
+      return false
+    end
+    super
+  end
+
   # What to show as the account's title — a user nickname if given, else the bank name.
   def display_name = nickname.presence || institution.display_name
 

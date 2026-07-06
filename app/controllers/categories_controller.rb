@@ -39,7 +39,7 @@ class CategoriesController < ApplicationController
 
   def destroy
     @category = Current.account.categories.kept.find(params[:id])
-    @category.destroy # nullifies linked movements; never destroys them
+    @category.soft_delete!(by: Current.user)   # movements keep category_id; ledger renders name + suffix
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to categories_path, notice: t(".removed") }

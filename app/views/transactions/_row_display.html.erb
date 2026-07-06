@@ -20,7 +20,8 @@
 <div class="min-w-0 flex-1">
   <p class="truncate text-sm">
     <% if transaction.transfer? %>
-      <%= transaction.bank_account&.display_name %> → <%= transaction.transfer_to_bank_account&.display_name %>
+      <%= transaction.bank_account&.display_name %><%= deleted_suffix(transaction.bank_account) %> →
+      <%= transaction.transfer_to_bank_account&.display_name %><%= deleted_suffix(transaction.transfer_to_bank_account) %>
     <% else %>
       <%= transaction.merchant.presence || transaction.description.presence || transaction.commitment&.name ||
             t("transactions.hero.#{transaction.income? ? "incomes" : "expenses"}") %>
@@ -30,7 +31,7 @@
     <% end %>
   </p>
   <% if transaction.expense? && transaction.category %>
-    <p class="truncate text-xs text-base-content/50"><%= transaction.category.name %></p>
+    <p class="truncate text-xs text-base-content/50"><%= transaction.category.name %><%= deleted_suffix(transaction.category) %></p>
   <% end %>
 </div>
 <% if transaction.instrument %>

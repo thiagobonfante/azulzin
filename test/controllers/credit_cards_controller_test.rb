@@ -45,11 +45,12 @@ class CreditCardsControllerTest < ActionDispatch::IntegrationTest
     assert card.virtual?
   end
 
-  test "destroy removes the card" do
+  test "destroy soft-deletes the card (leaves the kept list, row survives)" do
     card = @user.account.credit_cards.create!(institution: @itau)
-    assert_difference -> { @user.account.credit_cards.count }, -1 do
+    assert_difference -> { @user.account.credit_cards.kept.count }, -1 do
       delete credit_card_url(card), as: :turbo_stream
     end
+    assert card.reload.soft_deleted?
   end
 
   # ── Phase 1: billing config (R2) ─────────────────────────────────────────

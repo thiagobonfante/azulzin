@@ -71,15 +71,12 @@ class CommitmentsController < ApplicationController
     redirect_to commitment_path(@commitment), notice: t(".paid")
   end
 
-  # Hard delete only when no posted payments exist (don't orphan visible history); otherwise
-  # archive — history kept, occurrences stop.
+  # Unconditional soft delete (doc 05 §2.6): the old archive-if-paid branch existed only because
+  # hard destroy nullified payments' history; soft delete preserves it. archived_at stays a
+  # business state set by Settle / future archive affordances.
   def destroy
     @commitment = Current.account.commitments.kept.find(params[:id])
-    if @commitment.payments.posted.exists?
-      @commitment.update!(archived_at: Time.current)
-    else
-      @commitment.destroy
-    end
+    @commitment.soft_delete!(by: Current.user)
     redirect_to commitments_path, notice: t(".removed")
   end
 

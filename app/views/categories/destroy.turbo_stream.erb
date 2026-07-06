@@ -1,4 +1,4 @@
 <%= turbo_stream.remove dom_id(@category) %>
-<% if Current.account.categories.none? %>
+<% if Current.account.categories.kept.none? %>
   <%= turbo_stream.append "categories_list", partial: "categories/empty" %>
 <% end %>

@@ -1,7 +1,7 @@
 <%# locals: transaction, kind — inline add form; kind tabs are server-rendered links (no JS).
     Expense/income share one form whose entry-instrument controller powers the avatar picker
     (and, for expenses, the payment-method segmented control that auto-selects a card/account). %>
-<% multi_account = Current.account.bank_accounts.count >= 2 %>
+<% multi_account = Current.account.bank_accounts.kept.count >= 2 %>
 <%= turbo_frame_tag "new_entry" do %>
   <div class="mb-3 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
     <div class="mb-3 flex gap-1">

@@ -105,12 +105,13 @@ class IncomesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "alheia", inc.reload.name
   end
 
-  test "destroy removes the income" do
+  test "destroy soft-deletes the income (leaves the kept list, row survives)" do
     inc = @user.account.incomes.create!(bank_account: @account, name: "salário", amount_cents: 450_000,
                                 schedule_kind: "fixed_day", schedule_day: 5)
-    assert_difference -> { @user.account.incomes.count }, -1 do
+    assert_difference -> { @user.account.incomes.kept.count }, -1 do
       delete income_url(inc), as: :turbo_stream
     end
+    assert inc.reload.soft_deleted?
   end
 
   test "receive posts a linked deposit for the month, once" do

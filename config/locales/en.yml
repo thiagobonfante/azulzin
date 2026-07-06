@@ -16,6 +16,7 @@ en:
     not_allowed: "This account isn't allowed to access azulzin."
     confirm: "Confirm"
     cancel: "Cancel"
+    deleted_suffix: "(deleted)"
   omniauth:
     signed_in: "Signed in with Google."
     could_not_sign_in: "We couldn't sign you in. Add an email to your account and try again."
@@ -104,6 +105,10 @@ en:
           attributes:
             email_address:
               not_allowed: "isn't allowed to sign up."
+        bank_account:
+          attributes:
+            base:
+              has_kept_incomes: "has active incomes — move them to another account before deleting."
         commitment:
           one_instrument: "must have exactly one account or card."
         transaction:

@@ -16,6 +16,7 @@ pt-BR:
     or: "ou"
     not_allowed: "Esta conta não está autorizada a acessar o azulzin."
     confirm: "Confirmar"
+    deleted_suffix: "(excluído)"
     cancel: "Cancelar"
   omniauth:
     signed_in: "Você entrou com o Google."
@@ -105,6 +106,10 @@ pt-BR:
           attributes:
             email_address:
               not_allowed: "não está autorizado a criar uma conta."
+        bank_account:
+          attributes:
+            base:
+              has_kept_incomes: "tem entradas ativas — mova-as para outra conta antes de excluir."
         commitment:
           one_instrument: "deve ter exatamente uma conta ou um cartão."
         transaction:

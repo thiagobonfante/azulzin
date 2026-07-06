@@ -39,7 +39,7 @@ class IncomesController < ApplicationController
 
   def destroy
     @income = Current.account.incomes.kept.find(params[:id])
-    @income.destroy
+    @income.soft_delete!(by: Current.user)   # receipts keep income_id
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to after_change_path, notice: t(".removed") }

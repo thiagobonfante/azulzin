@@ -94,9 +94,10 @@ class TransactionsController < ApplicationController
     end
   end
 
-  # Reverse a posted expense / discard a pending one → rejected (excluded from spend). Pure record.
+  # Soft delete (doc 05 §2.6): removed from all lists, restorable via console. reverse!/rejected
+  # stays a WhatsApp-pipeline status (undo/supersede), not the in-app delete path.
   def destroy
-    @transaction.reverse!
+    @transaction.soft_delete!(by: Current.user)
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to transactions_path(month: params[:month]), notice: t(".removed") }

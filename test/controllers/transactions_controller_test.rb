@@ -94,10 +94,11 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Padaria", txn.merchant
   end
 
-  test "destroy reverses a posted transaction (reverse!)" do
+  test "destroy soft-deletes a posted transaction" do
     txn = pending_txn(status: "posted", bank_account: @account)
     delete transaction_url(txn)
-    assert txn.reload.rejected?
+    assert txn.reload.soft_deleted?
+    assert txn.posted?, "status is untouched — reverse!/rejected stays a WhatsApp-pipeline concern"
   end
 
   test "cannot touch another user's transaction" do
@@ -170,16 +171,16 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "hero"                                          # figures re-rendered
   end
 
-  test "reversing a posted row never writes balance_cents / current_bill_cents (pure record)" do
+  test "deleting a posted row never writes balance_cents / current_bill_cents (pure record)" do
     @account.update!(balance_cents: 100_000)
     @card.update!(current_bill_cents: 50_000)
     txn = @user.account.transactions.create!(amount_cents: 5_000, occurred_on: Date.current,
                                      status: "posted", direction: "expense", bank_account: @account)
     delete transaction_url(txn), params: { from: "ledger", month: Date.current.strftime("%Y-%m") }, as: :turbo_stream
-    assert txn.reload.rejected?
+    assert txn.reload.soft_deleted?
     assert_equal 100_000, @account.reload.balance_cents
     assert_equal 50_000, @card.reload.current_bill_cents
-    assert_equal 0, @user.account.transactions.spend.count
+    assert_equal 0, @user.account.transactions.spend.count   # spend is .kept — the deleted row drops out
   end
 
   test "confirming a parked installment stub fans out the plan and supersedes the stub" do
