@@ -4,7 +4,7 @@
 <div class="form-control" data-controller="institution-select">
   <%= form.label :bank_account_id, label, class: "mb-1 block text-sm font-medium" %>
 
-  <%# Real value, set by the picker (or the noscript fallback below) %>
+  <%# Real value, set by the picker. No <noscript> fallback — see shared/_institution_select. %>
   <%= form.hidden_field :bank_account_id, data: { institution_select_target: "input" } %>
 
   <button type="button"
@@ -42,8 +42,4 @@
     </div>
   </div>
 
-  <noscript>
-    <%= form.collection_select :bank_account_id, accounts, :id, :display_name,
-          { include_blank: placeholder }, class: "select select-bordered w-full" %>
-  </noscript>
 </div>

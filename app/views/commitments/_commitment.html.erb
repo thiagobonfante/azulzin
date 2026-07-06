@@ -1,24 +1,27 @@
-<%# locals: commitment %>
+<%# locals: commitment — compact two-line row: name + a single meta line, amount on the right. %>
 <%= link_to commitment_path(commitment), id: dom_id(commitment),
-      class: "block rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm hover:bg-base-200/40" do %>
+      class: "block rounded-box border border-base-300/70 bg-base-100 px-3 py-2 shadow-sm hover:bg-base-200/40" do %>
   <div class="flex items-center gap-3">
     <% if commitment.instrument %><%= institution_avatar(commitment.instrument.institution, size: 28) %><% end %>
     <div class="min-w-0 flex-1">
       <p class="truncate text-sm font-semibold"><%= commitment.name %></p>
       <p class="truncate text-xs text-base-content/50">
-        <% phrase = commitment_schedule_phrase(commitment) %>
-        <% if phrase.present? %><%= phrase %> · <% end %>
-        <% if commitment.installment? %><%= commitment.installments_count %>× <%= brl(commitment.amount_cents) %><% else %><%= brl(commitment.amount_cents) %><% end %>
-        · <%= commitment.card? ? t("commitments.instrument.credit") : t("commitments.instrument.debit") %>
+        <% parts = [ commitment_schedule_phrase(commitment).presence,
+                     commitment.instrument&.display_name,
+                     commitment.card? ? t("commitments.instrument.credit") : t("commitments.instrument.debit") ] %>
+        <% parts << t("commitments.row.progress", paid: commitment.paid_count, count: commitment.installments_count) if commitment.installment? %>
+        <% if (next_month = commitment.next_charge_month) %>
+          <% parts << t("commitments.row.next_due", date: l(commitment.due_on(next_month), format: :short)) %>
+        <% end %>
+        <%= safe_join(parts.compact, " · ") %>
       </p>
+    </div>
+    <div class="shrink-0 text-right">
+      <p class="font-display text-sm font-bold tabular-nums"><%= brl(commitment.amount_cents) %></p>
       <% if commitment.installment? %>
-        <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-base-200">
+        <div class="ml-auto mt-1 h-1 w-16 overflow-hidden rounded-full bg-base-200">
           <div class="h-full rounded-full bg-primary" style="width: <%= (commitment.paid_count.fdiv(commitment.installments_count) * 100).round %>%"></div>
         </div>
-        <p class="mt-0.5 text-xs text-base-content/50"><%= t("commitments.row.progress", paid: commitment.paid_count, count: commitment.installments_count) %></p>
-      <% end %>
-      <% if (next_month = commitment.next_charge_month) %>
-        <p class="mt-0.5 text-xs text-base-content/40"><%= t("commitments.row.next_due", date: l(commitment.due_on(next_month), format: :short)) %></p>
       <% end %>
     </div>
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>

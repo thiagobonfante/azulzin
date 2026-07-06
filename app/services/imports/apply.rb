@@ -227,10 +227,13 @@ module Imports
       nil
     end
 
+    # Century guard mirrors DocumentExtractor#full_date: proposals stored before the fix (or a
+    # replay of them) may still carry year-00xx ISO strings.
     def parse_date(value)
       return value if value.is_a?(Date)
 
-      Date.iso8601(value.to_s)
+      date = Date.iso8601(value.to_s)
+      date.year < 100 ? date.next_year(2000) : date
     rescue ArgumentError
       nil
     end

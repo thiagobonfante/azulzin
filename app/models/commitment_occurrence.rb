@@ -65,6 +65,7 @@ class CommitmentOccurrence
 
   def status
     return :paid if paid?
-    due_on <= Date.current ? :due : :upcoming
+    return :upcoming if due_on > Date.current
+    due_on == Date.current ? :due_today : :overdue
   end
 end

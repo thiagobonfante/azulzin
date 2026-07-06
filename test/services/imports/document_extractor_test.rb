@@ -29,6 +29,21 @@ class Imports::DocumentExtractorTest < ActiveSupport::TestCase
     assert_equal 2, extraction["rows"].size # not split into 3 lines
   end
 
+  test "fatura with two-digit years ('03/07/26') lands in 20xx, never year 0026" do
+    two_digit = FATURA_RESPONSE.deep_dup
+    two_digit["period_start_raw"] = "03/06/26"
+    two_digit["period_end_raw"]   = "03/07/26"
+    two_digit["card"]["due_date_raw"] = "10/07/26"
+
+    extraction = Imports::DocumentExtractor.call({ "pages" => [ "fatura" ] }, client: FakeClient.new(two_digit))
+
+    assert_equal "2026-07-03", extraction["meta"]["period_end"]
+    assert_equal 10, extraction["meta"]["card"]["bill_due_day"]
+    assert_equal 7, extraction["meta"]["card"]["closing_offset_days"]
+    installment = extraction["rows"].find { it["installment"] }
+    assert_equal "2025-11-15", installment["date"] # backward inference still anchored right
+  end
+
   test "extrato: closing balance = the newest running Saldo, identity kept verbatim" do
     extraction = Imports::DocumentExtractor.call({ "pages" => [ "extrato" ] }, client: FakeClient.new(EXTRATO_RESPONSE))
     meta = extraction["meta"]

@@ -292,8 +292,11 @@ module Imports
       nil
     end
 
+    # Century guard mirrors DocumentExtractor#full_date — a year-00xx period_end would anchor
+    # every derived installment plan 2000 years in the past.
     def parse_date(iso)
-      Date.iso8601(iso.to_s)
+      date = Date.iso8601(iso.to_s)
+      date.year < 100 ? date.next_year(2000) : date
     rescue ArgumentError, Date::Error
       nil
     end

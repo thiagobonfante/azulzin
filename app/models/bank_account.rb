@@ -27,6 +27,19 @@ class BankAccount < ApplicationRecord
 
   def balance_informed? = balance_cents.present?
 
+  # §7.1 derived balance ("now"): the anchored balance plus signed posted rows created after
+  # the anchor. THE balance every screen shows — the stored balance_cents alone goes stale as
+  # soon as a transaction posts. nil when the balance was never informed.
+  def derived_balance_cents
+    return nil unless balance_informed?
+    since = balance_anchored_at || updated_at
+    own = transactions.posted.where("created_at > ?", since)
+    balance_cents +
+      own.where(direction: "income").sum(:amount_cents) -
+      own.where(direction: %w[expense transfer]).sum(:amount_cents) +
+      incoming_transfers.posted.where("created_at > ?", since).sum(:amount_cents)
+  end
+
   private
     def stamp_balance_anchor
       self.balance_anchored_at = Time.current

@@ -1,5 +1,7 @@
 <%# locals: accounts, cards, selected_token, placeholder — brand-avatar account/card picker.
-    Binds to the surrounding form's entry-instrument controller (payment method drives it). %>
+    Binds to the surrounding form's entry-instrument controller (payment method drives it).
+    No <noscript> fallback — inside Turbo-fetched frames it becomes a live duplicate field
+    that blanks the picked value (see shared/_institution_select). %>
 <%= hidden_field_tag :instrument, selected_token, data: { entry_instrument_target: "input" } %>
 
 <button type="button" data-entry-instrument-target="button" data-action="entry-instrument#toggle"
@@ -40,11 +42,3 @@
     </ul>
   </div>
 </div>
-
-<noscript>
-  <% groups = [] %>
-  <% groups << [ t("app.nav.accounts"), accounts.map { |a| [ a.display_name, "bank_account-#{a.id}" ] } ] if accounts.any? %>
-  <% groups << [ t("app.nav.cards"), cards.map { |c| [ c.display_name, "credit_card-#{c.id}" ] } ] if cards.any? %>
-  <%= select_tag :instrument, grouped_options_for_select(groups, selected_token),
-        include_blank: placeholder, class: "select select-bordered select-sm w-full" %>
-</noscript>

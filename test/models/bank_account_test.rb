@@ -31,4 +31,29 @@ class BankAccountTest < ActiveSupport::TestCase
     account.nickname = "Salário"
     assert_equal "Salário", account.display_name
   end
+
+  test "derived balance adds signed posted rows created after the anchor" do
+    account = BankAccount.create!(user: @user, institution: @inst, balance_cents: 100_000)
+    other   = BankAccount.create!(user: @user, institution: @inst, balance_cents: 0)
+    post = ->(attrs) { @user.transactions.create!({ status: "posted", occurred_on: Date.current }.merge(attrs)) }
+    post.call(direction: "expense",  bank_account: account, amount_cents: 3_000)
+    post.call(direction: "income",   bank_account: account, amount_cents: 5_000)
+    post.call(direction: "transfer", bank_account: account, transfer_to_bank_account: other, amount_cents: 2_000)
+    post.call(direction: "transfer", bank_account: other, transfer_to_bank_account: account, amount_cents: 1_500)
+    assert_equal 100_000 - 3_000 + 5_000 - 2_000 + 1_500, account.derived_balance_cents
+    assert_equal 0 + 2_000 - 1_500, other.derived_balance_cents
+  end
+
+  test "derived balance is nil when the balance was never informed" do
+    account = BankAccount.create!(user: @user, institution: @inst)
+    assert_nil account.derived_balance_cents
+  end
+
+  test "re-anchoring the balance absorbs rows recorded before the edit" do
+    account = BankAccount.create!(user: @user, institution: @inst, balance_cents: 100_000)
+    @user.transactions.create!(status: "posted", occurred_on: Date.current, direction: "expense",
+                               bank_account: account, amount_cents: 3_000)
+    account.update!(balance_cents: 90_000) # stamps a fresh anchor — the expense is now inside it
+    assert_equal 90_000, account.derived_balance_cents
+  end
 end

@@ -1,6 +1,15 @@
 <%# locals: occurrence, context (:hub | :show), batch_form (optional — multi-select parcels) %>
 <% c = occurrence.commitment %>
+<% instrument = c.instrument %>
 <% batch_form = local_assigns[:batch_form] %>
+<%# Badge: real payment → Paga (debit) / Lançada (card, it's on the fatura); no payment but
+    presumed (pre-app history) → explicit, so it never reads as a recorded transaction. An
+    unpaid card row carries no badge — Ajustar is the affordance; the charge just rides the bill. %>
+<% badge = if occurrence.paid?
+     occurrence.payment ? (occurrence.card? ? :posted : :paid) : :presumed_paid
+   elsif !occurrence.card?
+     occurrence.status
+   end %>
 <div id="<%= occurrence_dom_id(occurrence) %>" class="flex items-center gap-2 py-2">
   <% if batch_form && !occurrence.card? && !occurrence.paid? %>
     <input type="checkbox" name="months[]" value="<%= occurrence.month.strftime("%Y-%m") %>"
@@ -8,38 +17,23 @@
            data-cents="<%= c.amount_cents %>" class="checkbox checkbox-primary checkbox-xs"
            aria-label="<%= t("commitments.show.batch_select") %>">
   <% end %>
+  <% if instrument %><%= institution_avatar(instrument.institution, size: 24) %><% end %>
   <div class="min-w-0 flex-1">
     <p class="truncate text-sm">
       <%= link_to c.name, commitment_path(c), class: "hover:underline" %>
       <% if c.installment? %><span class="text-xs text-base-content/50"><%= occurrence.installment_no %>/<%= c.installments_count %></span><% end %>
     </p>
-    <p class="text-xs <%= occurrence.status == :due ? "text-error" : "text-base-content/50" %>">
-      <%= l(occurrence.due_on, format: :short) %><% if c.category %> · <%= c.category.name %><% end %>
+    <p class="truncate text-xs <%= badge == :overdue ? "text-error" : "text-base-content/50" %>">
+      <%= l(occurrence.due_on, format: :short) %><% if instrument %> · <%= instrument.display_name %><% end %><% if c.category %> · <%= c.category.name %><% end %><% if !occurrence.card? && occurrence.payment %> · <%= t("commitments.occurrences.paid_on", date: l(occurrence.payment.occurred_on, format: :short)) %><% end %>
     </p>
   </div>
-  <span class="badge <%= occurrence_status_badge(occurrence.status) %> badge-xs"><%= t("commitments.occurrences.statuses.#{occurrence.status}") %></span>
+  <% if badge %>
+    <span class="badge <%= occurrence_status_badge(badge) %> badge-xs"><%= t("commitments.occurrences.statuses.#{badge}") %></span>
+  <% end %>
   <span class="tabular-nums text-sm"><%= brl(occurrence.payment&.amount_cents || c.amount_cents) %></span>
-  <% if occurrence.card? %>
-    <span class="text-xs text-base-content/50"><%= t("commitments.occurrences.on_bill") %></span>
-  <% elsif !occurrence.paid? %>
-    <%# Pagar opens a small form: paying early/late may change the value (discount / interest). %>
-    <details class="dropdown dropdown-end" data-controller="dropdown">
-      <summary class="btn btn-primary btn-xs"><%= t("commitments.occurrences.mark_paid") %></summary>
-      <div class="dropdown-content z-40 mt-1 w-64 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-lg">
-        <%= form_with url: pay_commitment_occurrence_path(occurrence, month: params[:month], from: context),
-              method: :patch, class: "flex flex-col gap-2" do %>
-          <label class="text-xs text-base-content/60" for="<%= occurrence_dom_id(occurrence) %>_amount"><%= t("commitments.occurrences.pay_amount") %></label>
-          <label class="input input-bordered input-sm flex items-center gap-1">
-            <span class="text-base-content/50"><%= t("money.symbol") %></span>
-            <%# Prefill mirrors MoneyColumns' *_reais style ("1234,56"). %>
-            <%= text_field_tag :amount_reais, format("%.2f", c.amount_cents.fdiv(100)).tr(".", ","),
-                  inputmode: "decimal", id: "#{occurrence_dom_id(occurrence)}_amount", class: "grow" %>
-          </label>
-          <p class="text-[11px] leading-snug text-base-content/50"><%= t("commitments.occurrences.pay_hint") %></p>
-          <%= submit_tag t("commitments.occurrences.confirm_pay"), class: "btn btn-primary btn-sm" %>
-        <% end %>
-      </div>
-    </details>
+  <% if !occurrence.paid? %>
+    <%= render "commitments/occurrence_form", occurrence: occurrence, context: context,
+          mode: (occurrence.card? ? :adjust : :pay) %>
   <% elsif context == :show && occurrence.payment %>
     <span class="tooltip tooltip-left" data-tip="<%= t("commitments.occurrences.unmark_paid") %>">
       <%= button_to unpay_commitment_occurrence_path(occurrence), method: :patch,

@@ -68,9 +68,14 @@
       </span>
     </div>
   </div>
-  <p class="text-sm text-base-content/60">
-    <% phrase = commitment_schedule_phrase(@commitment) %><% if phrase.present? %><%= phrase %> · <% end %>
-    <% if @commitment.installment? %><%= @commitment.installments_count %>× <%= brl(@commitment.amount_cents) %><% else %><%= brl(@commitment.amount_cents) %><% end %>
+  <p class="flex flex-wrap items-center gap-x-1.5 text-sm text-base-content/60">
+    <% if (instrument = @commitment.instrument) %>
+      <%= institution_avatar(instrument.institution, size: 20) %>
+      <span class="font-medium text-base-content/80"><%= instrument.display_name %></span>
+      <span>·</span>
+    <% end %>
+    <% phrase = commitment_schedule_phrase(@commitment) %><% if phrase.present? %><span><%= phrase %></span><span>·</span><% end %>
+    <span><% if @commitment.installment? %><%= @commitment.installments_count %>× <%= brl(@commitment.amount_cents) %><% else %><%= brl(@commitment.amount_cents) %><% end %></span>
   </p>
   <% if @commitment.installment? %>
     <div class="mt-2 h-2 max-w-sm overflow-hidden rounded-full bg-base-200">

@@ -8,7 +8,9 @@
     <% if show_label %>
       <%= form.label :institution_id, t("institutions.label"), class: "mb-1 block text-sm font-medium" %>
     <% end %>
-    <%# Real value, set by the picker (or the noscript fallback below) %>
+    <%# Real value, set by the picker. NO <noscript> fallback here: Turbo parses frame/stream
+        responses with DOMParser (scripting off), which turns noscript content into a LIVE
+        duplicate field that overrides the picked value — the last param wins server-side. %>
     <%= form.hidden_field :institution_id, data: { institution_select_target: "input" } %>
   <% else %>
     <%= hidden_field_tag name, selected, data: { institution_select_target: "input" } %>
@@ -50,17 +52,4 @@
     </div>
   </div>
 
-  <noscript>
-    <% if local_assigns[:form] %>
-      <%= form.select :institution_id,
-            institutions.map { |i| [ i.display_name, i.id ] },
-            { include_blank: t("institutions.placeholder") },
-            class: "select select-bordered w-full" %>
-    <% else %>
-      <%= select_tag name,
-            options_from_collection_for_select(institutions, value_method, :display_name, selected),
-            include_blank: t("institutions.placeholder"),
-            class: "select select-bordered w-full" %>
-    <% end %>
-  </noscript>
 </div>

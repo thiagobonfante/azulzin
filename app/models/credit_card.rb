@@ -54,12 +54,23 @@ class CreditCard < ApplicationRecord
   end
 
   # Committed-not-yet-paid usage (02 §6): a 10× purchase holds the FULL amount against the
-  # limit immediately. Σ posted expenses on the open bill and later − same-range refunds.
+  # limit immediately. Σ posted expenses on the open bill and later − same-range refunds,
+  # PLUS commitment occurrences with no posted charge yet (see #reserved_commitment_cents) —
+  # an imported mid-plan parcelamento or an upcoming assinatura holds limit before it posts.
   # Unconfigured cards fall back to the manual current_bill snapshot.
   def used_cents
     return current_bill_cents.to_i unless billing_configured?
     scope = transactions.posted.where("billing_month >= ?", current_open_bill_month)
-    scope.where(direction: "expense").sum(:amount_cents) - scope.where(direction: "income").sum(:amount_cents)
+    scope.where(direction: "expense").sum(:amount_cents) -
+      scope.where(direction: "income").sum(:amount_cents) +
+      reserved_commitment_cents
+  end
+
+  # The open (current) bill figure the dashboard shows: composed (posted + unlinked
+  # commitment projection) when billing is configured, else the manual snapshot.
+  def open_bill_cents
+    return current_bill_cents.to_i unless billing_configured?
+    bill_cents(current_open_bill_month)
   end
 
   # Available credit = limit − committed usage. nil when the limit itself is unknown/zero.
@@ -93,5 +104,27 @@ class CreditCard < ApplicationRecord
     # ship card commitments (Phase 4); the composition is defined here so bill_cents is stable.
     def unlinked_card_commitment_cents(month)
       commitments.active.select { |c| c.active_in?(month) && !c.paid_in?(month) }.sum(&:amount_cents)
+    end
+
+    # Committed-but-unposted usage from the open bill forward: every remaining unpaid parcel
+    # of an installment plan (the whole remainder holds limit, like the fan-out would), and
+    # the open bill's occurrence of a subscription/fixed (reserved until the charge posts).
+    # Fan-out parcels exist as posted linked payments, so their months read paid — never
+    # counted twice.
+    def reserved_commitment_cents
+      from = current_open_bill_month
+      commitments.active.sum { |c| unposted_occurrence_months(c, from).size * c.amount_cents }
+    end
+
+    def unposted_occurrence_months(commitment, from)
+      to = commitment.installment? ? commitment.last_month&.beginning_of_month : from
+      return [] if to.nil? || to < from
+      paid = commitment.payments.posted.where(billing_month: from..).pluck(:billing_month).to_set
+      months, m = [], from
+      while m <= to
+        months << m if commitment.active_in?(m) && !paid.include?(m)
+        m = m >> 1
+      end
+      months
     end
 end

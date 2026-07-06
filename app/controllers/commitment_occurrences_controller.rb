@@ -1,6 +1,7 @@
 # Pay / unpay a computed commitment occurrence (R10). The synthetic id ("42-2026-08") is parsed
-# and authorized through the user's own commitments. Card-instrument occurrences settle on the
-# bill — the pay route is rejected server-side (defense beyond the hidden button). 05 §5.5.
+# and authorized through the user's own commitments. For a card occurrence "pay" means
+# "register the charge on this month's fatura" (Ajustar) — a variable subscription (USD, promo)
+# gets its real value; the posted linked row replaces the projection in the bill AND the limit.
 class CommitmentOccurrencesController < ApplicationController
   layout "app"
   before_action :require_onboarding
@@ -8,7 +9,6 @@ class CommitmentOccurrencesController < ApplicationController
 
   def pay
     @occurrence = CommitmentOccurrence.find_for!(Current.user, params[:id])
-    return head :unprocessable_entity if @occurrence.card?
     payment = Commitments::MarkPaid.call(@occurrence.commitment, @occurrence.month, amount: paid_amount_cents)
     @occurrence = CommitmentOccurrence.new(@occurrence.commitment, @occurrence.month, payment: payment)
     respond_to do |format|

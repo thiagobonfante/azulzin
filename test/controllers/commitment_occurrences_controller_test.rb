@@ -37,10 +37,16 @@ class CommitmentOccurrencesControllerTest < ActionDispatch::IntegrationTest
     assert_match "movements_ledger", response.body
   end
 
-  test "paying a card occurrence is rejected server-side (settles on the bill)" do
-    patch pay_commitment_occurrence_url(occ(@sub, @month)), params: { from: "show" }, as: :turbo_stream
-    assert_response :unprocessable_entity
-    assert_equal 0, @sub.payments.posted.count
+  test "adjusting a card occurrence posts the real charge on that month's fatura" do
+    patch pay_commitment_occurrence_url(occ(@sub, @month)),
+          params: { from: "show", amount_reais: "107,67" }, as: :turbo_stream
+    assert_response :success
+    charge = @sub.payments.posted.last
+    assert_equal 10_767, charge.amount_cents
+    assert_equal @card.id, charge.credit_card_id
+    assert_equal @month, charge.billing_month
+    # The posted linked charge replaces the projection — the bill shows the adjusted value once.
+    assert_equal 10_767, @card.bill_cents(@month)
   end
 
   test "unpay reverses the payment" do

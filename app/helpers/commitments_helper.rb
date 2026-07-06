@@ -8,6 +8,8 @@ module CommitmentsHelper
   end
 
   def occurrence_status_badge(status)
-    { paid: "badge-success", due: "badge-warning", upcoming: "badge-ghost" }.fetch(status, "badge-ghost")
+    { paid: "badge-success", posted: "badge-success", presumed_paid: "badge-ghost",
+      overdue: "badge-error", due_today: "badge-warning", upcoming: "badge-ghost" }
+      .fetch(status, "badge-ghost")
   end
 end

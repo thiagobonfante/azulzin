@@ -86,6 +86,7 @@ en:
         commitment:
           one_instrument: "must have exactly one account or card."
         transaction:
+          instrument_required: "Pick the account or card for this entry."
           attributes:
             transfer_to_bank_account:
               same_account: "can't be the same as the source account."
@@ -309,11 +310,18 @@ en:
       pay_amount: "Amount paid"
       pay_hint: "Paying early or late? Adjust the amount if there's a discount or interest."
       confirm_pay: "Confirm payment"
-      on_bill: "On the card bill"
+      adjust: "Adjust"
+      adjust_amount: "Amount on the bill"
+      adjust_hint: "Dollar-priced or variable subscription? Enter the amount on this month's bill."
+      confirm_adjust: "Save amount"
+      paid_on: "paid on %{date}"
       paid: "Payment recorded."
       statuses:
         paid: "Paid"
-        due: "Due"
+        posted: "Posted"
+        presumed_paid: "Paid (assumed)"
+        overdue: "Overdue"
+        due_today: "Due today"
         upcoming: "Upcoming"
     form:
       name: "Name"
@@ -471,6 +479,13 @@ en:
       setup_billing: "Set closing and due day"
     due:
       title: "To pay this month"
+      all_paid: "All paid here 🎉"
+      on_card:
+        one: "%{count} charge on card — already on the bill"
+        other: "%{count} charges on card — already on the bill"
+      paid_group:
+        one: "%{count} paid"
+        other: "%{count} paid"
     receivable:
       title: "To receive this month"
       mark_received: "Received"

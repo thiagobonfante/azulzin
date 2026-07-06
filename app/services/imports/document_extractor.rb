@@ -214,10 +214,13 @@ module Imports
       offset.between?(1, 28) ? offset : 7
     end
 
+    # Faturas print two-digit years ("18/06/26") and %Y accepts them as year 0026 — a plan
+    # anchored 2000 years in the past reads as fully elapsed everywhere. Century-guard here.
     def full_date(raw)
       return nil if raw.blank?
 
-      Date.strptime(raw.to_s.strip, "%d/%m/%Y")
+      date = Date.strptime(raw.to_s.strip, "%d/%m/%Y")
+      date.year < 100 ? date.next_year(2000) : date
     rescue ArgumentError
       nil
     end

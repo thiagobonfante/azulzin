@@ -87,6 +87,7 @@ pt-BR:
         commitment:
           one_instrument: "deve ter exatamente uma conta ou um cartão."
         transaction:
+          instrument_required: "Escolha a conta ou o cartão do lançamento."
           attributes:
             transfer_to_bank_account:
               same_account: "não pode ser a mesma conta de origem."
@@ -310,11 +311,18 @@ pt-BR:
       pay_amount: "Valor pago"
       pay_hint: "Pagando antes ou depois da data? Ajuste o valor se houver desconto ou juros."
       confirm_pay: "Confirmar pagamento"
-      on_bill: "Entra na fatura"
+      adjust: "Ajustar"
+      adjust_amount: "Valor na fatura"
+      adjust_hint: "Assinatura em dólar ou valor variável? Informe o valor que vem na fatura deste mês."
+      confirm_adjust: "Salvar valor"
+      paid_on: "paga em %{date}"
       paid: "Pagamento registrado."
       statuses:
         paid: "Paga"
-        due: "Pendente"
+        posted: "Lançada"
+        presumed_paid: "Paga (presumida)"
+        overdue: "Vencida"
+        due_today: "Vence hoje"
         upcoming: "Prevista"
     form:
       name: "Nome"
@@ -472,6 +480,13 @@ pt-BR:
       setup_billing: "Configurar fechamento e vencimento"
     due:
       title: "A pagar no mês"
+      all_paid: "Tudo pago por aqui 🎉"
+      on_card:
+        one: "%{count} lançamento no cartão — já na fatura"
+        other: "%{count} lançamentos no cartão — já na fatura"
+      paid_group:
+        one: "%{count} paga"
+        other: "%{count} pagas"
     receivable:
       title: "A receber no mês"
       mark_received: "Recebi"

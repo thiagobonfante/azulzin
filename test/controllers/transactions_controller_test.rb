@@ -14,6 +14,38 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     @user.transactions.create!({ amount_cents: 1_323, occurred_on: Date.current, status: "pending_review" }.merge(attrs))
   end
 
+  test "a manual add without an instrument is rejected — never silently parked in the tray" do
+    @user.credit_cards.create!(institution: @inst, nickname: "Segundo") # two cards: no auto-assign
+    assert_no_difference -> { @user.transactions.count } do
+      post transactions_url(kind: "expense"), params: {
+        transaction: { amount_reais: "100,00", merchant: "test", occurred_on: Date.current.to_s,
+                       category_id: "", payment_method: "credito" },
+        instrument: ""
+      }, as: :turbo_stream
+    end
+    assert_response :unprocessable_entity
+    assert_match I18n.t("activerecord.errors.models.transaction.instrument_required"), response.body
+  end
+
+  test "A pagar groups: open debit rows inline, card and paid occurrences fold into details" do
+    month = Date.current.beginning_of_month
+    open_debit = @user.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
+                                           amount_cents: 100_000, schedule_day: 5, starts_on: month)
+    paid_debit = @user.commitments.create!(bank_account: @account, name: "pensão", kind: "fixed",
+                                           amount_cents: 50_000, schedule_day: 5, starts_on: month)
+    Commitments::MarkPaid.call(paid_debit, month)
+    @user.commitments.create!(credit_card: @card, name: "Netflix", kind: "subscription",
+                              amount_cents: 5_500, schedule_kind: "fixed_day", starts_on: month)
+
+    get transactions_url(month: month.strftime("%Y-%m"))
+    assert_response :success
+    assert_select "#a_pagar" do
+      assert_select "details summary", text: /no cartão/
+      assert_select "details summary", text: /paga/
+    end
+    assert_match open_debit.name, response.body
+  end
+
   test "index requires a completed onboarding" do
     @user.update!(onboarded_at: nil)
     get transactions_url

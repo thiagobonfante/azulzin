@@ -1,0 +1,23 @@
+<%# locals: occurrence, context, mode (:pay | :adjust) — the dropdown form behind Pagar/Ajustar.
+    Both post to the same route: a payment for a debit occurrence, the month's real fatura
+    value for a card one (variable subscriptions — dollar, promo — override the base amount). %>
+<% c = occurrence.commitment %>
+<details class="dropdown dropdown-end" data-controller="dropdown">
+  <summary class="btn <%= mode == :pay ? "btn-primary" : "btn-ghost text-primary" %> btn-xs"><%= t("commitments.occurrences.#{mode == :pay ? "mark_paid" : "adjust"}") %></summary>
+  <div class="dropdown-content z-40 mt-1 w-64 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-lg">
+    <%= form_with url: pay_commitment_occurrence_path(occurrence, month: params[:month], from: context),
+          method: :patch, class: "flex flex-col gap-2" do %>
+      <label class="text-xs text-base-content/60" for="<%= occurrence_dom_id(occurrence) %>_amount">
+        <%= t("commitments.occurrences.#{mode == :pay ? "pay_amount" : "adjust_amount"}") %>
+      </label>
+      <label class="input input-bordered input-sm flex items-center gap-1">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%# Prefill mirrors MoneyColumns' *_reais style ("1234,56"). %>
+        <%= text_field_tag :amount_reais, format("%.2f", c.amount_cents.fdiv(100)).tr(".", ","),
+              inputmode: "decimal", id: "#{occurrence_dom_id(occurrence)}_amount", class: "grow" %>
+      </label>
+      <p class="text-[11px] leading-snug text-base-content/50"><%= t("commitments.occurrences.#{mode == :pay ? "pay_hint" : "adjust_hint"}") %></p>
+      <%= submit_tag t("commitments.occurrences.#{mode == :pay ? "confirm_pay" : "confirm_adjust"}"), class: "btn btn-primary btn-sm" %>
+    <% end %>
+  </div>
+</details>

@@ -109,14 +109,7 @@ class MonthSummary
       @unlinked_income_rows ||= posted.where(direction: "income", income_id: nil, credit_card_id: nil).to_a
     end
 
-    def derived_balance(account)
-      return nil unless account.balance_informed?
-      since = account.balance_anchored_at || account.updated_at
-      base  = user.transactions.posted.where("transactions.created_at > ?", since)
-      account.balance_cents +
-        base.where(direction: "income",   bank_account_id: account.id).sum(:amount_cents) -
-        base.where(direction: "expense",  bank_account_id: account.id).sum(:amount_cents) -
-        base.where(direction: "transfer", bank_account_id: account.id).sum(:amount_cents) +
-        base.where(direction: "transfer", transfer_to_bank_account_id: account.id).sum(:amount_cents)
-    end
+    # §7.1 lives on the model (BankAccount#derived_balance_cents) so the dashboard and the
+    # accounts page show the same figure as the hub.
+    def derived_balance(account) = account.derived_balance_cents
 end

@@ -45,7 +45,7 @@
             <p class="truncate text-xs text-base-content/50"><%= account.institution.display_name %></p>
           </div>
           <p class="shrink-0 font-display text-sm font-bold tabular-nums">
-            <%= account.balance_informed? ? brl(account.balance_cents) : "—" %>
+            <%= account.balance_informed? ? brl(account.derived_balance_cents) : "—" %>
           </p>
         </div>
       <% end %>
@@ -84,7 +84,7 @@
               </div>
               <div class="mt-1.5 flex justify-between text-xs text-base-content/50">
                 <span><%= t("credit_cards.available") %> <span class="font-semibold text-success tabular-nums"><%= brl(card.available_cents) %></span></span>
-                <span class="tabular-nums"><%= brl(card.current_bill_cents.to_i) %> / <%= brl(card.credit_limit_cents) %></span>
+                <span class="tabular-nums"><%= brl(card.used_cents) %> / <%= brl(card.credit_limit_cents) %></span>
               </div>
             </div>
           <% else %>

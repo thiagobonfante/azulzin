@@ -39,6 +39,19 @@ class CommitmentTest < ActiveSupport::TestCase
     end
   end
 
+  test "occurrence status: overdue past the due date, due_today on it, upcoming before it" do
+    month = Date.current.beginning_of_month
+    occurrence = ->(day) do
+      c = Commitment.create!(user: @user, bank_account: @account, name: "conta dia #{day}", kind: "fixed",
+                             amount_cents: 10_000, schedule_day: day, starts_on: month)
+      CommitmentOccurrence.new(c, month)
+    end
+    today = Date.current
+    assert_equal :due_today, occurrence.call(today.day).status
+    assert_equal :overdue,   occurrence.call(today.day - 1).status if today.day > 1
+    assert_equal :upcoming,  occurrence.call(today.day + 1).status if today.day < 28
+  end
+
   test "active_in?, last_month, installment_no for an installment plan" do
     c = Commitment.create!(user: @user, credit_card: @card, name: "celular", kind: "installment",
                            amount_cents: 50_000, installments_count: 10, starts_on: Date.new(2026, 8, 1))

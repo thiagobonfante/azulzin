@@ -32,11 +32,18 @@ class TransactionsController < ApplicationController
     @transaction.assign_attributes(direction: new_kind, status: "posted", confirmed_at: Time.current, source: "manual")
     assign_instrument_from_token(params[:instrument])
     auto_assign_instrument      # server-side mirror of the form's auto-select (robust to JS)
-    @saved = @transaction.save
+    # A manual add with no instrument is a form slip, not a WhatsApp guess — 422 with the picker
+    # error instead of silently posting into the "para revisar" tray (review is a WA concept).
+    @transaction.errors.add(:base, :instrument_required) unless @transaction.instrument
+    @saved = @transaction.errors.empty? && @transaction.save
     @ledger = month_ledger if @saved
     respond_to do |format|
       format.turbo_stream { render :create, status: (@saved ? :ok : :unprocessable_entity) }
-      format.html { redirect_to transactions_path(month: params[:month]), notice: t("transactions.update.created") }
+      format.html do
+        redirect_to transactions_path(month: params[:month]),
+                    notice: (@saved ? t("transactions.update.created") : nil),
+                    alert: (@saved ? nil : @transaction.errors.full_messages.to_sentence)
+      end
     end
   end
 

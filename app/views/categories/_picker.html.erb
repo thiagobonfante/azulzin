@@ -1,7 +1,8 @@
 <%# locals: field_name, selected_id (nil ⇒ uncategorized), size ("sm" | "md", default "sm") —
     category picker showing each category's color + icon (R6), a styled stand-in for the bare
-    <select> (which can't render swatches). The real value is the hidden field; <noscript>
-    keeps a native select as the no-JS path. %>
+    <select> (which can't render swatches). The real value is the hidden field. No <noscript>
+    fallback — inside Turbo-fetched frames it becomes a live duplicate field that blanks the
+    picked value (see shared/_institution_select). %>
 <% size = local_assigns.fetch(:size, "sm") %>
 <% input_size  = size == "sm" ? "input-sm"  : "" %>
 <% select_size = size == "sm" ? "select-sm" : "" %>
@@ -54,10 +55,4 @@
     </div>
   </div>
 
-  <noscript>
-    <%= select_tag field_name,
-          options_from_collection_for_select(categories, :id, :name, selected&.id),
-          include_blank: t("transactions.ledger.uncategorized"),
-          class: "select select-bordered #{select_size} w-full", id: nil %>
-  </noscript>
 </div>
