@@ -508,7 +508,6 @@ en:
       in_the_red: "In the red"
       incomes: "Income"
       expenses: "Spending"
-      bills: "Card bills"
       allocation_label: "Spending by category and leftover"
       save_cta: "Move to savings"
     accounts:
@@ -555,6 +554,10 @@ en:
       empty_hint: "Send a voice note on WhatsApp and we'll log it for you"
       empty_past: "No activity in %{month}."
       show_more: "Show more"
+      totals:
+        debit: "Debit"
+        credit: "Credit"
+        total: "Total"
     new_entry:
       expense: "Expense"
       income: "Income"

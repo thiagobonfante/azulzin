@@ -25,9 +25,7 @@
   <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-base-content/50 tabular-nums">
     <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.incomes") %> <span class="font-medium"><%= brl(summary.entradas_cents) %></span></a>
     <span aria-hidden="true">·</span>
-    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.expenses") %> <span class="font-medium"><%= brl(summary.saidas_cents) %></span></a>
-    <span aria-hidden="true">·</span>
-    <a href="#bills_tile" class="hover:text-base-content"><%= t("transactions.hero.bills") %> <span class="font-medium"><%= brl(summary.faturas_cents) %></span></a>
+    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.expenses") %> <span class="font-medium"><%= brl(summary.saidas_total_cents) %></span></a>
     <% if summary.guardado_cents.positive? %>
       <span aria-hidden="true">·</span>
       <a href="#accounts_tile" class="hover:text-base-content"><%= t("transactions.accounts.saved_total") %> <span class="font-medium"><%= brl(summary.guardado_cents) %></span></a>

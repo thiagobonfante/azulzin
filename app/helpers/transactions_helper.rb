@@ -35,10 +35,16 @@ module TransactionsHelper
   # leftover (sobra) as a blue tail — reuses the category palette so the split reads at a glance.
   # Returns nil (nothing to show) when there's neither spend nor a positive leftover.
   def monthly_flow_chart(account, month)
+    summary = MonthSummary.new(account, month)
     spend_by_cat = account.transactions.posted_in(month).where(direction: "expense")
                           .group(:category_id).sum(:amount_cents)
+    # Fold the still-unpaid debit commitments in by their own category, so the bar reflects the
+    # full projected month — commitments are categorized but haven't posted as spend yet.
+    summary.projected_debit_commitments.each do |c|
+      spend_by_cat[c.category_id] = spend_by_cat[c.category_id].to_i + c.amount_cents
+    end
     total_spend = spend_by_cat.values.sum
-    left = [ MonthSummary.new(account, month).remaining_cents, 0 ].max
+    left = [ summary.remaining_cents, 0 ].max
     base = total_spend + left
     return if base.zero?
 

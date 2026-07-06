@@ -509,7 +509,6 @@ pt-BR:
       in_the_red: "No vermelho"
       incomes: "Entradas"
       expenses: "Saídas"
-      bills: "Faturas"
       allocation_label: "Gastos por categoria e sobra"
       save_cta: "Guardar na caixinha"
     accounts:
@@ -556,6 +555,10 @@ pt-BR:
       empty_hint: "Mande um áudio no WhatsApp que a gente lança pra você"
       empty_past: "Nenhum movimento em %{month}."
       show_more: "Mostrar mais"
+      totals:
+        debit: "Débito"
+        credit: "Crédito"
+        total: "Total"
     new_entry:
       expense: "Despesa"
       income: "Receita"

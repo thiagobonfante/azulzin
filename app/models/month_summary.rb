@@ -30,6 +30,9 @@ class MonthSummary
   # §7.2 Σ over the user's cards — the composed bill figure (posted + card-commitment projection).
   def faturas_cents = bill_totals.values.sum
 
+  # Saídas as the hero strip shows it: bank/debit outflow + card bills folded into one figure.
+  def saidas_total_cents = saidas_cents + faturas_cents
+
   # §7.5 — guardado: transfers landing in a savings account this month (gross).
   def guardado_cents
     return 0 if savings_account_ids.empty?
@@ -41,6 +44,13 @@ class MonthSummary
 
   # §7.7 — a pagar no mês.
   def a_pagar_cents = faturas_cents + projected_debit_cents
+
+  # §7.4 — the still-unpaid debit commitments projected into this month (empty for a past month).
+  # The per-commitment rows behind projected_debit_cents; the category bar folds them in by category.
+  def projected_debit_commitments
+    return [] unless projecting?
+    debit_commitments.select { |c| c.active_in?(@month) && !c.paid_in?(@month) }
+  end
 
   # §7.2 — { credit_card => cents } composed bill figure per card.
   def bill_totals
@@ -96,10 +106,7 @@ class MonthSummary
       posted.where(direction: "expense", credit_card_id: nil).sum(:amount_cents)
     end
 
-    def projected_debit_cents
-      return 0 unless projecting?
-      debit_commitments.select { |c| c.active_in?(@month) && !c.paid_in?(@month) }.sum(&:amount_cents)
-    end
+    def projected_debit_cents = projected_debit_commitments.sum(&:amount_cents)
 
     def debit_commitments
       @debit_commitments ||= account.commitments.kept.active.where.not(bank_account_id: nil).to_a

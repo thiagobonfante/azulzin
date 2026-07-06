@@ -14,6 +14,28 @@
       </div>
     <% end %>
 
+    <%# Totals footer — expenses split by instrument (debit account vs card) + the month total.
+        Summed over all filtered rows, not just the displayed slice, so it stays true when capped. %>
+    <% expense_rows = rows.select { |r| r.direction == "expense" } %>
+    <% if expense_rows.any? %>
+      <% debit_total  = expense_rows.reject(&:credit_card_id).sum(&:amount_cents) %>
+      <% credit_total = expense_rows.select(&:credit_card_id).sum(&:amount_cents) %>
+      <div data-ledger-target="totals" class="mt-2 space-y-1 border-t border-base-300/70 px-2 pt-2 text-xs tabular-nums">
+        <div class="flex justify-between text-base-content/60">
+          <span><%= t("transactions.ledger.totals.debit") %></span>
+          <span><%= brl(debit_total) %></span>
+        </div>
+        <div class="flex justify-between text-base-content/60">
+          <span><%= t("transactions.ledger.totals.credit") %></span>
+          <span><%= brl(credit_total) %></span>
+        </div>
+        <div class="flex justify-between font-medium text-base-content">
+          <span><%= t("transactions.ledger.totals.total") %></span>
+          <span><%= brl(debit_total + credit_total) %></span>
+        </div>
+      </div>
+    <% end %>
+
     <p data-ledger-target="noResults" hidden class="px-2 py-6 text-center text-sm text-base-content/50">
       <%= t("transactions.ledger.no_results") %>
     </p>
