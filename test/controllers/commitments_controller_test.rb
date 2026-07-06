@@ -78,4 +78,70 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal c.id, charge.reload.commitment_id      # linked at creation (pass 2)
     assert_equal before, @card.bill_cents(month)        # projection swapped for the posted row
   end
+
+  test "show renders the pending list and paid accordion for each kind" do
+    inst = @user.commitments.create!(bank_account: @account, name: "carro", kind: "installment",
+                                     amount_cents: 120_000, installments_count: 36, total_cents: 4_320_000,
+                                     schedule_day: 10, starts_on: Date.current.beginning_of_month)
+    Commitments::MarkPaid.call(inst, Date.current.beginning_of_month)
+    get commitment_url(inst)
+    assert_response :success
+    assert_select "#commitment_occurrences details"    # paid accordion
+
+    sub = @user.commitments.create!(credit_card: @card, name: "Netflix", kind: "subscription",
+                                    amount_cents: 5_590, starts_on: Date.current.beginning_of_month << 3)
+    get commitment_url(sub)
+    assert_response :success
+  end
+
+  test "pay_batch pays the selected parcels splitting the typed total" do
+    month = Date.current.beginning_of_month
+    c = @user.commitments.create!(bank_account: @account, name: "carro", kind: "installment",
+                                  amount_cents: 120_000, installments_count: 36, total_cents: 4_320_000,
+                                  schedule_day: 10, starts_on: month)
+    months = [ month, month >> 1, month >> 2 ].map { |m| m.strftime("%Y-%m") }
+    assert_difference -> { @user.transactions.posted.count }, 3 do
+      patch pay_batch_commitment_url(c), params: { months: months, amount_reais: "3.400,00" }
+    end
+    assert_redirected_to commitment_url(c)
+    assert_equal 340_000, c.payments.posted.sum(:amount_cents)   # split covers the exact total
+    assert [ month, month >> 1, month >> 2 ].all? { |m| c.paid_in?(m) }
+  end
+
+  test "pay_batch skips already-paid months and rejects blank input" do
+    month = Date.current.beginning_of_month
+    c = @user.commitments.create!(bank_account: @account, name: "carro", kind: "installment",
+                                  amount_cents: 120_000, installments_count: 36, total_cents: 4_320_000,
+                                  schedule_day: 10, starts_on: month)
+    Commitments::MarkPaid.call(c, month)
+    assert_difference -> { @user.transactions.posted.count }, 1 do
+      patch pay_batch_commitment_url(c), params: { months: [ month, month >> 1 ].map { |m| m.strftime("%Y-%m") },
+                                                   amount_reais: "1.100,00" }
+    end
+    assert_equal 110_000, c.payments.posted.find_by(billing_month: month >> 1).amount_cents
+
+    patch pay_batch_commitment_url(c), params: { months: [], amount_reais: "100,00" }
+    assert_redirected_to commitment_url(c)
+    assert flash[:alert].present?
+  end
+
+  test "settle posts the payoff amount and archives the plan" do
+    c = @user.commitments.create!(bank_account: @account, name: "carro", kind: "installment",
+                                  amount_cents: 120_000, installments_count: 36, total_cents: 4_320_000,
+                                  schedule_day: 10, starts_on: Date.current.beginning_of_month)
+    assert_difference -> { @user.transactions.posted.count }, 1 do
+      patch settle_commitment_url(c), params: { amount_reais: "27.600,00" }
+    end
+    assert_redirected_to commitments_url
+    assert c.reload.archived?
+    assert_equal 2_760_000, c.payments.posted.last.amount_cents
+  end
+
+  test "settle rejects non-installment and card commitments" do
+    fixed = @user.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
+                                      amount_cents: 100_000, schedule_day: 5, starts_on: Date.current)
+    patch settle_commitment_url(fixed), params: { amount_reais: "100,00" }
+    assert_redirected_to commitment_url(fixed)
+    assert_not fixed.reload.archived?
+  end
 end

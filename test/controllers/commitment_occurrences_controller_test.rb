@@ -17,10 +17,24 @@ class CommitmentOccurrencesControllerTest < ActionDispatch::IntegrationTest
 
   def occ(commitment, month) = "#{commitment.id}-#{month.strftime('%Y-%m')}"
 
-  test "paying a debit occurrence records a posted payment" do
+  test "paying a debit occurrence records a posted payment named after the commitment" do
     patch pay_commitment_occurrence_url(occ(@debit, @month)), params: { from: "show" }, as: :turbo_stream
     assert_response :success
     assert @debit.paid_in?(@month)
+    assert_equal "aluguel", @debit.payments.posted.last.merchant
+  end
+
+  test "paying with an adjusted amount records that amount (early/late payment)" do
+    patch pay_commitment_occurrence_url(occ(@debit, @month)),
+          params: { from: "show", amount_reais: "950,00" }, as: :turbo_stream
+    assert_response :success
+    assert_equal 95_000, @debit.payments.posted.last.amount_cents
+  end
+
+  test "paying from the hub streams the ledger update" do
+    patch pay_commitment_occurrence_url(occ(@debit, @month)), params: { from: "hub" }, as: :turbo_stream
+    assert_response :success
+    assert_match "movements_ledger", response.body
   end
 
   test "paying a card occurrence is rejected server-side (settles on the bill)" do

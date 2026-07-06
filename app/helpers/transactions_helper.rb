@@ -31,65 +31,37 @@ module TransactionsHelper
       "needs_disambiguation" => "badge-warning" }.fetch(status, "badge-ghost")
   end
 
-  # A flat fake chart is worse than none: only show the sparkline once there's a trajectory
-  # to read (≥1 commitment/income, or ≥2 months of posted history).
-  def show_sparkline?(user)
-    user.commitments.exists? || user.incomes.exists? ||
-      user.transactions.posted.distinct.count(:billing_month) >= 2
-  end
-
-  # Per-month sobra as a labeled diverging bar chart (M−3 … M+3), zero JS. Each column is a
-  # link to that month (the chart IS the long-range navigation), captioned with the month and
-  # emphasized for the current one; positive months read primary, negative read error, future
-  # months dim. Bars are proportional to |sobra| around a shared zero line.
+  # Where the month went: one stacked bar of spend by category (each in its color) with the
+  # leftover (sobra) as a blue tail — reuses the category palette so the split reads at a glance.
+  # Returns nil (nothing to show) when there's neither spend nor a positive leftover.
   def monthly_flow_chart(user, month)
-    months  = (-3..3).map { |o| month >> o }
-    values  = months.map { |m| MonthSummary.new(user, m).remaining_cents }
-    today   = hub_today.beginning_of_month
-    max_pos = values.select(&:positive?).max || 0
-    max_neg = values.select(&:negative?).map(&:abs).max || 0
-    span    = [ max_pos + max_neg, 1 ].max
-    zero_top = max_pos.fdiv(span) * 100                 # % from top where zero sits
-    straddles = max_pos.positive? && max_neg.positive?
+    spend_by_cat = user.transactions.posted_in(month).where(direction: "expense")
+                       .group(:category_id).sum(:amount_cents)
+    total_spend = spend_by_cat.values.sum
+    left = [ MonthSummary.new(user, month).remaining_cents, 0 ].max
+    base = total_spend + left
+    return if base.zero?
 
-    content_tag(:div, class: "flex items-stretch gap-1", role: "img",
-                "aria-label": t("transactions.hero.sparkline_label")) do
-      safe_join(months.each_with_index.map do |m, i|
-        v          = values[i]
-        is_current = m == today
-        future     = m > today
-        height_pct = v.zero? ? 0 : [ v.abs.fdiv(span) * 100, 3 ].max
-        top_pct    = v.negative? ? zero_top : zero_top - height_pct
-        bar_color  = bar_tone(v, current: is_current, future: future)
+    cats = user.categories.where(id: spend_by_cat.keys.compact).index_by(&:id)
+    segments = spend_by_cat.map { |cat_id, cents|
+      cat = cats[cat_id]
+      { label: cat&.name || t("transactions.ledger.uncategorized"),
+        color: cat&.display_color || Category::DEFAULT_COLOR, cents: cents }
+    }.sort_by { |s| -s[:cents] }
 
-        bar_area = content_tag(:span, class: "relative block h-16 w-full") do
-          parts = []
-          parts << content_tag(:span, "", class: "absolute inset-x-0 border-t border-base-content/15",
-                               style: "top: #{zero_top.round(1)}%") if straddles
-          parts << content_tag(:span, "", class: "absolute inset-x-1 rounded-sm #{bar_color} #{'ring-2 ring-primary/30' if is_current}",
-                               style: "top: #{top_pct.round(1)}%; height: #{height_pct.round(1)}%")
-          safe_join(parts)
-        end
-        caption = content_tag(:span, l(m, format: "%b").capitalize,
-                              class: "text-[10px] leading-none #{is_current ? 'font-semibold text-base-content/80' : 'text-base-content/40'}")
+    top    = segments.first(5)
+    others = segments.drop(5).sum { |s| s[:cents] }
+    parts  = top.dup
+    parts << { label: t("transactions.ledger.other_categories"), color: Category::DEFAULT_COLOR, cents: others } if others.positive?
+    parts << { label: t("transactions.hero.remaining"), color: "var(--color-primary)", cents: left } if left.positive?
 
-        link_to transactions_path(month: m.strftime("%Y-%m")),
-                title: "#{l(m, format: :month_year)} · #{brl(v)}",
-                class: "flex flex-1 flex-col items-center gap-1.5",
-                aria: { label: l(m, format: :month_year) } do
-          safe_join([ bar_area, caption ])
-        end
-      end)
+    bar = content_tag(:div, class: "flex h-2.5 overflow-hidden rounded-full bg-base-200",
+                      role: "img", "aria-label": t("transactions.hero.allocation_label")) do
+      safe_join(parts.map { |s| flow_segment(s, base) })
     end
-  end
-
-  # Full literal Tailwind classes (JIT-safe) for a sobra bar: blue in the black, red under it,
-  # dimmed for future months, full-strength for the current one.
-  def bar_tone(value, current:, future:)
-    if future     then value.negative? ? "bg-error/40" : "bg-primary/40"
-    elsif current then value.negative? ? "bg-error"    : "bg-primary"
-    else               value.negative? ? "bg-error/70" : "bg-primary/70"
-    end
+    legend = content_tag(:div, safe_join(parts.map { |s| flow_legend_item(s) }),
+                         class: "mt-2.5 flex flex-wrap gap-x-3 gap-y-1")
+    safe_join([ bar, legend ])
   end
 
   # R2 manual-move options for a card row: current billing_month −1..+3, month names, with the
@@ -108,12 +80,23 @@ module TransactionsHelper
   # Today's calendar month in the app timezone — the reference for month mode in views.
   def hub_today = Date.current.in_time_zone("America/Sao_Paulo").to_date
 
-  # Direction glyph + tone for a ledger row.
-  def ledger_row_glyph(txn)
-    case txn.direction
-    when "income"   then [ "↑", "text-success" ]
-    when "transfer" then [ "⇄", "text-base-content/60" ]
-    else                 [ "↓", "text-base-content/70" ]
+  private
+    # One coloured slice of the allocation bar (colours are validated hexes / a theme var).
+    def flow_segment(seg, base)
+      return "".html_safe if seg[:cents] <= 0
+      content_tag(:span, "", class: "block h-full",
+                  style: "width: #{seg[:cents].fdiv(base) * 100}%; background-color: #{seg[:color]}",
+                  title: "#{seg[:label]} · #{brl(seg[:cents])}")
     end
-  end
+
+    # Its legend entry: colour dot + label + amount.
+    def flow_legend_item(seg)
+      content_tag(:span, class: "flex items-center gap-1.5 text-xs") do
+        safe_join([
+          content_tag(:span, "", class: "h-2.5 w-2.5 shrink-0 rounded-full", style: "background-color: #{seg[:color]}"),
+          content_tag(:span, seg[:label], class: "text-base-content/60"),
+          content_tag(:span, brl(seg[:cents]), class: "tabular-nums text-base-content/40"),
+        ])
+      end
+    end
 end

@@ -15,6 +15,8 @@ pt-BR:
     continue_with_google: "Continuar com o Google"
     or: "ou"
     not_allowed: "Esta conta não está autorizada a acessar o azulzin."
+    confirm: "Confirmar"
+    cancel: "Cancelar"
   omniauth:
     signed_in: "Você entrou com o Google."
     could_not_sign_in: "Não foi possível entrar. Adicione um e-mail à sua conta e tente novamente."
@@ -285,6 +287,8 @@ pt-BR:
       created: "Renda adicionada."
     update:
       updated: "Renda atualizada."
+    receive:
+      received: "Recebimento registrado."
     destroy:
       removed: "Renda removida."
   commitments:
@@ -303,6 +307,9 @@ pt-BR:
     occurrences:
       mark_paid: "Pagar"
       unmark_paid: "Desfazer pagamento"
+      pay_amount: "Valor pago"
+      pay_hint: "Pagando antes ou depois da data? Ajuste o valor se houver desconto ou juros."
+      confirm_pay: "Confirmar pagamento"
       on_bill: "Entra na fatura"
       paid: "Pagamento registrado."
       statuses:
@@ -320,6 +327,7 @@ pt-BR:
       day_card_hint: "entra na fatura conforme o fechamento do cartão"
       instrument: "Paga com"
       submit: "Adicionar"
+      save: "Salvar"
       kind_hints:
         installment: "ex.: carro financiado, celular em 12×"
         fixed: "ex.: pensão, aluguel, mensalidade"
@@ -336,7 +344,19 @@ pt-BR:
       total_committed: "Total mensal comprometido"
     show:
       vencimentos: "Vencimentos"
+      all_settled: "Tudo pago por aqui."
+      paid_history: "Parcelas pagas (%{count})"
       remaining: "Faltam %{amount}"
+      settle: "Quitar"
+      settle_hint: "Pague o restante de uma vez — quitar antecipado costuma ter desconto, então ajuste o valor."
+      settle_confirm: "Quitar este compromisso? Os vencimentos restantes deixam de aparecer."
+      settle_submit: "Quitar"
+      batch_hint: "Marque as parcelas para pagar várias de uma vez."
+      batch_select: "Selecionar parcela"
+      batch_one: "parcela selecionada"
+      batch_many: "parcelas selecionadas"
+      batch_amount: "Quanto pagou por elas?"
+      batch_submit: "Pagar selecionadas"
       edit: "Editar compromisso"
       finish: "Encerrar compromisso"
       finish_hint: "O histórico é mantido; novos vencimentos param de aparecer."
@@ -344,6 +364,12 @@ pt-BR:
       updated: "Compromisso atualizado."
     create:
       created: "Compromisso adicionado."
+    settle:
+      settled: "Compromisso quitado."
+      invalid: "Não foi possível quitar. Confira o valor informado."
+    pay_batch:
+      paid: "Parcelas pagas."
+      invalid: "Não foi possível registrar. Confira as parcelas e o valor."
     destroy:
       removed: "Compromisso encerrado."
   categories:
@@ -431,7 +457,7 @@ pt-BR:
       incomes: "Entradas"
       expenses: "Saídas"
       bills: "Faturas"
-      sparkline_label: "Sobra por mês"
+      allocation_label: "Gastos por categoria e sobra"
       save_cta: "Guardar na caixinha"
     accounts:
       title: "Contas"
@@ -446,8 +472,10 @@ pt-BR:
       setup_billing: "Configurar fechamento e vencimento"
     due:
       title: "A pagar no mês"
-    projection:
-      notice: "Projeção com suas rendas e compromissos — não inclui gastos do dia a dia"
+    receivable:
+      title: "A receber no mês"
+      mark_received: "Recebi"
+      received: "Recebido"
       expected: "Previsto"
     ledger:
       title: "Movimentos"
@@ -467,7 +495,6 @@ pt-BR:
       empty: "Nenhum movimento neste mês"
       empty_hint: "Mande um áudio no WhatsApp que a gente lança pra você"
       empty_past: "Nenhum movimento em %{month}."
-      empty_future: "Nada previsto para %{month}. Cadastre seus compromissos para ver o mês antes de ele chegar."
       show_more: "Mostrar mais"
     new_entry:
       expense: "Despesa"
@@ -481,8 +508,8 @@ pt-BR:
         boleto: "Boleto"
     row:
       amount: "Valor"
-      merchant: "Estabelecimento"
-      merchant_placeholder: "Onde foi?"
+      merchant: "Descrição"
+      merchant_placeholder: "ex.: mercado, aluguel, salário"
       save: "Salvar"
       instrument: "Conta ou cartão"
       unassigned: "Sem conta definida"

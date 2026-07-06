@@ -17,13 +17,11 @@ class TransactionsController < ApplicationController
     @pending     = Current.user.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
     @occurrences = CommitmentOccurrence.for_month(Current.user, @month)          # zone E (R10)
     @ledger      = month_ledger
-    # Future months render the Previsto list instead of the editable ledger (§4.8).
-    @income_occurrences = Current.user.incomes.active.includes(:bank_account).to_a if @summary.mode == :future
   end
 
   def new
     kind = %w[expense income transfer].include?(params[:kind]) ? params[:kind] : "expense"
-    @transaction = Current.user.transactions.new(direction: kind, occurred_on: sp_today)
+    @transaction = Current.user.transactions.new(direction: kind, occurred_on: default_occurred_on)
     render partial: "transactions/new_entry", locals: { transaction: @transaction, kind: kind }
   end
 
@@ -128,6 +126,12 @@ class TransactionsController < ApplicationController
     end
 
     def sp_today = Date.current.in_time_zone("America/Sao_Paulo").to_date
+
+    # Adding on a past/future month defaults the date into that month (so the row bills there);
+    # the current month defaults to today.
+    def default_occurred_on
+      (viewed_month..viewed_month.end_of_month).cover?(sp_today) ? sp_today : viewed_month
+    end
 
     def parse_month(param)
       return nil unless param.to_s.match?(/\A\d{4}-(0[1-9]|1[0-2])\z/)

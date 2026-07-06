@@ -63,6 +63,17 @@ class MonthSummary
 
   def in_the_blue? = remaining_cents >= 0
 
+  # §7.3 counts-once: a linked receipt (income_id) OR an unlinked posted deposit on the
+  # income's account within ±10% of its amount marks it received. Greedy — each unlinked row
+  # claims at most one income. Public: the hub's "A receber" card shows the same status.
+  def income_received?(income)
+    return true if income.received_in?(@month)
+    unlinked_income_rows.any? do |row|
+      row.bank_account_id == income.bank_account_id &&
+        (row.amount_cents - income.amount_cents).abs <= (income.amount_cents / 10)
+    end
+  end
+
   private
     def posted = user.transactions.posted_in(@month)
 
@@ -92,17 +103,6 @@ class MonthSummary
 
     def debit_commitments
       @debit_commitments ||= user.commitments.active.where.not(bank_account_id: nil).to_a
-    end
-
-    # §7.3 counts-once: a linked receipt (income_id) OR an unlinked posted deposit on the
-    # income's account within ±10% of its amount marks it received. Greedy — each unlinked row
-    # claims at most one income.
-    def income_received?(income)
-      return true if income.received_in?(@month)
-      unlinked_income_rows.any? do |row|
-        row.bank_account_id == income.bank_account_id &&
-          (row.amount_cents - income.amount_cents).abs <= (income.amount_cents / 10)
-      end
     end
 
     def unlinked_income_rows

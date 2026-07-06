@@ -57,9 +57,8 @@
   </details>
 
   <div class="form-control">
-    <%= f.label :category_id, t("transactions.row.category"), class: "mb-1 block text-sm font-medium" %>
-    <%= f.collection_select :category_id, Current.user.categories.ordered, :id, :name,
-          { include_blank: t("transactions.ledger.uncategorized") }, class: "select select-bordered w-full" %>
+    <label class="mb-1 block text-sm font-medium"><%= t("transactions.row.category") %></label>
+    <%= render "categories/picker", field_name: "commitment[category_id]", selected_id: commitment.category_id, size: "md" %>
   </div>
 
   <div class="form-control">

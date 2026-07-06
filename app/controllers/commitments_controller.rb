@@ -12,8 +12,7 @@ class CommitmentsController < ApplicationController
   end
 
   def show
-    @commitment  = Current.user.commitments.find(params[:id])
-    @occurrences = vencimentos(@commitment)
+    @commitment = Current.user.commitments.find(params[:id])
   end
 
   def create
@@ -41,9 +40,35 @@ class CommitmentsController < ApplicationController
     if @commitment.update(commitment_update_params)
       redirect_to commitment_path(@commitment), notice: t("commitments.show.updated")
     else
-      @occurrences = vencimentos(@commitment)
       render :show, status: :unprocessable_entity
     end
+  end
+
+  # Early payoff (installments on debit): one posted transaction for the negotiated amount —
+  # paying everything upfront usually means a discount, so the value is the user's — then the
+  # plan is archived (occurrences stop, history kept).
+  def settle
+    @commitment = Current.user.commitments.find(params[:id])
+    amount = Money.to_cents(params[:amount_reais])
+    if @commitment.installment? && !@commitment.card? && amount.to_i.positive? && @commitment.next_charge_month
+      Commitments::Settle.call(@commitment, amount)
+      redirect_to commitments_path, notice: t(".settled")
+    else
+      redirect_to commitment_path(@commitment), alert: t(".invalid")
+    end
+  end
+
+  # Pay several selected parcels at once: the typed total is what the user actually handed
+  # over (early batches usually carry a discount) — PayBatch splits it across the months.
+  def pay_batch
+    @commitment = Current.user.commitments.find(params[:id])
+    months = Array(params[:months]).filter_map { |m| parse_month(m) }
+    amount = Money.to_cents(params[:amount_reais])
+    if @commitment.card? || months.empty? || !amount.to_i.positive?
+      return redirect_to commitment_path(@commitment), alert: t(".invalid")
+    end
+    Commitments::PayBatch.call(@commitment, months, amount)
+    redirect_to commitment_path(@commitment), notice: t(".paid")
   end
 
   # Hard delete only when no posted payments exist (don't orphan visible history); otherwise
@@ -123,20 +148,6 @@ class CommitmentsController < ApplicationController
       (a.to_i - b.to_i).abs <= tol
     end
 
-    # Vencimentos list, newest first, over [starts_on .. min(last occurrence, current + 12mo)].
-    def vencimentos(commitment)
-      first = commitment.starts_on.beginning_of_month
-      last  = [ commitment.last_month&.beginning_of_month || (Date.current.beginning_of_month >> 12),
-                Date.current.beginning_of_month >> 12 ].min
-      payments = commitment.payments.posted.index_by(&:billing_month)
-      months, m = [], last
-      while m >= first
-        months << m
-        m = m << 1
-      end
-      months.map { |mo| CommitmentOccurrence.new(commitment, mo, payment: payments[mo]) }
-    end
-
     def assign_commitment_instrument(commitment, instrument)
       case instrument
       when BankAccount then commitment.bank_account = instrument
@@ -153,6 +164,13 @@ class CommitmentsController < ApplicationController
     end
 
     def sanitized_category(id) = (id if id.present? && Current.user.categories.exists?(id))
+
+    def parse_month(param)
+      return nil unless param.to_s.match?(/\A\d{4}-(0[1-9]|1[0-2])\z/)
+      Date.strptime(param, "%Y-%m").beginning_of_month
+    rescue ArgumentError
+      nil
+    end
 
     def sp_today = Date.current.in_time_zone("America/Sao_Paulo").to_date
 end

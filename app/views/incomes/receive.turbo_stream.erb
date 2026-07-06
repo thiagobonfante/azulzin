@@ -1,0 +1,8 @@
+<%= turbo_stream.replace "a_receber", partial: "transactions/a_receber", locals: { summary: summary, month: viewed_month } %>
+<%# The deposit is an ordinary posted row — surface it in Movimentos right away. %>
+<%= turbo_stream.replace "movements_ledger" do %>
+  <%= turbo_frame_tag "movements_ledger" do %>
+    <%= render "transactions/ledger_body", ledger: month_ledger, month: viewed_month %>
+  <% end %>
+<% end %>
+<%= render "transactions/hub_figures" %>

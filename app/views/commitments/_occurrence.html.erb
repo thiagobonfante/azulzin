@@ -1,6 +1,13 @@
-<%# locals: occurrence, context (:hub | :show | :previsto) %>
+<%# locals: occurrence, context (:hub | :show), batch_form (optional — multi-select parcels) %>
 <% c = occurrence.commitment %>
-<div id="<%= occurrence_dom_id(occurrence) %>" class="flex items-center gap-2 py-2 <%= "opacity-70" if context == :previsto %>">
+<% batch_form = local_assigns[:batch_form] %>
+<div id="<%= occurrence_dom_id(occurrence) %>" class="flex items-center gap-2 py-2">
+  <% if batch_form && !occurrence.card? && !occurrence.paid? %>
+    <input type="checkbox" name="months[]" value="<%= occurrence.month.strftime("%Y-%m") %>"
+           form="<%= batch_form %>" data-batch-pay-target="checkbox" data-action="batch-pay#refresh"
+           data-cents="<%= c.amount_cents %>" class="checkbox checkbox-primary checkbox-xs"
+           aria-label="<%= t("commitments.show.batch_select") %>">
+  <% end %>
   <div class="min-w-0 flex-1">
     <p class="truncate text-sm">
       <%= link_to c.name, commitment_path(c), class: "hover:underline" %>
@@ -11,17 +18,36 @@
     </p>
   </div>
   <span class="badge <%= occurrence_status_badge(occurrence.status) %> badge-xs"><%= t("commitments.occurrences.statuses.#{occurrence.status}") %></span>
-  <span class="tabular-nums text-sm"><%= brl(c.amount_cents) %></span>
+  <span class="tabular-nums text-sm"><%= brl(occurrence.payment&.amount_cents || c.amount_cents) %></span>
   <% if occurrence.card? %>
     <span class="text-xs text-base-content/50"><%= t("commitments.occurrences.on_bill") %></span>
-  <% elsif context != :previsto && !occurrence.paid? %>
-    <%= button_to t("commitments.occurrences.mark_paid"),
-          pay_commitment_occurrence_path(occurrence, month: params[:month], from: context),
-          method: :patch, class: "btn btn-primary btn-xs" %>
+  <% elsif !occurrence.paid? %>
+    <%# Pagar opens a small form: paying early/late may change the value (discount / interest). %>
+    <details class="dropdown dropdown-end" data-controller="dropdown">
+      <summary class="btn btn-primary btn-xs"><%= t("commitments.occurrences.mark_paid") %></summary>
+      <div class="dropdown-content z-40 mt-1 w-64 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-lg">
+        <%= form_with url: pay_commitment_occurrence_path(occurrence, month: params[:month], from: context),
+              method: :patch, class: "flex flex-col gap-2" do %>
+          <label class="text-xs text-base-content/60" for="<%= occurrence_dom_id(occurrence) %>_amount"><%= t("commitments.occurrences.pay_amount") %></label>
+          <label class="input input-bordered input-sm flex items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%# Prefill mirrors MoneyColumns' *_reais style ("1234,56"). %>
+            <%= text_field_tag :amount_reais, format("%.2f", c.amount_cents.fdiv(100)).tr(".", ","),
+                  inputmode: "decimal", id: "#{occurrence_dom_id(occurrence)}_amount", class: "grow" %>
+          </label>
+          <p class="text-[11px] leading-snug text-base-content/50"><%= t("commitments.occurrences.pay_hint") %></p>
+          <%= submit_tag t("commitments.occurrences.confirm_pay"), class: "btn btn-primary btn-sm" %>
+        <% end %>
+      </div>
+    </details>
   <% elsif context == :show && occurrence.payment %>
-    <%= button_to t("commitments.occurrences.unmark_paid"),
-          unpay_commitment_occurrence_path(occurrence), method: :patch,
-          class: "btn btn-ghost btn-xs text-error",
-          form: { data: { turbo_confirm: t("transactions.row.confirm_discard") } } %>
+    <span class="tooltip tooltip-left" data-tip="<%= t("commitments.occurrences.unmark_paid") %>">
+      <%= button_to unpay_commitment_occurrence_path(occurrence), method: :patch,
+            class: "btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-error",
+            form: { data: { turbo_confirm: t("transactions.row.confirm_discard") } },
+            aria: { label: t("commitments.occurrences.unmark_paid") } do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+      <% end %>
+    </span>
   <% end %>
 </div>

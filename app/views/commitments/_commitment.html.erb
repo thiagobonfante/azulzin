@@ -17,8 +17,8 @@
         </div>
         <p class="mt-0.5 text-xs text-base-content/50"><%= t("commitments.row.progress", paid: commitment.paid_count, count: commitment.installments_count) %></p>
       <% end %>
-      <% if commitment.active_in?(Date.current.beginning_of_month) %>
-        <p class="mt-0.5 text-xs text-base-content/40"><%= t("commitments.row.next_due", date: l(commitment.due_on(Date.current.beginning_of_month), format: :short)) %></p>
+      <% if (next_month = commitment.next_charge_month) %>
+        <p class="mt-0.5 text-xs text-base-content/40"><%= t("commitments.row.next_due", date: l(commitment.due_on(next_month), format: :short)) %></p>
       <% end %>
     </div>
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>

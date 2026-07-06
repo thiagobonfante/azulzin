@@ -1,0 +1,39 @@
+<%# locals: transaction — the row's display line (icon, names, instrument, amount). Shared by
+    _ledger_row (wrapped in the edit link) and _edit_row (kept visible above the inline form). %>
+<% amount_tone = transaction.income? ? "text-success" : (transaction.transfer? ? "text-base-content/60" : "text-base-content/80") %>
+<% if transaction.income? %>
+  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-success/15 text-base font-bold text-success">+</span>
+<% elsif transaction.transfer? %>
+  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-base-200 text-base text-base-content/50">⇄</span>
+<% elsif (cat = transaction.category) %>
+  <%# Expense with a category — its color + icon (R6) reflects here. %>
+  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full"
+        style="background-color: <%= cat.display_color %>1a; color: <%= cat.display_color %>">
+    <%= category_icon_tag(cat.icon, css_class: "h-4 w-4") || tag.span(cat.name.first.upcase, class: "text-xs font-semibold") %>
+  </span>
+<% else %>
+  <%# Uncategorized expense — a neutral merchant monogram. %>
+  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-base-200 text-xs font-semibold text-base-content/50">
+    <%= (transaction.merchant.presence || transaction.description.presence || "•").first.upcase %>
+  </span>
+<% end %>
+<div class="min-w-0 flex-1">
+  <p class="truncate text-sm">
+    <% if transaction.transfer? %>
+      <%= transaction.bank_account&.display_name %> → <%= transaction.transfer_to_bank_account&.display_name %>
+    <% else %>
+      <%= transaction.merchant.presence || transaction.description.presence || transaction.commitment&.name ||
+            t("transactions.hero.#{transaction.income? ? "incomes" : "expenses"}") %>
+    <% end %>
+    <% if transaction.installment_number %>
+      <span class="text-xs text-base-content/50"><%= transaction.installment_number %>/<%= transaction.commitment&.installments_count %></span>
+    <% end %>
+  </p>
+  <% if transaction.expense? && transaction.category %>
+    <p class="truncate text-xs text-base-content/50"><%= transaction.category.name %></p>
+  <% end %>
+</div>
+<% if transaction.instrument %>
+  <%= institution_avatar(transaction.instrument.institution, size: 20) %>
+<% end %>
+<span class="tabular-nums text-sm font-medium <%= amount_tone %>"><%= transaction.income? ? "+" : "" %><%= brl(transaction.amount_cents) %></span>

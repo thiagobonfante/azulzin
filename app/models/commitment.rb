@@ -52,6 +52,14 @@ class Commitment < ApplicationRecord
   # Has a posted payment for M been recorded? (Unique per (commitment, billing_month), §3.)
   def paid_in?(month) = payments.posted.where(billing_month: month).exists?
 
+  # The next month with an unpaid occurrence, from `from` (default: this month) — a paid
+  # current parcel advances "Próximo" to the following one. nil when none remain.
+  def next_charge_month(from = Date.current.beginning_of_month)
+    month = [ from.beginning_of_month, starts_on.beginning_of_month ].max
+    month = month >> 1 while active_in?(month) && paid_in?(month)
+    active_in?(month) ? month : nil
+  end
+
   # "parcela N/total" — months since starts_on + 1.
   def installment_no(month)
     (month.year * 12 + month.month) - (starts_on.year * 12 + starts_on.month) + 1
