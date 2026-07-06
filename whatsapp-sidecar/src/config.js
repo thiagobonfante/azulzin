@@ -16,6 +16,12 @@ module.exports = {
   // LocalAuth session storage.
   clientId: 'azulzin-main',
   sessionDataPath: process.env.SESSION_DATA_PATH || './.wwebjs_auth',
+
+  // Pinned WhatsApp Web version (fetched from wppconnect/wa-version). whatsapp-web.js 1.34.7's
+  // bundled default (2.3000.1017…) is deprecated by WhatsApp, which strands the client at
+  // `authenticated` with no `ready` event and no inbound messages. Bump this when reception
+  // breaks again (pick a current build from github.com/wppconnect-team/wa-version/tree/main/html).
+  webVersion: process.env.WHATSAPP_WEB_VERSION || '2.3000.1042650569-alpha',
   puppeteerExecutablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
 
   // Global outbound send throttle (ms).

@@ -13,6 +13,14 @@ function defaultClientFactory(config) {
   return () =>
     new Client({
       authStrategy: new LocalAuth({ clientId: config.clientId, dataPath: config.sessionDataPath }),
+      // Pin the WhatsApp Web version. wwebjs 1.34.7's bundled default is deprecated by WhatsApp,
+      // which leaves the client stuck at `authenticated` — no `ready`, so message events never
+      // wire up and nothing inbound arrives. Load a current known-good build instead.
+      webVersion: config.webVersion,
+      webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html',
+      },
       puppeteer: {
         headless: true,
         executablePath: config.puppeteerExecutablePath,
