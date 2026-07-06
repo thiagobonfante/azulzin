@@ -1,19 +1,25 @@
 module Whatsapp
-  # Extracts a transaction from a receipt / nota fiscal / card-slip PHOTO via an OpenRouter
-  # vision model. Trimmed schema (no line items — Review P2-2). Ruby computes cents from the
-  # printed total (the LLM never multiplies). Deterministic cross-checks cap confidence so a
-  # shaky read parks instead of posting silently. See .plans/whats §4.4.
+  # Extracts a transaction from a receipt / nota fiscal / card-slip / Pix-transfer PHOTO via
+  # an OpenRouter vision model. Trimmed schema (no line items — Review P2-2). Ruby computes
+  # cents from the printed total (the LLM never multiplies). Deterministic cross-checks cap
+  # confidence so a shaky read parks instead of posting silently. See .plans/whats §4.4.
   class ReceiptExtractor
     SYSTEM_PROMPT = <<~PT.freeze
-      Você lê um comprovante de compra brasileiro (cupom fiscal, NFC-e ou comprovante de
-      cartão/maquininha) na imagem e extrai os dados da compra.
+      Você lê um comprovante financeiro brasileiro na imagem — comprovante de compra (cupom
+      fiscal, NFC-e, comprovante de cartão/maquininha) OU comprovante de transferência/Pix
+      de banco/app — e extrai os dados do pagamento.
       Regras:
       - total_raw = o VALOR TOTAL PAGO, exatamente como impresso (ex.: "1.234,56"). Nunca o
         subtotal nem um item isolado. Não converta para centavos.
       - payment_method: debito, credito, pix, dinheiro, vale, boleto, outro ou desconhecido
         (leia "DÉBITO"/"CRÉDITO"/"PIX"/"DINHEIRO" impresso; desconhecido se ambíguo).
+      - Comprovante de transferência/Pix: document_type = "transferencia"; merchant_name =
+        o nome do DESTINO (favorecido/recebedor); origin_phrase = instituição + nome de
+        quem PAGOU (a ORIGEM, ex.: "Nu Pagamentos Franciane"); payment_method conforme o
+        tipo impresso (Pix → pix).
+      - origin_phrase = null em comprovantes de compra.
       - purchase_date em ISO (YYYY-MM-DD) só se estiver no comprovante; senão null.
-      - is_receipt = false se a imagem não for um comprovante.
+      - is_receipt = false se a imagem não for um comprovante (de compra ou transferência).
       - Preencha field_confidence e overall_confidence com honestidade. Não invente.
     PT
 
@@ -22,10 +28,11 @@ module Whatsapp
       schema: {
         "type" => "object", "additionalProperties" => false,
         "required" => %w[is_receipt document_type merchant_name merchant_cnpj purchase_date
-                         currency total_raw payment_method field_confidence overall_confidence notes],
+                         currency total_raw payment_method origin_phrase field_confidence
+                         overall_confidence notes],
         "properties" => {
           "is_receipt"    => { "type" => "boolean" },
-          "document_type" => { "type" => "string", "enum" => %w[nfce nfe cupom_fiscal card_slip other] },
+          "document_type" => { "type" => "string", "enum" => %w[nfce nfe cupom_fiscal card_slip transferencia other] },
           "merchant_name" => { "type" => %w[string null] },
           "merchant_cnpj" => { "type" => %w[string null] },
           "purchase_date" => { "type" => %w[string null] },
@@ -33,6 +40,7 @@ module Whatsapp
           "total_raw"     => { "type" => %w[string null] },
           "payment_method" => { "type" => "string",
                                 "enum" => %w[debito credito pix dinheiro vale boleto outro desconhecido] },
+          "origin_phrase" => { "type" => %w[string null] },
           "field_confidence" => {
             "type" => "object", "additionalProperties" => false,
             "required" => %w[merchant total date payment_method],
@@ -49,7 +57,7 @@ module Whatsapp
       messages = [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: [
-          { type: "text", text: "Extraia os dados desta compra." },
+          { type: "text", text: "Extraia os dados deste comprovante." },
           { type: "image_url", image_url: { url: data_url(msg.media) } }
         ] }
       ]
@@ -66,7 +74,8 @@ module Whatsapp
         merchant:           parsed["merchant_name"].presence,
         occurred_on:        Whatsapp::Extractor.parse_date(parsed["purchase_date"]),
         payment_method:     parsed["payment_method"].presence || "desconhecido",
-        instrument_phrase:  nil,   # a receipt doesn't name the user's own account/card
+        instrument_phrase:  parsed["origin_phrase"].presence,   # purchase receipts: nil; a
+                            # transfer receipt's ORIGIN names the user's own account
         field_confidence:   { "amount" => parsed.dig("field_confidence", "total") },
         overall_confidence: effective_confidence(parsed, total_raw),
         modality:           "image",

@@ -14,6 +14,22 @@ class Whatsapp::ReceiptExtractorTest < ActiveSupport::TestCase
     assert_nil ex.instrument_phrase
   end
 
+  test "a Pix transfer receipt extracts amount, recipient, and the origin account phrase" do
+    ex = Whatsapp::ReceiptExtractor.build(
+      "is_receipt" => true, "document_type" => "transferencia", "total_raw" => "80,00",
+      "merchant_name" => "Gabrielly Goncalves da Silva", "payment_method" => "pix",
+      "origin_phrase" => "Nu Pagamentos Franciane Cristina Teixeira",
+      "purchase_date" => Date.current.iso8601,
+      "overall_confidence" => 0.92, "field_confidence" => { "total" => 0.95 }
+    )
+    assert_equal 8_000, ex.amount_cents
+    assert_equal "pix", ex.payment_method
+    assert_equal "Gabrielly Goncalves da Silva", ex.merchant
+    assert_equal "Nu Pagamentos Franciane Cristina Teixeira", ex.instrument_phrase
+    assert ex.instrument_named?
+    assert_operator ex.overall_confidence, :>=, 0.80
+  end
+
   test "is_receipt=false yields no amount (soft ack / park)" do
     ex = Whatsapp::ReceiptExtractor.build("is_receipt" => false)
     assert_not ex.amount_present?
