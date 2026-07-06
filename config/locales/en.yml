@@ -947,6 +947,7 @@ en:
       title: "Activate WhatsApp"
       subtitle: "Activate WhatsApp to log expenses by audio, photo, or text."
       code_label: "Your activation code"
+      copy_code: "Copy code"
       instructions_html: "Send the word %{code} to our WhatsApp %{number} to activate."
       instructions_pending_html: "Send the word %{code} as soon as our number is live to activate."
       refresh: "Already sent — refresh"

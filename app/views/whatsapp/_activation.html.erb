@@ -15,9 +15,17 @@
         <h2 class="font-display text-lg font-bold"><%= t(".title") %></h2>
         <p class="mt-1 text-sm text-base-content/70"><%= t(".subtitle") %></p>
 
-        <div class="mt-4 rounded-box border border-base-300/70 bg-base-100 px-4 py-3">
+        <div class="mt-4 rounded-box border border-base-300/70 bg-base-100 px-4 py-3" data-controller="clipboard">
           <p class="text-xs font-medium uppercase tracking-wide text-base-content/45"><%= t(".code_label") %></p>
-          <p class="mt-0.5 select-all font-mono text-2xl font-extrabold tracking-widest text-primary"><%= code %></p>
+          <div class="mt-0.5 flex items-center justify-between gap-3">
+            <p data-clipboard-target="source" class="select-all font-mono text-2xl font-extrabold tracking-widest text-primary"><%= code %></p>
+            <button type="button" data-action="clipboard#copy"
+                    class="btn btn-ghost btn-sm btn-square shrink-0 text-base-content/50 hover:text-primary"
+                    aria-label="<%= t(".copy_code") %>" title="<%= t(".copy_code") %>">
+              <svg data-clipboard-target="copyIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2" /><path stroke-linecap="round" d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>
+              <svg data-clipboard-target="doneIcon" hidden xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+            </button>
+          </div>
         </div>
 
         <p class="mt-4 text-sm text-base-content/80">
