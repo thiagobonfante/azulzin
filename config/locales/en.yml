@@ -121,6 +121,9 @@ en:
               has_kept_incomes: "has active incomes — move them to another account before deleting."
         commitment:
           one_instrument: "must have exactly one account or card."
+          attributes:
+            installments_count:
+              below_paid: "must be at least %{count} — paid installments can't be removed."
         transaction:
           instrument_required: "Pick the account or card for this entry."
           attributes:
@@ -368,6 +371,7 @@ en:
       name: "Name"
       amount: "Amount"
       installments_count: "Installments"
+      installments_count_min: "Minimum %{count} — paid installments can't be removed."
       installments_paid: "Already paid"
       schedule_day: "Every month on the"
       schedule_day_optional: "Day (optional)"

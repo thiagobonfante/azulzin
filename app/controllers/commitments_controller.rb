@@ -38,7 +38,12 @@ class CommitmentsController < ApplicationController
 
   def update
     @commitment = Current.account.commitments.kept.find(params[:id])
-    if @commitment.update(commitment_update_params)
+    @commitment.assign_attributes(commitment_update_params)
+    saved = ActiveRecord::Base.transaction do
+      Commitments::AdjustCount.call(@commitment, params.dig(:commitment, :installments_count), by: Current.user) &&
+        @commitment.save || raise(ActiveRecord::Rollback)
+    end
+    if saved
       redirect_to commitment_path(@commitment), notice: t("commitments.show.updated")
     else
       render :show, status: :unprocessable_entity

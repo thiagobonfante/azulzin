@@ -189,6 +189,94 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_not fixed.reload.archived?
   end
 
+  # ── Editing installments_count: grow/shrink the plan, never below what's already paid ──
+
+  test "update grows a debit installment plan: count and total follow" do
+    c = @user.account.commitments.create!(bank_account: @account, name: "carro", kind: "installment",
+                                  amount_cents: 120_000, installments_count: 36, total_cents: 4_320_000,
+                                  schedule_day: 10, starts_on: Date.current.beginning_of_month)
+    patch commitment_url(c), params: { commitment: { name: "carro", installments_count: 38 } }
+    assert_redirected_to commitment_url(c)
+    c.reload
+    assert_equal 38, c.installments_count
+    assert_equal 120_000 * 38, c.total_cents
+  end
+
+  test "update can't shrink a debit plan below paid parcels; shrinking to exactly them ends it" do
+    month = Date.current.beginning_of_month
+    c = @user.account.commitments.create!(bank_account: @account, name: "carro", kind: "installment",
+                                  amount_cents: 120_000, installments_count: 10, total_cents: 1_200_000,
+                                  schedule_day: 10, starts_on: month)
+    Commitments::MarkPaid.call(c, month)
+    Commitments::MarkPaid.call(c, month >> 1)
+
+    patch commitment_url(c), params: { commitment: { name: "carro", installments_count: 1 } }
+    assert_response :unprocessable_entity
+    assert_equal 10, c.reload.installments_count
+
+    patch commitment_url(c), params: { commitment: { name: "carro", installments_count: 2 } }
+    assert_redirected_to commitment_url(c)
+    c.reload
+    assert_equal 2, c.installments_count
+    assert_nil c.next_charge_month, "plan shrunk to its paid parcels has nothing left to charge"
+  end
+
+  test "update respects presumed-paid parcels from mid-plan onboarding" do
+    c = @user.account.commitments.create!(bank_account: @account, name: "carro", kind: "installment",
+                                  amount_cents: 120_000, installments_count: 36, total_cents: 4_320_000,
+                                  schedule_day: 10, starts_on: Date.current.beginning_of_month << 5)
+    assert_equal 5, c.min_installments_count
+    patch commitment_url(c), params: { commitment: { name: "carro", installments_count: 4 } }
+    assert_response :unprocessable_entity
+    assert_equal 36, c.reload.installments_count
+  end
+
+  test "update grows a card installment: new parcels ride the following bills" do
+    c = Installments::Create.call(account: @user.account, created_by: @user, card: @card,
+                                  total_cents: 500_000, count: 10, occurred_on: Date.current, merchant: "celular")
+    patch commitment_url(c), params: { commitment: { name: "celular", installments_count: 12 } }
+    assert_redirected_to commitment_url(c)
+    c.reload
+    assert_equal 12, c.installments_count
+    assert_equal 12, c.payments.posted.kept.count
+    last = c.payments.posted.kept.order(:installment_number).last
+    assert_equal 12, last.installment_number
+    assert_equal c.starts_on >> 11, last.billing_month
+    assert_equal 600_000, c.total_cents
+  end
+
+  test "update shrinks a card installment: tail parcels are soft-deleted, total follows" do
+    c = Installments::Create.call(account: @user.account, created_by: @user, card: @card,
+                                  total_cents: 500_000, count: 10, occurred_on: Date.current, merchant: "celular")
+    patch commitment_url(c), params: { commitment: { name: "celular", installments_count: 8 } }
+    assert_redirected_to commitment_url(c)
+    c.reload
+    assert_equal 8, c.installments_count
+    assert_equal 8, c.payments.posted.kept.count
+    assert_equal 2, c.payments.soft_deleted.count
+    assert_equal 400_000, c.total_cents
+  end
+
+  test "update can't drop card parcels already on closed bills" do
+    c = Installments::Create.call(account: @user.account, created_by: @user, card: @card,
+                                  total_cents: 500_000, count: 10, occurred_on: Date.current << 4, merchant: "celular")
+    closed = c.payments.posted.kept.where(billing_month: ...@card.current_open_bill_month).count
+    assert_operator closed, :>=, 3
+    patch commitment_url(c), params: { commitment: { name: "celular", installments_count: 2 } }
+    assert_response :unprocessable_entity
+    assert_equal 10, c.reload.installments_count
+    assert_equal 10, c.payments.posted.kept.count
+  end
+
+  test "update leaves the count alone for non-installment kinds" do
+    fixed = @user.account.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
+                                      amount_cents: 100_000, schedule_day: 5, starts_on: Date.current)
+    patch commitment_url(fixed), params: { commitment: { name: "aluguel novo", installments_count: 12 } }
+    assert_redirected_to commitment_url(fixed)
+    assert_nil fixed.reload.installments_count
+    assert_equal "aluguel novo", fixed.name
+  end
+
   # ── No instruments (onboarding skipped): creation is blocked until an account/card exists ──
 
   def remove_instruments

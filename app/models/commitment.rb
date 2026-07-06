@@ -83,6 +83,21 @@ class Commitment < ApplicationRecord
 
   def posted_paid_count = payments.posted.kept.count
 
+  # Floor when editing installments_count: what's already paid can't be dropped. Debit counts
+  # presumed months + the furthest posted parcel (reverting a payment lowers it); card counts
+  # parcels on closed bills — the open bill's parcels can still be resized away.
+  def min_installments_count
+    return 1 unless installment?
+    floor =
+      if card?
+        payments.posted.kept.where(billing_month: ...credit_card.current_open_bill_month).maximum(:installment_number)
+      else
+        last_paid = payments.posted.kept.maximum(:billing_month)
+        [ presumed_paid_count, last_paid ? installment_no(last_paid) : 0 ].max
+      end
+    [ floor.to_i, 1 ].max
+  end
+
   # For the progress bar "%{paid} de %{count} pagas".
   def paid_count
     (presumed_paid_count + posted_paid_count).clamp(0, installments_count.to_i)

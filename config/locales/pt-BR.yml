@@ -122,6 +122,9 @@ pt-BR:
               has_kept_incomes: "tem entradas ativas — mova-as para outra conta antes de excluir."
         commitment:
           one_instrument: "deve ter exatamente uma conta ou um cartão."
+          attributes:
+            installments_count:
+              below_paid: "deve ser pelo menos %{count} — parcelas já pagas não podem ser removidas."
         transaction:
           instrument_required: "Escolha a conta ou o cartão do lançamento."
           attributes:
@@ -369,6 +372,7 @@ pt-BR:
       name: "Nome"
       amount: "Valor"
       installments_count: "Parcelas"
+      installments_count_min: "Mínimo %{count} — parcelas já pagas não podem ser removidas."
       installments_paid: "Já pagas"
       schedule_day: "Todo dia"
       schedule_day_optional: "Dia (opcional)"

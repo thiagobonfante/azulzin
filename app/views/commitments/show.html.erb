@@ -14,7 +14,7 @@
 
     <%# Actions — edit, quitar (installments on debit) and encerrar, up top where they're visible. %>
     <div class="flex shrink-0 items-center gap-1">
-      <details class="dropdown dropdown-end" data-controller="dropdown">
+      <details class="dropdown dropdown-end" data-controller="dropdown" <%= "open" if @commitment.errors.any? %>>
         <summary class="btn btn-ghost btn-sm btn-square tooltip tooltip-bottom text-base-content/50 hover:text-primary"
                  data-tip="<%= t("commitments.show.edit") %>" aria-label="<%= t("commitments.show.edit") %>">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
@@ -22,8 +22,20 @@
         <div class="dropdown-content z-40 mt-1 w-80 rounded-box border border-base-300/70 bg-base-100 p-4 shadow-lg">
           <h2 class="mb-3 text-sm font-semibold"><%= t("commitments.show.edit") %></h2>
           <%= form_with model: @commitment, url: commitment_path(@commitment), method: :patch, class: "grid gap-3" do |f| %>
+            <% if @commitment.errors.any? %>
+              <p class="text-xs text-error"><%= @commitment.errors.full_messages.to_sentence %></p>
+            <% end %>
             <div class="form-control"><%= f.label :name, t("commitments.form.name"), class: "mb-1 text-xs" %><%= f.text_field :name, class: "input input-bordered input-sm w-full" %></div>
             <div class="form-control"><%= f.label :amount_reais, t("commitments.form.amount"), class: "mb-1 text-xs" %><%= f.text_field :amount_reais, inputmode: "decimal", class: "input input-bordered input-sm w-full" %></div>
+            <% if @commitment.installment? %>
+              <div class="form-control">
+                <%= f.label :installments_count, t("commitments.form.installments_count"), class: "mb-1 text-xs" %>
+                <%= f.number_field :installments_count, min: @commitment.min_installments_count, class: "input input-bordered input-sm w-full" %>
+                <% if @commitment.min_installments_count > 1 %>
+                  <p class="mt-1 text-xs text-base-content/50"><%= t("commitments.form.installments_count_min", count: @commitment.min_installments_count) %></p>
+                <% end %>
+              </div>
+            <% end %>
             <div class="form-control"><%= f.label :schedule_day, t("commitments.form.schedule_day"), class: "mb-1 text-xs" %><%= f.select :schedule_day, (1..31).to_a, { include_blank: t("commitments.form.schedule_day_optional") }, class: "select select-bordered select-sm w-full" %></div>
             <div class="form-control">
               <label class="mb-1 text-xs"><%= t("transactions.row.category") %></label>
