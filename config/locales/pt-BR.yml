@@ -746,9 +746,9 @@ pt-BR:
       rename_title: "Nome da conta"
       rename_submit: "Salvar"
       danger_title: "Zona de perigo"
-      delete_hint: "Excluir a conta e todos os dados. Isso não pode ser desfeito."
+      delete_hint: "Excluir a conta e todos os dados, incluindo o acesso de todos os membros. Isso não pode ser desfeito."
       delete_submit: "Excluir conta"
-      delete_confirm: "Excluir esta conta e TODOS os dados financeiros, de todos os membros?"
+      delete_confirm: "Excluir esta conta e TODOS os dados, incluindo o acesso de todos os membros?"
       leave_title: "Sair da conta"
       leave_hint: "Você recebe uma conta nova e vazia; os dados compartilhados ficam aqui."
     update:

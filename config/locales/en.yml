@@ -745,9 +745,9 @@ en:
       rename_title: "Account name"
       rename_submit: "Save"
       danger_title: "Danger zone"
-      delete_hint: "Delete the account and all its data. This cannot be undone."
+      delete_hint: "Delete the account and all its data, including every member's login. This cannot be undone."
       delete_submit: "Delete account"
-      delete_confirm: "Delete this account and ALL its financial data, for every member?"
+      delete_confirm: "Delete this account and ALL its data, including every member's login?"
       leave_title: "Leave account"
       leave_hint: "You'll get a fresh empty account; shared data stays here."
     update:

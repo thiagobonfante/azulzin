@@ -33,15 +33,21 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "account deletion signs out EVERY member and cascades the financial data" do
+  test "account deletion erases EVERY member's user and cascades the financial data" do
     member_session = @member_user.sessions.create!
     bank = @account.bank_accounts.create!(institution: Institution.find_by(code: "260"))
     sign_in_as(@owner)
-    assert_difference -> { Account.count }, -1 do
+    assert_difference -> { Account.count } => -1, -> { User.count } => -2 do
       delete account_url
     end
+    assert_not User.exists?(@owner.id), "the deleting owner's login is erased"
+    assert_not User.exists?(@member_user.id), "the co-member's login is erased"
     assert_not Session.exists?(member_session.id), "the co-member's live session is terminated"
     assert_not BankAccount.exists?(bank.id), "financial data cascaded off the account"
+    assert_redirected_to new_session_path
+
+    # Nobody can reconnect: the old credentials no longer resolve to a user.
+    post session_url, params: { email_address: @owner.email_address, password: "password" }
     assert_redirected_to new_session_path
   end
 end

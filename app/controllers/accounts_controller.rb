@@ -23,11 +23,12 @@ class AccountsController < ApplicationController
   def destroy  # LGPD cascade — the ordered dependent: :destroy chain lives on Account (D8)
     account = Current.account
     ApplicationRecord.transaction do
-      # EVERY member's sessions die with the account, not just the deleting owner's: a surviving
-      # spouse's live session would otherwise resolve Current.account to nil and 500 on every
-      # page. Signed out, their next sign-in mints a fresh solo account (doc 06 §2).
-      account.users.find_each { |member| member.sessions.destroy_all }
+      # "Todos os dados" includes the logins: EVERY member User dies with the account
+      # (sessions + OAuth identities cascade off User), so nobody can sign back in. A
+      # surviving User would otherwise mint a fresh solo account on the next sign-in.
+      members = account.users.to_a
       account.destroy!
+      members.each(&:destroy!)
     end
     cookies.delete(:session_id)   # own session row is already gone with the rest
     redirect_to new_session_path, notice: t(".deleted"), status: :see_other
