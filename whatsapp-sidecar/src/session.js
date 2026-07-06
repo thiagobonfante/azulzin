@@ -101,18 +101,7 @@ class SessionService {
     client.on('ready', async () => {
       this.logger.info('Client ready');
       try {
-        const info = this.client.info || {};
-        this.status = 'connected';
-        this.phoneNumber = info.wid ? info.wid.user : null;
-        this.platform = info.platform || null;
-        this.pushname = info.pushname || null;
-        this.connectedAt = Math.floor(Date.now() / 1000); // WhatsApp timestamps are unix seconds
-        this.qrDataUrl = null;
-        await this.webhook.notify('connected', {
-          phone_number: this.phoneNumber,
-          platform: this.platform,
-          pushname: this.pushname,
-        });
+        await this._markConnected('ready');
       } catch (err) {
         this.logger.error('Error handling ready event:', err);
       }
@@ -324,14 +313,37 @@ class SessionService {
     }
   }
 
-  // --- Zombie-session guard ------------------------------------------------
-  // Poll getState() periodically. If in-memory status says 'connected' but the
-  // real link is down, flip to 'disconnected' and notify so the admin panel lights up.
+  // Set connected state + notify Rails. Shared by the `ready` event and the state reconciler
+  // below (whatsapp-web.js does not always fire `ready`, so we cannot rely on it alone).
+  async _markConnected(reason) {
+    const info = (this.client && this.client.info) || {};
+    this.status = 'connected';
+    this.phoneNumber = info.wid ? info.wid.user : this.phoneNumber || null;
+    this.platform = info.platform || this.platform || null;
+    this.pushname = info.pushname || this.pushname || null;
+    this.connectedAt = Math.floor(Date.now() / 1000); // WhatsApp timestamps are unix seconds
+    this.qrDataUrl = null;
+    this.logger.info(`Marking connected (via ${reason}); phone=${this.phoneNumber}`);
+    await this.webhook.notify('connected', {
+      phone_number: this.phoneNumber,
+      platform: this.platform,
+      pushname: this.pushname,
+    });
+  }
 
-  startZombieGuard(intervalMs = 120000) {
+  // --- Connection-state reconciler -----------------------------------------
+  // Poll getState() periodically and reconcile our in-memory status with the real link:
+  //   * getState() CONNECTED but status not 'connected'  → promote. whatsapp-web.js
+  //     sometimes never fires `ready`, stranding us at 'authenticated'/'initializing' even
+  //     though the socket is up; mirror the `ready` handler so the admin panel lights up and
+  //     connectedAt is set (the historical-message filter needs it).
+  //   * status 'connected' but getState() not CONNECTED  → demote to 'disconnected' (zombie
+  //     session), so the admin panel reflects the dead link.
+
+  startZombieGuard(intervalMs = 20000) {
     if (this.zombieTimer) return;
     this.zombieTimer = setInterval(() => {
-      this._checkZombie().catch((err) => this.logger.error('Zombie check error:', err.message));
+      this._reconcileState().catch((err) => this.logger.error('State reconcile error:', err.message));
     }, intervalMs);
     if (this.zombieTimer.unref) this.zombieTimer.unref();
   }
@@ -343,10 +355,18 @@ class SessionService {
     }
   }
 
-  async _checkZombie() {
-    if (this.status !== 'connected' || !this.client) return;
-    const state = await this.getState();
-    if (state !== 'CONNECTED') {
+  async _reconcileState() {
+    if (!this.client) return;
+    let state;
+    try {
+      state = await this.getState();
+    } catch (err) {
+      return; // transient (client still loading); try again next tick
+    }
+    if (state === 'CONNECTED' && this.status !== 'connected') {
+      this.logger.warn(`State reconcile: getState()=CONNECTED but status '${this.status}' — marking connected (missed 'ready').`);
+      await this._markConnected('state_check');
+    } else if (state !== 'CONNECTED' && this.status === 'connected') {
       this.logger.warn(`Zombie session detected: status 'connected' but getState() = ${state}`);
       this.status = 'disconnected';
       await this.webhook.notify('disconnected', { reason: 'zombie_state_check' });

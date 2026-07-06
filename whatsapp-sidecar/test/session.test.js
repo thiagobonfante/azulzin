@@ -154,7 +154,7 @@ describe('SessionService zombie guard', () => {
     await session.initialize(); // attaches the mock client
     session.status = 'connected';
 
-    await session._checkZombie();
+    await session._reconcileState();
 
     expect(session.status).toBe('disconnected');
     expect(webhook.notify).toHaveBeenCalledWith('disconnected', { reason: 'zombie_state_check' });
@@ -165,10 +165,25 @@ describe('SessionService zombie guard', () => {
     await session.initialize(); // default mock getState() resolves 'CONNECTED'
     session.status = 'connected';
 
-    await session._checkZombie();
+    await session._reconcileState();
 
     expect(session.status).toBe('connected');
     expect(webhook.notify).not.toHaveBeenCalled();
+  });
+
+  test('promotes authenticated → connected when getState() is CONNECTED but `ready` never fired', async () => {
+    const { session, webhook } = makeSession(); // default mock getState() resolves 'CONNECTED'
+    await session.initialize();
+    session.status = 'authenticated'; // stuck: authenticated but `ready` was never emitted
+
+    await session._reconcileState();
+
+    expect(session.status).toBe('connected');
+    expect(typeof session.connectedAt).toBe('number');
+    expect(webhook.notify).toHaveBeenCalledWith(
+      'connected',
+      expect.objectContaining({ phone_number: '5511999999999' })
+    );
   });
 });
 
