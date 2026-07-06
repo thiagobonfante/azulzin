@@ -4,11 +4,11 @@
 # definitions. One formula, three modes: projection terms (⏳) exist for current/future and are
 # dropped for past. See .plans/transactions/01-domain-model.md §7.
 class MonthSummary
-  attr_reader :user, :month
+  attr_reader :account, :month
 
-  def initialize(user, month)
-    @user  = user
-    @month = month.beginning_of_month
+  def initialize(account, month)
+    @account = account
+    @month   = month.beginning_of_month
   end
 
   # :past | :current | :future — vs today in America/Sao_Paulo.
@@ -44,7 +44,7 @@ class MonthSummary
 
   # §7.2 — { credit_card => cents } composed bill figure per card.
   def bill_totals
-    @bill_totals ||= user.credit_cards.index_with { |card| card.bill_cents(@month) }
+    @bill_totals ||= account.credit_cards.kept.index_with { |card| card.bill_cents(@month) }
   end
 
   # §7.1 — { bank_account_id => cents|nil } derived balance ("now", month-independent).
@@ -75,9 +75,9 @@ class MonthSummary
   end
 
   private
-    def posted = user.transactions.posted_in(@month)
+    def posted = account.transactions.posted_in(@month)   # posted_in already carries .kept
 
-    def bank_accounts = @bank_accounts ||= user.bank_accounts.includes(:institution).order(:created_at).to_a
+    def bank_accounts = @bank_accounts ||= account.bank_accounts.kept.includes(:institution).order(:created_at).to_a
 
     def savings_account_ids = @savings_account_ids ||= bank_accounts.select(&:savings?).map(&:id)
 
@@ -88,7 +88,7 @@ class MonthSummary
 
     def expected_incomes_cents
       return 0 unless projecting?
-      user.incomes.active.reject { |i| income_received?(i) }.sum(&:amount_cents)
+      account.incomes.kept.active.reject { |i| income_received?(i) }.sum(&:amount_cents)
     end
 
     # §7.4 — card spend settles through §7.2; count the row AND its fatura would double-count.
@@ -102,7 +102,7 @@ class MonthSummary
     end
 
     def debit_commitments
-      @debit_commitments ||= user.commitments.active.where.not(bank_account_id: nil).to_a
+      @debit_commitments ||= account.commitments.kept.active.where.not(bank_account_id: nil).to_a
     end
 
     def unlinked_income_rows

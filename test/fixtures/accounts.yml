@@ -1,0 +1,13 @@
+# One account per users.yml key so `fixtures :all` keeps every existing test green (spine D1).
+# members_count is set explicitly (fixtures bypass the counter_cache); the CHECK allows 0..4.
+confirmed:
+  name: "Família Confirmed"
+  members_count: 1
+
+unconfirmed:
+  name: "Família Unconfirmed"
+  members_count: 1
+
+english:
+  name: "English Household"
+  members_count: 1

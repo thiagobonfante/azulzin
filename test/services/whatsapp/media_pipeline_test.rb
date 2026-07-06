@@ -6,7 +6,7 @@ class Whatsapp::MediaPipelineTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
     @user.update!(whatsapp_id: "5511999998888", phone_verified_at: Time.current, phone: "5511999998888")
-    @card = CreditCard.create!(user: @user, institution: Institution.find_by(code: "260")) # Nubank
+    @card = CreditCard.create!(account: @user.account, institution: Institution.find_by(code: "260")) # Nubank
   end
 
   def inbound(type, content_type, filename)
@@ -38,7 +38,7 @@ class Whatsapp::MediaPipelineTest < ActiveSupport::TestCase
 
     assert_equal "gastei 13,23 no cartão Nubank", msg.reload.transcription
     assert_equal "gastei 13,23 no cartão Nubank", seen_text        # transcript flows into extraction
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert txn.posted?
     assert_equal "whatsapp_audio", txn.source
     assert_equal @card, txn.credit_card
@@ -55,7 +55,7 @@ class Whatsapp::MediaPipelineTest < ActiveSupport::TestCase
       end
     end
 
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert txn.posted?
     assert_equal @card, txn.credit_card          # kind_only match (crédito + one card)
     assert_equal 1_435, txn.amount_cents

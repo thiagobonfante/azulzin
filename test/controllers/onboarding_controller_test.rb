@@ -46,11 +46,11 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_not @user.reload.onboarded?
   end
 
-  def add_account = @account ||= @user.bank_accounts.create!(institution: @nubank)
+  def add_account = @account ||= @user.account.bank_accounts.create!(institution: @nubank)
 
   def add_income
     add_account
-    @user.incomes.create!(bank_account: @account, name: "salário", amount_cents: 450_000,
+    @user.account.incomes.create!(bank_account: @account, name: "salário", amount_cents: 450_000,
                           schedule_kind: "fixed_day", schedule_day: 5)
   end
 
@@ -138,7 +138,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
 
   test "deleting the only account after advancing blocks finishing" do
     complete_profile
-    account = @user.bank_accounts.create!(institution: @nubank)   # advances to the cards step
+    account = @user.account.bank_accounts.create!(institution: @nubank)   # advances to the cards step
     account.destroy                                                # …then the account is removed
     patch onboarding_step_url("cards")
     assert_redirected_to onboarding_step_url("accounts")

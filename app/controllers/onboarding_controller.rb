@@ -41,9 +41,9 @@ class OnboardingController < ApplicationController
     # and the furthest a deep link may jump.
     def resume_step
       user = Current.user
-      return "profile"  if user.name.blank? || user.phone.blank?
-      return "accounts" if user.bank_accounts.none?
-      return "incomes"  if user.incomes.none?
+      return "profile"  if user.name.blank? || user.phone.blank?             # profile stays per-user
+      return "accounts" if Current.account.bank_accounts.kept.none?          # account data (D5)
+      return "incomes"  if Current.account.incomes.kept.none?
       "cards"
     end
 
@@ -61,15 +61,15 @@ class OnboardingController < ApplicationController
         prepare_whatsapp_activation if @user.phone.present?
         render :profile
       when "accounts"
-        @bank_accounts = Current.user.bank_accounts.includes(:institution).order(:created_at)
+        @bank_accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at)
         @bank_account  = BankAccount.new
         render :accounts
       when "incomes"
-        @incomes = Current.user.incomes.active.includes(:bank_account).order(:created_at)
+        @incomes = Current.account.incomes.kept.active.includes(:bank_account).order(:created_at)
         @income  = Income.new
         render :incomes
       when "cards"
-        @credit_cards = Current.user.credit_cards.includes(:institution).order(:created_at)
+        @credit_cards = Current.account.credit_cards.kept.includes(:institution).order(:created_at)
         @credit_card  = CreditCard.new
         render :cards
       end
@@ -85,7 +85,7 @@ class OnboardingController < ApplicationController
     end
 
     def advance_from_accounts
-      if Current.user.bank_accounts.any?
+      if Current.account.bank_accounts.kept.any?
         redirect_to onboarding_step_path("incomes")
       else
         redirect_to onboarding_step_path("accounts"), alert: t("onboarding.accounts.need_one")
@@ -93,7 +93,7 @@ class OnboardingController < ApplicationController
     end
 
     def advance_from_incomes
-      if Current.user.incomes.any?
+      if Current.account.incomes.kept.any?
         redirect_to onboarding_step_path("cards")
       else
         redirect_to onboarding_step_path("incomes"), alert: t("onboarding.incomes.need_one")

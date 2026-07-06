@@ -12,7 +12,7 @@ module Whatsapp
 
     def call
       month = Whatsapp::MonthPhrase.parse(@extraction.target_bill_raw, reference: sp_today)
-      candidates = user.commitments.active.select { |c| c.active_in?(month) }
+      candidates = account.commitments.kept.active.select { |c| c.active_in?(month) }
       scored = candidates.map { |c| [ c, similarity(c) ] }.sort_by { |(_, s)| -s }
       top, top_score = scored.first || [ nil, 0.0 ]
       second = scored[1]&.last || 0.0
@@ -41,7 +41,8 @@ module Whatsapp
       return reply("commitment_already_paid", name: commitment.name, month: month_label(month)) if commitment.paid_in?(month)
 
       amount = (Money.to_cents(@extraction.amount_raw) if @extraction.amount_present?)
-      txn = Commitments::MarkPaid.call(commitment, month, amount: amount, source_message_id: @msg.wa_message_id, whatsapp_message: @msg)
+      txn = Commitments::MarkPaid.call(commitment, month, amount: amount, created_by: @msg.user,
+                                       source_message_id: @msg.wa_message_id, whatsapp_message: @msg)
       if commitment.installment?
         remaining = commitment.installments_count - commitment.installment_no(month)
         reply("commitment_paid", txn: txn, name: commitment.name, amount: currency(txn.amount_cents),
@@ -55,7 +56,7 @@ module Whatsapp
     def ask_pick(scored, month)
       options = scored.map(&:first).first(5)
       stub = Transaction.find_or_create_by!(source_message_id: @msg.wa_message_id) do |t|
-        t.user = user; t.whatsapp_message = @msg; t.source = @extraction.source
+        t.account = account; t.created_by = @msg.user; t.whatsapp_message = @msg; t.source = @extraction.source
         t.amount_cents = 0; t.direction = "expense"; t.status = "needs_disambiguation"
         t.occurred_on = sp_today; t.billing_month = sp_today.beginning_of_month
         t.ask = { "slot" => "commitment_pick", "options" => options.map(&:id), "month" => month.strftime("%Y-%m-%d") }

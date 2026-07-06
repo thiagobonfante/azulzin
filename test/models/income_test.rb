@@ -3,11 +3,11 @@ require "test_helper"
 class IncomeTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
-    @account = BankAccount.create!(user: @user, institution: Institution.find_by(code: "260"))
+    @account = BankAccount.create!(account: @user.account, institution: Institution.find_by(code: "260"))
   end
 
   def build(**attrs)
-    Income.new({ user: @user, bank_account: @account, name: "salário", amount_cents: 450_000,
+    Income.new({ account: @user.account, bank_account: @account, name: "salário", amount_cents: 450_000,
                  schedule_kind: "fixed_day", schedule_day: 5 }.merge(attrs))
   end
 
@@ -36,7 +36,7 @@ class IncomeTest < ActiveSupport::TestCase
   test "received_in? becomes true once a posted receipt lands in the month" do
     inc = build; inc.save!
     assert_not inc.received_in?(Date.new(2026, 7, 1))
-    Transaction.create!(user: @user, bank_account: @account, income: inc, direction: "income",
+    Transaction.create!(account: @user.account, bank_account: @account, income: inc, direction: "income",
                         status: "posted", amount_cents: 450_000, occurred_on: Date.new(2026, 7, 5))
     assert inc.received_in?(Date.new(2026, 7, 1))
   end

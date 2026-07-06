@@ -4,19 +4,14 @@ class User < ApplicationRecord
   # find_by_password_reset_token! remain available (verified in activemodel 8.1.3).
   has_secure_password validations: false
 
+  has_one  :account_membership, dependent: :destroy
+  has_one  :account, through: :account_membership
   has_many :sessions,          dependent: :destroy
   has_many :oauth_identities,  dependent: :destroy   # table added in Phase 4
-  # LGPD cascade order matters: commitments/incomes reference accounts/cards/categories with
-  # NO-ACTION FKs (and incomes are restrict_with_error on their account), so they must be
-  # destroyed BEFORE the instruments they point at.
-  has_many :commitments,       dependent: :destroy   # R10/R11 — reference accounts/cards/categories
-  has_many :incomes,           dependent: :destroy   # R1 — reference (and restrict) their account
-  has_many :categories,        dependent: :destroy   # R6 — referenced by commitments (already gone)
-  has_many :bank_accounts,     dependent: :destroy
-  has_many :credit_cards,      dependent: :destroy
-  has_many :transactions,      dependent: :destroy   # WhatsApp/manual money movements
-  has_many :whatsapp_messages, dependent: :destroy   # LGPD: deleting a user erases their WA history
-  has_many :document_imports,  dependent: :destroy   # .plans/auto — uploaded extratos/faturas + proposals
+  # The 7 domain tables now belong to the Account (spine D2); the LGPD cascade lives on
+  # Account. No reverse has_many here — attribution reverse-lookups, if ever needed, go
+  # through explicit queries; we don't ship speculative associations.
+  has_many :whatsapp_messages, dependent: :nullify   # sender attribution survives as NULL (D8)
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   # Phone is stored as E.164 digits (country code + national number). The profile form
@@ -65,13 +60,16 @@ class User < ApplicationRecord
   # categories (idempotent) as part of finishing.
   def onboarded? = onboarded_at.present?
   def onboard!
-    Categories::SeedDefaults.call(self)
+    # First seeder's locale sticks: any kept category ⇒ the account is already seeded (or
+    # curated) — never reseed, especially not in a second language (doc 03 / D5).
+    Categories::SeedDefaults.call(account, locale: locale) if account.categories.kept.none?
     update!(onboarded_at: Time.current)
   end
 
   # Import proposals still awaiting a decision — drives the derived hub nudge (.plans/auto, D6).
+  # Imports belong to the account now (spine D2), so count over the shared account's imports.
   def proposed_import_count
-    document_imports.awaiting_review.sum { it.proposed_items.size }
+    account.document_imports.awaiting_review.sum { it.proposed_items.size }
   end
 
   # Step 1 of the wizard. Validates name/phone in the :profile context only, leaving
@@ -113,6 +111,9 @@ class User < ApplicationRecord
           password:      SecureRandom.base58(32),
           confirmed_at:  (Time.current if verified)
         )
+        # Non-invite OAuth signup owns a fresh solo Account (Phase 4 gates this on an invite
+        # token via skip_account_bootstrap:); the link branch already has one / gets the fallback.
+        Accounts::Bootstrap.call(user)
       end
       user.oauth_identities.create!(provider: auth.provider, uid: auth.uid)
       user

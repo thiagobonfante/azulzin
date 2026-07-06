@@ -7,12 +7,12 @@ class IncomesController < ApplicationController
   helper_method :viewed_month, :summary, :month_ledger
 
   def index
-    @incomes = Current.user.incomes.active.includes(:bank_account).order(:created_at)
+    @incomes = Current.account.incomes.kept.active.includes(:bank_account).order(:created_at)
     @income  = Income.new
   end
 
   def create
-    @income = Current.user.incomes.build(sanitized_income_params)
+    @income = Current.account.incomes.build(sanitized_income_params)
     saved = @income.save
     respond_to do |format|
       format.turbo_stream { render :create, status: (saved ? :ok : :unprocessable_entity) }
@@ -25,11 +25,11 @@ class IncomesController < ApplicationController
 
   # Full-page edit — name, amount, destination account and schedule.
   def edit
-    @income = Current.user.incomes.find(params[:id])
+    @income = Current.account.incomes.kept.find(params[:id])
   end
 
   def update
-    @income = Current.user.incomes.find(params[:id])
+    @income = Current.account.incomes.kept.find(params[:id])
     if @income.update(sanitized_income_params)
       redirect_to incomes_path, notice: t(".updated")
     else
@@ -38,7 +38,7 @@ class IncomesController < ApplicationController
   end
 
   def destroy
-    @income = Current.user.incomes.find(params[:id])
+    @income = Current.account.incomes.kept.find(params[:id])
     @income.destroy
     respond_to do |format|
       format.turbo_stream
@@ -49,9 +49,9 @@ class IncomesController < ApplicationController
   # Hub card "A receber no mês": mark this month's expected deposit received — one posted
   # income transaction (income_id link), so it joins the account balance and the entradas.
   def receive
-    @income = Current.user.incomes.active.find(params[:id])
+    @income = Current.account.incomes.kept.active.find(params[:id])
     Incomes::MarkReceived.call(@income, viewed_month) unless summary.income_received?(@income)
-    @summary = MonthSummary.new(Current.user, viewed_month)   # rebuild: the receipt changes the figures
+    @summary = MonthSummary.new(Current.account, viewed_month)   # rebuild: the receipt changes the figures
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to transactions_path(month: viewed_month.strftime("%Y-%m")), notice: t(".received") }
@@ -66,7 +66,7 @@ class IncomesController < ApplicationController
     # Reject a forged bank_account_id pointing at another user's account (belongs_to then fails).
     def sanitized_income_params
       attrs = income_params.to_h
-      if attrs["bank_account_id"].present? && !Current.user.bank_accounts.exists?(attrs["bank_account_id"])
+      if attrs["bank_account_id"].present? && !Current.account.bank_accounts.kept.exists?(attrs["bank_account_id"])
         attrs["bank_account_id"] = nil
       end
       attrs
@@ -81,10 +81,10 @@ class IncomesController < ApplicationController
       @viewed_month ||= (parse_month(params[:month]) || Date.current.in_time_zone("America/Sao_Paulo").to_date.beginning_of_month)
     end
 
-    def summary = @summary ||= MonthSummary.new(Current.user, viewed_month)
+    def summary = @summary ||= MonthSummary.new(Current.account, viewed_month)
 
     def month_ledger
-      Current.user.transactions.posted_in(viewed_month)
+      Current.account.transactions.posted_in(viewed_month)
              .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment)
              .order(occurred_on: :desc, id: :desc)
     end

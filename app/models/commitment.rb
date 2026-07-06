@@ -6,8 +6,8 @@
 # a payment is an ordinary posted transaction linked by commitment_id. See 01-domain-model.md §5.
 class Commitment < ApplicationRecord
   include MoneyColumns
+  include AccountScoped, Attributable, SoftDeletable
 
-  belongs_to :user
   belongs_to :bank_account, optional: true
   belongs_to :credit_card,  optional: true
   belongs_to :category,     optional: true
@@ -54,7 +54,7 @@ class Commitment < ApplicationRecord
   end
 
   # Has a posted payment for M been recorded? (Unique per (commitment, billing_month), §3.)
-  def paid_in?(month) = payments.posted.where(billing_month: month).exists?
+  def paid_in?(month) = payments.posted.kept.where(billing_month: month).exists?
 
   # The next month with an unpaid occurrence, from `from` (default: this month) — a paid
   # current parcel advances "Próximo" to the following one. nil when none remain.
@@ -81,7 +81,7 @@ class Commitment < ApplicationRecord
     months.clamp(0, installments_count)
   end
 
-  def posted_paid_count = payments.posted.count
+  def posted_paid_count = payments.posted.kept.count
 
   # For the progress bar "%{paid} de %{count} pagas".
   def paid_count
@@ -91,7 +91,7 @@ class Commitment < ApplicationRecord
   # "Faltam %{amount}" = total − (presumed months + posted payments/parcels).
   def remaining_cents
     return nil unless installment? && total_cents
-    paid_value = presumed_paid_count * amount_cents + payments.posted.sum(:amount_cents)
+    paid_value = presumed_paid_count * amount_cents + payments.posted.kept.sum(:amount_cents)
     [ total_cents - paid_value, 0 ].max
   end
 

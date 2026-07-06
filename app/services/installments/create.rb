@@ -3,9 +3,10 @@ module Installments
   # under one Commitment(kind: "installment") parent. Called by both the in-app form and the
   # WhatsApp decider. Idempotent on the parent's source_message_id. See 02 §4 / 01 §6.
   class Create
-    def self.call(user:, card:, total_cents:, count:, occurred_on:, merchant:,
+    def self.call(account:, created_by:, card:, total_cents:, count:, occurred_on:, merchant:,
                   category_id: nil, source_message_id: nil, whatsapp_message: nil)
-      if source_message_id && (existing = user.commitments.find_by(source_message_id: source_message_id))
+      # Idempotency finder stays unscoped by soft delete (source_message_id replay must no-op).
+      if source_message_id && (existing = account.commitments.find_by(source_message_id: source_message_id))
         return existing # replay ⇒ zero new rows
       end
 
@@ -13,7 +14,8 @@ module Installments
       amounts    = split_cents(total_cents, count)
 
       ActiveRecord::Base.transaction do
-        commitment = user.commitments.create!(
+        commitment = account.commitments.create!(
+          created_by: created_by,   # explicit: this may run in a WhatsApp job (Current is nil)
           credit_card: card, name: merchant.presence || I18n.t("commitments.default_installment_name"),
           kind: "installment", amount_cents: amounts.first, total_cents: total_cents,
           installments_count: count, schedule_kind: "fixed_day", schedule_day: nil,
@@ -21,7 +23,8 @@ module Installments
           source_message_id: source_message_id, category_id: category_id
         )
         amounts.each_with_index do |cents, i|
-          user.transactions.create!(
+          account.transactions.create!(
+            created_by: created_by,
             commitment: commitment, credit_card: card, direction: "expense", status: "posted",
             payment_method: "credito", confirmed_at: Time.current, amount_cents: cents,
             occurred_on: occurred_on, merchant: merchant, installment_number: i + 1,

@@ -53,6 +53,7 @@ module Api
           m.body         = data["body"]
           m.status       = "received"
           m.user         = user
+          m.account      = user.account   # D6: stamp tenancy at the edge
         end
         # Capture "newly created" BEFORE attach_media — attaching media re-saves the record,
         # which flips previously_new_record? to false and would skip the enqueue for every

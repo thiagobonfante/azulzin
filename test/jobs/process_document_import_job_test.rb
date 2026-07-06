@@ -96,7 +96,7 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
   end
 
   test "over the daily cap fails without processing" do
-    10.times { @user.document_imports.new(checksum: SecureRandom.hex).save!(validate: false) }
+    10.times { @user.account.document_imports.new(checksum: SecureRandom.hex).save!(validate: false) }
     import = upload("nubank.ofx", "application/x-ofx")
     ProcessDocumentImportJob.perform_now(import.id)
     assert_equal "failed", import.reload.status
@@ -115,7 +115,7 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
   end
 
   def build_import
-    import = @user.document_imports.new(checksum: SecureRandom.hex)
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex)
     yield import
     import.save!
     import

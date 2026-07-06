@@ -6,13 +6,13 @@ class CommitmentsController < ApplicationController
   before_action :require_onboarding, only: %i[index show]
 
   def index
-    @commitments = Current.user.commitments.active.includes(:bank_account, :credit_card, :category).order(:kind, :created_at)
-    @archived    = Current.user.commitments.where.not(archived_at: nil).includes(:bank_account, :credit_card)
+    @commitments = Current.account.commitments.kept.active.includes(:bank_account, :credit_card, :category).order(:kind, :created_at)
+    @archived    = Current.account.commitments.kept.where.not(archived_at: nil).includes(:bank_account, :credit_card)
     @commitment  = Commitment.new
   end
 
   def show
-    @commitment = Current.user.commitments.find(params[:id])
+    @commitment = Current.account.commitments.kept.find(params[:id])
   end
 
   def create
@@ -36,7 +36,7 @@ class CommitmentsController < ApplicationController
   end
 
   def update
-    @commitment = Current.user.commitments.find(params[:id])
+    @commitment = Current.account.commitments.kept.find(params[:id])
     if @commitment.update(commitment_update_params)
       redirect_to commitment_path(@commitment), notice: t("commitments.show.updated")
     else
@@ -48,7 +48,7 @@ class CommitmentsController < ApplicationController
   # paying everything upfront usually means a discount, so the value is the user's — then the
   # plan is archived (occurrences stop, history kept).
   def settle
-    @commitment = Current.user.commitments.find(params[:id])
+    @commitment = Current.account.commitments.kept.find(params[:id])
     amount = Money.to_cents(params[:amount_reais])
     if @commitment.installment? && !@commitment.card? && amount.to_i.positive? && @commitment.next_charge_month
       Commitments::Settle.call(@commitment, amount)
@@ -61,7 +61,7 @@ class CommitmentsController < ApplicationController
   # Pay several selected parcels at once: the typed total is what the user actually handed
   # over (early batches usually carry a discount) — PayBatch splits it across the months.
   def pay_batch
-    @commitment = Current.user.commitments.find(params[:id])
+    @commitment = Current.account.commitments.kept.find(params[:id])
     months = Array(params[:months]).filter_map { |m| parse_month(m) }
     amount = Money.to_cents(params[:amount_reais])
     if @commitment.card? || months.empty? || !amount.to_i.positive?
@@ -74,7 +74,7 @@ class CommitmentsController < ApplicationController
   # Hard delete only when no posted payments exist (don't orphan visible history); otherwise
   # archive — history kept, occurrences stop.
   def destroy
-    @commitment = Current.user.commitments.find(params[:id])
+    @commitment = Current.account.commitments.kept.find(params[:id])
     if @commitment.payments.posted.exists?
       @commitment.update!(archived_at: Time.current)
     else
@@ -96,7 +96,7 @@ class CommitmentsController < ApplicationController
 
     def build_commitment(instrument)
       p = commitment_params
-      c = Current.user.commitments.new(name: p[:name], kind: p[:kind], amount_reais: p[:amount_reais],
+      c = Current.account.commitments.new(name: p[:name], kind: p[:kind], amount_reais: p[:amount_reais],
                                        schedule_day: p[:schedule_day].presence,
                                        category_id: sanitized_category(p[:category_id]))
       assign_commitment_instrument(c, instrument)
@@ -118,9 +118,10 @@ class CommitmentsController < ApplicationController
       count  = p[:installments_count].to_i
       parcel = Money.to_cents(p[:amount_reais]).to_i
       if count < 1 || parcel < 1
-        return Current.user.commitments.new(kind: "installment", credit_card: card).tap { |c| c.valid? }
+        return Current.account.commitments.new(kind: "installment", credit_card: card).tap { |c| c.valid? }
       end
-      Installments::Create.call(user: Current.user, card: card, total_cents: parcel * count, count: count,
+      Installments::Create.call(account: Current.account, created_by: Current.user, card: card,
+                                total_cents: parcel * count, count: count,
                                 occurred_on: sp_today, merchant: p[:name], category_id: sanitized_category(p[:category_id]))
     rescue ActiveRecord::RecordInvalid => e
       e.record
@@ -131,7 +132,7 @@ class CommitmentsController < ApplicationController
     def link_existing_card_charge(commitment)
       return unless commitment.card? && %w[subscription fixed].include?(commitment.kind)
       month = commitment.credit_card.billing_month_for(sp_today)
-      candidates = commitment.credit_card.transactions.posted
+      candidates = commitment.credit_card.transactions.posted.kept
                              .where(billing_month: month, commitment_id: nil, direction: "expense").to_a
       best = candidates.select { |t| amount_close?(t.amount_cents, commitment.amount_cents) }
                        .max_by { |t| name_similarity(t.merchant, commitment.name) }
@@ -158,12 +159,12 @@ class CommitmentsController < ApplicationController
     def resolve_instrument(token)
       type, id = token.to_s.split("-", 2)
       case type
-      when "bank_account" then Current.user.bank_accounts.find_by(id: id)
-      when "credit_card"  then Current.user.credit_cards.find_by(id: id)
+      when "bank_account" then Current.account.bank_accounts.kept.find_by(id: id)
+      when "credit_card"  then Current.account.credit_cards.kept.find_by(id: id)
       end
     end
 
-    def sanitized_category(id) = (id if id.present? && Current.user.categories.exists?(id))
+    def sanitized_category(id) = (id if id.present? && Current.account.categories.kept.exists?(id))
 
     def parse_month(param)
       return nil unless param.to_s.match?(/\A\d{4}-(0[1-9]|1[0-2])\z/)

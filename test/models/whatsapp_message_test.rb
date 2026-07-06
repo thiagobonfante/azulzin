@@ -28,7 +28,7 @@ class WhatsappMessageTest < ActiveSupport::TestCase
   end
 
   test "linked_transaction association avoids the ActiveRecord transaction-name clash" do
-    txn = Transaction.create!(user: @user, amount_cents: 500, occurred_on: Date.current)
+    txn = Transaction.create!(account: @user.account, amount_cents: 500, occurred_on: Date.current)
     m = WhatsappMessage.create!(direction: "outbound", message_type: "text",
                                 body: "ok", status: "sent", linked_transaction: txn)
     assert_equal txn, m.linked_transaction

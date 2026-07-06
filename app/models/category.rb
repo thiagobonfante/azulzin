@@ -2,7 +2,7 @@
 # (Categories::SeedDefaults), plain user data afterwards — rename/delete freely, zero runtime
 # i18n coupling. Deleting a category never touches movements (nullify).
 class Category < ApplicationRecord
-  belongs_to :user
+  include AccountScoped, Attributable, SoftDeletable
   has_many :categorized_transactions, class_name: "Transaction", dependent: :nullify
   has_many :commitments, dependent: :nullify   # deleting a category never breaks a commitment
 
@@ -13,8 +13,11 @@ class Category < ApplicationRecord
                  sparkles gift bolt credit-card globe].freeze
   DEFAULT_COLOR = "#64748B".freeze
 
+  # Per-account, kept-only: deleting "Mercado" and re-creating it works; the dead row keeps
+  # its name for history rendering. Matches the partial index (account_id, name) WHERE
+  # deleted_at IS NULL.
   validates :name, presence: true, length: { maximum: 60 },
-                   uniqueness: { scope: :user_id, case_sensitive: false }  # citext ⇒ case-insensitive
+                   uniqueness: { scope: :account_id, case_sensitive: false, conditions: -> { kept } }
   validates :color, inclusion: { in: COLORS }, allow_blank: true
   validates :icon,  inclusion: { in: ICON_KEYS }, allow_blank: true
 

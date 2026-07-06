@@ -12,10 +12,10 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "upload creates a DocumentImport with checksum, blob and status uploaded" do
-    assert_difference -> { @user.document_imports.count }, 1 do
+    assert_difference -> { @user.account.document_imports.count }, 1 do
       post document_imports_url, params: { document_import: { files: [ csv_upload ] } }
     end
-    di = @user.document_imports.order(:created_at).last
+    di = @user.account.document_imports.order(:created_at).last
     assert_equal "uploaded", di.status
     assert di.file.attached?
     assert_equal Digest::SHA256.file(file_fixture("imports/sample.csv").to_s).hexdigest, di.checksum
@@ -24,7 +24,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
 
   test "re-uploading the same bytes is rejected as a duplicate" do
     post document_imports_url, params: { document_import: { files: [ csv_upload ] } }
-    assert_no_difference -> { @user.document_imports.count } do
+    assert_no_difference -> { @user.account.document_imports.count } do
       post document_imports_url, params: { document_import: { files: [ csv_upload ] } }
     end
     assert_equal I18n.t("document_imports.errors.duplicate_file"), flash[:alert]
@@ -33,9 +33,10 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   test "a different user can upload the same bytes (per-user dedupe)" do
     post document_imports_url, params: { document_import: { files: [ csv_upload ] } }
     other = User.create!(email_address: "other@example.com", password: "password123")
+    Accounts::Bootstrap.call(other)
     sign_out
     sign_in_as(other)
-    assert_difference -> { other.document_imports.count }, 1 do
+    assert_difference -> { other.account.document_imports.count }, 1 do
       post document_imports_url, params: { document_import: { files: [ csv_upload ] } }
     end
   end
@@ -62,8 +63,8 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the 11th upload of the day is capped with no new record" do
-    10.times { |i| @user.document_imports.new(checksum: "seed-#{i}-#{SecureRandom.hex}").save!(validate: false) }
-    assert_no_difference -> { @user.document_imports.count } do
+    10.times { |i| @user.account.document_imports.new(checksum: "seed-#{i}-#{SecureRandom.hex}").save!(validate: false) }
+    assert_no_difference -> { @user.account.document_imports.count } do
       post document_imports_url, params: { document_import: { files: [ csv_upload ] } }
     end
     assert_equal I18n.t("document_imports.create.daily_cap", max: DocumentImport::MAX_PER_DAY), flash[:alert]
@@ -105,6 +106,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
 
   test "cannot dismiss another user's import" do
     other = User.create!(email_address: "o2@example.com", password: "password123")
+    Accounts::Bootstrap.call(other)
     di = make_import(other)
     delete document_import_url(di)
     assert_response :not_found
@@ -126,7 +128,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
              params: { document_import: { files: [ fixture_file_upload("imports/nubank.ofx", "application/x-ofx") ] } }
       end
     end
-    import = @user.document_imports.last
+    import = @user.account.document_imports.last
     assert_equal "extracted", import.status
     assert import.proposals.any? { it["kind"] == "bank_account" }
 
@@ -135,11 +137,11 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=checkbox][checked=checked]" # ≥0.8 renders pre-checked
 
     pid = import.proposals.find { it["kind"] == "bank_account" }["pid"]
-    assert_difference -> { @user.bank_accounts.count }, 1 do
+    assert_difference -> { @user.account.bank_accounts.count }, 1 do
       post apply_document_imports_url, params: { check: { pid => "1" } }
     end
     assert_redirected_to onboarding_step_url("accounts")
-    assert_equal 357625, @user.bank_accounts.last.balance_cents
+    assert_equal 357625, @user.account.bank_accounts.last.balance_cents
     assert_equal "applied", import.reload.proposals.find { it["kind"] == "bank_account" }["state"]
 
     get onboarding_step_url("accounts")
@@ -166,7 +168,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "review renders every group including the commitment subgroups" do
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
     import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")), filename: "n.ofx", content_type: "application/x-ofx")
     import.save!
     import.update!(status: "extracted", proposals: full_review_proposals)
@@ -189,15 +191,15 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   test "apply folds an institution edit into the created record" do
     import = extracted_ofx_import
     pid = import.proposals.find { it["kind"] == "bank_account" }["pid"]
-    assert_difference -> { @user.bank_accounts.count }, 1 do
+    assert_difference -> { @user.account.bank_accounts.count }, 1 do
       post apply_document_imports_url,
            params: { check: { pid => "1" }, edits: { pid => { institution_code: "341" } } }
     end
-    assert_equal "341", @user.bank_accounts.last.institution.code
+    assert_equal "341", @user.account.bank_accounts.last.institution.code
   end
 
   test "unlock decrypts with the password in-request, re-enqueues, and never stores the password" do
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "pdf",
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "pdf",
                                         status: "failed", error_code: "password_protected")
     import.file.attach(io: File.open(file_fixture("imports/statement.pdf")),
                        filename: "enc.pdf", content_type: "application/pdf")
@@ -222,7 +224,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   test "discard rejects a single proposal without creating a record and stays on the review page" do
     import = extracted_ofx_import
     pid = import.proposals.find { it["kind"] == "bank_account" }["pid"]
-    assert_no_difference -> { @user.bank_accounts.count } do
+    assert_no_difference -> { @user.account.bank_accounts.count } do
       post apply_document_imports_url, params: { discard: pid }
     end
     assert_redirected_to review_document_imports_url
@@ -234,7 +236,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def extracted_ofx_import
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")
     import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")),
                        filename: "nubank.ofx", content_type: "application/x-ofx")
     import.extraction = Imports::OfxParser.call(file_fixture("imports/nubank.ofx").read)
@@ -244,7 +246,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def seed_extracted_import(proposals)
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
     import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")), filename: "n.ofx", content_type: "application/x-ofx")
     import.save!
     import.update!(status: "extracted", proposals: proposals)
@@ -277,7 +279,7 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def make_import(user)
-    di = user.document_imports.new(checksum: SecureRandom.hex)
+    di = user.account.document_imports.new(checksum: SecureRandom.hex)
     di.file.attach(io: File.open(file_fixture("imports/sample.csv")),
                    filename: "sample.csv", content_type: "text/csv")
     di.save!

@@ -1,8 +1,8 @@
 module Categories
-  # Seeds the default categories for a user at onboarding, copied from t("categories.defaults")
-  # IN THE USER'S LOCALE. Idempotent: find_or_create_by! per name (citext ⇒ case-insensitive),
+  # Seeds the default categories for an account at onboarding, copied from t("categories.defaults")
+  # IN THE GIVEN LOCALE. Idempotent: find_or_create_by! per kept name (citext ⇒ case-insensitive),
   # so re-running restores a deleted default without duplicating survivors (09 P1 #14). After
-  # seeding they are plain user rows with zero runtime i18n coupling — rename/delete freely.
+  # seeding they are plain account rows with zero runtime i18n coupling — rename/delete freely.
   class SeedDefaults
     # Color + icon per default position (locale-independent: names translate, the look doesn't).
     # Applied on create only, so a user's later edits are never overwritten.
@@ -21,10 +21,14 @@ module Categories
       [ "#64748B", "tag" ],        # Outros
     ].freeze
 
-    def self.call(user)
-      names = I18n.t("categories.defaults", locale: user.locale)
+    def self.call(account, locale:)
+      names = I18n.t("categories.defaults", locale: locale)
       names.each_with_index do |name, position|
-        user.categories.find_or_create_by!(name: name) do |c|
+        # .kept is load-bearing (D8): a raw find_or_create_by! would FIND a soft-deleted
+        # "Mercado" and create nothing — restore-defaults would silently no-op. The partial
+        # unique index (account_id, name) WHERE deleted_at IS NULL permits a kept duplicate of
+        # a dead name, so creating alongside the dead row is safe.
+        account.categories.kept.find_or_create_by!(name: name) do |c|
           c.position = position
           c.color, c.icon = META[position] if META[position]
         end

@@ -30,6 +30,9 @@ pt-BR:
       category: "Categoria"
       commitment: "Compromisso"
       document_import: "Importação"
+      account: "Conta"
+      account_membership: "Membro"
+      invitation: "Convite"
     attributes:
       user:
         email_address: "E-mail"
@@ -78,8 +81,26 @@ pt-BR:
         installments_count: "Parcelas"
       document_import:
         file: "Arquivo"
+      account:
+        name: "Nome da conta"
+      account_membership:
+        role: "Papel"
+      invitation:
+        email: "E-mail"
+        expires_at: "Expira em"
     errors:
       models:
+        account_membership:
+          attributes:
+            base:
+              account_full: "Esta conta atingiu o limite de 4 membros."
+        invitation:
+          attributes:
+            base:
+              cap_reached: "Esta conta atingiu o limite de 4 membros."
+            email:
+              not_allowed: "não está autorizado a criar uma conta."
+              already_member: "já faz parte desta conta."
         user:
           attributes:
             email_address:

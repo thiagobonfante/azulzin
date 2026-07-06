@@ -3,7 +3,8 @@
 # redelivers on retry, so find_or_create_by!(wa_message_id:) + rescue RecordNotUnique is
 # replay-safe. See .plans/whats §6.3.
 class WhatsappMessage < ApplicationRecord
-  belongs_to :user, optional: true                 # nil for an unknown/unverified sender
+  belongs_to :user,    optional: true              # resolved sender (nil = unknown/unverified)
+  belongs_to :account, optional: true              # sender's account at receipt time (spine D6)
 
   # The transaction this (usually outbound) message concerns. Named `linked_transaction`
   # because an association literally named `transaction` collides with ActiveRecord's

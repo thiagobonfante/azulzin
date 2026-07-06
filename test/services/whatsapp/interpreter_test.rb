@@ -9,9 +9,9 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
     @user.update!(name: "Ana", phone: "5511999998888", whatsapp_id: "5511999998888",
                   phone_verified_at: Time.current, onboarded_at: Time.current)
     @inst = Institution.find_by(code: "260")
-    @checking = @user.bank_accounts.create!(institution: @inst, nickname: "Nubank")
-    @savings  = @user.bank_accounts.create!(institution: @inst, nickname: "Caixinha", kind: "savings")
-    @card     = @user.credit_cards.create!(institution: @inst, nickname: "Roxinho", bill_due_day: 10, closing_offset_days: 10)
+    @checking = @user.account.bank_accounts.create!(institution: @inst, nickname: "Nubank")
+    @savings  = @user.account.bank_accounts.create!(institution: @inst, nickname: "Caixinha", kind: "savings")
+    @card     = @user.account.credit_cards.create!(institution: @inst, nickname: "Roxinho", bill_due_day: 10, closing_offset_days: 10)
   end
 
   def extraction(**overrides)
@@ -39,7 +39,7 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
     ex = extraction(intent: "transfer", amount_raw: "200", amount_cents: 20_000, to_instrument_phrase: "caixinha")
     msg = inbound("guardei 200 na caixinha")
     interpret(msg, ex)
-    t = @user.transactions.where(direction: "transfer").sole
+    t = @user.account.transactions.where(direction: "transfer").sole
     assert t.posted?
     assert_equal @savings, t.transfer_to_bank_account
     assert_equal @checking, t.bank_account
@@ -47,11 +47,11 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
   end
 
   test "recebi o salário links to the income and defaults to its account" do
-    salary = @user.incomes.create!(bank_account: @checking, name: "salário", amount_cents: 450_000,
+    salary = @user.account.incomes.create!(bank_account: @checking, name: "salário", amount_cents: 450_000,
                                    schedule_kind: "fixed_day", schedule_day: 5)
     ex = extraction(intent: "income", amount_raw: "4500", amount_cents: 450_000, merchant: "salário")
     interpret(inbound("recebi o salário, 4500"), ex)
-    t = @user.transactions.where(direction: "income").sole
+    t = @user.account.transactions.where(direction: "income").sole
     assert_equal salary, t.income
     assert_equal @checking, t.bank_account
     assert salary.received_in?(Date.current.beginning_of_month)
@@ -62,7 +62,7 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
                     installments_count: 10, installment_total_raw: "5000", instrument_phrase: "Roxinho", payment_method: "credito")
     msg = inbound("comprei um celular, 5000 em 10x")
     interpret(msg, ex)
-    assert_equal 10, @user.transactions.where.not(installment_number: nil).count
+    assert_equal 10, @user.account.transactions.where.not(installment_number: nil).count
     assert_no_difference("Transaction.count") { interpret(msg, ex) }
   end
 
@@ -71,12 +71,12 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
                     installments_count: 10, installment_total_raw: "5000", instrument_phrase: "inexistente",
                     field_confidence: { "amount" => 0.3 }, overall_confidence: 0.3)
     interpret(inbound("comprei algo em 10x"), ex)
-    assert_equal 0, @user.transactions.where.not(installment_number: nil).count
-    assert_equal 1, @user.transactions.where(status: "pending_review").count
+    assert_equal 0, @user.account.transactions.where.not(installment_number: nil).count
+    assert_equal 1, @user.account.transactions.where(status: "pending_review").count
   end
 
   test "paguei a parcela do carro marks it paid; repeat month → no second row" do
-    carro = @user.commitments.create!(bank_account: @checking, name: "carro financiado", kind: "installment",
+    carro = @user.account.commitments.create!(bank_account: @checking, name: "carro financiado", kind: "installment",
                                       amount_cents: 150_000, installments_count: 36, starts_on: Date.current.beginning_of_month << 13)
     ex = extraction(intent: "pay_commitment", commitment_phrase: "carro")
     interpret(inbound("paguei a parcela do carro"), ex)
@@ -87,7 +87,7 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
   end
 
   test "paguei a netflix (card subscription) never creates a payment row (on_bill)" do
-    netflix = @user.commitments.create!(credit_card: @card, name: "netflix", kind: "subscription",
+    netflix = @user.account.commitments.create!(credit_card: @card, name: "netflix", kind: "subscription",
                                         amount_cents: 5_590, starts_on: Date.current.beginning_of_month)
     ex = extraction(intent: "pay_commitment", commitment_phrase: "netflix")
     interpret(inbound("paguei a netflix"), ex)
@@ -95,8 +95,10 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
   end
 
   test "apaga o último resolves via the regex pre-pass with ZERO LLM calls" do
-    row = @user.transactions.create!(whatsapp_message: inbound("gastei"), amount_cents: 5_000, occurred_on: Date.current,
-                                     status: "posted", direction: "expense", bank_account: @checking, source: "whatsapp_text")
+    # created_by = the sender: undo scopes to *my* last WA row within the account (spine D6).
+    row = @user.account.transactions.create!(whatsapp_message: inbound("gastei"), created_by: @user, amount_cents: 5_000,
+                                     occurred_on: Date.current, status: "posted", direction: "expense",
+                                     bank_account: @checking, source: "whatsapp_text")
     called = false
     Whatsapp::Extractor.stub(:from_text, ->(*_a, **_k) { called = true; extraction }) do
       WhatsappService.stub(:send_message, ->(_p, _b) { { id: "o" } }) do
@@ -116,7 +118,7 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
   test "a mutating intent below the intent floor parks instead of firing the verb" do
     ex = extraction(intent: "transfer", intent_confidence: 0.5, amount_raw: "200", amount_cents: 20_000, to_instrument_phrase: "caixinha")
     interpret(inbound("acho que passei 200"), ex)
-    assert_equal 0, @user.transactions.where(direction: "transfer").count
-    assert @user.transactions.where(status: "pending_review").exists?
+    assert_equal 0, @user.account.transactions.where(direction: "transfer").count
+    assert @user.account.transactions.where(status: "pending_review").exists?
   end
 end

@@ -3,8 +3,8 @@
 # transactions linked by income_id) persist. See .plans/transactions/01-domain-model.md §5.
 class Income < ApplicationRecord
   include MoneyColumns
+  include AccountScoped, Attributable, SoftDeletable
 
-  belongs_to :user
   belongs_to :bank_account
   has_many :receipts, class_name: "Transaction", foreign_key: :income_id, dependent: :nullify
 
@@ -23,5 +23,5 @@ class Income < ApplicationRecord
   def expected_on(month) = Recurrence.date_for(schedule_kind, schedule_day, month)
 
   # Has a posted deposit for this income already landed in the month? (R1 counts-once, §7.3.)
-  def received_in?(month) = receipts.posted.where(billing_month: month).exists?
+  def received_in?(month) = receipts.posted.kept.where(billing_month: month).exists?
 end

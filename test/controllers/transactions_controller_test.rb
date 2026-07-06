@@ -6,17 +6,17 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
     sign_in_as(@user)
     @inst    = Institution.find_by(code: "260")
-    @account = @user.bank_accounts.create!(institution: @inst, nickname: "Salário")
-    @card    = @user.credit_cards.create!(institution: @inst, nickname: "Roxinho")
+    @account = @user.account.bank_accounts.create!(institution: @inst, nickname: "Salário")
+    @card    = @user.account.credit_cards.create!(institution: @inst, nickname: "Roxinho")
   end
 
   def pending_txn(**attrs)
-    @user.transactions.create!({ amount_cents: 1_323, occurred_on: Date.current, status: "pending_review" }.merge(attrs))
+    @user.account.transactions.create!({ amount_cents: 1_323, occurred_on: Date.current, status: "pending_review" }.merge(attrs))
   end
 
   test "a manual add without an instrument is rejected — never silently parked in the tray" do
-    @user.credit_cards.create!(institution: @inst, nickname: "Segundo") # two cards: no auto-assign
-    assert_no_difference -> { @user.transactions.count } do
+    @user.account.credit_cards.create!(institution: @inst, nickname: "Segundo") # two cards: no auto-assign
+    assert_no_difference -> { @user.account.transactions.count } do
       post transactions_url(kind: "expense"), params: {
         transaction: { amount_reais: "100,00", merchant: "test", occurred_on: Date.current.to_s,
                        category_id: "", payment_method: "credito" },
@@ -29,12 +29,12 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
 
   test "A pagar groups: open debit rows inline, card and paid occurrences fold into details" do
     month = Date.current.beginning_of_month
-    open_debit = @user.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
+    open_debit = @user.account.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
                                            amount_cents: 100_000, schedule_day: 5, starts_on: month)
-    paid_debit = @user.commitments.create!(bank_account: @account, name: "pensão", kind: "fixed",
+    paid_debit = @user.account.commitments.create!(bank_account: @account, name: "pensão", kind: "fixed",
                                            amount_cents: 50_000, schedule_day: 5, starts_on: month)
     Commitments::MarkPaid.call(paid_debit, month)
-    @user.commitments.create!(credit_card: @card, name: "Netflix", kind: "subscription",
+    @user.account.commitments.create!(credit_card: @card, name: "Netflix", kind: "subscription",
                               amount_cents: 5_500, schedule_kind: "fixed_day", starts_on: month)
 
     get transactions_url(month: month.strftime("%Y-%m"))
@@ -55,7 +55,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   test "index lists the user's pending + posted-unassigned rows, scoped to the user" do
     mine  = pending_txn
     other = User.create!(email_address: "other@example.com", password: "password123")
-    theirs = other.transactions.create!(amount_cents: 500, occurred_on: Date.current, status: "pending_review")
+    Accounts::Bootstrap.call(other)
+    theirs = other.account.transactions.create!(amount_cents: 500, occurred_on: Date.current, status: "pending_review")
 
     get transactions_url
     assert_response :success
@@ -101,7 +102,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
 
   test "cannot touch another user's transaction" do
     other = User.create!(email_address: "other2@example.com", password: "password123")
-    theirs = other.transactions.create!(amount_cents: 500, occurred_on: Date.current, status: "pending_review")
+    Accounts::Bootstrap.call(other)
+    theirs = other.account.transactions.create!(amount_cents: 500, occurred_on: Date.current, status: "pending_review")
     patch confirm_transaction_url(theirs)
     assert_response :not_found
     assert theirs.reload.pending_review?
@@ -133,7 +135,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
 
   test "a d10/f7 card expense lands on the August fatura and August ledger" do
     @card.update!(bill_due_day: 10, closing_offset_days: 7)
-    txn = @user.transactions.create!(amount_cents: 5_000, occurred_on: Date.new(2026, 7, 4),
+    txn = @user.account.transactions.create!(amount_cents: 5_000, occurred_on: Date.new(2026, 7, 4),
                                      status: "posted", direction: "expense", credit_card: @card)
     assert_equal Date.new(2026, 8, 1), txn.billing_month
     get transactions_url(month: "2026-08")
@@ -144,7 +146,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
 
   test "row edit Fatura select sets the manual flag; a later occurred_on edit leaves it" do
     @card.update!(bill_due_day: 10, closing_offset_days: 7)
-    txn = @user.transactions.create!(amount_cents: 5_000, occurred_on: Date.new(2026, 7, 4),
+    txn = @user.account.transactions.create!(amount_cents: 5_000, occurred_on: Date.new(2026, 7, 4),
                                      status: "posted", direction: "expense", credit_card: @card)
     # move to setembro
     patch transaction_url(txn), params: { from: "ledger", month: "2026-08",
@@ -171,13 +173,13 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   test "reversing a posted row never writes balance_cents / current_bill_cents (pure record)" do
     @account.update!(balance_cents: 100_000)
     @card.update!(current_bill_cents: 50_000)
-    txn = @user.transactions.create!(amount_cents: 5_000, occurred_on: Date.current,
+    txn = @user.account.transactions.create!(amount_cents: 5_000, occurred_on: Date.current,
                                      status: "posted", direction: "expense", bank_account: @account)
     delete transaction_url(txn), params: { from: "ledger", month: Date.current.strftime("%Y-%m") }, as: :turbo_stream
     assert txn.reload.rejected?
     assert_equal 100_000, @account.reload.balance_cents
     assert_equal 50_000, @card.reload.current_bill_cents
-    assert_equal 0, @user.transactions.spend.count
+    assert_equal 0, @user.account.transactions.spend.count
   end
 
   test "confirming a parked installment stub fans out the plan and supersedes the stub" do
@@ -185,14 +187,14 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     stub = pending_txn(amount_cents: 500_000, merchant: "celular", occurred_on: Date.new(2026, 7, 3),
                        billing_month: Date.new(2026, 7, 1), credit_card: @card,
                        extraction: { "installments_count" => 10, "installment_total_raw" => "5000" })
-    assert_difference -> { @user.transactions.where.not(installment_number: nil).count }, 10 do
+    assert_difference -> { @user.account.transactions.where.not(installment_number: nil).count }, 10 do
       patch confirm_transaction_url(stub), params: { month: "2026-07" }, as: :turbo_stream
     end
     assert_equal "superseded", stub.reload.status
-    assert_equal 1, @user.commitments.installment.count
+    assert_equal 1, @user.account.commitments.installment.count
 
     # A second confirm must NOT re-expand (the stub is already superseded).
-    assert_no_difference -> { @user.transactions.where.not(installment_number: nil).count } do
+    assert_no_difference -> { @user.account.transactions.where.not(installment_number: nil).count } do
       patch confirm_transaction_url(stub), params: { month: "2026-07" }, as: :turbo_stream
     end
   end
@@ -200,7 +202,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   test "a ledger month with 250 rows shows the show-more link; show_all renders them" do
     month = Date.current.beginning_of_month
     250.times do
-      @user.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
+      @user.account.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
                                  amount_cents: 100, occurred_on: Date.current, billing_month: month)
     end
     get transactions_url(month: month.strftime("%Y-%m"))
@@ -210,12 +212,12 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create adds a posted expense and re-renders the ledger frame (not the h2 anchor)" do
-    assert_difference -> { @user.transactions.spend.count }, 1 do
+    assert_difference -> { @user.account.transactions.spend.count }, 1 do
       post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
            params: { transaction: { amount_reais: "12,00", merchant: "Feira", occurred_on: Date.current.to_s },
                      instrument: "bank_account-#{@account.id}" }
     end
-    txn = @user.transactions.order(:id).last
+    txn = @user.account.transactions.order(:id).last
     assert_equal 1_200, txn.amount_cents
     assert_equal @account, txn.bank_account
     # Guards the id collision that duplicated the list: the stream targets the frame, not #ledger.
@@ -226,7 +228,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   test "manual create auto-assigns the lone card for crédito without an instrument token (issue 3)" do
     post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
          params: { transaction: { amount_reais: "30,00", occurred_on: Date.current.to_s, payment_method: "credito" } }
-    txn = @user.transactions.order(:id).last
+    txn = @user.account.transactions.order(:id).last
     assert_equal @card, txn.credit_card
     assert_nil txn.bank_account
     assert txn.assigned?, "should not land unassigned in the review tray"
@@ -235,7 +237,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   test "manual create auto-assigns the lone account for pix without an instrument token (issue 3)" do
     post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
          params: { transaction: { amount_reais: "30,00", occurred_on: Date.current.to_s, payment_method: "pix" } }
-    txn = @user.transactions.order(:id).last
+    txn = @user.account.transactions.order(:id).last
     assert_equal @account, txn.bank_account
     assert_nil txn.credit_card
   end
@@ -251,7 +253,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     post transactions_url(kind: "expense", month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
          params: { transaction: { amount_reais: "20,00", occurred_on: Date.current.to_s, payment_method: "credito" },
                    instrument: "credit_card-#{@card.id}" }
-    assert_equal "credito", @user.transactions.order(:id).last.payment_method
+    assert_equal "credito", @user.account.transactions.order(:id).last.payment_method
   end
 
   test "new expense form renders the payment-method control and avatar instrument options" do
@@ -273,8 +275,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index renders the spend-allocation chart when the month has spending (item 1)" do
-    cat = @user.categories.create!(name: "Mercado", color: "#22C55E", icon: "cart")
-    @user.transactions.create!(bank_account: @account, category: cat, direction: "expense", status: "posted",
+    cat = @user.account.categories.create!(name: "Mercado", color: "#22C55E", icon: "cart")
+    @user.account.transactions.create!(bank_account: @account, category: cat, direction: "expense", status: "posted",
                                amount_cents: 100, occurred_on: Date.current, billing_month: Date.current.beginning_of_month)
     get transactions_url
     assert_response :success
@@ -285,7 +287,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     get new_transaction_url(kind: "expense")
     assert_select "a[href*='kind=transfer']", count: 0
 
-    @user.bank_accounts.create!(institution: @inst, nickname: "Segunda")
+    @user.account.bank_accounts.create!(institution: @inst, nickname: "Segunda")
     get new_transaction_url(kind: "expense")
     assert_select "a[href*='kind=transfer']"
   end
@@ -309,7 +311,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     post transactions_url(kind: "income", month: future.strftime("%Y-%m")), as: :turbo_stream,
          params: { transaction: { amount_reais: "2000,00", occurred_on: future.to_s },
                    instrument: "bank_account-#{@account.id}" }
-    txn = @user.transactions.order(:id).last
+    txn = @user.account.transactions.order(:id).last
     assert_equal "income", txn.direction
     assert_equal future, txn.billing_month
     assert_predicate txn, :posted?

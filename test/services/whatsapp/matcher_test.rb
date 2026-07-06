@@ -3,12 +3,12 @@ require "test_helper"
 class Whatsapp::MatcherTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
-    @nubank_card = CreditCard.create!(user: @user, institution: Institution.find_by(code: "260"))
-    @itau_account = BankAccount.create!(user: @user, institution: Institution.find_by(code: "341"))
+    @nubank_card = CreditCard.create!(account: @user.account, institution: Institution.find_by(code: "260"))
+    @itau_account = BankAccount.create!(account: @user.account, institution: Institution.find_by(code: "341"))
   end
 
   def match(phrase:, method: "desconhecido")
-    Whatsapp::Matcher.new(@user, Whatsapp::Extraction.new(instrument_phrase: phrase, payment_method: method)).call
+    Whatsapp::Matcher.new(@user.account, Whatsapp::Extraction.new(instrument_phrase: phrase, payment_method: method)).call
   end
 
   test "resolves a card by its brand alias" do
@@ -35,7 +35,7 @@ class Whatsapp::MatcherTest < ActiveSupport::TestCase
   end
 
   test "two cards at the same bank → needs_disambiguation" do
-    CreditCard.create!(user: @user, institution: Institution.find_by(code: "260"), nickname: "Ultravioleta")
+    CreditCard.create!(account: @user.account, institution: Institution.find_by(code: "260"), nickname: "Ultravioleta")
     r = match(phrase: "cartão Nubank", method: "credito")
     assert_nil r.instrument
     assert_equal "needs_disambiguation", r.reason
@@ -44,7 +44,7 @@ class Whatsapp::MatcherTest < ActiveSupport::TestCase
 
   test "short brand aliases never match fuzzily (whole token only)" do
     # "bb" (Banco do Brasil) must not fuzzy-match an unrelated word.
-    BankAccount.create!(user: @user, institution: Institution.find_by(code: "001"))
+    BankAccount.create!(account: @user.account, institution: Institution.find_by(code: "001"))
     r = match(phrase: "no boteco", method: "debito")
     assert_not_equal "001", r.instrument&.institution&.code
   end

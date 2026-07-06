@@ -20,8 +20,8 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   test "renders totals for an onboarded user" do
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
     nubank = Institution.find_by(code: "260")
-    @user.bank_accounts.create!(institution: nubank, balance_cents: 150000)
-    @user.credit_cards.create!(institution: nubank, credit_limit_cents: 800000, current_bill_cents: 200000)
+    @user.account.bank_accounts.create!(institution: nubank, balance_cents: 150000)
+    @user.account.credit_cards.create!(institution: nubank, credit_limit_cents: 800000, current_bill_cents: 200000)
 
     get dashboard_url
     assert_response :success
@@ -59,8 +59,8 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   test "total available credit ignores cards with a bill but no limit" do
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
     nubank = Institution.find_by(code: "260")
-    @user.credit_cards.create!(institution: nubank, credit_limit_cents: 100000, current_bill_cents: 20000) # avail 800,00
-    @user.credit_cards.create!(institution: nubank, current_bill_cents: 50000)                             # no limit
+    @user.account.credit_cards.create!(institution: nubank, credit_limit_cents: 100000, current_bill_cents: 20000) # avail 800,00
+    @user.account.credit_cards.create!(institution: nubank, current_bill_cents: 50000)                             # no limit
     get dashboard_url
     assert_response :success
     # Available = 100000 − 20000 only. The limitless card's 500,00 bill must NOT reduce it

@@ -7,8 +7,10 @@
 # helper on *associations* — call ActiveRecord::Base.transaction explicitly for DB txns.
 class Transaction < ApplicationRecord
   include MoneyColumns
+  include AccountScoped    # belongs_to :account (spine D2)
+  include Attributable     # created_by / updated_by (spine D7)
+  include SoftDeletable    # deleted_at / .kept (spine D8)
 
-  belongs_to :user
   belongs_to :bank_account, optional: true
   belongs_to :credit_card,  optional: true
   belongs_to :category,     optional: true                                           # R6
@@ -57,22 +59,26 @@ class Transaction < ApplicationRecord
   # guarded_update (update_all) skips this by design and never touches occurred_on / instrument.
   before_validation :assign_billing_month
 
-  scope :spend, -> { posted.where(direction: "expense") }        # excludes rejected/superseded
-  scope :posted_in, ->(month) { posted.where(billing_month: month) }   # the ledger scope + every aggregate
+  # .kept folded into the composed scopes = the single aggregate choke point (doc 05 §2.5):
+  # MonthSummary, the ledger, bill_cents, inbox all read through these. Enum status scopes and
+  # idempotency finders (find_by(source_message_id:), guarded_update) stay unscoped by design.
+  scope :spend, -> { posted.kept.where(direction: "expense") }         # excludes rejected/superseded
+  scope :posted_in, ->(month) { posted.kept.where(billing_month: month) }   # the ledger scope + every aggregate
   scope :unassigned, -> { where(bank_account_id: nil, credit_card_id: nil) }
-  scope :in_app_inbox, -> { where(status: %w[pending_review needs_confirmation needs_clarification needs_disambiguation]) }
+  scope :in_app_inbox, -> { kept.where(status: %w[pending_review needs_confirmation needs_clarification needs_disambiguation]) }
 
   # The in-app pending inbox (.plans/whats §5.8): open/pending asks PLUS posted expenses with
   # no instrument yet (auto-committed, waiting for the user to pick an account in-app).
   scope :pending_inbox, lambda {
-    where("status IN (:pending) OR (status = 'posted' AND bank_account_id IS NULL AND credit_card_id IS NULL)",
-          pending: PENDING_INBOX_STATUSES)
+    kept.where("status IN (:pending) OR (status = 'posted' AND bank_account_id IS NULL AND credit_card_id IS NULL)",
+               pending: PENDING_INBOX_STATUSES)
   }
 
-  # The single outstanding confirm/clarify question for a user (one open ask per user).
-  # The next inbound reply is routed to this. See .plans/whats §5.1.
+  # The single outstanding confirm/clarify question for a SENDER within their account (spine
+  # D6: the ask conversation is per phone). The next inbound reply is routed to this.
   def self.open_ask_for(user)
-    where(user: user, status: OPEN_ASK_STATUSES)
+    where(account: user.account, created_by: user, status: OPEN_ASK_STATUSES)
+      .kept
       .where("ask_expires_at > ?", Time.current)
       .order(created_at: :desc).first
   end

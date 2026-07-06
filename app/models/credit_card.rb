@@ -1,7 +1,7 @@
 class CreditCard < ApplicationRecord
   include MoneyColumns
+  include AccountScoped, Attributable, SoftDeletable
 
-  belongs_to :user
   belongs_to :institution                        # required (belongs_to is non-optional)
   has_many :transactions, dependent: :nullify    # deleting a card must not erase history
   has_many :commitments,  dependent: :nullify    # card-charged subscriptions / installment plans (R10/R11)
@@ -43,7 +43,7 @@ class CreditCard < ApplicationRecord
 
   # Posted fatura component for a month: expenses − refunds (an income row on a card = estorno).
   def bill_total_cents(month)
-    scope = transactions.posted.where(billing_month: month)
+    scope = transactions.posted.kept.where(billing_month: month)
     scope.where(direction: "expense").sum(:amount_cents) - scope.where(direction: "income").sum(:amount_cents)
   end
 
@@ -60,7 +60,7 @@ class CreditCard < ApplicationRecord
   # Unconfigured cards fall back to the manual current_bill snapshot.
   def used_cents
     return current_bill_cents.to_i unless billing_configured?
-    scope = transactions.posted.where("billing_month >= ?", current_open_bill_month)
+    scope = transactions.posted.kept.where("billing_month >= ?", current_open_bill_month)
     scope.where(direction: "expense").sum(:amount_cents) -
       scope.where(direction: "income").sum(:amount_cents) +
       reserved_commitment_cents
@@ -103,7 +103,7 @@ class CreditCard < ApplicationRecord
     # Card-instrument commitments active in M without a linked posted charge. Zero until R10/R11
     # ship card commitments (Phase 4); the composition is defined here so bill_cents is stable.
     def unlinked_card_commitment_cents(month)
-      commitments.active.select { |c| c.active_in?(month) && !c.paid_in?(month) }.sum(&:amount_cents)
+      commitments.kept.active.select { |c| c.active_in?(month) && !c.paid_in?(month) }.sum(&:amount_cents)
     end
 
     # Committed-but-unposted usage from the open bill forward: every remaining unpaid parcel
@@ -113,13 +113,13 @@ class CreditCard < ApplicationRecord
     # counted twice.
     def reserved_commitment_cents
       from = current_open_bill_month
-      commitments.active.sum { |c| unposted_occurrence_months(c, from).size * c.amount_cents }
+      commitments.kept.active.sum { |c| unposted_occurrence_months(c, from).size * c.amount_cents }
     end
 
     def unposted_occurrence_months(commitment, from)
       to = commitment.installment? ? commitment.last_month&.beginning_of_month : from
       return [] if to.nil? || to < from
-      paid = commitment.payments.posted.where(billing_month: from..).pluck(:billing_month).to_set
+      paid = commitment.payments.posted.kept.where(billing_month: from..).pluck(:billing_month).to_set
       months, m = [], from
       while m <= to
         months << m if commitment.active_in?(m) && !paid.include?(m)

@@ -28,10 +28,12 @@ module Installments
 
     def self.build_plan(transaction, instrument, total, count)
       if instrument.is_a?(CreditCard)
-        Installments::Create.call(user: transaction.user, card: instrument, total_cents: total, count: count,
+        Installments::Create.call(account: transaction.account, created_by: transaction.created_by,
+          card: instrument, total_cents: total, count: count,
           occurred_on: transaction.occurred_on, merchant: transaction.merchant, category_id: transaction.category_id)
       else
-        transaction.user.commitments.create!(
+        transaction.account.commitments.create!(
+          created_by: transaction.created_by,
           bank_account: instrument, name: transaction.merchant.presence || I18n.t("commitments.default_installment_name"),
           kind: "installment", amount_cents: (total.to_f / count).round, total_cents: total, installments_count: count,
           schedule_kind: "fixed_day", schedule_day: transaction.occurred_on.day,
@@ -52,7 +54,7 @@ module Installments
       return nil if data["instrument_phrase"].blank?
       ex = Whatsapp::Extraction.new(instrument_phrase: data["instrument_phrase"],
                                     payment_method: data["payment_method"] || "desconhecido")
-      result = Whatsapp::Matcher.new(transaction.user, ex).call
+      result = Whatsapp::Matcher.new(transaction.account, ex).call
       result.instrument if result.matched?
     end
   end

@@ -10,6 +10,9 @@ class RegistrationsController < ApplicationController
   def create
     @user = User.new(registration_params)
     if @user.save
+      # Non-invite signup owns a fresh solo account (Phase 4 will skip this when a pending
+      # invite token is in session; ensure_membership_for is the sign-in safety net either way).
+      Accounts::Bootstrap.call(@user)
       UserMailer.with(user: @user).email_verification.deliver_later
       redirect_to new_session_path, status: :see_other, notice: t(".check_email")
     else

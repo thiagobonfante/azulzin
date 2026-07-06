@@ -26,7 +26,7 @@
   </div>
 
   <%= render "shared/account_select", form: f,
-        accounts: Current.user.bank_accounts.includes(:institution).order(:created_at),
+        accounts: Current.account.bank_accounts.kept.includes(:institution).order(:created_at),
         label: t("incomes.bank_account"), placeholder: t("incomes.bank_account_placeholder") %>
 
   <div class="grid gap-4 sm:grid-cols-2" data-controller="schedule-fields">

@@ -5,12 +5,12 @@ class CreditCardsController < ApplicationController
   before_action :require_onboarding, only: :index
 
   def index
-    @credit_cards = Current.user.credit_cards.includes(:institution).order(:created_at)
+    @credit_cards = Current.account.credit_cards.kept.includes(:institution).order(:created_at)
     @credit_card  = CreditCard.new
   end
 
   def create
-    @credit_card = Current.user.credit_cards.build(credit_card_params)
+    @credit_card = Current.account.credit_cards.build(credit_card_params)
     saved = @credit_card.save
     respond_to do |format|
       # 422 on failure so Turbo's submit-end reports failure and the form is NOT reset
@@ -28,12 +28,12 @@ class CreditCardsController < ApplicationController
 
   # Full-page edit — the first edit surface in the app; the billing config (R2) lives here.
   def edit
-    @credit_card = Current.user.credit_cards.find(params[:id])
+    @credit_card = Current.account.credit_cards.kept.find(params[:id])
   end
 
   # Saving a billing config re-buckets the card's history into real faturas (02 §3.2-5).
   def update
-    @credit_card = Current.user.credit_cards.find(params[:id])
+    @credit_card = Current.account.credit_cards.kept.find(params[:id])
     was_unconfigured = !@credit_card.billing_configured?
     if @credit_card.update(credit_card_params)
       if @credit_card.billing_configured? &&
@@ -47,7 +47,7 @@ class CreditCardsController < ApplicationController
   end
 
   def destroy
-    @credit_card = Current.user.credit_cards.find(params[:id])
+    @credit_card = Current.account.credit_cards.kept.find(params[:id])
     @credit_card.destroy
     respond_to do |format|
       format.turbo_stream

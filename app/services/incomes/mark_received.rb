@@ -3,11 +3,12 @@ module Incomes
   # linked by income_id (counts-once, 01 §7.3) — the deposit joins the account balance
   # derivation and the month's entradas. Mirror of Commitments::MarkPaid.
   class MarkReceived
-    def self.call(income, month)
+    def self.call(income, month, created_by: nil)
       month = month.beginning_of_month
-      existing = income.receipts.posted.find_by(billing_month: month)
+      existing = income.receipts.posted.kept.find_by(billing_month: month)
       return existing if existing
-      income.user.transactions.create!(
+      income.account.transactions.create!(
+        created_by:           created_by,   # in-app: nil ⇒ Attributable stamps Current.user
         income:               income,
         merchant:             income.name,
         direction:            "income",

@@ -47,9 +47,17 @@ module Whatsapp
 
     # Expense: the existing Decider, byte-for-byte unchanged (regression-free).
     def expense(extraction)
-      match      = Whatsapp::Matcher.new(@msg.user, extraction).call
+      match      = Whatsapp::Matcher.new(account, extraction).call
       confidence = Whatsapp::Confidence.new(extraction)
       Whatsapp::Decider.new(@msg, extraction, match, confidence).call
+    end
+
+    # "Whose stuff?" → account (spine D6), with the deploy-window nil fallback (doc 04 §3.1/§4).
+    def account
+      return @msg.account if @msg.account
+      @msg.account = @msg.user&.account
+      @msg.save! if @msg.account && @msg.persisted?
+      @msg.account
     end
 
     # A misclassified mutating intent with an amount parks a pending_review expense stub (fixable
@@ -67,7 +75,8 @@ module Whatsapp
     def park(extraction)
       today = Time.current.in_time_zone("America/Sao_Paulo").to_date
       txn = Transaction.find_or_create_by!(source_message_id: @msg.wa_message_id) do |t|
-        t.user = @msg.user
+        t.account = account         # D2: tenancy (nil fallback)
+        t.created_by = @msg.user    # D7: attribution — explicit (job context)
         t.whatsapp_message = @msg
         t.amount_cents = extraction.amount_cents
         t.merchant = extraction.merchant

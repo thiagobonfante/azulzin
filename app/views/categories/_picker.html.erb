@@ -6,7 +6,7 @@
 <% size = local_assigns.fetch(:size, "sm") %>
 <% input_size  = size == "sm" ? "input-sm"  : "" %>
 <% select_size = size == "sm" ? "select-sm" : "" %>
-<% categories = Current.user.categories.ordered %>
+<% categories = Current.account.categories.kept.ordered %>
 <% selected = selected_id.presence && categories.detect { |c| c.id == selected_id.to_i } %>
 <div data-controller="category-picker">
   <%= hidden_field_tag field_name, selected&.id, data: { category_picker_target: "input" }, id: nil %>

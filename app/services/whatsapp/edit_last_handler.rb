@@ -19,13 +19,16 @@ module Whatsapp
 
     private
 
+    # The sender's own last WA row within the account (spine D6); .kept per doc 04 §4.4.
     def last_wa_row
-      user.transactions.where.not(whatsapp_message_id: nil).where("created_at > ?", 24.hours.ago)
-          .where.not(status: %w[rejected superseded]).where(installment_number: nil)
-          .order(created_at: :desc).first
+      account.transactions.kept.where(created_by: user).where.not(whatsapp_message_id: nil)
+             .where("created_at > ?", 24.hours.ago)
+             .where.not(status: %w[rejected superseded]).where(installment_number: nil)
+             .order(created_at: :desc).first
     end
 
     def apply_edit(row)
+      row.updated_by = user   # explicit: this runs in a job, Attributable's Current.user hook is nil (doc 04 §5)
       case @extraction.edit_field_hint
       when "amount"     then set_amount(row)
       when "merchant"   then set_merchant(row)
@@ -47,7 +50,7 @@ module Whatsapp
     end
 
     def set_instrument(row)
-      inst = match_account(@extraction.instrument_phrase) || Whatsapp::Matcher.new(user, @extraction).call.instrument
+      inst = match_account(@extraction.instrument_phrase) || Whatsapp::Matcher.new(account, @extraction).call.instrument
       return false unless inst
       row.assign_instrument!(inst)
       true

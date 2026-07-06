@@ -1,9 +1,9 @@
 # One uploaded extrato/fatura on its way to becoming proposals (.plans/auto). The blob rides
 # Active Storage; `fingerprint`/`extraction`/`proposals` are jsonb. Content-type + size are a
 # first gate here (the job re-derives the real format from magic bytes). `checksum` (SHA256 of
-# the raw bytes) dedupes per-user against live imports; a dismissed/failed one never blocks a retry.
+# the raw bytes) dedupes per-account against live imports; a dismissed/failed one never blocks a retry.
 class DocumentImport < ApplicationRecord
-  belongs_to :user
+  include AccountScoped, Attributable   # no SoftDeletable — status lifecycle + retention is its soft delete
   belongs_to :institution, optional: true
   has_one_attached :file
 
@@ -31,8 +31,10 @@ class DocumentImport < ApplicationRecord
   enum :source_format, { csv: "csv", ofx: "ofx", pdf: "pdf" },
        prefix: :format, validate: { allow_nil: true }
 
+  # Dedupe is per-ACCOUNT (never created_by): a spouse re-uploading the husband's fatura hits a
+  # friendly duplicate refusal, and the swapped (account_id, checksum) index would otherwise 500.
   validates :checksum, presence: true,
-            uniqueness: { scope: :user_id,
+            uniqueness: { scope: :account_id,
                           conditions: -> { where.not(status: %w[dismissed failed]) } }
   validate :file_acceptable, on: :create
 
@@ -47,7 +49,7 @@ class DocumentImport < ApplicationRecord
   # Cheap pre-check: a live import of the same bytes already exists for this user, so don't even
   # write a blob to disk. The uniqueness validation is the authoritative guard.
   def duplicate_checksum?
-    self.class.where(user_id: user_id, checksum: checksum)
+    self.class.where(account_id: account_id, checksum: checksum)
         .where.not(status: %w[dismissed failed]).exists?
   end
 

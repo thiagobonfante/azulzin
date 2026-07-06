@@ -14,21 +14,21 @@ class TransactionsController < ApplicationController
     return if redirect_out_of_range_month
     @month       = viewed_month
     @summary     = summary
-    @pending     = Current.user.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
-    @occurrences = CommitmentOccurrence.for_month(Current.user, @month)          # zone E (R10)
+    @pending     = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
+    @occurrences = CommitmentOccurrence.for_month(Current.account, @month)          # zone E (R10)
     @ledger      = month_ledger
   end
 
   def new
     kind = %w[expense income transfer].include?(params[:kind]) ? params[:kind] : "expense"
-    @transaction = Current.user.transactions.new(direction: kind, occurred_on: default_occurred_on)
+    @transaction = Current.account.transactions.new(direction: kind, occurred_on: default_occurred_on)
     render partial: "transactions/new_entry", locals: { transaction: @transaction, kind: kind }
   end
 
   def create
     attrs = new_entry_params.to_h
-    sanitize_user_fks(attrs)
-    @transaction = Current.user.transactions.new(attrs)
+    sanitize_account_fks(attrs)
+    @transaction = Current.account.transactions.new(attrs)
     @transaction.assign_attributes(direction: new_kind, status: "posted", confirmed_at: Time.current, source: "manual")
     assign_instrument_from_token(params[:instrument])
     auto_assign_instrument      # server-side mirror of the form's auto-select (robust to JS)
@@ -55,7 +55,7 @@ class TransactionsController < ApplicationController
     original_bill = @transaction.billing_month
     attrs = transaction_params.to_h
     bill  = attrs.delete("billing_month")
-    sanitize_user_fks(attrs)
+    sanitize_account_fks(attrs)
     attrs["category_id"] = nil if attrs["direction"] == "transfer"   # transfers are never categorized (§6.3.5)
     @transaction.assign_attributes(attrs)
     apply_bill_month_override(bill, original_bill)
@@ -105,13 +105,13 @@ class TransactionsController < ApplicationController
 
   private
     def set_transaction
-      @transaction = Current.user.transactions.find(params[:id])
+      @transaction = Current.account.transactions.kept.find(params[:id])
     end
 
     # The viewed month's posted ledger, ordered newest-first. Shared by index and create (which
     # re-renders the whole list so a first entry cleanly replaces the empty state).
     def month_ledger
-      Current.user.transactions.posted_in(viewed_month)
+      Current.account.transactions.posted_in(viewed_month)
              .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment)
              .order(occurred_on: :desc, id: :desc)
     end
@@ -129,7 +129,7 @@ class TransactionsController < ApplicationController
     end
 
     def summary
-      @summary ||= MonthSummary.new(Current.user, viewed_month)
+      @summary ||= MonthSummary.new(Current.account, viewed_month)
     end
 
     def sp_today = Date.current.in_time_zone("America/Sao_Paulo").to_date
@@ -152,7 +152,7 @@ class TransactionsController < ApplicationController
     def redirect_out_of_range_month
       requested = parse_month(params[:month])
       return false if requested.nil?
-      low  = (Current.user.transactions.minimum(:billing_month) || sp_today).beginning_of_month
+      low  = (Current.account.transactions.kept.minimum(:billing_month) || sp_today).beginning_of_month
       high = sp_today.beginning_of_month >> 12
       clamped = requested.clamp(low, high)
       return false if clamped == requested
@@ -169,12 +169,12 @@ class TransactionsController < ApplicationController
                                     category_id direction transfer_to_bank_account_id])
     end
 
-    # Reject FKs pointing at another user's records before they reach the row.
-    def sanitize_user_fks(attrs)
-      if attrs["category_id"].present? && !Current.user.categories.exists?(attrs["category_id"])
+    # Reject FKs pointing at another account's (or a soft-deleted) record before they reach the row.
+    def sanitize_account_fks(attrs)
+      if attrs["category_id"].present? && !Current.account.categories.kept.exists?(attrs["category_id"])
         attrs["category_id"] = nil
       end
-      if attrs["transfer_to_bank_account_id"].present? && !Current.user.bank_accounts.exists?(attrs["transfer_to_bank_account_id"])
+      if attrs["transfer_to_bank_account_id"].present? && !Current.account.bank_accounts.kept.exists?(attrs["transfer_to_bank_account_id"])
         attrs["transfer_to_bank_account_id"] = nil
       end
     end
@@ -204,10 +204,10 @@ class TransactionsController < ApplicationController
     def auto_assign_instrument
       return if @transaction.bank_account_id || @transaction.credit_card_id
       if @transaction.payment_method == "credito"
-        cards = Current.user.credit_cards.to_a
+        cards = Current.account.credit_cards.kept.to_a
         @transaction.credit_card = cards.first if cards.one?
       else
-        accounts = Current.user.bank_accounts.to_a
+        accounts = Current.account.bank_accounts.kept.to_a
         @transaction.bank_account = accounts.first if accounts.one?
       end
     end
@@ -215,8 +215,8 @@ class TransactionsController < ApplicationController
     def resolve_instrument(token)
       type, id = token.to_s.split("-", 2)
       case type
-      when "bank_account" then Current.user.bank_accounts.find_by(id: id)
-      when "credit_card"  then Current.user.credit_cards.find_by(id: id)
+      when "bank_account" then Current.account.bank_accounts.kept.find_by(id: id)
+      when "credit_card"  then Current.account.credit_cards.kept.find_by(id: id)
       end
     end
 end

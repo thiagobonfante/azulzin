@@ -10,7 +10,7 @@
     <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.faturas_cents) %></span>
   </header>
 
-  <% cards = Current.user.credit_cards.includes(:institution).order(:created_at) %>
+  <% cards = Current.account.credit_cards.kept.includes(:institution).order(:created_at) %>
   <% if cards.any? %>
     <ul class="flex flex-col gap-3">
       <% cards.each do |card| %>

@@ -6,12 +6,12 @@ class TransfersController < ApplicationController
   before_action :require_onboarding
 
   def create
-    @transaction = Current.user.transactions.new(
+    @transaction = Current.account.transactions.new(
       direction: "transfer", status: "posted", confirmed_at: Time.current, source: "manual",
       amount_reais: transfer_params[:amount_reais],
       occurred_on: transfer_params[:occurred_on].presence || sp_today,
-      bank_account: Current.user.bank_accounts.find_by(id: transfer_params[:bank_account_id]),
-      transfer_to_bank_account: Current.user.bank_accounts.find_by(id: transfer_params[:transfer_to_bank_account_id])
+      bank_account: Current.account.bank_accounts.kept.find_by(id: transfer_params[:bank_account_id]),
+      transfer_to_bank_account: Current.account.bank_accounts.kept.find_by(id: transfer_params[:transfer_to_bank_account_id])
     )
     @saved = @transaction.save
     @to_savings = @saved && @transaction.transfer_to_bank_account&.savings?
@@ -34,7 +34,7 @@ class TransfersController < ApplicationController
       @viewed_month ||= (parse_month(params[:month]) || sp_today.beginning_of_month)
     end
 
-    def summary = @summary ||= MonthSummary.new(Current.user, viewed_month)
+    def summary = @summary ||= MonthSummary.new(Current.account, viewed_month)
 
     def sp_today = Date.current.in_time_zone("America/Sao_Paulo").to_date
 

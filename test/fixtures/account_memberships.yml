@@ -1,0 +1,15 @@
+# Each fixture user owns their account (spine D1: one account per user, exactly one owner).
+confirmed:
+  account: confirmed
+  user: confirmed
+  role: owner
+
+unconfirmed:
+  account: unconfirmed
+  user: unconfirmed
+  role: owner
+
+english:
+  account: english
+  user: english
+  role: owner

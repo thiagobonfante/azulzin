@@ -11,19 +11,19 @@ module Imports
     INSTRUMENT_KINDS = %w[bank_account credit_card].freeze
     DEPENDENT_KINDS  = %w[income commitment].freeze
 
-    def self.call(user:, accepted:)
-      new(user, accepted).call
+    def self.call(account:, accepted:)
+      new(account, accepted).call
     end
 
-    def initialize(user, accepted)
-      @user     = user
+    def initialize(account, accepted)
+      @account  = account
       @accepted = accepted.transform_keys(&:to_i)
       @refs     = {}
       @result   = Result.new(created: Hash.new(0), failed: [], skipped: 0)
     end
 
     def call
-      imports = @user.document_imports.awaiting_review.where(id: @accepted.keys).to_a
+      imports = @account.document_imports.awaiting_review.where(id: @accepted.keys).to_a
       preload_refs
 
       [ INSTRUMENT_KINDS, DEPENDENT_KINDS ].each do |kinds|
@@ -39,14 +39,14 @@ module Imports
         proposals = import.proposals
         Array(@accepted[import.id]).each do |pid|
           proposal = proposals.find { it["pid"] == pid && kinds.include?(it["kind"]) }
-          apply_proposal(proposal) if proposal
+          apply_proposal(proposal, import) if proposal
         end
         import.status = "applied" if proposals.none? { it["state"] == "proposed" }
         import.save!
       end
     end
 
-    def apply_proposal(proposal)
+    def apply_proposal(proposal, import)
       if proposal["state"] == "applied" && locate(proposal["record"])
         @result.skipped += 1
         return
@@ -58,7 +58,7 @@ module Imports
         return
       end
 
-      record = create_record!(proposal)
+      record = create_record!(proposal, import)
       mark_applied(proposal, record)
       @result.created[proposal["kind"]] += 1
     rescue ActiveRecord::RecordInvalid => e
@@ -77,10 +77,10 @@ module Imports
       proposal.merge!("state" => "applied", "record" => record.to_global_id.to_s)
     end
 
-    # Seed refs from every previously-applied proposal across the user's imports, so a dependent
+    # Seed refs from every previously-applied proposal across the account's imports, so a dependent
     # proposal on one import can resolve an instrument applied on another.
     def preload_refs
-      @user.document_imports.where.not(status: "dismissed").find_each do |import|
+      @account.document_imports.where.not(status: "dismissed").find_each do |import|
         import.proposals.each do |proposal|
           next unless proposal["state"] == "applied"
 
@@ -90,22 +90,23 @@ module Imports
       end
     end
 
-    def create_record!(proposal)
+    def create_record!(proposal, import)
       case proposal["kind"]
-      when "bank_account" then create_bank_account!(proposal["payload"])
-      when "credit_card"  then create_credit_card!(proposal["payload"])
-      when "income"       then create_income!(proposal["payload"])
-      when "commitment"   then create_commitment!(proposal["payload"])
+      when "bank_account" then create_bank_account!(proposal["payload"], import)
+      when "credit_card"  then create_credit_card!(proposal["payload"], import)
+      when "income"       then create_income!(proposal["payload"], import)
+      when "commitment"   then create_commitment!(proposal["payload"], import)
       else raise Imports::Error, "unsupported proposal kind: #{proposal["kind"]}"
       end
     end
 
-    def create_income!(payload)
-      account = resolve_instrument(payload["instrument_ref"])
-      raise Imports::MissingInstrument unless account.is_a?(BankAccount)
+    def create_income!(payload, import)
+      bank = resolve_instrument(payload["instrument_ref"])
+      raise Imports::MissingInstrument unless bank.is_a?(BankAccount)
 
-      @user.incomes.create!(
-        bank_account:  account,
+      @account.incomes.create!(
+        created_by:    import.created_by,   # attribution = the member who uploaded (doc 05)
+        bank_account:  bank,
         name:          payload["name"],
         amount_cents:  payload["amount_cents"],
         schedule_kind: payload["schedule_kind"].presence || "fixed_day",
@@ -116,9 +117,10 @@ module Imports
     # source: "import", source_message_id: nil (safe under the partial unique index). Installments
     # create the bare Commitment — NO posted parcel Transactions (that's the v1.1 transaction import);
     # already-elapsed parcels render as presumed-paid from starts_on vs created_at (commitment.rb).
-    def create_commitment!(payload)
+    def create_commitment!(payload, import)
       instrument = resolve_instrument(payload["instrument_ref"])
       attrs = {
+        created_by:    import.created_by,   # attribution = the member who uploaded (doc 05)
         name:          payload["name"],
         kind:          payload["commitment_kind"],
         amount_cents:  payload["amount_cents"],
@@ -136,7 +138,7 @@ module Imports
       when BankAccount then attrs[:bank_account] = instrument
       else raise Imports::MissingInstrument
       end
-      @user.commitments.create!(attrs)
+      @account.commitments.create!(attrs)
     end
 
     def resolve_instrument(ref)
@@ -153,8 +155,9 @@ module Imports
       end
     end
 
-    def create_bank_account!(payload)
-      account = @user.bank_accounts.create!(
+    def create_bank_account!(payload, import)
+      bank = @account.bank_accounts.create!(
+        created_by:     import.created_by,   # attribution = the member who uploaded (doc 05)
         institution:    institution_for(payload["institution_code"]),
         kind:           payload["kind"].presence || "checking",
         nickname:       payload["nickname"].presence,
@@ -162,14 +165,15 @@ module Imports
         account_number: payload["account_number"],
         balance_cents:  payload["balance_cents"]
       )
-      stamp_balance_anchor!(account, payload["balance_as_of"])
-      account
+      stamp_balance_anchor!(bank, payload["balance_as_of"])
+      bank
     end
 
     # ONE CreditCard per fatura, never per plastic (D5). Billing recompute is NOT called — its only
     # call site is the card UPDATE controller, and a fresh card has zero transactions (credit_card.rb).
-    def create_credit_card!(payload)
-      @user.credit_cards.create!(
+    def create_credit_card!(payload, import)
+      @account.credit_cards.create!(
+        created_by:          import.created_by,   # attribution = the member who uploaded (doc 05)
         institution:         institution_for(payload["institution_code"]),
         last4:               payload["last4"],
         nickname:            payload["nickname"].presence,
@@ -201,7 +205,7 @@ module Imports
       return nil if last4.empty?
 
       institution = institution_for(payload["institution_code"])
-      @user.credit_cards.where(institution: institution).detect { |card| card.last4.to_s == last4 }
+      @account.credit_cards.kept.where(institution: institution).detect { |card| card.last4.to_s == last4 }
     end
 
     def match_bank_account(payload)
@@ -209,8 +213,8 @@ module Imports
       return nil if target.empty?
 
       institution = institution_for(payload["institution_code"])
-      @user.bank_accounts.where(institution: institution).detect do |account|
-        Imports.normalize_account(account.account_number) == target
+      @account.bank_accounts.kept.where(institution: institution).detect do |bank|
+        Imports.normalize_account(bank.account_number) == target
       end
     end
 
@@ -222,7 +226,9 @@ module Imports
       return nil if gid.blank?
 
       record = GlobalID::Locator.locate(gid)
-      record if record.respond_to?(:user_id) && record.user_id == @user.id
+      # A proposal must not link new rows to another account's — or a soft-deleted — instrument.
+      record if record.respond_to?(:account_id) && record.account_id == @account.id &&
+                !(record.respond_to?(:soft_deleted?) && record.soft_deleted?)
     rescue StandardError
       nil
     end

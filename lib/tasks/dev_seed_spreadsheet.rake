@@ -28,6 +28,7 @@ namespace :dev do
 
     if (existing = User.find_by(email_address: email))
       puts "Wiping #{email} (user ##{existing.id}) and all its financial data…"
+      existing.account&.destroy!   # the LGPD cascade lives on Account now (spine D8)
       existing.destroy!
     end
 
@@ -39,28 +40,31 @@ namespace :dev do
     }
 
     user = User.create!(email_address: email, password: password, name: "Thiago", confirmed_at: Time.current)
-    user.onboard!   # default categories + skip the wizard
+    # A seed user isn't created through a signup controller, so mint its account here (spine D1).
+    account = Accounts::Bootstrap.call(user)
+    user.reload            # refresh the has_one :account association before onboard!
+    user.onboard!          # default categories (into the account) + skip the wizard
 
     # ── Config: SALDOS DE ABERTURA (início de Julho/2026) ────────────────────────────────
     accounts = {
-      santander:     user.bank_accounts.create!(institution: inst[:santander], balance_cents: 105_386),
-      nubank_thiago: user.bank_accounts.create!(institution: inst[:nubank], nickname: "Nubank (Thiago)", balance_cents: 357_625),
-      nubank_fran:   user.bank_accounts.create!(institution: inst[:nubank], nickname: "Nubank (Fran)", balance_cents: 0),
-      bb:            user.bank_accounts.create!(institution: inst[:bb], balance_cents: 0)
+      santander:     account.bank_accounts.create!(institution: inst[:santander], balance_cents: 105_386),
+      nubank_thiago: account.bank_accounts.create!(institution: inst[:nubank], nickname: "Nubank (Thiago)", balance_cents: 357_625),
+      nubank_fran:   account.bank_accounts.create!(institution: inst[:nubank], nickname: "Nubank (Fran)", balance_cents: 0),
+      bb:            account.bank_accounts.create!(institution: inst[:bb], balance_cents: 0)
     }
 
     # The sheet tracks two faturas (Santander / Nubank) with no cycle info; due day 10 +
     # default closing offset 7 puts purchases from Jul/04 onward on the Ago/26 bill.
     cards = {
-      santander: user.credit_cards.create!(institution: inst[:santander], bill_due_day: 10),
-      nubank:    user.credit_cards.create!(institution: inst[:nubank], bill_due_day: 10)
+      santander: account.credit_cards.create!(institution: inst[:santander], bill_due_day: 10),
+      nubank:    account.credit_cards.create!(institution: inst[:nubank], bill_due_day: 10)
     }
 
     # ── Config: ENTRADAS FIXAS ───────────────────────────────────────────────────────────
     incomes = {
-      "Salário Thiago" => user.incomes.create!(name: "Salário Thiago", bank_account: accounts[:santander],     amount_cents: 4_802_580, schedule_day: 5),
-      "Salário Fran"   => user.incomes.create!(name: "Salário Fran",   bank_account: accounts[:nubank_fran],   amount_cents:   460_080, schedule_day: 5),
-      "Pensão"         => user.incomes.create!(name: "Pensão",         bank_account: accounts[:bb],            amount_cents:   234_187, schedule_day: 5)
+      "Salário Thiago" => account.incomes.create!(name: "Salário Thiago", bank_account: accounts[:santander],     amount_cents: 4_802_580, schedule_day: 5),
+      "Salário Fran"   => account.incomes.create!(name: "Salário Fran",   bank_account: accounts[:nubank_fran],   amount_cents:   460_080, schedule_day: 5),
+      "Pensão"         => account.incomes.create!(name: "Pensão",         bank_account: accounts[:bb],            amount_cents:   234_187, schedule_day: 5)
     }
 
     # ── Config: DESPESAS FIXAS (tipo "Fixa" — pagas pelas contas) ────────────────────────
@@ -82,16 +86,16 @@ namespace :dev do
       [ "Seguro Vida",           :santander,      17_132 ],
       [ "Seguro Casa Vith",      :santander,       2_084 ],
       [ "Boleto Cooper Dudu",    :nubank_fran,     8_000 ]
-    ].each do |name, account, cents|
-      user.commitments.create!(kind: "fixed", name: name, bank_account: accounts[account],
+    ].each do |name, acct_key, cents|
+      account.commitments.create!(kind: "fixed", name: name, bank_account: accounts[acct_key],
                                amount_cents: cents, starts_on: jul, schedule_day: 10)
     end
 
     # ── Config: DESPESAS FIXAS (tipo "Parcelada" — início Jul/26) ────────────────────────
-    carro_parcelado = user.commitments.create!(
+    carro_parcelado = account.commitments.create!(
       kind: "installment", name: "Carro (parcelado)", bank_account: accounts[:nubank_fran],
       amount_cents: 250_257, starts_on: jul, installments_count: 11, total_cents: 2_752_827)
-    carro_emprestimo = user.commitments.create!(
+    carro_emprestimo = account.commitments.create!(
       kind: "installment", name: "Carro (emprestimo)", bank_account: accounts[:nubank_thiago],
       amount_cents: 318_330, starts_on: jul, installments_count: 17, total_cents: 5_411_610)
 
@@ -118,7 +122,7 @@ namespace :dev do
       [ "Britania (Lava louças)", 25_641, 2,    51_282 ],
       [ "Dentista (Thiago)",      29_000, 3,    87_000 ]
     ].each do |name, cents, count, total|
-      user.commitments.create!(kind: "installment", name: name, credit_card: cards[:santander],
+      account.commitments.create!(kind: "installment", name: name, credit_card: cards[:santander],
                                amount_cents: cents, starts_on: ago, installments_count: count, total_cents: total)
     end
 
@@ -139,7 +143,7 @@ namespace :dev do
       [ "Easyhooks (Google)",  :nubank,      4_900 ],
       [ "Coopermundi",         :santander, 104_700 ]
     ].each do |name, card, cents|
-      user.commitments.create!(kind: "subscription", name: name, credit_card: cards[card],
+      account.commitments.create!(kind: "subscription", name: name, credit_card: cards[card],
                                amount_cents: cents, starts_on: ago)
     end
 
@@ -159,10 +163,10 @@ namespace :dev do
       [ "Presente Vith",                  :santander,        25_000 ],
       [ "Rematricula Vith",               :santander,       123_147 ],
       [ "Mercado",                        :nubank_fran,       2_056 ]
-    ].each do |merchant, account, cents|
-      user.transactions.create!(merchant: merchant, direction: "expense", status: "posted",
+    ].each do |merchant, acct_key, cents|
+      account.transactions.create!(merchant: merchant, direction: "expense", status: "posted",
                                 confirmed_at: Time.current, source: "manual", amount_cents: cents,
-                                occurred_on: Date.new(2026, 7, 5), bank_account: accounts[account])
+                                occurred_on: Date.new(2026, 7, 5), bank_account: accounts[acct_key])
     end
 
     # ── Jul/26 actuals: transferências entre contas ──────────────────────────────────────
@@ -171,7 +175,7 @@ namespace :dev do
       [ "Transf. entre bancos", :santander, :nubank_thiago, 1_000_000 ],
       [ "Transf. para Fran",    :santander, :nubank_fran,     100_000 ]
     ].each do |merchant, from, to, cents|
-      user.transactions.create!(merchant: merchant, direction: "transfer", status: "posted",
+      account.transactions.create!(merchant: merchant, direction: "transfer", status: "posted",
                                 confirmed_at: Time.current, source: "manual", amount_cents: cents,
                                 occurred_on: Date.new(2026, 7, 5),
                                 bank_account: accounts[from], transfer_to_bank_account: accounts[to])
@@ -193,7 +197,7 @@ namespace :dev do
       [ "Lidia café",          :santander, 16_220 ],
       [ "Panificadora",        :santander,    629 ]
     ].each do |merchant, card, cents|
-      user.transactions.create!(merchant: merchant, direction: "expense", status: "posted",
+      account.transactions.create!(merchant: merchant, direction: "expense", status: "posted",
                                 confirmed_at: Time.current, source: "manual", amount_cents: cents,
                                 occurred_on: Date.new(2026, 7, 4), credit_card: cards[card])
     end
@@ -204,9 +208,9 @@ namespace :dev do
       "#{"-" if cents.negative?}R$ #{int.to_s.reverse.scan(/\d{1,3}/).join(".").reverse},#{format("%02d", frac)}"
     end
 
-    jul_s = MonthSummary.new(user, jul)
-    ago_s = MonthSummary.new(user, ago)
-    set_s = MonthSummary.new(user, Date.new(2026, 9, 1))
+    jul_s = MonthSummary.new(account, jul)
+    ago_s = MonthSummary.new(account, ago)
+    set_s = MonthSummary.new(account, Date.new(2026, 9, 1))
     checks = [
       [ "Jul/26 Total de Entradas",        5_496_847, jul_s.entradas_cents ],
       [ "Jul/26 Total de Saídas em Conta", 5_049_637, jul_s.saidas_cents ],
@@ -221,9 +225,9 @@ namespace :dev do
       [ "Set/26 Sobra do Mês",             2_802_664, set_s.remaining_cents ]
     ]
 
-    puts "\nSeeded: #{user.bank_accounts.count} accounts, #{user.credit_cards.count} cards, " \
-         "#{user.incomes.count} incomes, #{user.commitments.count} commitments, " \
-         "#{user.transactions.count} transactions."
+    puts "\nSeeded: #{account.bank_accounts.count} accounts, #{account.credit_cards.count} cards, " \
+         "#{account.incomes.count} incomes, #{account.commitments.count} commitments, " \
+         "#{account.transactions.count} transactions."
     puts "\nSpreadsheet alignment (sheet RESUMO vs app MonthSummary):"
     failures = checks.reject { |_, expected, actual| expected == actual }
     checks.each do |label, expected, actual|

@@ -61,7 +61,8 @@ module Whatsapp
 
     def upsert(status:, instrument: nil, amount_cents: nil, ask: {}, ask_expires_at: nil, **_)
       Transaction.find_or_create_by!(source_message_id: @msg.wa_message_id) do |t|
-        t.user             = @msg.user
+        t.account          = account       # D2: tenancy (nil fallback), NOT raw @msg.account
+        t.created_by       = @msg.user     # D7: attribution — explicit, never Current.user (job)
         t.whatsapp_message = @msg
         t.amount_cents     = amount_cents || @extraction.amount_cents
         t.merchant         = @extraction.merchant
@@ -91,14 +92,22 @@ module Whatsapp
       guess = @extraction.category
       return nil if guess.blank?
       term = Whatsapp.normalize(guess)
-      best = @msg.user.categories.max_by { |c| Whatsapp.similarity(term, Whatsapp.normalize(c.name)) }
+      best = account.categories.kept.max_by { |c| Whatsapp.similarity(term, Whatsapp.normalize(c.name)) }
       best&.id if best && Whatsapp.similarity(term, Whatsapp.normalize(best.name)) >= 0.75
+    end
+
+    # "Whose stuff?" → account (spine D6), with the deploy-window nil fallback (doc 04 §3.1/§4).
+    def account
+      return @msg.account if @msg.account
+      @msg.account = @msg.user&.account
+      @msg.save! if @msg.account && @msg.persisted?
+      @msg.account
     end
 
     def link_card_commitment(txn)
       card = txn.credit_card
       return nil unless card
-      candidates = card.commitments.active.select do |c|
+      candidates = card.commitments.kept.active.select do |c|
         %w[subscription fixed].include?(c.kind) && c.active_in?(txn.billing_month) &&
           !c.paid_in?(txn.billing_month) && amount_close?(txn.amount_cents, c.amount_cents)
       end

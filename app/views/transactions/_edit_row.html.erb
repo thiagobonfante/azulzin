@@ -32,7 +32,7 @@
       <% if transaction.transfer? %>
         <div class="form-control">
           <%= f.label :transfer_to_bank_account_id, t("transfers.form.to"), class: "mb-1 text-xs text-base-content/60" %>
-          <%= f.collection_select :transfer_to_bank_account_id, Current.user.bank_accounts.includes(:institution).order(:created_at),
+          <%= f.collection_select :transfer_to_bank_account_id, Current.account.bank_accounts.kept.includes(:institution).order(:created_at),
                 :id, :display_name, {}, class: "select select-bordered select-sm w-full" %>
         </div>
       <% elsif transaction.credit_card_id %>

@@ -1,4 +1,4 @@
-# Cross-document reconciliation (§9, zero LLM), run over all the user's extracted imports when
+# Cross-document reconciliation (§9, zero LLM), run over all the account's extracted imports when
 # building the review payload. v1 scope: suppress income proposals that are really self-transfers
 # — a credit on account A that pairs with an equal debit on account B within a couple days (the
 # classifier usually labels obvious transfers itself; this catches the ones a big credit fools).
@@ -9,8 +9,8 @@ module Imports
 
     SKEW_DAYS = 2
 
-    def call(user)
-      imports = user.document_imports.awaiting_review.to_a
+    def call(account)
+      imports = account.document_imports.awaiting_review.to_a
       suppress_self_transfers(imports)
       imports
     end

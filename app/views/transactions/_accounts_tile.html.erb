@@ -17,7 +17,7 @@
     </p>
   <% end %>
 
-  <% accounts = Current.user.bank_accounts.includes(:institution).order(:created_at) %>
+  <% accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at) %>
   <% if accounts.any? %>
     <ul class="flex flex-col gap-2">
       <% accounts.each do |account| %>

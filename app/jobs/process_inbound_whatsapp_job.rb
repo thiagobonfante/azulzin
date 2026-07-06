@@ -38,7 +38,7 @@ class ProcessInboundWhatsappJob < ApplicationJob
     if (msg.type_image? || msg.type_document?) && msg.media.attached?
       # Receipts: the unchanged expense path (ReceiptExtractor → Matcher → Confidence → Decider).
       extraction = Whatsapp::ReceiptExtractor.from_message(msg)
-      match      = Whatsapp::Matcher.new(msg.user, extraction).call
+      match      = Whatsapp::Matcher.new(msg.account || msg.user.account, extraction).call
       confidence = Whatsapp::Confidence.new(extraction)
       Whatsapp::Decider.new(msg, extraction, match, confidence).call
     else

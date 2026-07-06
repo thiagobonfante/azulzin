@@ -7,7 +7,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
     @user.update!(whatsapp_id: "5511999998888", phone_verified_at: Time.current, phone: "5511999998888")
-    @card = CreditCard.create!(user: @user, institution: Institution.find_by(code: "260")) # Nubank
+    @card = CreditCard.create!(account: @user.account, institution: Institution.find_by(code: "260")) # Nubank
   end
 
   def extraction(**overrides)
@@ -35,7 +35,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
 
   test "high confidence + matched instrument → posted, assigned silently" do
     run_pipeline(inbound("gastei 13,23 no supermercado no cartão Nubank"))
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert txn.posted?
     assert_equal @card, txn.credit_card
     assert_equal 1_323, txn.amount_cents
@@ -46,7 +46,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     # payment_method "desconhecido" → KIND isn't decisive → no auto-assign → unassigned.
     run_pipeline(inbound("gastei 50 no posto"),
                  extraction(amount_cents: 5_000, instrument_phrase: nil, payment_method: "desconhecido", merchant: "posto"))
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert txn.posted?
     assert_not txn.assigned?
   end
@@ -54,13 +54,13 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
   test "shaky amount (below floor) → parked, not posted" do
     run_pipeline(inbound("acho que gastei uns 30"),
         extraction(amount_cents: 3_000, field_confidence: { "amount" => 0.4 }, overall_confidence: 0.4))
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert txn.pending_review?
   end
 
   test "missing amount → asks, then a follow-up amount posts it (open-ask routing)" do
     run_pipeline(inbound("comprei no Nubank"), extraction(amount_raw: nil, amount_cents: nil))
-    ask = @user.transactions.sole
+    ask = @user.account.transactions.sole
     assert ask.needs_clarification?
     assert_equal "amount", ask.ask["slot"]
     assert_equal @card, ask.credit_card               # instrument resolved at ask time
@@ -69,26 +69,26 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     ask.reload
     assert ask.posted?
     assert_equal 13_790, ask.amount_cents
-    assert_equal 1, @user.transactions.count          # no second transaction
+    assert_equal 1, @user.account.transactions.count          # no second transaction
   end
 
   test "in-app safety net: reverse and reassign" do
     run_pipeline(inbound("gastei 13,23 no cartão Nubank"))
-    txn = @user.transactions.sole
-    other = BankAccount.create!(user: @user, institution: Institution.find_by(code: "341"))
+    txn = @user.account.transactions.sole
+    other = BankAccount.create!(account: @user.account, institution: Institution.find_by(code: "341"))
     txn.assign_instrument!(other)
     assert_equal other, txn.bank_account
     assert_nil txn.credit_card
     txn.reverse!
     assert txn.rejected?
-    assert_equal 0, @user.transactions.spend.count
+    assert_equal 0, @user.account.transactions.spend.count
   end
 
   # --- Phase 0 regression: the pipeline is unchanged except every row now carries a billing_month.
 
   test "regression: a posted WA expense on an UNCONFIGURED card buckets by calendar month" do
     run_pipeline(inbound("gastei 13,23 no mercado no cartão Nubank"))
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert txn.posted?
     assert_equal @card, txn.credit_card
     assert_equal txn.occurred_on.beginning_of_month, txn.billing_month
@@ -97,7 +97,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
   test "a WA expense on a CONFIGURED card buckets by the closing rule (d10/f7, 07-04 → August)" do
     @card.update!(bill_due_day: 10, closing_offset_days: 7)
     run_pipeline(inbound("gastei 13,23 no cartão Nubank"), extraction(occurred_on: Date.new(2026, 7, 4)))
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert_equal @card, txn.credit_card
     assert_equal Date.new(2026, 8, 1), txn.billing_month
   end

@@ -28,7 +28,7 @@ class ProcessInboundWhatsappJobTest < ActiveSupport::TestCase
   test "below-floor confidence parks a pending_review transaction (in-zone date) and replies" do
     run_job(extraction) { ProcessInboundWhatsappJob.perform_now(@msg.id) }   # overall_confidence 0.7 < floor 80
 
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert_equal 1_323, txn.amount_cents
     assert txn.pending_review?
     assert_equal "whatsapp_text", txn.source
@@ -44,17 +44,17 @@ class ProcessInboundWhatsappJobTest < ActiveSupport::TestCase
       @msg.update_column(:status, "received")      # bypass the re-run guard to exercise txn-level idempotency
       ProcessInboundWhatsappJob.perform_now(@msg.id)
     end
-    assert_equal 1, @user.transactions.count
+    assert_equal 1, @user.account.transactions.count
   end
 
   test "no amount → opens an amount clarification (nothing posted)" do
     run_job(extraction(amount_raw: nil, amount_cents: nil)) do
       ProcessInboundWhatsappJob.perform_now(@msg.id)
     end
-    txn = @user.transactions.sole
+    txn = @user.account.transactions.sole
     assert txn.needs_clarification?
     assert_equal "amount", txn.ask["slot"]
-    assert_equal 0, @user.transactions.spend.count   # nothing posted
+    assert_equal 0, @user.account.transactions.spend.count   # nothing posted
     assert_equal "processed", @msg.reload.status
   end
 
@@ -68,6 +68,6 @@ class ProcessInboundWhatsappJobTest < ActiveSupport::TestCase
 
     assert_equal "failed", @msg.reload.status
     assert_equal "rate_limited", @msg.error
-    assert_equal 0, @user.transactions.count
+    assert_equal 0, @user.account.transactions.count
   end
 end

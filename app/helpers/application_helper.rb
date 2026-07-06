@@ -43,7 +43,7 @@ module ApplicationHelper
   # The sidebar pending-tray count badge — always rendered (with a stable id so Turbo Streams
   # can replace it after an in-app resolve), hidden at zero.
   def pending_nav_badge
-    count = Current.user.transactions.pending_inbox.count
+    count = Current.account.transactions.pending_inbox.count
     tag.span(count.positive? ? count : "", id: "sidebar_pending_count",
              class: "badge badge-warning badge-sm#{' hidden' if count.zero?}")
   end

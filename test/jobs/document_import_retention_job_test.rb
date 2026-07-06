@@ -36,7 +36,7 @@ class DocumentImportRetentionJobTest < ActiveJob::TestCase
   private
 
   def build_import(status:, extraction:)
-    di = @user.document_imports.new(checksum: SecureRandom.hex, extraction: extraction)
+    di = @user.account.document_imports.new(checksum: SecureRandom.hex, extraction: extraction)
     di.file.attach(io: File.open(file_fixture("imports/sample.csv")),
                    filename: "sample.csv", content_type: "text/csv")
     di.status = status

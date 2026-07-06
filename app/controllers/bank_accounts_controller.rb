@@ -6,12 +6,12 @@ class BankAccountsController < ApplicationController
   before_action :require_onboarding, only: :index
 
   def index
-    @bank_accounts = Current.user.bank_accounts.includes(:institution).order(:created_at)
+    @bank_accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at)
     @bank_account  = BankAccount.new
   end
 
   def create
-    @bank_account = Current.user.bank_accounts.build(bank_account_params)
+    @bank_account = Current.account.bank_accounts.build(bank_account_params)
     saved = @bank_account.save
     respond_to do |format|
       # 422 on failure so Turbo's submit-end reports failure and the form is NOT reset
@@ -29,11 +29,11 @@ class BankAccountsController < ApplicationController
 
   # Full-page edit — nickname, kind and balance. Editing the balance re-anchors it (model).
   def edit
-    @bank_account = Current.user.bank_accounts.find(params[:id])
+    @bank_account = Current.account.bank_accounts.kept.find(params[:id])
   end
 
   def update
-    @bank_account = Current.user.bank_accounts.find(params[:id])
+    @bank_account = Current.account.bank_accounts.kept.find(params[:id])
     if @bank_account.update(bank_account_params)
       redirect_to bank_accounts_path, notice: t(".updated")
     else
@@ -42,7 +42,7 @@ class BankAccountsController < ApplicationController
   end
 
   def destroy
-    @bank_account = Current.user.bank_accounts.find(params[:id])
+    @bank_account = Current.account.bank_accounts.kept.find(params[:id])
     @bank_account.destroy
     respond_to do |format|
       format.turbo_stream

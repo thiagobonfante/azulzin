@@ -37,12 +37,12 @@ module Whatsapp
 
     def savings_default
       return nil unless savings_verb?
-      savings = user.bank_accounts.savings
+      savings = account.bank_accounts.kept.savings
       savings.first if savings.count == 1
     end
 
     def single_checking
-      checking = user.bank_accounts.checking
+      checking = account.bank_accounts.kept.checking
       checking.first if checking.count == 1
     end
 
@@ -60,7 +60,7 @@ module Whatsapp
 
     # A stub carrying the resolved leg and the numbered options for the missing one (savings first).
     def ask_slot(slot, from: nil, to: nil)
-      accounts = user.bank_accounts.includes(:institution).order(kind: :desc, created_at: :asc).to_a
+      accounts = account.bank_accounts.kept.includes(:institution).order(kind: :desc, created_at: :asc).to_a
       txn = upsert_row(direction: "transfer", status: "needs_disambiguation", amount_cents: @extraction.amount_cents,
                        occurred_on: occurred, billing_month: occurred.beginning_of_month,
                        bank_account: from, transfer_to_bank_account: to,

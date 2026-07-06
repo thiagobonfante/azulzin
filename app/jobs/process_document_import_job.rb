@@ -5,9 +5,9 @@
 class ProcessDocumentImportJob < ApplicationJob
   queue_as :imports
 
-  # 2 concurrent per user — documents are independent (unlike WhatsApp replies, which serialize
-  # behind their open ask).
-  limits_concurrency to: 2, key: ->(import_id) { DocumentImport.where(id: import_id).pick(:user_id) }
+  # 2 concurrent per account — documents are independent (unlike WhatsApp replies, which serialize
+  # behind their open ask). Keyed on account (D2): the daily cap is per family.
+  limits_concurrency to: 2, key: ->(import_id) { DocumentImport.where(id: import_id).pick(:account_id) }
 
   retry_on OpenRouterClient::RateLimited, wait: :polynomially_longer, attempts: 3
   retry_on Net::OpenTimeout, Net::ReadTimeout, wait: 5.seconds, attempts: 3
@@ -64,7 +64,7 @@ class ProcessDocumentImportJob < ApplicationJob
   # Defense-in-depth behind the controller's cap: concurrent submits can race past it. Over the
   # cap → fail WITHOUT calling AI.
   def over_daily_cap?(import)
-    import.user.document_imports.where(created_at: 24.hours.ago..).where.not(id: import.id)
+    import.account.document_imports.where(created_at: 24.hours.ago..).where.not(id: import.id)
           .count >= DocumentImport::MAX_PER_DAY
   end
 

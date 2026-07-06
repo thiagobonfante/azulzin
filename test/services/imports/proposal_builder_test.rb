@@ -55,7 +55,7 @@ class Imports::ProposalBuilderTest < ActiveSupport::TestCase
   end
 
   test "a CSV with no account header yields no proposals (no instrument to attach to)" do
-    csv = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "csv")
+    csv = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "csv")
     csv.file.attach(io: File.open(file_fixture("imports/sample.csv")), filename: "s.csv", content_type: "text/csv")
     csv.extraction = Imports::CsvParser.call(file_fixture("imports/sample.csv").read)
     csv.save!
@@ -97,7 +97,7 @@ class Imports::ProposalBuilderTest < ActiveSupport::TestCase
   end
 
   def pdf_import(extraction)
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "pdf")
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "pdf")
     import.file.attach(io: File.open(file_fixture("imports/statement.pdf")),
                        filename: "doc.pdf", content_type: "application/pdf")
     import.extraction = extraction
@@ -106,7 +106,7 @@ class Imports::ProposalBuilderTest < ActiveSupport::TestCase
   end
 
   def ofx_import
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")
     import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")),
                        filename: "nubank.ofx", content_type: "application/x-ofx")
     import.extraction = Imports::OfxParser.call(file_fixture("imports/nubank.ofx").read)

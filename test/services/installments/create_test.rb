@@ -4,7 +4,7 @@ class Installments::CreateTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
     @inst = Institution.find_by(code: "260")
-    @card = CreditCard.create!(user: @user, institution: @inst, bill_due_day: 10, closing_offset_days: 10)
+    @card = CreditCard.create!(account: @user.account, institution: @inst, bill_due_day: 10, closing_offset_days: 10)
   end
 
   test "split_cents spreads the remainder across the first parcels and sums exactly" do
@@ -14,7 +14,7 @@ class Installments::CreateTest < ActiveSupport::TestCase
   end
 
   test "R$5000 em 10x on a d10/f10 card bought day 3 → 1 commitment + 10 posted parcels of 50000" do
-    commitment = Installments::Create.call(user: @user, card: @card, total_cents: 500_000, count: 10,
+    commitment = Installments::Create.call(account: @user.account, created_by: @user, card: @card, total_cents: 500_000, count: 10,
                                            occurred_on: Date.new(2026, 7, 3), merchant: "celular")
     parcels = commitment.payments.posted.order(:installment_number).to_a
     assert_equal 10, parcels.size
@@ -26,17 +26,17 @@ class Installments::CreateTest < ActiveSupport::TestCase
 
   test "parcels sum to the total for adversarial inputs" do
     [ [ 100_001, 3 ], [ 10_035, 3 ], [ 1, 2 ] ].each do |total, count|
-      c = Installments::Create.call(user: @user, card: @card, total_cents: total, count: count,
+      c = Installments::Create.call(account: @user.account, created_by: @user, card: @card, total_cents: total, count: count,
                                     occurred_on: Date.new(2026, 7, 3), merchant: "x-#{total}")
       assert_equal total, c.payments.posted.sum(:amount_cents)
     end
   end
 
   test "idempotent on source_message_id — a replay creates zero new rows" do
-    a = Installments::Create.call(user: @user, card: @card, total_cents: 500_000, count: 10,
+    a = Installments::Create.call(account: @user.account, created_by: @user, card: @card, total_cents: 500_000, count: 10,
                                   occurred_on: Date.new(2026, 7, 3), merchant: "x", source_message_id: "wa-1")
     assert_no_difference [ "Commitment.count", "Transaction.count" ] do
-      b = Installments::Create.call(user: @user, card: @card, total_cents: 500_000, count: 10,
+      b = Installments::Create.call(account: @user.account, created_by: @user, card: @card, total_cents: 500_000, count: 10,
                                     occurred_on: Date.new(2026, 7, 3), merchant: "x", source_message_id: "wa-1")
       assert_equal a, b
     end

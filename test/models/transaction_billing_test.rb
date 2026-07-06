@@ -6,14 +6,14 @@ class TransactionBillingTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
     @inst = Institution.find_by(code: "260")
-    @account = BankAccount.create!(user: @user, institution: @inst)
-    @card    = CreditCard.create!(user: @user, institution: @inst, bill_due_day: 10, closing_offset_days: 7)
+    @account = BankAccount.create!(account: @user.account, institution: @inst)
+    @card    = CreditCard.create!(account: @user.account, institution: @inst, bill_due_day: 10, closing_offset_days: 7)
   end
 
   # billing_month is provided so validate:false saves don't trip NOT NULL before the check
   # constraint we're actually testing; normal saves recompute it via before_validation anyway.
   def build(**attrs)
-    Transaction.new({ user: @user, amount_cents: 1_000, occurred_on: Date.new(2026, 7, 4),
+    Transaction.new({ account: @user.account, amount_cents: 1_000, occurred_on: Date.new(2026, 7, 4),
                       billing_month: Date.new(2026, 7, 1), status: "posted" }.merge(attrs))
   end
 
@@ -30,7 +30,7 @@ class TransactionBillingTest < ActiveSupport::TestCase
   end
 
   test "card parcels stagger billing_month by installment_number" do
-    plan = Commitment.create!(user: @user, credit_card: @card, name: "celular", kind: "installment",
+    plan = Commitment.create!(account: @user.account, credit_card: @card, name: "celular", kind: "installment",
                               amount_cents: 50_000, installments_count: 3, starts_on: Date.new(2026, 8, 1))
     (1..3).each do |k|
       p = build(credit_card: @card, commitment: plan, installment_number: k); p.save!
@@ -85,7 +85,7 @@ class TransactionBillingTest < ActiveSupport::TestCase
   end
 
   test "paid-once EXEMPTS card parcels sharing a fatura (R2 manual move)" do
-    plan = Commitment.create!(user: @user, credit_card: @card, name: "tv", kind: "installment",
+    plan = Commitment.create!(account: @user.account, credit_card: @card, name: "tv", kind: "installment",
                               amount_cents: 20_000, installments_count: 2, starts_on: Date.new(2026, 8, 1))
     p1 = build(credit_card: @card, commitment: plan, installment_number: 1); p1.save!
     p2 = build(credit_card: @card, commitment: plan, installment_number: 2); p2.save!
@@ -97,7 +97,7 @@ class TransactionBillingTest < ActiveSupport::TestCase
 
   private
     def fixed_commitment
-      Commitment.create!(user: @user, bank_account: @account, name: "aluguel", kind: "fixed",
+      Commitment.create!(account: @user.account, bank_account: @account, name: "aluguel", kind: "fixed",
                          amount_cents: 100_000, schedule_day: 5, starts_on: Date.new(2026, 7, 1))
     end
 end

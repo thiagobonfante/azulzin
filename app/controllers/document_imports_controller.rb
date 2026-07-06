@@ -20,7 +20,7 @@ class DocumentImportsController < ApplicationController
 
   # "Remover"/"Descartar" a non-applied import: mark dismissed and purge the blob immediately.
   def destroy
-    import = Current.user.document_imports.find(params[:id])
+    import = Current.account.document_imports.find(params[:id])
     import.file.purge_later if import.file.attached?
     import.update!(status: "dismissed")
     redirect_to after_upload_path
@@ -30,7 +30,7 @@ class DocumentImportsController < ApplicationController
   # hand the job the extracted pages via `extraction`. The password is used in memory only and is
   # NEVER written to the DB or the job args.
   def unlock
-    import = Current.user.document_imports.find(params[:id])
+    import = Current.account.document_imports.find(params[:id])
     pages  = Imports::PdfTextExtractor.call(import.file.download, password: params[:password])
     import.update!(extraction: pages, status: "uploaded", error_code: nil)
     ProcessDocumentImportJob.perform_later(import.id)
@@ -43,15 +43,15 @@ class DocumentImportsController < ApplicationController
 
   # Turbo Frame polled by import_status_controller every 2s.
   def status
-    imports = Current.user.document_imports.where.not(status: "dismissed").order(created_at: :desc)
+    imports = Current.account.document_imports.where.not(status: "dismissed").order(created_at: :desc)
     render partial: "document_imports/status", locals: { imports: imports }
   end
 
   # ONE review page over ALL the user's extracted imports (D6). The Reconciler runs first — it
   # suppresses income proposals that are really cross-account self-transfers (§9).
   def review
-    Imports::Reconciler.call(Current.user)
-    @imports = Current.user.document_imports.awaiting_review.order(:created_at).to_a
+    Imports::Reconciler.call(Current.account)
+    @imports = Current.account.document_imports.awaiting_review.order(:created_at).to_a
     @groups  = Imports::Review.groups(@imports)
   end
 
@@ -60,7 +60,7 @@ class DocumentImportsController < ApplicationController
     return discard(params[:discard]) if params[:discard].present?
 
     fold_edits_into_proposals
-    result = Imports::Apply.call(user: Current.user, accepted: build_accepted)
+    result = Imports::Apply.call(account: Current.account, accepted: build_accepted)
     redirect_to after_review_path, **apply_flash(result)
   end
 
@@ -79,7 +79,7 @@ class DocumentImportsController < ApplicationController
   # yet — that arrives with Phase 1.)
   def ingest(uploaded)
     checksum = Digest::SHA256.file(uploaded.tempfile.path).hexdigest
-    import = Current.user.document_imports.new(checksum: checksum)
+    import = Current.account.document_imports.new(checksum: checksum)
     return [ :duplicate, import ] if import.duplicate_checksum?
 
     import.file.attach(io: uploaded, filename: uploaded.original_filename,
@@ -95,7 +95,7 @@ class DocumentImportsController < ApplicationController
   end
 
   def over_daily_cap?(incoming)
-    Current.user.document_imports.where(created_at: 24.hours.ago..).count + incoming >
+    Current.account.document_imports.where(created_at: 24.hours.ago..).count + incoming >
       DocumentImport::MAX_PER_DAY
   end
 
@@ -136,7 +136,7 @@ class DocumentImportsController < ApplicationController
   # {import_id => [checked pid, ...]}. A checkbox posts check[pid]=1 when ticked, nothing when not.
   def build_accepted
     checked = params.fetch(:check, {}).keys
-    Current.user.document_imports.awaiting_review.each_with_object({}) do |import, accepted|
+    Current.account.document_imports.awaiting_review.each_with_object({}) do |import, accepted|
       pids = import.proposals.map { it["pid"] } & checked
       accepted[import.id] = pids if pids.any?
     end
@@ -148,7 +148,7 @@ class DocumentImportsController < ApplicationController
     edits = params[:edits]
     return unless edits.respond_to?(:dig)
 
-    Current.user.document_imports.awaiting_review.find_each do |import|
+    Current.account.document_imports.awaiting_review.find_each do |import|
       changed = false
       import.proposals.each do |proposal|
         name        = edits.dig(proposal["pid"], "name")
@@ -173,7 +173,7 @@ class DocumentImportsController < ApplicationController
   end
 
   def discard(pid)
-    Current.user.document_imports.awaiting_review.find_each do |import|
+    Current.account.document_imports.awaiting_review.find_each do |import|
       next unless import.proposals.any? { it["pid"] == pid && it["state"] == "proposed" }
 
       import.with_lock do

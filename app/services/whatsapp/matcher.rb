@@ -1,9 +1,9 @@
 module Whatsapp
   # Resolves an extracted instrument phrase ("no cartão Nubank", "final 1234") to ONE of
-  # this user's bank accounts / credit cards. Per-user candidate sets are tiny (2–15 rows)
-  # so everything is scored in Ruby — no index, no gem (hand-rolled similarity). The KIND
-  # (débito vs crédito) keyword layer filters which instruments are eligible. See
-  # .plans/whats §4.6.
+  # this account's bank accounts / credit cards (the whole family's, spine D6). Per-account
+  # candidate sets are still tiny (≤4 people's instruments) so everything is scored in Ruby —
+  # no index, no gem (hand-rolled similarity). The KIND (débito vs crédito) keyword layer
+  # filters which instruments are eligible. See .plans/whats §4.6.
   class Matcher
     Result = Struct.new(:instrument, :candidates, :c_match, :reason, keyword_init: true) do
       def matched?    = instrument.present?
@@ -16,17 +16,17 @@ module Whatsapp
     # R4 keyword layer: a savings/caixinha phrase narrows candidates to savings accounts.
     SAVINGS_RE = /caixinha|poupan[cç]a|reserva|cofrinho|guardad/i
 
-    def initialize(user, extraction, restrict_kind: nil)
-      @user = user
+    def initialize(account, extraction, restrict_kind: nil)
+      @account = account
       @extraction = extraction
       @restrict_kind = restrict_kind   # :account restricts to bank accounts (transfer legs)
     end
 
     # Public entry for resolving a single phrase to an instrument (07 §3): used by transfers
     # (source + destination), passing kind: :account (cards are never transfer legs).
-    def self.match_phrase(user, phrase, payment_method: nil, kind: nil)
+    def self.match_phrase(account, phrase, payment_method: nil, kind: nil)
       ex = Extraction.new(instrument_phrase: phrase, payment_method: payment_method || "desconhecido")
-      new(user, ex, restrict_kind: kind).call
+      new(account, ex, restrict_kind: kind).call
     end
 
     def call
@@ -88,9 +88,9 @@ module Whatsapp
     # than the LLM on this axis). credito → cards; debito/pix/boleto → accounts; else both.
     def candidates_for_kind
       text = "#{@extraction.instrument_phrase} #{@extraction.payment_method}"
-      accounts = @user.bank_accounts.includes(:institution)
+      accounts = @account.bank_accounts.kept.includes(:institution)
       accounts = accounts.where(kind: "savings") if SAVINGS_RE.match?(@extraction.instrument_phrase.to_s)
-      cards    = @user.credit_cards.includes(:institution)
+      cards    = @account.credit_cards.kept.includes(:institution)
       list =
         if @restrict_kind == :account then accounts
         elsif text.match?(CREDIT_RE) && !text.match?(DEBIT_RE) then cards

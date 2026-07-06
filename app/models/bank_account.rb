@@ -1,7 +1,7 @@
 class BankAccount < ApplicationRecord
   include MoneyColumns
+  include AccountScoped, Attributable, SoftDeletable
 
-  belongs_to :user
   belongs_to :institution                        # required (belongs_to is non-optional)
   has_many :transactions, dependent: :nullify    # deleting an account must not erase history
   has_many :incomes, dependent: :restrict_with_error   # an income needs its account; reassign before delete
@@ -33,11 +33,11 @@ class BankAccount < ApplicationRecord
   def derived_balance_cents
     return nil unless balance_informed?
     since = balance_anchored_at || updated_at
-    own = transactions.posted.where("created_at > ?", since)
+    own = transactions.posted.kept.where("created_at > ?", since)   # .kept: a soft-deleted row unspends (doc 05)
     balance_cents +
       own.where(direction: "income").sum(:amount_cents) -
       own.where(direction: %w[expense transfer]).sum(:amount_cents) +
-      incoming_transfers.posted.where("created_at > ?", since).sum(:amount_cents)
+      incoming_transfers.posted.kept.where("created_at > ?", since).sum(:amount_cents)
   end
 
   private

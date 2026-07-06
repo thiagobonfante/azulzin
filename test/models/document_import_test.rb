@@ -22,13 +22,13 @@ class DocumentImportTest < ActiveSupport::TestCase
   end
 
   test "requires an attached file on create" do
-    di = @user.document_imports.new(checksum: "abc")
+    di = @user.account.document_imports.new(checksum: "abc")
     assert_not di.valid?
     assert di.errors.added?(:file, :missing)
   end
 
   test "rejects a file over the size cap" do
-    di = @user.document_imports.new(checksum: "abc")
+    di = @user.account.document_imports.new(checksum: "abc")
     di.file.attach(io: StringIO.new("a" * (DocumentImport::MAX_FILE_BYTES + 1)),
                    filename: "big.csv", content_type: "text/csv")
     assert_not di.valid?
@@ -36,7 +36,7 @@ class DocumentImportTest < ActiveSupport::TestCase
   end
 
   test "rejects an unsupported content type" do
-    di = @user.document_imports.new(checksum: "abc")
+    di = @user.account.document_imports.new(checksum: "abc")
     di.file.attach(io: File.open(file_fixture("imports/sample.png")),
                    filename: "x.png", content_type: "image/png")
     assert_not di.valid?
@@ -44,7 +44,7 @@ class DocumentImportTest < ActiveSupport::TestCase
   end
 
   test "accepts an .ofx file sent with the generic browser content type" do
-    di = @user.document_imports.new(checksum: "abc")
+    di = @user.account.document_imports.new(checksum: "abc")
     di.file.attach(io: File.open(file_fixture("imports/nubank.ofx")),
                    filename: "nubank.ofx", content_type: "application/octet-stream")
     assert di.valid?, di.errors.full_messages.to_sentence
@@ -52,18 +52,19 @@ class DocumentImportTest < ActiveSupport::TestCase
 
   test "duplicate_checksum? is true when a live import shares the checksum" do
     make_import(checksum: "dup")
-    assert @user.document_imports.new(checksum: "dup").duplicate_checksum?
+    assert @user.account.document_imports.new(checksum: "dup").duplicate_checksum?
   end
 
   test "a dismissed import does not block a re-upload" do
     make_import(checksum: "dup", status: "dismissed")
-    assert_not @user.document_imports.new(checksum: "dup").duplicate_checksum?
+    assert_not @user.account.document_imports.new(checksum: "dup").duplicate_checksum?
   end
 
   test "duplicate_checksum? is scoped per user" do
     make_import(checksum: "dup")
     other = User.create!(email_address: "o@example.com", password: "password123")
-    assert_not other.document_imports.new(checksum: "dup").duplicate_checksum?
+    Accounts::Bootstrap.call(other)
+    assert_not other.account.document_imports.new(checksum: "dup").duplicate_checksum?
   end
 
   test "proposed_items returns only proposals still in the proposed state" do
@@ -79,7 +80,7 @@ class DocumentImportTest < ActiveSupport::TestCase
   private
 
   def valid_import(**attrs)
-    di = @user.document_imports.new({ checksum: SecureRandom.hex }.merge(attrs))
+    di = @user.account.document_imports.new({ checksum: SecureRandom.hex }.merge(attrs))
     di.file.attach(io: File.open(file_fixture("imports/sample.csv")),
                    filename: "sample.csv", content_type: "text/csv")
     di

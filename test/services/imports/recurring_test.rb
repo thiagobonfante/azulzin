@@ -59,7 +59,7 @@ class Imports::RecurringTest < ActiveSupport::TestCase
     nubank    = extracted_with_income(4_802_580, "2026-06-04", "0260", "9100349-6") # a credit classified income
     santander = extracted_with_debit(4_802_580, "2026-06-05", "033", "1003172-6")   # the matching debit
 
-    Imports::Reconciler.call(@user)
+    Imports::Reconciler.call(@user.account)
 
     income = nubank.reload.proposals.find { it["kind"] == "income" }
     assert_equal "rejected", income["state"] # paired debit within skew → excluded
@@ -68,14 +68,14 @@ class Imports::RecurringTest < ActiveSupport::TestCase
 
   test "Reconciler leaves a genuine income (no matching debit) alone" do
     nubank = extracted_with_income(4_802_580, "2026-06-04", "0260", "9100349-6")
-    Imports::Reconciler.call(@user)
+    Imports::Reconciler.call(@user.account)
     assert_equal "proposed", nubank.reload.proposals.find { it["kind"] == "income" }["state"]
   end
 
   private
 
   def build_with(extraction, labels)
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx")
     import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")),
                        filename: "n.ofx", content_type: "application/x-ofx")
     import.extraction = extraction
@@ -121,7 +121,7 @@ class Imports::RecurringTest < ActiveSupport::TestCase
   end
 
   def new_extracted(bank_id, acct_id, rows)
-    import = @user.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
+    import = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "ofx", status: "uploaded")
     import.file.attach(io: File.open(file_fixture("imports/nubank.ofx")), filename: "x.ofx", content_type: "application/x-ofx")
     import.save!
     import.update!(status: "extracted", extraction: { "rows" => rows, "meta" => { "acct" => { "bank_id" => bank_id, "acct_id" => acct_id } } })

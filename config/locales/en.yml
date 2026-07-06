@@ -29,6 +29,9 @@ en:
       category: "Category"
       commitment: "Commitment"
       document_import: "Import"
+      account: "Account"
+      account_membership: "Member"
+      invitation: "Invitation"
     attributes:
       user:
         email_address: "Email address"
@@ -77,8 +80,26 @@ en:
         installments_count: "Installments"
       document_import:
         file: "File"
+      account:
+        name: "Account name"
+      account_membership:
+        role: "Role"
+      invitation:
+        email: "Email"
+        expires_at: "Expires at"
     errors:
       models:
+        account_membership:
+          attributes:
+            base:
+              account_full: "This account has reached the limit of 4 members."
+        invitation:
+          attributes:
+            base:
+              cap_reached: "This account has reached the limit of 4 members."
+            email:
+              not_allowed: "isn't allowed to sign up."
+              already_member: "is already a member of this account."
         user:
           attributes:
             email_address:

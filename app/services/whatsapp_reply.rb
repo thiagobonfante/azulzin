@@ -7,7 +7,7 @@ class WhatsappReply
   def self.deliver(user:, key:, transaction: nil, **i18n_args)
     body = render(user, key, **i18n_args)
     outbound = WhatsappMessage.create!(
-      user: user, direction: "outbound", message_type: "text",
+      user: user, account: user.account, direction: "outbound", message_type: "text",
       body: body, status: "sent", linked_transaction: transaction
     )
     # Reply to the exact JID we last heard from (kept current by the webhook) so @lid

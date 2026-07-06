@@ -2,7 +2,7 @@
     each recurring income with its expected date; "Recebi" posts the deposit (income_id link)
     so it joins the account balance. Projection months only — past months show nothing. %>
 <div id="a_receber">
-  <% incomes = Current.user.incomes.active.includes(bank_account: :institution).order(:created_at) %>
+  <% incomes = Current.account.incomes.kept.active.includes(bank_account: :institution).order(:created_at) %>
   <% if summary.mode != :past && incomes.any? %>
     <% pending = incomes.reject { |i| summary.income_received?(i) } %>
     <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">

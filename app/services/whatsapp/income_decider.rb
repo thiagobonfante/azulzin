@@ -44,7 +44,7 @@ module Whatsapp
     def linked_income
       term = Whatsapp.normalize(@extraction.merchant.to_s)
       return nil if term.blank?
-      best = user.incomes.active.max_by { |i| Whatsapp.similarity(term, Whatsapp.normalize(i.name)) }
+      best = account.incomes.kept.active.max_by { |i| Whatsapp.similarity(term, Whatsapp.normalize(i.name)) }
       best if best && Whatsapp.similarity(term, Whatsapp.normalize(best.name)) >= 0.6
     end
 

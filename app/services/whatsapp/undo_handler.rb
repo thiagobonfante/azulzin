@@ -24,9 +24,12 @@ module Whatsapp
 
     private
 
+    # "apaga o último" MUST mean *my* last WA row within the account, not whoever texted most
+    # recently (spine D6). .kept excludes rows soft-deleted in-app (doc 04 §4.4).
     def last_wa_row
-      user.transactions.where.not(whatsapp_message_id: nil).where("created_at > ?", 24.hours.ago)
-          .where.not(status: %w[rejected superseded]).order(created_at: :desc).first
+      account.transactions.kept.where(created_by: user).where.not(whatsapp_message_id: nil)
+             .where("created_at > ?", 24.hours.ago)
+             .where.not(status: %w[rejected superseded]).order(created_at: :desc).first
     end
 
     def teardown(commitment)

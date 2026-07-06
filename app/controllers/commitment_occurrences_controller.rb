@@ -8,7 +8,7 @@ class CommitmentOccurrencesController < ApplicationController
   helper_method :viewed_month, :summary, :hub_occurrences, :month_ledger
 
   def pay
-    @occurrence = CommitmentOccurrence.find_for!(Current.user, params[:id])
+    @occurrence = CommitmentOccurrence.find_for!(Current.account, params[:id])
     payment = Commitments::MarkPaid.call(@occurrence.commitment, @occurrence.month, amount: paid_amount_cents)
     @occurrence = CommitmentOccurrence.new(@occurrence.commitment, @occurrence.month, payment: payment)
     respond_to do |format|
@@ -18,7 +18,7 @@ class CommitmentOccurrencesController < ApplicationController
   end
 
   def unpay
-    @occurrence = CommitmentOccurrence.find_for!(Current.user, params[:id])
+    @occurrence = CommitmentOccurrence.find_for!(Current.account, params[:id])
     @occurrence.payment&.reverse!
     @occurrence = CommitmentOccurrence.new(@occurrence.commitment, @occurrence.month)
     respond_to do |format|
@@ -39,14 +39,14 @@ class CommitmentOccurrencesController < ApplicationController
       @viewed_month ||= (parse_month(params[:month]) || Date.current.beginning_of_month)
     end
 
-    def summary = @summary ||= MonthSummary.new(Current.user, viewed_month)
+    def summary = @summary ||= MonthSummary.new(Current.account, viewed_month)
 
-    def hub_occurrences = @hub_occurrences ||= CommitmentOccurrence.for_month(Current.user, viewed_month)
+    def hub_occurrences = @hub_occurrences ||= CommitmentOccurrence.for_month(Current.account, viewed_month)
 
     # The viewed month's posted ledger — paying from the hub streams the new row straight
     # into Movimentos (no refresh). Mirrors TransactionsController#month_ledger.
     def month_ledger
-      Current.user.transactions.posted_in(viewed_month)
+      Current.account.transactions.posted_in(viewed_month)
              .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment)
              .order(occurred_on: :desc, id: :desc)
     end

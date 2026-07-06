@@ -5,11 +5,11 @@ class CreditCardBillingTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
     @inst = Institution.find_by(code: "260")
-    @card = CreditCard.create!(user: @user, institution: @inst) # unconfigured
+    @card = CreditCard.create!(account: @user.account, institution: @inst) # unconfigured
   end
 
   def expense(occurred, **attrs)
-    @user.transactions.create!({ amount_cents: 1_000, occurred_on: occurred, status: "posted",
+    @user.account.transactions.create!({ amount_cents: 1_000, occurred_on: occurred, status: "posted",
                                  direction: "expense", credit_card: @card }.merge(attrs))
   end
 

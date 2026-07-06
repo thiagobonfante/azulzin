@@ -4,8 +4,8 @@ class Commitments::MarkPaidTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
     @inst = Institution.find_by(code: "260")
-    @account = BankAccount.create!(user: @user, institution: @inst)
-    @commitment = Commitment.create!(user: @user, bank_account: @account, name: "aluguel", kind: "fixed",
+    @account = BankAccount.create!(account: @user.account, institution: @inst)
+    @commitment = Commitment.create!(account: @user.account, bank_account: @account, name: "aluguel", kind: "fixed",
                                      amount_cents: 100_000, schedule_day: 5, starts_on: Date.new(2026, 1, 1))
   end
 

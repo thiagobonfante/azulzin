@@ -1,11 +1,11 @@
 module TransactionsHelper
-  # The user's accounts/cards, loaded once per render for the instrument picker.
+  # The account's accounts/cards, loaded once per render for the instrument picker.
   def inbox_bank_accounts
-    @inbox_bank_accounts ||= Current.user.bank_accounts.includes(:institution).order(:created_at)
+    @inbox_bank_accounts ||= Current.account.bank_accounts.kept.includes(:institution).order(:created_at)
   end
 
   def inbox_credit_cards
-    @inbox_credit_cards ||= Current.user.credit_cards.includes(:institution).order(:created_at)
+    @inbox_credit_cards ||= Current.account.credit_cards.kept.includes(:institution).order(:created_at)
   end
 
   # Grouped <optgroup> options (accounts, then cards) for the instrument <select>.
@@ -34,15 +34,15 @@ module TransactionsHelper
   # Where the month went: one stacked bar of spend by category (each in its color) with the
   # leftover (sobra) as a blue tail — reuses the category palette so the split reads at a glance.
   # Returns nil (nothing to show) when there's neither spend nor a positive leftover.
-  def monthly_flow_chart(user, month)
-    spend_by_cat = user.transactions.posted_in(month).where(direction: "expense")
-                       .group(:category_id).sum(:amount_cents)
+  def monthly_flow_chart(account, month)
+    spend_by_cat = account.transactions.posted_in(month).where(direction: "expense")
+                          .group(:category_id).sum(:amount_cents)
     total_spend = spend_by_cat.values.sum
-    left = [ MonthSummary.new(user, month).remaining_cents, 0 ].max
+    left = [ MonthSummary.new(account, month).remaining_cents, 0 ].max
     base = total_spend + left
     return if base.zero?
 
-    cats = user.categories.where(id: spend_by_cat.keys.compact).index_by(&:id)
+    cats = account.categories.kept.where(id: spend_by_cat.keys.compact).index_by(&:id)
     segments = spend_by_cat.map { |cat_id, cents|
       cat = cats[cat_id]
       { label: cat&.name || t("transactions.ledger.uncategorized"),

@@ -48,6 +48,13 @@ module Authentication
         Current.session = session
         cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }
       end
+      ensure_membership_for(user)                   # after Current.session is set; never account-less
+    end
+
+    # Invariant: a signed-in user ALWAYS has exactly one membership when this returns. Phase 4
+    # adds invitation-token consumption here (doc 02 §3); for now only the Bootstrap fallback.
+    def ensure_membership_for(user)
+      Accounts::Bootstrap.call(user) if user.account_membership.nil?
     end
 
     def terminate_session

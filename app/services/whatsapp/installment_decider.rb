@@ -11,17 +11,18 @@ module Whatsapp
     end
 
     def call
-      return @existing if (@existing = user.commitments.find_by(source_message_id: @msg.wa_message_id)) # replay
+      return @existing if (@existing = account.commitments.find_by(source_message_id: @msg.wa_message_id)) # replay
 
       count      = @extraction.installments_count.to_i
-      instrument = Whatsapp::Matcher.new(user, @extraction).call.instrument
+      instrument = Whatsapp::Matcher.new(account, @extraction).call.instrument
       total      = derive_total_cents(count)
 
       return ask_installments_count if count < 2 && confident? && instrument
       return park_stub unless confident? && count.between?(2, 48) && instrument && total&.positive?
 
       if instrument.is_a?(CreditCard)
-        commitment = Installments::Create.call(user: user, card: instrument, total_cents: total, count: count,
+        commitment = Installments::Create.call(account: account, created_by: @msg.user,
+          card: instrument, total_cents: total, count: count,
           occurred_on: occurred, merchant: @extraction.merchant,
           source_message_id: @msg.wa_message_id, whatsapp_message: @msg)
         first_bill = commitment.payments.posted.minimum(:billing_month)
@@ -50,9 +51,10 @@ module Whatsapp
       end
     end
 
-    def create_debit_plan(account, total, count)
-      user.commitments.create!(
-        bank_account: account, name: @extraction.merchant.presence || I18n.t("commitments.default_installment_name"),
+    def create_debit_plan(bank, total, count)
+      account.commitments.create!(
+        created_by: @msg.user,
+        bank_account: bank, name: @extraction.merchant.presence || I18n.t("commitments.default_installment_name"),
         kind: "installment", amount_cents: (total.to_f / count).round, total_cents: total, installments_count: count,
         schedule_kind: "fixed_day", schedule_day: occurred.day, starts_on: occurred.beginning_of_month,
         source: "whatsapp", source_message_id: @msg.wa_message_id

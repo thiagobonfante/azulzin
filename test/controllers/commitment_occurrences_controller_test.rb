@@ -6,11 +6,11 @@ class CommitmentOccurrencesControllerTest < ActionDispatch::IntegrationTest
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
     sign_in_as(@user)
     @inst = Institution.find_by(code: "260")
-    @account = @user.bank_accounts.create!(institution: @inst)
-    @card = @user.credit_cards.create!(institution: @inst, bill_due_day: 10, closing_offset_days: 7)
-    @debit = @user.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
+    @account = @user.account.bank_accounts.create!(institution: @inst)
+    @card = @user.account.credit_cards.create!(institution: @inst, bill_due_day: 10, closing_offset_days: 7)
+    @debit = @user.account.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
                                        amount_cents: 100_000, schedule_day: 5, starts_on: Date.new(2026, 1, 1))
-    @sub = @user.commitments.create!(credit_card: @card, name: "Netflix", kind: "subscription",
+    @sub = @user.account.commitments.create!(credit_card: @card, name: "Netflix", kind: "subscription",
                                      amount_cents: 5_590, starts_on: Date.new(2026, 1, 1))
     @month = Date.current.beginning_of_month
   end
@@ -58,7 +58,8 @@ class CommitmentOccurrencesControllerTest < ActionDispatch::IntegrationTest
 
   test "cannot pay another user's commitment occurrence" do
     other = User.create!(email_address: "z@example.com", password: "password123")
-    theirs = other.commitments.create!(bank_account: other.bank_accounts.create!(institution: @inst),
+    Accounts::Bootstrap.call(other)
+    theirs = other.account.commitments.create!(bank_account: other.account.bank_accounts.create!(institution: @inst),
                                        name: "x", kind: "fixed", amount_cents: 100, schedule_day: 5, starts_on: Date.current)
     patch pay_commitment_occurrence_url(occ(theirs, @month)), params: { from: "show" }, as: :turbo_stream
     assert_response :not_found

@@ -4,12 +4,12 @@ class TransactionTest < ActiveSupport::TestCase
   setup do
     @user = users(:confirmed)
     @inst = Institution.find_by(code: "260")
-    @account = BankAccount.create!(user: @user, institution: @inst)
-    @card    = CreditCard.create!(user: @user, institution: @inst)
+    @account = BankAccount.create!(account: @user.account, institution: @inst)
+    @card    = CreditCard.create!(account: @user.account, institution: @inst)
   end
 
   def build(**attrs)
-    Transaction.new({ user: @user, amount_cents: 1_323, occurred_on: Date.current }.merge(attrs))
+    Transaction.new({ account: @user.account, created_by: @user, amount_cents: 1_323, occurred_on: Date.current }.merge(attrs))
   end
 
   test "a posted transaction may have ZERO instruments (unassigned, assign in-app)" do
@@ -53,6 +53,6 @@ class TransactionTest < ActiveSupport::TestCase
     build(status: "posted",         amount_cents: 1_000, bank_account: @account).save!
     build(status: "rejected",       amount_cents: 9_999, bank_account: @account).save!
     build(status: "pending_review", amount_cents: 8_888).save!
-    assert_equal 1_000, @user.transactions.spend.sum(:amount_cents)
+    assert_equal 1_000, @user.account.transactions.spend.sum(:amount_cents)
   end
 end

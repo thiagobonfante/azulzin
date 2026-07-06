@@ -4,9 +4,10 @@ module Commitments
   # (manual) so a past-month catch-up is never re-bucketed into today's month. Double-pay is
   # race-safe at the DB (paid-once index); the rescue turns it into a friendly no-op. 01 §6 / 05 §5.5.
   class MarkPaid
-    def self.call(commitment, month, amount: nil, source_message_id: nil, whatsapp_message: nil)
+    def self.call(commitment, month, amount: nil, created_by: nil, source_message_id: nil, whatsapp_message: nil)
       month = month.beginning_of_month
-      txn = commitment.user.transactions.new(
+      txn = commitment.account.transactions.new(
+        created_by:           created_by,   # WhatsApp passes msg.user; in-app passes nothing (callback stamps)
         commitment:           commitment,
         merchant:             commitment.name,
         direction:            "expense",
@@ -26,7 +27,7 @@ module Commitments
       txn.save!
       txn
     rescue ActiveRecord::RecordNotUnique
-      commitment.payments.posted.find_by(billing_month: month) # already paid → return the existing row
+      commitment.payments.posted.kept.find_by(billing_month: month) # already paid → return the existing row
     end
 
     def self.copy_instrument(txn, commitment)
