@@ -487,6 +487,7 @@ en:
       needs_disambiguation: "Which one?"
     index:
       meta_title: "Transactions"
+    fab_add: "Add entry"
     hub:
       add_incomes_prompt: "Add your incomes to see the month projection"
       import_review_prompt:
