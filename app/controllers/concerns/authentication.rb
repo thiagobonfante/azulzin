@@ -57,15 +57,26 @@ module Authentication
     INVITATION_TOKEN_TTL = 30.minutes   # doc 02 §2.2: a session cookie can outlive intent
 
     def ensure_membership_for(user)
-      token     = session.delete(:invitation_token)
-      stored_at = session.delete(:invitation_token_at)
-      if token && stored_at && Time.at(stored_at.to_i) > INVITATION_TOKEN_TTL.ago
+      if (token = consume_invitation_token(user))
         result = Invitations::Accept.call(user: user, token: token)
         flash[:alert] = t("invitations.errors.#{result.error}") if result && !result.ok
       end
       # reload the association: Accept created the membership on the account's side, so a stale
       # nil cache here would double-bootstrap and trip the one-membership-per-user unique index.
       Accounts::Bootstrap.call(user) if user.reload_account_membership.nil?
+    end
+
+    # The invite token reaches first sign-in two ways, both single-shot: the short-TTL session
+    # copy (same browser, e.g. OAuth or an existing user who clicked the link), and the copy
+    # persisted on the user at an invited signup — that one survives confirming the email in
+    # another browser/device or after the TTL, bounded by the invitation's own 7-day expiry.
+    def consume_invitation_token(user)
+      token      = session.delete(:invitation_token)
+      stored_at  = session.delete(:invitation_token_at)
+      session_ok = token && stored_at && Time.at(stored_at.to_i) > INVITATION_TOKEN_TTL.ago
+      persisted  = user.pending_invitation_token
+      user.update!(pending_invitation_token: nil) if persisted
+      session_ok ? token : persisted
     end
 
     # A pending invite token in session ⇒ signup paths skip own-account bootstrap (membership

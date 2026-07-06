@@ -58,16 +58,42 @@ class InvitationAcceptancesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, @account.memberships.where(user: newbie).count, "exactly one membership, no orphan account"
   end
 
-  test "a session token older than 30 minutes is ignored — the user bootstraps their own account" do
+  test "an invited signup joins even when the confirmation click comes after the session TTL" do
     get accept_invitation_url(token: @invitation.token)
     post registration_url, params: { user: { email_address: "late@example.com",
       password: "password123", password_confirmation: "password123" } }
     late = User.find_by(email_address: "late@example.com")
+    assert_equal @invitation.token, late.pending_invitation_token, "invite persisted on the user at signup"
     travel 31.minutes do
       get email_verification_url(late.generate_token_for(:email_verification))
     end
-    assert late.reload.account.present?, "got a bootstrapped own account"
-    assert_not_equal @account, late.account, "not folded into the inviting account"
-    assert @invitation.reload.pending?
+    assert_equal @account, late.reload.account, "the persisted token outlives the session copy"
+    assert @invitation.reload.accepted_at
+    assert_nil late.pending_invitation_token, "single-shot: consumed at first sign-in"
+  end
+
+  test "an invited signup joins even when the confirmation click happens in another browser" do
+    get accept_invitation_url(token: @invitation.token)
+    post registration_url, params: { user: { email_address: "mobile@example.com",
+      password: "password123", password_confirmation: "password123" } }
+    mobile = User.find_by(email_address: "mobile@example.com")
+
+    other_browser = open_session   # no cookies: the invite token is NOT in this session
+    other_browser.get email_verification_url(mobile.generate_token_for(:email_verification))
+    assert_equal @account, mobile.reload.account, "joined via the token persisted at signup"
+    assert @invitation.reload.accepted_at
+  end
+
+  test "a session token older than 30 minutes is still ignored for an existing user's sign-in" do
+    existing = User.create!(email_address: "existing@example.com", password: "password123",
+                            confirmed_at: Time.current)
+    Accounts::Bootstrap.call(existing)
+    existing.account.bank_accounts.create!(institution: Institution.find_by(code: "260"))  # not solo+empty
+    get accept_invitation_url(token: @invitation.token)   # stores the token, then the user walks away
+    travel 31.minutes do
+      post session_url, params: { email_address: "existing@example.com", password: "password123" }
+    end
+    assert @invitation.reload.pending?, "a stale session token never drives a join"
+    assert_not_equal @account, existing.reload.account
   end
 end

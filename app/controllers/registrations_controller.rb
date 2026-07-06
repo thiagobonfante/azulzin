@@ -15,6 +15,10 @@ class RegistrationsController < ApplicationController
       @pending_invitation = true
       return render :new, status: :unprocessable_entity
     end
+    # An invited signup carries the token ON the user, not just in the session cookie: the
+    # confirmation click (= first sign-in) often lands in another browser/device or after the
+    # session copy's 30-minute TTL, and losing it there silently bootstrapped a solo account.
+    @user.pending_invitation_token = session[:invitation_token] if pending_invitation_in_session?
     if @user.save
       # Non-invite signup owns a fresh solo account; an invited signup skips it and joins the
       # inviter's account at first sign-in (ensure_membership_for). doc 02 §3.2.

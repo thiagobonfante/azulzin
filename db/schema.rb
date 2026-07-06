@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_06_000016) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_06_200034) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -307,6 +307,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_000016) do
     t.string "name"
     t.datetime "onboarded_at"
     t.string "password_digest"
+    t.string "pending_invitation_token"
     t.string "phone"
     t.datetime "phone_verified_at"
     t.datetime "updated_at", null: false
