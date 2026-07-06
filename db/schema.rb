@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_05_000010) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_05_000011) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -115,6 +115,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_05_000010) do
     t.index ["user_id"], name: "index_credit_cards_on_user_id"
     t.check_constraint "bill_due_day >= 1 AND bill_due_day <= 31", name: "credit_cards_bill_due_day_range"
     t.check_constraint "closing_offset_days >= 0 AND closing_offset_days <= 28", name: "credit_cards_closing_offset_range"
+  end
+
+  create_table "document_imports", force: :cascade do |t|
+    t.string "checksum", null: false
+    t.datetime "created_at", null: false
+    t.string "error_code"
+    t.jsonb "extraction", default: {}, null: false
+    t.jsonb "fingerprint", default: {}, null: false
+    t.bigint "institution_id"
+    t.string "kind"
+    t.jsonb "proposals", default: [], null: false
+    t.string "source_format"
+    t.string "status", default: "uploaded", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["institution_id"], name: "index_document_imports_on_institution_id"
+    t.index ["user_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL (ARRAY[('dismissed'::character varying)::text, ('failed'::character varying)::text]))"
+    t.index ["user_id", "status"], name: "index_document_imports_on_user_id_and_status"
+    t.index ["user_id"], name: "index_document_imports_on_user_id"
   end
 
   create_table "incomes", force: :cascade do |t|
@@ -275,6 +294,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_05_000010) do
   add_foreign_key "commitments", "users"
   add_foreign_key "credit_cards", "institutions"
   add_foreign_key "credit_cards", "users"
+  add_foreign_key "document_imports", "institutions"
+  add_foreign_key "document_imports", "users"
   add_foreign_key "incomes", "bank_accounts"
   add_foreign_key "incomes", "users"
   add_foreign_key "oauth_identities", "users"

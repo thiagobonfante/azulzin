@@ -29,6 +29,7 @@ pt-BR:
       income: "Entrada"
       category: "Categoria"
       commitment: "Compromisso"
+      document_import: "Importação"
     attributes:
       user:
         email_address: "E-mail"
@@ -75,6 +76,8 @@ pt-BR:
         starts_on: "Início"
         ends_on: "Fim"
         installments_count: "Parcelas"
+      document_import:
+        file: "Arquivo"
     errors:
       models:
         user:
@@ -87,6 +90,12 @@ pt-BR:
           attributes:
             transfer_to_bank_account:
               same_account: "não pode ser a mesma conta de origem."
+        document_import:
+          attributes:
+            file:
+              missing: "é obrigatório."
+              too_large: "excede o limite de 10 MB."
+              unsupported_type: "tem um formato não suportado. Envie PDF, CSV ou OFX."
   app:
     nav:
       dashboard: "Painel"
@@ -134,6 +143,10 @@ pt-BR:
       continue: "Continuar"
       need_one: "Adicione pelo menos uma conta para continuar."
       need_one_hint: "É preciso ter ao menos uma conta para continuar."
+      import:
+        title: "Envie seus extratos e faturas — a gente monta tudo pra você."
+        hint: "PDF, CSV ou OFX do seu banco. Até 10 MB por arquivo."
+        divider: "ou adicione manualmente"
     incomes:
       meta_title: "Suas rendas"
       title: "De onde vem seu dinheiro?"
@@ -424,6 +437,9 @@ pt-BR:
       meta_title: "Transações"
     hub:
       add_incomes_prompt: "Cadastre suas rendas para ver a projeção do mês"
+      import_review_prompt:
+        one: "Você tem %{count} sugestão da importação para revisar"
+        other: "Você tem %{count} sugestões da importação para revisar"
     month:
       prev: "Mês anterior"
       next: "Próximo mês"
@@ -521,6 +537,90 @@ pt-BR:
       confirmed: "Lançamento confirmado."
     destroy:
       removed: "Lançamento removido."
+  document_imports:
+    hero_title: "Importar extrato"
+    choose_files: "Escolher arquivos…"
+    submit: "Enviar"
+    review_button: "Revisar e criar"
+    remove: "Remover"
+    unlock: "Desbloquear"
+    password_placeholder: "Senha do PDF"
+    upload_rejected: "%{filename}: %{reason}"
+    kinds:
+      bank_statement: "extrato"
+      card_bill: "fatura"
+    status:
+      processing: "Lendo o documento…"
+      applied: "Criado — tudo certo"
+    found:
+      summary: "%{parts} encontrados"
+      accounts:
+        one: "%{count} conta"
+        other: "%{count} contas"
+      cards:
+        one: "%{count} cartão"
+        other: "%{count} cartões"
+      incomes:
+        one: "%{count} renda"
+        other: "%{count} rendas"
+      commitments:
+        one: "%{count} compromisso"
+        other: "%{count} compromissos"
+    upload:
+      file: "arquivo"
+      bad_type: "Tipo de arquivo não aceito"
+      too_large: "Arquivo acima de 10 MB"
+    errors:
+      password_protected: "Este PDF tem senha. Digite a senha para desbloquear — usamos só para ler, não guardamos."
+      wrong_password: "Senha incorreta. Tente novamente."
+      unsupported_format: "Não conseguimos ler este tipo de arquivo. Envie PDF, CSV ou OFX."
+      too_large: "Arquivo muito grande — o limite é 10 MB."
+      parse_failed: "Não conseguimos ler este documento. Tente outro arquivo ou adicione manualmente."
+      llm_failed: "Algo deu errado na leitura. Tente de novo em instantes."
+      duplicate_file: "Você já enviou este arquivo."
+      daily_cap: "Limite de 10 arquivos por dia atingido. Tente amanhã."
+    create:
+      no_files: "Selecione ao menos um arquivo para enviar."
+      daily_cap: "Limite de %{max} arquivos por dia atingido. Tente amanhã."
+    review:
+      meta_title: "Revisar importação"
+      title: "Confira o que encontramos"
+      subtitle: "Encontramos isto nos seus documentos. Desmarque o que não quiser criar — dá para ajustar tudo depois."
+      groups:
+        bank_accounts: "Contas"
+        credit_cards: "Cartões"
+        incomes: "Rendas"
+        commitments: "Compromissos"
+        subscriptions: "Assinaturas"
+        installments: "Parcelamentos"
+        fixed_bills: "Contas fixas"
+      check_badge: "conferir"
+      seen_in: "visto em: %{source} · %{date} · %{amount}"
+      balance: "Saldo %{amount}"
+      due_day: "vence dia %{day}"
+      per_month: "%{amount}/mês"
+      on_card: "no cartão"
+      installment_label: "Parcela %{current}/%{total}"
+      more_evidence:
+        one: "e mais %{count} ocorrência"
+        other: "e mais %{count} ocorrências"
+      create_selected: "Criar selecionados"
+      discard: "Descartar"
+      unchecked_kept: "Itens desmarcados ficam guardados — você pode revisar depois."
+      applied:
+        one: "%{count} item criado"
+        other: "%{count} itens criados"
+      some_failed:
+        one: "%{count} item não pôde ser criado"
+        other: "%{count} itens não puderam ser criados"
+      back: "Voltar"
+      empty_title: "Não encontramos nada para criar"
+      empty_body: "Não conseguimos identificar contas ou compromissos nos documentos. Adicione manualmente — leva um minuto."
+      back_to_wizard: "Voltar e adicionar manualmente"
+  imports:
+    apply:
+      errors:
+        missing_instrument: "precisa de uma conta ou cartão que também tenha sido criado."
   admin:
     not_authorized: "Você não tem acesso a esta área."
     whatsapp_connections:

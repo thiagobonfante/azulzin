@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :credit_cards,      dependent: :destroy
   has_many :transactions,      dependent: :destroy   # WhatsApp/manual money movements
   has_many :whatsapp_messages, dependent: :destroy   # LGPD: deleting a user erases their WA history
+  has_many :document_imports,  dependent: :destroy   # .plans/auto — uploaded extratos/faturas + proposals
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   # Phone is stored as E.164 digits (country code + national number). The profile form
@@ -66,6 +67,11 @@ class User < ApplicationRecord
   def onboard!
     Categories::SeedDefaults.call(self)
     update!(onboarded_at: Time.current)
+  end
+
+  # Import proposals still awaiting a decision — drives the derived hub nudge (.plans/auto, D6).
+  def proposed_import_count
+    document_imports.awaiting_review.sum { it.proposed_items.size }
   end
 
   # Step 1 of the wizard. Validates name/phone in the :profile context only, leaving

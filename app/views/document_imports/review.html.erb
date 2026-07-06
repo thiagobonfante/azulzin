@@ -1,0 +1,47 @@
+<% content_for :title, t("document_imports.review.meta_title") %>
+
+<div class="mx-auto max-w-2xl">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+    <%= t("document_imports.review.title") %>
+  </h1>
+  <p class="mt-2 text-base-content/70"><%= t("document_imports.review.subtitle") %></p>
+
+  <% if @groups.empty? %>
+    <div class="mt-6 rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-8 text-center">
+      <p class="font-medium"><%= t("document_imports.review.empty_title") %></p>
+      <p class="mt-1 text-sm text-base-content/60"><%= t("document_imports.review.empty_body") %></p>
+      <%= link_to t("document_imports.review.back_to_wizard"), after_upload_path,
+                  class: "btn btn-ghost btn-sm mt-4" %>
+    </div>
+  <% else %>
+    <%= form_with url: apply_document_imports_path, method: :post, class: "mt-6 flex flex-col gap-6" do %>
+      <% @groups.each do |kind, proposals| %>
+        <section>
+          <h2 class="mb-2 font-display text-lg font-bold">
+            <%= t("document_imports.review.groups.#{review_group_key(kind)}") %>
+          </h2>
+          <% if kind == "commitment" %>
+            <% commitment_subgroups(proposals).each do |subgroup, subproposals| %>
+              <h3 class="mb-1 mt-3 text-sm font-semibold text-base-content/60">
+                <%= t("document_imports.review.groups.#{subgroup}") %>
+              </h3>
+              <div class="flex flex-col gap-3">
+                <%= render partial: "document_imports/proposal", collection: subproposals, as: :proposal %>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="flex flex-col gap-3">
+              <%= render partial: "document_imports/proposal", collection: proposals, as: :proposal %>
+            </div>
+          <% end %>
+        </section>
+      <% end %>
+
+      <div class="flex items-center justify-between">
+        <%= link_to t("document_imports.review.back"), after_upload_path, class: "btn btn-ghost" %>
+        <%= submit_tag t("document_imports.review.create_selected"), class: "btn btn-primary" %>
+      </div>
+      <p class="text-right text-xs text-base-content/50"><%= t("document_imports.review.unchecked_kept") %></p>
+    <% end %>
+  <% end %>
+</div>

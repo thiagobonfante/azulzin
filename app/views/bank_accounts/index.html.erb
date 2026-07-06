@@ -17,6 +17,9 @@
   </div>
 
   <div class="lg:col-span-2">
+    <%# Post-onboarding import surface (D1): same uploader as the wizard accounts step. %>
+    <%= render "document_imports/uploader", title: t("document_imports.hero_title") %>
+
     <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
       <h2 class="mb-4 font-display text-lg font-bold"><%= t("bank_accounts.add_title") %></h2>
       <%= render "bank_accounts/form", bank_account: @bank_account %>

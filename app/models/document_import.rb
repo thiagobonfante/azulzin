@@ -1,0 +1,59 @@
+# One uploaded extrato/fatura on its way to becoming proposals (.plans/auto). The blob rides
+# Active Storage; `fingerprint`/`extraction`/`proposals` are jsonb. Content-type + size are a
+# first gate here (the job re-derives the real format from magic bytes). `checksum` (SHA256 of
+# the raw bytes) dedupes per-user against live imports; a dismissed/failed one never blocks a retry.
+class DocumentImport < ApplicationRecord
+  belongs_to :user
+  belongs_to :institution, optional: true
+  has_one_attached :file
+
+  MAX_FILE_BYTES = 10.megabytes
+  MAX_PER_DAY    = 10
+  PDF_PAGE_CAP   = 25
+  # OFX arrives as text/plain or application/x-ofx; the job re-derives format from bytes (§6).
+  ALLOWED_CONTENT_TYPES = %w[application/pdf text/csv application/x-ofx text/plain].freeze
+  TERMINAL_STATUSES     = %w[extracted failed applied dismissed].freeze
+
+  enum :status, {
+    uploaded:   "uploaded",
+    processing: "processing",
+    extracted:  "extracted",
+    failed:     "failed",
+    applied:    "applied",
+    dismissed:  "dismissed"
+  }, default: "uploaded", validate: true
+
+  enum :kind, { bank_statement: "bank_statement", card_bill: "card_bill", unknown: "unknown" },
+       validate: { allow_nil: true }
+  enum :source_format, { csv: "csv", ofx: "ofx", pdf: "pdf" },
+       prefix: :format, validate: { allow_nil: true }
+
+  validates :checksum, presence: true,
+            uniqueness: { scope: :user_id,
+                          conditions: -> { where.not(status: %w[dismissed failed]) } }
+  validate :file_acceptable, on: :create
+
+  scope :terminal,        -> { where(status: TERMINAL_STATUSES) }
+  scope :awaiting_review, -> { where(status: "extracted") }
+
+  def terminal? = TERMINAL_STATUSES.include?(status)
+
+  # Proposals the user hasn't decided on yet — feeds the Pendências nudge (D6).
+  def proposed_items = proposals.select { it["state"] == "proposed" }
+
+  # Cheap pre-check: a live import of the same bytes already exists for this user, so don't even
+  # write a blob to disk. The uniqueness validation is the authoritative guard.
+  def duplicate_checksum?
+    self.class.where(user_id: user_id, checksum: checksum)
+        .where.not(status: %w[dismissed failed]).exists?
+  end
+
+  private
+
+  def file_acceptable
+    return errors.add(:file, :missing) unless file.attached?
+
+    errors.add(:file, :too_large) if file.blob.byte_size > MAX_FILE_BYTES
+    errors.add(:file, :unsupported_type) unless ALLOWED_CONTENT_TYPES.include?(file.blob.content_type)
+  end
+end

@@ -45,6 +45,19 @@ Rails.application.routes.draw do
     patch "onboarding/:step", to: "onboarding#update",
           constraints: { step: /profile|accounts|incomes|cards/ }
 
+    # Onboarding via document upload (.plans/auto). No index/show — the status frame renders
+    # inside the accounts step and the accounts index; review is ONE page over all imports.
+    resources :document_imports, only: %i[create destroy] do
+      member do
+        post :unlock # decrypt a password-protected PDF in-request (P1-3); password never persisted
+      end
+      collection do
+        get  :status   # Turbo Frame polled by import_status_controller (2s)
+        get  :review   # one review form over all the user's extracted imports
+        post :apply    # Imports::Apply — checked pids create records; discard[pid] rejects
+      end
+    end
+
     resources :bank_accounts, only: %i[index create edit update destroy]  # edit/update: nickname, kind & balance
     resources :incomes,       only: %i[index create edit update destroy] do  # R1 — recurring income schedules
       member { patch :receive }   # mark this month's expected deposit as received (hub card)
