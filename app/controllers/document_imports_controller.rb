@@ -142,7 +142,8 @@ class DocumentImportsController < ApplicationController
     end
   end
 
-  # Cheap inline edits (name always; income amount) folded into the payload before Apply.
+  # Cheap inline edits (name always; income amount; instrument institution) folded into the
+  # payload before Apply.
   def fold_edits_into_proposals
     edits = params[:edits]
     return unless edits.respond_to?(:dig)
@@ -150,8 +151,9 @@ class DocumentImportsController < ApplicationController
     Current.user.document_imports.awaiting_review.find_each do |import|
       changed = false
       import.proposals.each do |proposal|
-        name   = edits.dig(proposal["pid"], "name")
-        amount = edits.dig(proposal["pid"], "amount_reais")
+        name        = edits.dig(proposal["pid"], "name")
+        amount      = edits.dig(proposal["pid"], "amount_reais")
+        institution = edits.dig(proposal["pid"], "institution_code")
         if name.present?
           proposal["payload"]["nickname"] = name
           proposal["payload"]["name"]     = name
@@ -159,6 +161,10 @@ class DocumentImportsController < ApplicationController
         end
         if amount.present?
           proposal["payload"]["amount_cents"] = Money.to_cents(amount)
+          changed = true
+        end
+        if institution.present? && institution != proposal["payload"]["institution_code"]
+          proposal["payload"]["institution_code"] = institution
           changed = true
         end
       end
@@ -177,7 +183,8 @@ class DocumentImportsController < ApplicationController
         import.save!
       end
     end
-    redirect_to after_review_path
+    # Stay on the review page — the user is mid-review; its empty state links back to the wizard.
+    redirect_to review_document_imports_path
   end
 
   def apply_flash(result)

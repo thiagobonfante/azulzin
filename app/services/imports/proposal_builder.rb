@@ -16,7 +16,7 @@ module Imports
     def call(import, client: nil)
       parsed      = import.extraction || {}
       kind        = doc_kind(parsed)
-      institution = resolve_institution(parsed)
+      institution = resolve_institution(parsed, filename: import.file.attached? ? import.file.filename.to_s : nil)
 
       import.kind        = kind
       import.institution = institution
@@ -36,11 +36,15 @@ module Imports
       parsed["doc_kind"].presence || "bank_statement"
     end
 
-    def resolve_institution(parsed)
+    # Filename is the last resort: PDFs often never print the bank's name in the text layer
+    # (Nubank faturas, Santander extratos), but "Nubank_2026-07-10.pdf" names it. It's only a
+    # default — the review page lets the user correct the institution.
+    def resolve_institution(parsed, filename: nil)
       meta = parsed["meta"] || {}
       code = normalize_compe(meta.dig("acct", "bank_id") || meta["bank_code"])
       by_code = Institution.find_by(code: code) if code
-      by_code || fuzzy_institution(meta["institution_name"]) || Institution.find_by(code: Institution::OTHER_CODE)
+      by_code || fuzzy_institution(meta["institution_name"]) || fuzzy_institution(filename) ||
+        Institution.find_by(code: Institution::OTHER_CODE)
     end
 
     def normalize_compe(raw)

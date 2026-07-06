@@ -15,27 +15,35 @@ export default class extends Controller {
 
   validate() {
     const allowed = this.acceptValue.split(",").map((s) => s.trim().toLowerCase())
-    let error = null
+    this.error = null
     for (const file of this.inputTarget.files) {
       const ext = "." + file.name.split(".").pop().toLowerCase()
-      if (this.maxBytesValue && file.size > this.maxBytesValue) { error = this.tooLargeMessageValue; break }
-      if (!allowed.includes(ext)) { error = this.badTypeMessageValue; break }
+      if (this.maxBytesValue && file.size > this.maxBytesValue) { this.error = this.tooLargeMessageValue; break }
+      if (!allowed.includes(ext)) { this.error = this.badTypeMessageValue; break }
     }
-    this.showError(error)
+    this.render()
   }
 
-  showError(message) {
-    if (message) {
-      this.warningTarget.textContent = message
+  // Fired by import_status_controller (window event) while any import is still processing.
+  busyChanged(event) {
+    this.busy = event.detail.busy
+    this.render()
+  }
+
+  render() {
+    if (this.error) {
+      this.warningTarget.textContent = this.error
       this.warningTarget.classList.remove("hidden")
-      if (this.hasSubmitTarget) this.submitTarget.disabled = true
     } else {
       this.warningTarget.classList.add("hidden")
-      if (this.hasSubmitTarget) this.submitTarget.disabled = false
     }
+    this.inputTarget.disabled = Boolean(this.busy)
+    if (this.hasSubmitTarget) this.submitTarget.disabled = Boolean(this.busy || this.error)
   }
 
   disconnect() {
-    this.showError(null)
+    this.busy = false
+    this.error = null
+    this.render()
   }
 }

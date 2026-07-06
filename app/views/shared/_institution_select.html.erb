@@ -1,13 +1,23 @@
-<%# locals: form, institutions %>
+<%# locals: institutions, plus EITHER form: (model forms — value is the institution id) OR
+    name:/selected: (bare field, e.g. the import review's edits[pid][institution_code] — value
+    is the COMPE code via value_method). label: false renders compact (aria-label only). %>
+<% value_method = local_assigns.fetch(:value_method, :id) %>
+<% show_label   = local_assigns.fetch(:label, true) %>
 <div class="form-control" data-controller="institution-select">
-  <%= form.label :institution_id, t("institutions.label"), class: "mb-1 block text-sm font-medium" %>
-
-  <%# Real value, set by the picker (or the noscript fallback below) %>
-  <%= form.hidden_field :institution_id, data: { institution_select_target: "input" } %>
+  <% if local_assigns[:form] %>
+    <% if show_label %>
+      <%= form.label :institution_id, t("institutions.label"), class: "mb-1 block text-sm font-medium" %>
+    <% end %>
+    <%# Real value, set by the picker (or the noscript fallback below) %>
+    <%= form.hidden_field :institution_id, data: { institution_select_target: "input" } %>
+  <% else %>
+    <%= hidden_field_tag name, selected, data: { institution_select_target: "input" } %>
+  <% end %>
 
   <button type="button"
           data-institution-select-target="button"
           data-action="institution-select#toggle"
+          <% unless show_label %>aria-label="<%= t("institutions.label") %>"<% end %>
           class="input input-bordered flex w-full items-center justify-between gap-2 text-left">
     <span data-institution-select-target="display" class="flex items-center gap-2 text-base-content/50">
       <%= t("institutions.placeholder") %>
@@ -26,7 +36,7 @@
       <ul class="max-h-64 overflow-y-auto">
         <% institutions.each do |inst| %>
           <li data-institution-select-target="option"
-              data-value="<%= inst.id %>"
+              data-value="<%= inst.public_send(value_method) %>"
               data-name="<%= inst.display_name.downcase %>"
               data-action="click->institution-select#pick"
               class="flex cursor-pointer items-center gap-3 rounded-box px-2 py-2 hover:bg-base-200">
@@ -41,9 +51,16 @@
   </div>
 
   <noscript>
-    <%= form.select :institution_id,
-          institutions.map { |i| [ i.display_name, i.id ] },
-          { include_blank: t("institutions.placeholder") },
-          class: "select select-bordered w-full" %>
+    <% if local_assigns[:form] %>
+      <%= form.select :institution_id,
+            institutions.map { |i| [ i.display_name, i.id ] },
+            { include_blank: t("institutions.placeholder") },
+            class: "select select-bordered w-full" %>
+    <% else %>
+      <%= select_tag name,
+            options_from_collection_for_select(institutions, value_method, :display_name, selected),
+            include_blank: t("institutions.placeholder"),
+            class: "select select-bordered w-full" %>
+    <% end %>
   </noscript>
 </div>

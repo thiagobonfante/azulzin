@@ -16,11 +16,20 @@ export default class extends Controller {
   disconnect() {
     this.stop()
     this.element.removeEventListener("turbo:frame-load", this.onFrameLoad)
+    this.broadcastBusy(false)
   }
 
   onFrameLoad = () => {
-    if (this.hasActiveRows()) this.start()
+    const busy = this.hasActiveRows()
+    this.broadcastBusy(busy)
+    if (busy) this.start()
     else this.stop()
+  }
+
+  // Tells the upload hero (a sibling subtree, hence a window event) whether files are still
+  // processing so it can lock its form.
+  broadcastBusy(busy) {
+    window.dispatchEvent(new CustomEvent("import-status:busy", { detail: { busy } }))
   }
 
   hasActiveRows() {

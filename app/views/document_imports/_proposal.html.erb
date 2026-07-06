@@ -7,6 +7,14 @@
       <div class="flex flex-wrap items-center gap-2">
         <%= text_field_tag "edits[#{pid}][name]", proposal_name(proposal),
                            class: "input input-bordered input-sm", "aria-labelledby": "check_#{pid}" %>
+        <% if (institutions = proposal_institutions(proposal)) %>
+          <div class="w-full sm:max-w-xs">
+            <%= render "shared/institution_select",
+                       name: "edits[#{pid}][institution_code]",
+                       selected: proposal.dig("payload", "institution_code"),
+                       institutions: institutions, value_method: :code, label: false %>
+          </div>
+        <% end %>
         <% if proposal["kind"] == "income" %>
           <label class="input input-bordered input-sm flex items-center gap-1">
             <span class="text-base-content/50"><%= t("money.symbol") %></span>
@@ -22,7 +30,9 @@
       </div>
       <p class="mt-1 text-xs text-base-content/50"><%= proposal_evidence(proposal) %></p>
     </div>
-    <%= button_to t("document_imports.review.discard"), apply_document_imports_path,
-                  params: { discard: pid }, method: :post, class: "btn btn-ghost btn-xs shrink-0" %>
+    <%# Submit button of the OUTER review form — a button_to here would nest a <form> inside it,
+        which browsers flatten, leaking hidden discard params into every submit. %>
+    <%= button_tag t("document_imports.review.discard"), name: "discard", value: pid,
+                   formnovalidate: true, class: "btn btn-ghost btn-xs shrink-0" %>
   </div>
 </div>

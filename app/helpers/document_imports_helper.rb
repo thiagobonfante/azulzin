@@ -25,6 +25,14 @@ module DocumentImportsHelper
 
   def review_group_key(kind) = REVIEW_GROUPS.fetch(kind, kind)
 
+  # Institutions offered on an instrument proposal row (nil for dependents — they have none).
+  def proposal_institutions(proposal)
+    case proposal["kind"]
+    when "bank_account" then Institution.for_accounts
+    when "credit_card"  then Institution.for_cards
+    end
+  end
+
   # Editable name input default: the suggested nickname/name, else the institution name.
   def proposal_name(proposal)
     proposal.dig("payload", "nickname").presence ||

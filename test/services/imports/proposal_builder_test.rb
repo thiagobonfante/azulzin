@@ -33,9 +33,18 @@ class Imports::ProposalBuilderTest < ActiveSupport::TestCase
 
   test "resolves an unknown COMPE code to Outro" do
     import = ofx_import
+    import.file.blob.update!(filename: "doc.ofx") # neutral name — no filename hint either
     import.update!(extraction: import.extraction.deep_merge("meta" => { "acct" => { "bank_id" => "9999" } }))
     build!(import)
     assert_equal Institution::OTHER_CODE, import.reload.institution.code
+  end
+
+  test "falls back to the uploaded filename when the document names no institution" do
+    extraction = fatura_extraction.tap { it["meta"].delete("institution_name") }
+    import = pdf_import(extraction)
+    import.file.blob.update!(filename: "Nubank_2026-07-10.pdf")
+    build!(import)
+    assert_equal "260", import.reload.institution.code
   end
 
   test "pids are deterministic across re-runs (idempotent)" do

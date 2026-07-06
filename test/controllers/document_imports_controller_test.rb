@@ -82,6 +82,20 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-import-active="true"]'
   end
 
+  test "status frame review link breaks out of the frame once processing is done" do
+    seed_extracted_import(full_review_proposals)
+    get status_document_imports_url
+    assert_select "a[href=?][data-turbo-frame='_top']", review_document_imports_path
+  end
+
+  test "status frame disables the review button while another import is still processing" do
+    seed_extracted_import(full_review_proposals)
+    make_import(@user) # still "uploaded"
+    get status_document_imports_url
+    assert_select "button[disabled]", text: I18n.t("document_imports.review_button")
+    assert_select "a[href=?]", review_document_imports_path, count: 0
+  end
+
   test "destroy dismisses the import and purges the blob" do
     di = make_import(@user)
     perform_enqueued_jobs { delete document_import_url(di) }
@@ -163,6 +177,23 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     assert_select "h3", text: I18n.t("document_imports.review.groups.installments")
     assert_select "h3", text: I18n.t("document_imports.review.groups.subscriptions")
     assert_select "input[name=?]", "edits[inc1][amount_reais]" # income amount is editable
+    # Instrument institution is editable via the shared avatar picker (hidden input carries the code).
+    assert_select "[data-controller='institution-select'] input[type=hidden][name=?][value='260']",
+                  "edits[acct1][institution_code]"
+    # Discard must be a submit button of the outer form — a nested button_to form would leak its
+    # hidden discard param into every submit and turn "Criar selecionados" into a discard.
+    assert_select "button[name=discard][value=acct1]"
+    assert_select "input[name=discard]", count: 0
+  end
+
+  test "apply folds an institution edit into the created record" do
+    import = extracted_ofx_import
+    pid = import.proposals.find { it["kind"] == "bank_account" }["pid"]
+    assert_difference -> { @user.bank_accounts.count }, 1 do
+      post apply_document_imports_url,
+           params: { check: { pid => "1" }, edits: { pid => { institution_code: "341" } } }
+    end
+    assert_equal "341", @user.bank_accounts.last.institution.code
   end
 
   test "unlock decrypts with the password in-request, re-enqueues, and never stores the password" do
@@ -188,12 +219,13 @@ class DocumentImportsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes import.reload.attributes.to_s, "cpf1234" # password not persisted
   end
 
-  test "discard rejects a single proposal without creating a record" do
+  test "discard rejects a single proposal without creating a record and stays on the review page" do
     import = extracted_ofx_import
     pid = import.proposals.find { it["kind"] == "bank_account" }["pid"]
     assert_no_difference -> { @user.bank_accounts.count } do
       post apply_document_imports_url, params: { discard: pid }
     end
+    assert_redirected_to review_document_imports_url
     rejected = import.reload.proposals.find { it["pid"] == pid }
     assert_equal "rejected", rejected["state"]
     assert_equal "extracted", import.status # a sibling commitment is still proposed

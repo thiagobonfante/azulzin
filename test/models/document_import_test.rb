@@ -43,6 +43,13 @@ class DocumentImportTest < ActiveSupport::TestCase
     assert di.errors.added?(:file, :unsupported_type)
   end
 
+  test "accepts an .ofx file sent with the generic browser content type" do
+    di = @user.document_imports.new(checksum: "abc")
+    di.file.attach(io: File.open(file_fixture("imports/nubank.ofx")),
+                   filename: "nubank.ofx", content_type: "application/octet-stream")
+    assert di.valid?, di.errors.full_messages.to_sentence
+  end
+
   test "duplicate_checksum? is true when a live import shares the checksum" do
     make_import(checksum: "dup")
     assert @user.document_imports.new(checksum: "dup").duplicate_checksum?

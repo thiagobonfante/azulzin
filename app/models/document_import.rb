@@ -10,8 +10,11 @@ class DocumentImport < ApplicationRecord
   MAX_FILE_BYTES = 10.megabytes
   MAX_PER_DAY    = 10
   PDF_PAGE_CAP   = 25
-  # OFX arrives as text/plain or application/x-ofx; the job re-derives format from bytes (§6).
+  # Browsers send unreliable MIME types (.ofx → application/octet-stream, .csv →
+  # application/vnd.ms-excel), so a known extension also passes; the job re-derives the real
+  # format from magic bytes (§6).
   ALLOWED_CONTENT_TYPES = %w[application/pdf text/csv application/x-ofx text/plain].freeze
+  ALLOWED_EXTENSIONS    = %w[.pdf .csv .ofx .txt].freeze
   TERMINAL_STATUSES     = %w[extracted failed applied dismissed].freeze
 
   enum :status, {
@@ -54,6 +57,11 @@ class DocumentImport < ApplicationRecord
     return errors.add(:file, :missing) unless file.attached?
 
     errors.add(:file, :too_large) if file.blob.byte_size > MAX_FILE_BYTES
-    errors.add(:file, :unsupported_type) unless ALLOWED_CONTENT_TYPES.include?(file.blob.content_type)
+    errors.add(:file, :unsupported_type) unless acceptable_type?
+  end
+
+  def acceptable_type?
+    ALLOWED_CONTENT_TYPES.include?(file.blob.content_type) ||
+      ALLOWED_EXTENSIONS.include?(File.extname(file.blob.filename.to_s).downcase)
   end
 end
