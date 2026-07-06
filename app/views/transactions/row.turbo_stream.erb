@@ -1,6 +1,7 @@
-<%# Shared by assign + confirm. Tray row: re-render if still pending, else remove. On confirm
-    the row travels into the viewed month's ledger; on assign the ledger row is refreshed. A
-    confirmed installment stub is superseded and fans out into the viewed month's parcels. %>
+<%# Shared by confirm + tray saves (update). Tray row: re-render if still pending, else remove.
+    On confirm the row travels into the viewed month's ledger; a tray save refreshes the ledger
+    row of a posted-unassigned expense. A confirmed installment stub is superseded and fans out
+    into the viewed month's parcels. %>
 <% if @expanded %>
   <%= turbo_stream.remove dom_id(@transaction) %>
   <% @expanded.payments.posted.where(billing_month: viewed_month).order(:installment_number).each do |parcel| %>

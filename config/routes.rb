@@ -66,11 +66,10 @@ Rails.application.routes.draw do
     resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
 
     # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the
-    # ledger's inline add + edit-in-place, and assign/confirm keep the guarded-transition inbox.
+    # ledger's inline add + edit-in-place, and update/confirm keep the guarded-transition inbox.
     resources :transactions, only: %i[index new create edit update destroy] do
       member do
-        patch :assign    # pick an account/card for an unassigned row
-        patch :confirm   # commit a pending/needs_* row → posted
+        patch :confirm   # commit a pending/needs_* row → posted (saves review edits first)
       end
     end
     resources :transfers,  only: :create                         # R5 — single-row transfer between accounts

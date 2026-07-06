@@ -7,7 +7,7 @@ class TransactionsController < ApplicationController
   layout "app"
   before_action :require_onboarding
   before_action :require_instrument, only: %i[new create]
-  before_action :set_transaction, only: %i[edit update assign confirm destroy]
+  before_action :set_transaction, only: %i[edit update confirm destroy]
 
   helper_method :viewed_month, :summary
 
@@ -53,37 +53,33 @@ class TransactionsController < ApplicationController
   end
 
   def update
-    original_bill = @transaction.billing_month
-    attrs = transaction_params.to_h
-    bill  = attrs.delete("billing_month")
-    sanitize_account_fks(attrs)
-    attrs["category_id"] = nil if attrs["direction"] == "transfer"   # transfers are never categorized (§6.3.5)
-    @transaction.assign_attributes(attrs)
-    apply_bill_month_override(bill, original_bill)
-    @saved = @transaction.save
+    @saved = apply_edits
     respond_to do |format|
-      format.turbo_stream { render :update, status: (@saved ? :ok : :unprocessable_entity) }
+      format.turbo_stream do
+        if params[:from] == "ledger" || !@saved
+          render :update, status: (@saved ? :ok : :unprocessable_entity)
+        else
+          # A tray save can resolve the row (posted-unassigned + instrument picked) — the
+          # row template also removes it from the tray and refreshes the pending badges.
+          render :row
+        end
+      end
       format.html { redirect_to transactions_path(month: params[:month]), notice: (@saved ? t(".updated") : nil),
                     alert: (@saved ? nil : @transaction.errors.full_messages.to_sentence) }
     end
   end
 
-  # Pick (or clear) the account/card an expense is charged to (tray).
-  def assign
-    if (record = resolve_instrument(params[:instrument]))
-      @transaction.assign_instrument!(record)
-    else
-      @transaction.update!(bank_account: nil, credit_card: nil)
-    end
-    respond_to do |format|
-      format.turbo_stream { render :row }
-      format.html { redirect_to transactions_path(month: params[:month]), notice: t(".assigned") }
-    end
-  end
-
   # Confirm a pending / needs_* ask → posted (guarded, race-safe). Streams: leaves the tray,
-  # travels into the viewed month's ledger.
+  # travels into the viewed month's ledger. The tray card's Confirmar submits the whole review
+  # form here, so any field/instrument edits are saved first — never silently dropped.
   def confirm
+    if params[:transaction].present? && !apply_edits
+      @confirmed = false
+      return respond_to do |format|
+        format.turbo_stream { render :row, status: :unprocessable_entity }
+        format.html { redirect_to transactions_path(month: params[:month]), alert: @transaction.errors.full_messages.to_sentence }
+      end
+    end
     if installment_stub?(@transaction) && (@expanded = Installments::ExpandStub.call(@transaction))
       @confirmed = true
     else
@@ -174,7 +170,34 @@ class TransactionsController < ApplicationController
 
     def transaction_params
       params.expect(transaction: %i[amount_reais merchant occurred_on billing_month
-                                    category_id direction transfer_to_bank_account_id])
+                                    category_id direction transfer_to_bank_account_id payment_method])
+    end
+
+    # Shared by update + tray confirm: apply the submitted field edits (and, when the form
+    # carries one, the instrument pick), then save. Returns whether the row saved.
+    def apply_edits
+      original_bill = @transaction.billing_month
+      attrs = transaction_params.to_h
+      bill  = attrs.delete("billing_month")
+      sanitize_account_fks(attrs)
+      attrs["category_id"] = nil if attrs["direction"] == "transfer"   # transfers are never categorized (§6.3.5)
+      @transaction.assign_attributes(attrs)
+      apply_instrument_param
+      apply_bill_month_override(bill, original_bill)
+      @transaction.save
+    end
+
+    # The tray form always submits an instrument token (possibly blank = unassigned); the
+    # ledger edit form has no instrument field, so absence means "leave it alone". A changed
+    # instrument resets the manual fatura flag and lets assign_billing_month recompute —
+    # mirrors the old assign_instrument! semantics.
+    def apply_instrument_param
+      return unless params.key?(:instrument)
+      record = resolve_instrument(params[:instrument])
+      return if record == @transaction.instrument
+      @transaction.bank_account = record.is_a?(BankAccount) ? record : nil
+      @transaction.credit_card  = record.is_a?(CreditCard)  ? record : nil
+      @transaction.billing_month_manual = false
     end
 
     # Reject FKs pointing at another account's (or a soft-deleted) record before they reach the row.

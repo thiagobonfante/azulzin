@@ -573,7 +573,6 @@ pt-BR:
       save: "Salvar"
       instrument: "Conta ou cartão"
       unassigned: "Sem conta definida"
-      set_instrument: "Definir"
       confirm: "Confirmar"
       reverse: "Apagar"
       discard: "Descartar"
@@ -591,8 +590,6 @@ pt-BR:
     update:
       updated: "Lançamento atualizado."
       created: "Lançamento adicionado."
-    assign:
-      assigned: "Conta definida."
     confirm:
       confirmed: "Lançamento confirmado."
     destroy:

@@ -572,7 +572,6 @@ en:
       save: "Save"
       instrument: "Account or card"
       unassigned: "No account set"
-      set_instrument: "Set"
       confirm: "Confirm"
       reverse: "Undo"
       discard: "Discard"
@@ -590,8 +589,6 @@ en:
     update:
       updated: "Expense updated."
       created: "Entry added."
-    assign:
-      assigned: "Account set."
     confirm:
       confirmed: "Expense confirmed."
     destroy:

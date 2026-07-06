@@ -1,4 +1,7 @@
-<%# locals: transaction %>
+<%# locals: transaction — pending-tray review card. ONE form carries every edit (amount,
+    merchant, payment method, instrument, category) so Salvar and Confirmar both persist
+    everything — the old split save/Definir forms silently dropped each other's edits.
+    The payment-method control drives the avatar picker (pix/débito → accounts). %>
 <div id="<%= dom_id(transaction) %>" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
   <div class="mb-3 flex items-center justify-between gap-2">
     <div class="flex items-center gap-2">
@@ -16,9 +19,8 @@
     </div>
   <% end %>
 
-  <%# ── Edit amount + merchant ───────────────────────────────────────── %>
   <%= form_with model: transaction, url: transaction_path(transaction), method: :patch,
-        class: "grid gap-3 sm:grid-cols-2" do |f| %>
+        data: { controller: "entry-instrument" }, class: "grid gap-3 sm:grid-cols-2" do |f| %>
     <%= hidden_field_tag :month, params[:month] %>
     <div class="form-control">
       <%= f.label :amount_reais, t("transactions.row.amount"), class: "mb-1 block text-xs font-medium text-base-content/60" %>
@@ -27,44 +29,59 @@
         <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
       </label>
     </div>
+
+    <% if transaction.expense? %>
+      <%# Forma de pagamento — pre-selects what WhatsApp extracted (a Pix receipt lands with
+          Pix active), narrowing the picker to bank accounts / cards accordingly. An
+          unrecognized method (dinheiro, desconhecido) leaves every instrument selectable. %>
+      <div class="form-control">
+        <label class="mb-1 block text-xs font-medium text-base-content/60"><%= t("transactions.new_entry.payment_method") %></label>
+        <%= f.hidden_field :payment_method, data: { entry_instrument_target: "methodInput" } %>
+        <div class="join">
+          <% [ [ "credito", "credit_card", inbox_credit_cards.none? ], [ "debito", "bank_account", false ],
+               [ "pix", "bank_account", false ], [ "boleto", "bank_account", false ] ].each do |key, type, disabled| %>
+            <% on = key == transaction.payment_method %>
+            <button type="button" data-entry-instrument-target="method" data-method="<%= key %>" data-type="<%= type %>"
+                    data-active="<%= on %>" data-action="entry-instrument#selectMethod" <%= "disabled" if disabled %>
+                    class="btn btn-xs join-item <%= on ? "btn-primary" : "btn-ghost" %>">
+              <%= t("transactions.new_entry.methods.#{key}") %>
+            </button>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <div class="form-control">
       <%= f.label :merchant, t("transactions.row.merchant"), class: "mb-1 block text-xs font-medium text-base-content/60" %>
-      <div class="flex items-center gap-2">
-        <%= f.text_field :merchant, placeholder: t("transactions.row.merchant_placeholder"), class: "input input-bordered input-sm w-full" %>
-        <%= f.submit t("transactions.row.save"), class: "btn btn-ghost btn-sm" %>
-      </div>
+      <%= f.text_field :merchant, placeholder: t("transactions.row.merchant_placeholder"), class: "input input-bordered input-sm w-full" %>
     </div>
+
+    <div class="form-control">
+      <label class="mb-1 block text-xs font-medium text-base-content/60"><%= t("transactions.row.instrument") %></label>
+      <%= render "transactions/instrument_picker",
+            accounts: inbox_bank_accounts, cards: (transaction.expense? ? inbox_credit_cards : []),
+            selected_token: current_instrument_token(transaction), placeholder: t("transactions.row.unassigned") %>
+    </div>
+
     <% if transaction.expense? %>
       <div class="form-control sm:col-span-2">
         <label class="mb-1 block text-xs font-medium text-base-content/60"><%= t("transactions.row.category") %></label>
         <%= render "categories/picker", field_name: "transaction[category_id]", selected_id: transaction.category_id %>
       </div>
     <% end %>
-  <% end %>
 
-  <%# ── Assign an account / card ─────────────────────────────────────── %>
-  <%= form_with url: assign_transaction_path(transaction), method: :patch,
-        class: "mt-3 flex items-end gap-2" do %>
-    <%= hidden_field_tag :month, params[:month] %>
-    <div class="form-control grow">
-      <label class="mb-1 block text-xs font-medium text-base-content/60"><%= t("transactions.row.instrument") %></label>
-      <%= select_tag "instrument",
-            grouped_options_for_select(instrument_option_groups, current_instrument_token(transaction)),
-            include_blank: t("transactions.row.unassigned"),
-            class: "select select-bordered select-sm w-full" %>
+    <div class="col-span-full mt-1 flex items-center justify-end gap-2 border-t border-base-300/50 pt-3">
+      <%# A link (not button_to) — a nested <form> would be dropped by the browser. %>
+      <%= link_to (transaction.posted? ? t("transactions.row.reverse") : t("transactions.row.discard")),
+            transaction_path(transaction, month: params[:month]),
+            data: { turbo_method: :delete, turbo_confirm: t("transactions.row.confirm_discard") },
+            class: "btn btn-ghost btn-sm text-error" %>
+      <%= f.submit t("transactions.row.save"), class: "btn btn-ghost btn-sm" %>
+      <% unless transaction.posted? %>
+        <%# Same form, other endpoint: confirm saves the edits AND posts in one click. %>
+        <%= f.submit t("transactions.row.confirm"), formaction: confirm_transaction_path(transaction),
+              class: "btn btn-primary btn-sm" %>
+      <% end %>
     </div>
-    <%= submit_tag t("transactions.row.set_instrument"), class: "btn btn-ghost btn-sm" %>
   <% end %>
-
-  <%# ── Confirm / reverse ────────────────────────────────────────────── %>
-  <div class="mt-4 flex items-center justify-end gap-2 border-t border-base-300/50 pt-3">
-    <% unless transaction.posted? %>
-      <%= button_to t("transactions.row.confirm"), confirm_transaction_path(transaction), method: :patch,
-            params: { month: params[:month] }, class: "btn btn-primary btn-sm" %>
-    <% end %>
-    <%= button_to (transaction.posted? ? t("transactions.row.reverse") : t("transactions.row.discard")),
-          transaction_path(transaction), method: :delete, params: { month: params[:month] },
-          class: "btn btn-ghost btn-sm text-error",
-          form: { data: { turbo_confirm: t("transactions.row.confirm_discard") } } %>
-  </div>
 </div>

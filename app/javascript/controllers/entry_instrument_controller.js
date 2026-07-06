@@ -15,8 +15,7 @@ export default class extends Controller {
     this._onReset = () => this.reset()
     this._form?.addEventListener("reset", this._onReset)
 
-    const active = this.methodTargets.find((b) => b.dataset.active === "true")
-    this._type = active ? active.dataset.type : this.defaultType()
+    this._type = this.defaultType()
 
     if (this.inputTarget.value) this.reflectSelection()
     this.render()
@@ -28,9 +27,11 @@ export default class extends Controller {
     this._form?.removeEventListener("reset", this._onReset)
   }
 
-  // Income has no method buttons: null type ⇒ any option (bank accounts) is selectable.
+  // The active method button's type. No buttons (income) — or none active (review card with
+  // an unmapped extracted method, e.g. dinheiro) — ⇒ null type ⇒ every option is selectable.
   defaultType() {
-    return this.hasMethodTarget ? "bank_account" : null
+    const active = this.methodTargets.find((b) => b.dataset.active === "true")
+    return active ? active.dataset.type : null
   }
 
   selectMethod(event) {

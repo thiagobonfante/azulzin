@@ -12,6 +12,7 @@
     <%= turbo_stream.replace dom_id(@transaction, :row), partial: "transactions/edit_row", locals: { transaction: @transaction } %>
   <% end %>
 <% else %>
-  <%# Pending-tray amount/merchant edit — re-render the tray row (renders inline errors on 422). %>
+  <%# Pending-tray edit that failed validation (422) — re-render the tray row with inline
+      errors. A successful tray save renders the row template instead (see #update). %>
   <%= turbo_stream.replace dom_id(@transaction), partial: "transactions/transaction", locals: { transaction: @transaction } %>
 <% end %>

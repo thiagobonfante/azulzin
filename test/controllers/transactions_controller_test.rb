@@ -64,19 +64,26 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(theirs)}", count: 0
   end
 
-  test "assign charges the expense to the chosen account (assign_instrument!)" do
+  test "saving the tray card charges the expense to the chosen account" do
     txn = pending_txn
-    patch assign_transaction_url(txn), params: { instrument: "bank_account-#{@account.id}" }
+    patch transaction_url(txn), params: { transaction: { amount_reais: "13,23" },
+                                          instrument: "bank_account-#{@account.id}" }
     assert_redirected_to transactions_path
     assert_equal @account, txn.reload.bank_account
     assert_nil txn.credit_card
   end
 
-  test "assign with a blank instrument clears any assignment" do
+  test "saving the tray card with a blank instrument clears any assignment" do
     txn = pending_txn(bank_account: @account)
-    patch assign_transaction_url(txn), params: { instrument: "" }
+    patch transaction_url(txn), params: { transaction: { amount_reais: "13,23" }, instrument: "" }
     assert_nil txn.reload.bank_account
     assert_nil txn.credit_card
+  end
+
+  test "a ledger edit without an instrument field leaves the assignment alone" do
+    txn = pending_txn(status: "posted", bank_account: @account)
+    patch transaction_url(txn), params: { from: "ledger", transaction: { amount_reais: "13,23", merchant: "Feira" } }
+    assert_equal @account, txn.reload.bank_account
   end
 
   test "confirm posts a pending transaction" do
@@ -110,11 +117,46 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert theirs.reload.pending_review?
   end
 
-  test "assign answers a turbo stream" do
+  test "a tray save with an instrument answers a turbo stream" do
     txn = pending_txn
-    patch assign_transaction_url(txn), params: { instrument: "credit_card-#{@card.id}" }, as: :turbo_stream
+    patch transaction_url(txn), params: { transaction: { amount_reais: "13,23" },
+                                          instrument: "credit_card-#{@card.id}" }, as: :turbo_stream
     assert_response :success
     assert_equal @card, txn.reload.credit_card
+  end
+
+  test "confirm saves the review form's edits — description and account post together" do
+    txn = pending_txn(merchant: "52.551.773 GABRIELLY")
+    patch confirm_transaction_url(txn), params: {
+      transaction: { amount_reais: "80,00", merchant: "Gabrielly", payment_method: "pix" },
+      instrument: "bank_account-#{@account.id}"
+    }, as: :turbo_stream
+    txn.reload
+    assert txn.posted?
+    assert_equal "Gabrielly", txn.merchant
+    assert_equal 8_000, txn.amount_cents
+    assert_equal "pix", txn.payment_method
+    assert_equal @account, txn.bank_account
+  end
+
+  test "confirm with an invalid edit re-renders the card with errors and stays pending" do
+    txn = pending_txn
+    patch confirm_transaction_url(txn), params: { transaction: { amount_reais: "abc" } }, as: :turbo_stream
+    assert_response :unprocessable_entity
+    assert txn.reload.pending_review?
+  end
+
+  test "the tray card is ONE form: avatar picker, extracted method active, no Definir button" do
+    txn = pending_txn(merchant: "Gabrielly", payment_method: "pix",
+                      source: "whatsapp_receipt", direction: "expense")
+    get transactions_url
+    assert_select "##{ActionView::RecordIdentifier.dom_id(txn)}" do
+      assert_select "form[action=?]", transaction_path(txn), count: 1
+      assert_select "form", count: 1                                       # the split Definir form is gone
+      assert_select "button[data-method='pix'][data-active='true']"        # pix pre-selected from extraction
+      assert_select "[data-entry-instrument-target='option'][data-value='bank_account-#{@account.id}']"
+      assert_select "input[type=submit][formaction=?]", confirm_transaction_path(txn)
+    end
   end
 
   # ── Phase 1 hub VERIFY ───────────────────────────────────────────────────
