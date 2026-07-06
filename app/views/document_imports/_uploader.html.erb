@@ -1,7 +1,9 @@
 <%# Upload hero (D1) — primary path above the untouched manual form. Reused verbatim by the %>
 <%# onboarding accounts step and the post-onboarding accounts index. `title` overridable. %>
 <% title ||= t("onboarding.accounts.import.title") %>
-<div class="mt-6">
+<%# No outer margin — callers own spacing. On the accounts index this sits flush with the
+    top of the accounts list; onboarding adds its own gap below the subtitle. %>
+<div>
   <div class="rounded-box border border-primary/30 bg-primary/5 p-5"
        data-controller="import-upload"
        data-import-upload-too-large-message-value="<%= t("document_imports.upload.too_large") %>"
