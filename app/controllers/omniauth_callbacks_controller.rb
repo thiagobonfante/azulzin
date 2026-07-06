@@ -5,7 +5,7 @@ class OmniauthCallbacksController < ApplicationController
 
   def create
     auth = request.env["omniauth.auth"]
-    if (user = User.from_omniauth(auth))&.persisted?
+    if (user = User.from_omniauth(auth, skip_account_bootstrap: pending_invitation_in_session?))&.persisted?
       start_new_session_for user
       redirect_to after_authentication_url, notice: t("omniauth.signed_in")
     else

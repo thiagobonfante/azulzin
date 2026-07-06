@@ -1,0 +1,5 @@
+<%# Owner-removal path only (self-leave and promote are full redirects — the page's authority
+    context changed and a stream would lie). %>
+<%= turbo_stream.remove dom_id(@membership) %>
+<%= turbo_stream.update "members_count",
+      t("accounts.show.members_count", count: Current.account.reload.members_count, max: Account::MAX_MEMBERS) %>

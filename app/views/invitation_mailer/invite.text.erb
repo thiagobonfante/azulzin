@@ -1,0 +1,14 @@
+<%= t("invitation_mailer.invite.greeting") %>
+
+<%= t("invitation_mailer.invite.intro",
+      inviter: @invitation.invited_by&.display_name,
+      email:   @invitation.invited_by&.email_address,
+      account: @invitation.account.name) %>
+
+<%= t("invitation_mailer.invite.cta") %>: <%= @url %>
+
+<%= t("invitation_mailer.invite.both_paths") %>
+
+<%= t("invitation_mailer.invite.expiry", date: l(@invitation.expires_at.to_date)) %>
+
+<%= t("invitation_mailer.invite.ignore") %>

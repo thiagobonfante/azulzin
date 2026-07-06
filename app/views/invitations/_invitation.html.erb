@@ -1,0 +1,7 @@
+<%# locals: invitation %>
+<div id="<%= dom_id(invitation) %>" class="flex items-center gap-2 rounded-box border border-base-300/50 p-2 text-sm">
+  <span class="min-w-0 flex-1 truncate"><%= invitation.email %></span>
+  <span class="shrink-0 text-xs text-base-content/50"><%= t("invitations.pending_until", date: l(invitation.expires_at.to_date)) %></span>
+  <%= button_to t("invitations.revoke"), account_invitation_path(invitation), method: :delete,
+        class: "btn btn-ghost btn-xs text-error", data: { turbo_confirm: t("invitations.revoke_confirm", email: invitation.email) } %>
+</div>

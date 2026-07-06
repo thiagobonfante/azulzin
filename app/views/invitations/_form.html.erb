@@ -1,0 +1,6 @@
+<%= form_with model: Invitation.new, url: account_invitations_path, class: "flex flex-col gap-2" do |f| %>
+  <div id="invitation_form_errors"></div>
+  <%= f.email_field :email, placeholder: t("invitations.form.email_placeholder"), required: true,
+        class: "input input-bordered w-full", "aria-label": t("invitations.form.email_label") %>
+  <%= f.submit t("invitations.form.submit"), class: "btn btn-primary w-full" %>
+<% end %>

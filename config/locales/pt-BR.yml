@@ -8,6 +8,7 @@ pt-BR:
       sign_in: "Entrar"
       get_started: "Começar"
       sign_out: "Sair"
+      account_settings: "Conta e membros"
     footer:
       tagline: "Controle tranquilo e simples do seu dinheiro."
   shared:
@@ -711,6 +712,7 @@ pt-BR:
         title: "Mensagens recebidas"
         subtitle: "Auditoria das mensagens recebidas pelo WhatsApp, para calibrar a qualidade da extração."
         unknown_sender: "Remetente desconhecido"
+        account: "Conta"
         download: "Baixar anexo"
         ai_result: "Resultado da IA"
         details: "Detalhes"
@@ -726,6 +728,85 @@ pt-BR:
         body: "Conteúdo"
         transcription: "Transcrição"
         produced_transactions: "Lançamentos gerados"
+  accounts:
+    not_owner: "Só o dono da conta pode fazer isso."
+    show:
+      meta_title: "Conta · azulzin"
+      title: "Conta"
+      subtitle: "Membros, convites e configurações da conta compartilhada."
+      members_title: "Membros"
+      members_count: "%{count} de %{max} membros"
+      cap_reached: "Esta conta atingiu o limite de 4 membros."
+      invite_title: "Convidar membro"
+      rename_title: "Nome da conta"
+      rename_submit: "Salvar"
+      danger_title: "Zona de perigo"
+      delete_hint: "Excluir a conta e todos os dados. Isso não pode ser desfeito."
+      delete_submit: "Excluir conta"
+      delete_confirm: "Excluir esta conta e TODOS os dados financeiros, de todos os membros?"
+      leave_title: "Sair da conta"
+      leave_hint: "Você recebe uma conta nova e vazia; os dados compartilhados ficam aqui."
+    update:
+      renamed: "Nome da conta atualizado."
+    destroy:
+      deleted: "Conta excluída."
+  members:
+    you: "(você)"
+    roles:
+      owner: "dono(a)"
+      member: "membro"
+    remove: "Remover"
+    leave: "Sair da conta"
+    promote_action: "Tornar dono(a)"
+    destroy:
+      removed: "Membro removido. Agora ele tem a própria conta vazia."
+      left: "Você saiu da conta."
+      owner_cannot_leave: "Transfira a posse antes de sair da conta."
+      remove_confirm: "Remover %{name}? Os lançamentos dele(a) continuam nesta conta."
+      leave_confirm: "Sair desta conta? Você recomeça com uma conta vazia."
+    promote:
+      promoted: "%{name} agora é dono(a) da conta."
+      confirm: "Tornar %{name} dono(a)? Você vira membro comum."
+  invitations:
+    empty: "Nenhum convite pendente."
+    pending_title: "Convites pendentes"
+    pending_until: "expira em %{date}"
+    revoke: "Revogar"
+    revoke_confirm: "Revogar o convite de %{email}?"
+    form:
+      email_label: "E-mail"
+      email_placeholder: "ana@exemplo.com"
+      submit: "Enviar convite"
+    create:
+      sent: "Convite enviado para %{email}."
+    destroy:
+      revoked: "Convite revogado."
+    errors:
+      invalid: "Este convite não é mais válido."
+      account_full: "Esta conta atingiu o limite de 4 membros."
+      account_in_use: "Sua conta atual já tem dados — não é possível juntá-la a outra."
+  invitation_mailer:
+    invite:
+      subject: "%{inviter} convidou você para o azulzin"
+      greeting: "Olá!"
+      intro: "%{inviter} (%{email}) convidou você para participar da conta \"%{account}\" no azulzin — as finanças da família em um só lugar."
+      cta: "Aceitar convite"
+      both_paths: "Você pode criar uma conta com e-mail e senha ou entrar com o Google — o convite vale para os dois caminhos."
+      expiry: "Este convite expira em %{date} (7 dias)."
+      ignore: "Se você não esperava este e-mail, pode ignorá-lo."
+  invitation_acceptances:
+    show:
+      invalid: "Este convite não é mais válido."
+      title: "Você foi convidado"
+      invited_you: "%{inviter} convidou você para a conta \"%{account}\"."
+      create_account: "Criar conta"
+      sign_in: "Entrar"
+      continue_with_google: "Continuar com o Google"
+      expires_note: "Este convite expira em %{date}."
+      join_confirm: "Entrar na conta %{account}"
+      will_replace_account: "Sua conta atual (vazia) será substituída por esta conta compartilhada."
+    create:
+      joined: "Você agora faz parte da conta %{account}."
   pages:
     home:
       meta_title: "azulzin — finanças pessoais com tranquilidade"

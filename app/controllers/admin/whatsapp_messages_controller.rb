@@ -3,7 +3,7 @@
 # extraction quality against what users later edit or reverse. See 07 §7.6.
 class Admin::WhatsappMessagesController < Admin::BaseController
   def index
-    @messages = WhatsappMessage.inbound.includes(:user, media_attachment: :blob)
+    @messages = WhatsappMessage.inbound.includes(:user, :account, media_attachment: :blob)
                                .order(created_at: :desc).limit(100)
   end
 

@@ -1,0 +1,67 @@
+<% content_for :title, t("accounts.show.meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t("accounts.show.title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t("accounts.show.subtitle") %></p>
+</header>
+
+<div class="grid gap-6 lg:grid-cols-5">
+  <div class="lg:col-span-3">
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-4 font-display text-lg font-bold">
+        <%= t("accounts.show.members_title") %>
+        <span class="text-sm font-normal text-base-content/50">·
+          <span id="members_count"><%= t("accounts.show.members_count", count: @account.members_count, max: Account::MAX_MEMBERS) %></span></span>
+      </h2>
+      <div id="members_list" class="flex flex-col gap-2">
+        <%= render partial: "accounts/member", collection: @memberships, as: :membership %>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-6 lg:col-span-2">
+    <% if account_owner? %>
+      <%# Invite a member %>
+      <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+        <h2 class="mb-4 font-display text-lg font-bold"><%= t("accounts.show.invite_title") %></h2>
+        <% if @account.members_count + @invitations.size >= Account::MAX_MEMBERS %>
+          <p class="mb-3 text-xs text-warning"><%= t("accounts.show.cap_reached") %></p>
+        <% end %>
+        <%= render "invitations/form" %>
+        <div id="pending_invitations_list" class="mt-4 flex flex-col gap-2">
+          <% if @invitations.any? %>
+            <p class="text-xs font-semibold text-base-content/50"><%= t("invitations.pending_title") %></p>
+            <%= render partial: "invitations/invitation", collection: @invitations, as: :invitation %>
+          <% else %>
+            <p id="invitations_empty" class="text-xs text-base-content/50"><%= t("invitations.empty") %></p>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Rename %>
+      <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+        <h2 class="mb-3 font-display text-lg font-bold"><%= t("accounts.show.rename_title") %></h2>
+        <%= form_with model: @account, url: account_path, method: :patch, class: "flex gap-2" do |f| %>
+          <%= f.text_field :name, class: "input input-bordered w-full", "aria-label": t("accounts.show.rename_title") %>
+          <%= f.submit t("accounts.show.rename_submit"), class: "btn btn-primary" %>
+        <% end %>
+      </div>
+
+      <%# Danger zone %>
+      <div class="rounded-box border border-error/40 bg-error/5 p-5 shadow-sm">
+        <h2 class="mb-2 font-display text-lg font-bold text-error"><%= t("accounts.show.danger_title") %></h2>
+        <p class="mb-3 text-sm text-base-content/60"><%= t("accounts.show.delete_hint") %></p>
+        <%= button_to t("accounts.show.delete_submit"), account_path, method: :delete,
+              class: "btn btn-error btn-sm", data: { turbo_confirm: t("accounts.show.delete_confirm") } %>
+      </div>
+    <% else %>
+      <%# Member (non-owner): leave the account %>
+      <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+        <h2 class="mb-2 font-display text-lg font-bold"><%= t("accounts.show.leave_title") %></h2>
+        <p class="mb-3 text-sm text-base-content/60"><%= t("accounts.show.leave_hint") %></p>
+        <%= button_to t("members.leave"), account_member_path(Current.user.account_membership), method: :delete,
+              class: "btn btn-outline btn-sm", data: { turbo_confirm: t("members.destroy.leave_confirm") } %>
+      </div>
+    <% end %>
+  </div>
+</div>

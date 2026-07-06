@@ -87,9 +87,21 @@ Rails.application.routes.draw do
         patch :unpay
       end
     end
-    resources :categories, only: %i[index create edit update destroy] do  # R6 — user-owned spend categories
+    resources :categories, only: %i[index create edit update destroy] do  # R6 — account-owned spend categories
       post :restore, on: :collection                                  # re-seed the locale defaults
     end
+
+    # Shared account: settings page (members, invites, rename, danger zone). Owner-gated
+    # actions live in AccountOwnership#require_owner! (.plans/multi-user, D9).
+    resource :account, only: %i[show update destroy] do
+      resources :invitations, only: %i[create destroy]                # /account/invitations
+      resources :members,     only: %i[index destroy] do
+        patch :promote, on: :member                                   # ownership transfer (D9)
+      end
+    end
+    # Public invite acceptance (D4). POST = signed-in confirm (never auto-accept on GET, doc 02 §2.2).
+    get  "invites/:token", to: "invitation_acceptances#show",   as: :accept_invitation
+    post "invites/:token", to: "invitation_acceptances#create", as: :confirm_invitation
 
     # Admin area (privileged, over all users' data). A normal in-app surface, so it lives
     # inside the on_app host constraint — unlike the server-to-server webhook. See 07 §7.2.

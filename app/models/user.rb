@@ -91,7 +91,7 @@ class User < ApplicationRecord
 
   def email_allowed? = self.class.email_allowed?(email_address)
 
-  def self.from_omniauth(auth)
+  def self.from_omniauth(auth, skip_account_bootstrap: false)
     return if auth.nil?   # unconfigured provider slips past the route → refuse, don't 500
 
     # 1) Known identity → its user (email-independent, primary lookup)
@@ -114,9 +114,10 @@ class User < ApplicationRecord
           password:      SecureRandom.base58(32),
           confirmed_at:  (Time.current if verified)
         )
-        # Non-invite OAuth signup owns a fresh solo Account (Phase 4 gates this on an invite
-        # token via skip_account_bootstrap:); the link branch already has one / gets the fallback.
-        Accounts::Bootstrap.call(user)
+        # Non-invite OAuth signup owns a fresh solo Account; an invited signup skips it (the
+        # controller passes skip_account_bootstrap: from a pending invite token). The link branch
+        # already has an account / gets the sign-in fallback.
+        Accounts::Bootstrap.call(user) unless skip_account_bootstrap
       end
       user.oauth_identities.create!(provider: auth.provider, uid: auth.uid)
       user

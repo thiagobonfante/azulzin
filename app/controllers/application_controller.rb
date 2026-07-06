@@ -8,6 +8,11 @@ class ApplicationController < ActionController::Base
 
   around_action :switch_locale
 
+  # View-side owner predicate (D9): belt-and-suspenders with require_owner!. Owner-only controls
+  # are hidden for members in the view AND enforced server-side.
+  helper_method :account_owner?
+  def account_owner? = Current.user&.account_membership&.owner? || false
+
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 

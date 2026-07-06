@@ -7,6 +7,7 @@ en:
       sign_in: "Sign in"
       get_started: "Get started"
       sign_out: "Sign out"
+      account_settings: "Account & members"
     footer:
       tagline: "Calm, simple control over your money."
   shared:
@@ -710,6 +711,7 @@ en:
         title: "Inbound messages"
         subtitle: "Audit of inbound WhatsApp messages, to calibrate extraction quality."
         unknown_sender: "Unknown sender"
+        account: "Account"
         download: "Download attachment"
         ai_result: "AI result"
         details: "Details"
@@ -725,6 +727,85 @@ en:
         body: "Body"
         transcription: "Transcription"
         produced_transactions: "Produced transactions"
+  accounts:
+    not_owner: "Only the account owner can do that."
+    show:
+      meta_title: "Account · azulzin"
+      title: "Account"
+      subtitle: "Members, invitations and shared account settings."
+      members_title: "Members"
+      members_count: "%{count} of %{max} members"
+      cap_reached: "This account has reached the limit of 4 members."
+      invite_title: "Invite a member"
+      rename_title: "Account name"
+      rename_submit: "Save"
+      danger_title: "Danger zone"
+      delete_hint: "Delete the account and all its data. This cannot be undone."
+      delete_submit: "Delete account"
+      delete_confirm: "Delete this account and ALL its financial data, for every member?"
+      leave_title: "Leave account"
+      leave_hint: "You'll get a fresh empty account; shared data stays here."
+    update:
+      renamed: "Account name updated."
+    destroy:
+      deleted: "Account deleted."
+  members:
+    you: "(you)"
+    roles:
+      owner: "owner"
+      member: "member"
+    remove: "Remove"
+    leave: "Leave account"
+    promote_action: "Make owner"
+    destroy:
+      removed: "Member removed. They now have their own empty account."
+      left: "You left the account."
+      owner_cannot_leave: "Transfer ownership before leaving the account."
+      remove_confirm: "Remove %{name}? Their entries stay in this account."
+      leave_confirm: "Leave this account? You'll start over with an empty one."
+    promote:
+      promoted: "%{name} is now the account owner."
+      confirm: "Make %{name} the owner? You'll become a regular member."
+  invitations:
+    empty: "No pending invitations."
+    pending_title: "Pending invitations"
+    pending_until: "expires %{date}"
+    revoke: "Revoke"
+    revoke_confirm: "Revoke the invitation for %{email}?"
+    form:
+      email_label: "Email"
+      email_placeholder: "ana@example.com"
+      submit: "Send invitation"
+    create:
+      sent: "Invitation sent to %{email}."
+    destroy:
+      revoked: "Invitation revoked."
+    errors:
+      invalid: "This invitation is no longer valid."
+      account_full: "This account has reached the limit of 4 members."
+      account_in_use: "Your current account already has data — it can't be merged into another one."
+  invitation_mailer:
+    invite:
+      subject: "%{inviter} invited you to azulzin"
+      greeting: "Hi!"
+      intro: "%{inviter} (%{email}) invited you to join the account \"%{account}\" on azulzin — the family's finances in one place."
+      cta: "Accept invitation"
+      both_paths: "You can create an account with email and password or sign in with Google — the invitation works either way."
+      expiry: "This invitation expires on %{date} (7 days)."
+      ignore: "If you weren't expecting this email, you can ignore it."
+  invitation_acceptances:
+    show:
+      invalid: "This invitation is no longer valid."
+      title: "You've been invited"
+      invited_you: "%{inviter} invited you to the account \"%{account}\"."
+      create_account: "Create account"
+      sign_in: "Sign in"
+      continue_with_google: "Continue with Google"
+      expires_note: "This invitation expires on %{date}."
+      join_confirm: "Join %{account}"
+      will_replace_account: "Your current (empty) account will be replaced by this shared one."
+    create:
+      joined: "You're now part of %{account}."
   pages:
     home:
       meta_title: "azulzin — calm personal finance"

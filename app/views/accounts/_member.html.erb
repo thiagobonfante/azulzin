@@ -1,0 +1,24 @@
+<%# locals: membership %>
+<div id="<%= dom_id(membership) %>" class="flex items-center gap-3 rounded-box border border-base-300/50 p-3">
+  <span class="inline-grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+    <%= membership.user.display_name.first.upcase %>
+  </span>
+  <div class="min-w-0 flex-1">
+    <p class="truncate text-sm font-medium">
+      <%= membership.user.display_name %>
+      <% if membership.user == Current.user %><span class="text-xs font-normal text-base-content/50"><%= t("members.you") %></span><% end %>
+    </p>
+    <p class="truncate text-xs text-base-content/50"><%= membership.user.email_address %></p>
+  </div>
+  <span class="badge badge-sm <%= membership.owner? ? "badge-primary" : "badge-ghost" %>">
+    <%= membership.owner? ? t("members.roles.owner") : t("members.roles.member") %>
+  </span>
+  <% if account_owner? && !membership.owner? %>
+    <div class="flex shrink-0 gap-1">
+      <%= button_to t("members.promote_action"), promote_account_member_path(membership), method: :patch,
+            class: "btn btn-ghost btn-xs", data: { turbo_confirm: t("members.promote.confirm", name: membership.user.display_name) } %>
+      <%= button_to t("members.remove"), account_member_path(membership), method: :delete,
+            class: "btn btn-ghost btn-xs text-error", data: { turbo_confirm: t("members.destroy.remove_confirm", name: membership.user.display_name) } %>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,6 @@
+<%= turbo_stream.remove dom_id(@invitation) %>
+<% if Current.account.invitations.pending.none? %>
+  <%= turbo_stream.append "pending_invitations_list" do %>
+    <p id="invitations_empty" class="text-xs text-base-content/50"><%= t("invitations.empty") %></p>
+  <% end %>
+<% end %>

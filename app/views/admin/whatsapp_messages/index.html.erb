@@ -13,6 +13,7 @@
           <span>
             <span class="badge badge-ghost badge-sm"><%= t("admin.whatsapp_messages.types.#{message.message_type}") %></span>
             <%= message.user&.email_address || t(".unknown_sender") %>
+            <span class="opacity-70">· <%= t(".account") %>: <%= message.account&.name || "—" %></span>
           </span>
           <span class="tabular-nums"><%= l(message.created_at, format: :short) %></span>
         </div>

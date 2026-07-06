@@ -51,10 +51,27 @@ module Authentication
       ensure_membership_for(user)                   # after Current.session is set; never account-less
     end
 
-    # Invariant: a signed-in user ALWAYS has exactly one membership when this returns. Phase 4
-    # adds invitation-token consumption here (doc 02 §3); for now only the Bootstrap fallback.
+    # Invariant: a signed-in user ALWAYS has exactly one membership when this returns. Consumes a
+    # short-TTL invite token (doc 02 §3) — token possession is the credential, so it works across
+    # password / OAuth / verification-click — then the Bootstrap fallback guarantees no account.
+    INVITATION_TOKEN_TTL = 30.minutes   # doc 02 §2.2: a session cookie can outlive intent
+
     def ensure_membership_for(user)
-      Accounts::Bootstrap.call(user) if user.account_membership.nil?
+      token     = session.delete(:invitation_token)
+      stored_at = session.delete(:invitation_token_at)
+      if token && stored_at && Time.at(stored_at.to_i) > INVITATION_TOKEN_TTL.ago
+        result = Invitations::Accept.call(user: user, token: token)
+        flash[:alert] = t("invitations.errors.#{result.error}") if result && !result.ok
+      end
+      # reload the association: Accept created the membership on the account's side, so a stale
+      # nil cache here would double-bootstrap and trip the one-membership-per-user unique index.
+      Accounts::Bootstrap.call(user) if user.reload_account_membership.nil?
+    end
+
+    # A pending invite token in session ⇒ signup paths skip own-account bootstrap (membership
+    # materializes at first sign-in via the hook above). doc 02 §3.2/§3.3.
+    def pending_invitation_in_session?
+      Invitation.find_by(token: session[:invitation_token])&.pending? || false
     end
 
     def terminate_session

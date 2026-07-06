@@ -1,0 +1,16 @@
+<p><%= t("invitation_mailer.invite.greeting") %></p>
+
+<p><%= t("invitation_mailer.invite.intro",
+      inviter: @invitation.invited_by&.display_name,
+      email:   @invitation.invited_by&.email_address,
+      account: @invitation.account.name) %></p>
+
+<p style="margin: 24px 0;">
+  <a href="<%= @url %>" style="display: inline-block; padding: 12px 20px; background: #2563eb; color: #ffffff; border-radius: 8px; text-decoration: none; font-weight: 600;">
+    <%= t("invitation_mailer.invite.cta") %>
+  </a>
+</p>
+
+<p><%= t("invitation_mailer.invite.both_paths") %></p>
+<p><%= t("invitation_mailer.invite.expiry", date: l(@invitation.expires_at.to_date)) %></p>
+<p style="color: #6b7280; font-size: 13px;"><%= t("invitation_mailer.invite.ignore") %></p>

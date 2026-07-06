@@ -1,0 +1,27 @@
+<% content_for :title, t("invitation_acceptances.show.title") %>
+
+<div class="mx-auto max-w-md p-6 text-center">
+  <h1 class="mb-2 font-display text-2xl font-extrabold tracking-tight"><%= t("invitation_acceptances.show.title") %></h1>
+  <p class="mb-6 text-sm text-base-content/70">
+    <%= t("invitation_acceptances.show.invited_you",
+          inviter: @invitation.invited_by&.display_name || t("shared.attribution.removed_user"),
+          account: @invitation.account.name) %>
+  </p>
+
+  <% if @confirming %>
+    <% if Invitations::Accept.solo_and_empty?(Current.account, Current.user) %>
+      <p class="mb-4 text-xs text-warning"><%= t("invitation_acceptances.show.will_replace_account") %></p>
+    <% end %>
+    <%= button_to t("invitation_acceptances.show.join_confirm", account: @invitation.account.name),
+          confirm_invitation_path(@invitation.token), method: :post, class: "btn btn-primary w-full" %>
+  <% else %>
+    <div class="flex flex-col gap-2">
+      <%= link_to t("invitation_acceptances.show.create_account"), new_registration_path, class: "btn btn-primary w-full" %>
+      <%= link_to t("invitation_acceptances.show.sign_in"), new_session_path, class: "btn btn-outline w-full" %>
+      <%= button_to t("invitation_acceptances.show.continue_with_google"), "/auth/google_oauth2",
+            data: { turbo: false }, class: "btn btn-outline w-full" %>
+    </div>
+  <% end %>
+
+  <p class="mt-4 text-xs text-base-content/50"><%= t("invitation_acceptances.show.expires_note", date: l(@invitation.expires_at.to_date)) %></p>
+</div>
