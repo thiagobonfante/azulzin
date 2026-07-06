@@ -844,6 +844,10 @@ en:
       submit: "Create account"
       sign_in_prompt: "Already have an account?"
       sign_in_link: "Sign in"
+      invitation_pending:
+        title: "This email has a pending invitation"
+        hint: "To join the shared account, open the invitation link you received by email — there's no need to create an account here. If you'd rather start fresh, confirm your password below and create a separate account."
+        create_anyway: "Create a separate account"
     create:
       check_email: "Check your email to confirm your account, then sign in."
   sessions:

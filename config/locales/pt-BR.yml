@@ -845,6 +845,10 @@ pt-BR:
       submit: "Criar conta"
       sign_in_prompt: "Já tem uma conta?"
       sign_in_link: "Entrar"
+      invitation_pending:
+        title: "Este e-mail tem um convite pendente"
+        hint: "Para entrar na conta compartilhada, abra o link do convite que você recebeu por e-mail — não é preciso criar uma conta aqui. Se preferir começar do zero, confirme sua senha abaixo e crie uma conta separada."
+        create_anyway: "Criar uma conta separada"
     create:
       check_email: "Enviamos um e-mail para você confirmar sua conta. Confirme e depois faça login."
   sessions:
