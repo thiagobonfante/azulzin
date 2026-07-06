@@ -1,0 +1,63 @@
+<%# locals: field_name, selected_id (nil ⇒ uncategorized), size ("sm" | "md", default "sm") —
+    category picker showing each category's color + icon (R6), a styled stand-in for the bare
+    <select> (which can't render swatches). The real value is the hidden field; <noscript>
+    keeps a native select as the no-JS path. %>
+<% size = local_assigns.fetch(:size, "sm") %>
+<% input_size  = size == "sm" ? "input-sm"  : "" %>
+<% select_size = size == "sm" ? "select-sm" : "" %>
+<% categories = Current.user.categories.ordered %>
+<% selected = selected_id.presence && categories.detect { |c| c.id == selected_id.to_i } %>
+<div data-controller="category-picker">
+  <%= hidden_field_tag field_name, selected&.id, data: { category_picker_target: "input" }, id: nil %>
+
+  <button type="button" data-category-picker-target="button" data-action="category-picker#toggle"
+          class="input input-bordered <%= input_size %> flex w-full items-center justify-between gap-2 text-left font-normal">
+    <span data-category-picker-target="display" class="flex min-w-0 items-center gap-2 <%= "text-base-content/50" unless selected %>">
+      <% if selected %>
+        <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full"
+              style="background-color: <%= selected.display_color %>1a; color: <%= selected.display_color %>">
+          <%= category_icon_tag(selected.icon, css_class: "h-3.5 w-3.5") || tag.span(selected.name.first.upcase, class: "text-[10px] font-semibold") %>
+        </span>
+        <span class="truncate text-sm"><%= selected.name %></span>
+      <% else %>
+        <%= t("transactions.ledger.uncategorized") %>
+      <% end %>
+    </span>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+  </button>
+
+  <div data-category-picker-target="panel" hidden class="relative">
+    <div class="absolute z-40 mt-1 w-full rounded-box border border-base-300/70 bg-base-100 p-2 shadow-lg">
+      <ul class="max-h-56 overflow-y-auto">
+        <li data-category-picker-target="option" data-value="" data-action="click->category-picker#pick"
+            class="flex cursor-pointer items-center gap-2 rounded-box px-2 py-2 hover:bg-base-200">
+          <span data-label class="flex items-center gap-2 text-base-content/50">
+            <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-base-200">
+              <span class="text-[10px] font-semibold">—</span>
+            </span>
+            <span class="text-sm"><%= t("transactions.ledger.uncategorized") %></span>
+          </span>
+        </li>
+        <% categories.each do |category| %>
+          <li data-category-picker-target="option" data-value="<%= category.id %>" data-action="click->category-picker#pick"
+              class="flex cursor-pointer items-center gap-2 rounded-box px-2 py-2 hover:bg-base-200">
+            <span data-label class="flex items-center gap-2">
+              <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full"
+                    style="background-color: <%= category.display_color %>1a; color: <%= category.display_color %>">
+                <%= category_icon_tag(category.icon, css_class: "h-3.5 w-3.5") || tag.span(category.name.first.upcase, class: "text-[10px] font-semibold") %>
+              </span>
+              <span class="text-sm"><%= category.name %></span>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+
+  <noscript>
+    <%= select_tag field_name,
+          options_from_collection_for_select(categories, :id, :name, selected&.id),
+          include_blank: t("transactions.ledger.uncategorized"),
+          class: "select select-bordered #{select_size} w-full", id: nil %>
+  </noscript>
+</div>

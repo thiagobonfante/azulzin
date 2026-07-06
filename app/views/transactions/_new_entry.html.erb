@@ -48,6 +48,8 @@
       <% has_cards = inbox_credit_cards.any? %>
       <% selected_method = transaction.payment_method.presence || (has_cards ? "credito" : "pix") %>
       <% selected_token = current_instrument_token(transaction) %>
+      <%# Income lands in a bank account — pre-select the first so the destination is always visible. %>
+      <% selected_token ||= "bank_account-#{inbox_bank_accounts.first.id}" if !expense && inbox_bank_accounts.any? %>
       <%= form_with model: transaction, url: transactions_path(kind: kind, month: params[:month]), method: :post,
             data: { controller: "entry-instrument" }, class: "grid gap-2 sm:grid-cols-2" do |f| %>
         <% if transaction.errors.any? %>
@@ -66,7 +68,7 @@
         <% if expense %>
           <%# Forma de pagamento (R: fills the space beside Valor; drives the instrument picker) %>
           <div class="form-control">
-            <label class="mb-1 text-xs text-base-content/60"><%= t("transactions.new_entry.payment_method") %></label>
+            <label class="mb-1 block text-xs text-base-content/60"><%= t("transactions.new_entry.payment_method") %></label>
             <%= f.hidden_field :payment_method, value: selected_method, data: { entry_instrument_target: "methodInput" } %>
             <div class="join">
               <% [ [ "credito", "credit_card", !has_cards ], [ "debito", "bank_account", false ],
@@ -94,9 +96,9 @@
           <%= f.date_field :occurred_on, value: transaction.occurred_on, class: "input input-bordered input-sm w-full" %>
         </div>
 
-        <%# Conta ou cartão — brand-avatar picker %>
+        <%# Conta ou cartão — brand-avatar picker (income: the account the money lands in) %>
         <div class="form-control">
-          <label class="mb-1 text-xs text-base-content/60"><%= t("transactions.row.instrument") %></label>
+          <label class="mb-1 text-xs text-base-content/60"><%= expense ? t("transactions.row.instrument") : t("incomes.bank_account") %></label>
           <%= render "transactions/instrument_picker",
                 accounts: inbox_bank_accounts, cards: (expense ? inbox_credit_cards : []),
                 selected_token: selected_token, placeholder: t("transactions.row.unassigned") %>
@@ -105,9 +107,8 @@
         <% if expense %>
           <%# Sits beside Conta ou cartão (no col-span) so the form stays three tight rows. %>
           <div class="form-control">
-            <%= f.label :category_id, t("transactions.row.category"), class: "mb-1 text-xs text-base-content/60" %>
-            <%= f.collection_select :category_id, Current.user.categories.ordered, :id, :name,
-                  { include_blank: t("transactions.ledger.uncategorized") }, class: "select select-bordered select-sm w-full" %>
+            <label class="mb-1 text-xs text-base-content/60"><%= t("transactions.row.category") %></label>
+            <%= render "categories/picker", field_name: "transaction[category_id]", selected_id: transaction.category_id %>
           </div>
         <% end %>
 

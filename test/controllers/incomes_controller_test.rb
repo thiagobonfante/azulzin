@@ -109,4 +109,31 @@ class IncomesControllerTest < ActionDispatch::IntegrationTest
       delete income_url(inc), as: :turbo_stream
     end
   end
+
+  test "receive posts a linked deposit for the month, once" do
+    inc = @user.incomes.create!(bank_account: @account, name: "salário", amount_cents: 450_000,
+                                schedule_kind: "fixed_day", schedule_day: 5)
+    month = Date.current.beginning_of_month
+    assert_difference -> { @user.transactions.posted.count }, 1 do
+      patch receive_income_url(inc, month: month.strftime("%Y-%m")), as: :turbo_stream
+    end
+    receipt = inc.receipts.posted.last
+    assert_equal 450_000, receipt.amount_cents
+    assert_equal @account.id, receipt.bank_account_id
+    assert_equal month, receipt.billing_month
+    assert inc.received_in?(month)
+
+    # Counts-once: a second click never double-posts.
+    assert_no_difference -> { @user.transactions.posted.count } do
+      patch receive_income_url(inc, month: month.strftime("%Y-%m")), as: :turbo_stream
+    end
+  end
+
+  test "cannot receive another user's income" do
+    other  = User.create!(email_address: "y@example.com", password: "password123")
+    theirs = other.incomes.create!(bank_account: other.bank_accounts.create!(institution: Institution.find_by(code: "260")),
+                                   name: "alheia", amount_cents: 100, schedule_kind: "fixed_day", schedule_day: 5)
+    patch receive_income_url(theirs), as: :turbo_stream
+    assert_response :not_found
+  end
 end

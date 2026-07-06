@@ -1,6 +1,14 @@
 <% if params[:from] == "hub" %>
   <%= turbo_stream.replace "a_pagar", partial: "transactions/a_pagar", locals: { occurrences: hub_occurrences, month: viewed_month } %>
+  <%# The payment is an ordinary posted row — surface it in Movimentos right away. %>
+  <%= turbo_stream.replace "movements_ledger" do %>
+    <%= turbo_frame_tag "movements_ledger" do %>
+      <%= render "transactions/ledger_body", ledger: month_ledger, month: viewed_month %>
+    <% end %>
+  <% end %>
   <%= render "transactions/hub_figures" %>
 <% else %>
-  <%= turbo_stream.replace occurrence_dom_id(@occurrence), partial: "commitments/occurrence", locals: { occurrence: @occurrence, context: :show } %>
+  <%# Paying moves the row between the pending list and the paid accordion — re-render both. %>
+  <%= turbo_stream.replace "commitment_occurrences", partial: "commitments/occurrences",
+        locals: { commitment: @occurrence.commitment } %>
 <% end %>

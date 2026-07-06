@@ -8,6 +8,7 @@ module Commitments
       month = month.beginning_of_month
       txn = commitment.user.transactions.new(
         commitment:           commitment,
+        merchant:             commitment.name,
         direction:            "expense",
         status:               "posted",
         confirmed_at:         Time.current,

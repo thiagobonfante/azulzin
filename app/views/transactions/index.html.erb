@@ -27,6 +27,9 @@
   <%# E — A pagar no mês (R10) — shown in every month (future included) for full parity. %>
   <%= render "transactions/a_pagar", occurrences: @occurrences, month: @month %>
 
+  <%# E½ — A receber no mês (R1) — expected incomes with a "Recebi" confirmation. %>
+  <%= render "transactions/a_receber", summary: @summary, month: @month %>
+
   <%# F — ledger (R7) — editable in every month, future included: add, search and edit
       the same way as the current month (a future date bills to that month). %>
   <%= render "transactions/ledger", ledger: @ledger, month: @month %>

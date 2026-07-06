@@ -1,0 +1,70 @@
+<%# locals: commitment — the show page's vencimentos: unpaid ascending on top, paid history
+    folded in an accordion below. Open-ended kinds (subscription/fixed) recur forever, so only
+    months up to the current one are listed — the next charge is computed, never materialized. %>
+<% occurrences = CommitmentOccurrence.history_for(commitment) %>
+<% current = Date.current.beginning_of_month %>
+<% pending = occurrences.reject(&:paid?) %>
+<% pending = pending.select { |o| o.month <= current } unless commitment.installment? %>
+<% paid = occurrences.select(&:paid?).sort_by(&:month).reverse %>
+<%# Debit installments can pay several parcels at once — checkboxes feed the batch form (by
+    form= attribute: the per-row Pagar dropdowns carry their own forms, so no nesting). %>
+<% batch_form = ("pay_batch_#{commitment.id}" if commitment.installment? && !commitment.card? && pending.many?) %>
+<div id="commitment_occurrences">
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm"
+           <% if batch_form %>data-controller="batch-pay"
+             data-batch-pay-one-value="<%= t("commitments.show.batch_one") %>"
+             data-batch-pay-many-value="<%= t("commitments.show.batch_many") %>"<% end %>>
+    <h2 class="mb-2 text-sm font-semibold"><%= t("commitments.show.vencimentos") %></h2>
+    <% if batch_form %>
+      <p class="mb-1 text-xs text-base-content/40"><%= t("commitments.show.batch_hint") %></p>
+    <% end %>
+    <% if pending.any? %>
+      <div class="divide-y divide-base-300/40">
+        <% pending.each do |occurrence| %>
+          <%= render "commitments/occurrence", occurrence: occurrence, context: :show, batch_form: batch_form %>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="py-2 text-sm text-base-content/50"><%= t("commitments.show.all_settled") %></p>
+    <% end %>
+    <% if batch_form %>
+      <div data-batch-pay-target="bar" hidden class="mt-3 rounded-box border border-primary/30 bg-primary/5 p-3">
+        <%= form_with url: pay_batch_commitment_path(commitment), method: :patch, id: batch_form,
+              class: "flex flex-wrap items-end gap-2" do %>
+          <div class="form-control grow">
+            <label class="mb-1 block text-xs text-base-content/60" for="<%= batch_form %>_amount">
+              <span data-batch-pay-target="count"></span> · <%= t("commitments.show.batch_amount") %>
+            </label>
+            <label class="input input-bordered input-sm flex items-center gap-1">
+              <span class="text-base-content/50"><%= t("money.symbol") %></span>
+              <input name="amount_reais" id="<%= batch_form %>_amount" data-batch-pay-target="amount"
+                     inputmode="decimal" required class="grow">
+            </label>
+          </div>
+          <%= submit_tag t("commitments.show.batch_submit"), class: "btn btn-primary btn-sm" %>
+        <% end %>
+      </div>
+    <% end %>
+    <% unless commitment.installment? %>
+      <% if (next_month = commitment.next_charge_month) %>
+        <p class="mt-2 text-xs text-base-content/40"><%= t("commitments.row.next_due", date: l(commitment.due_on(next_month), format: :short)) %></p>
+      <% end %>
+    <% end %>
+  </section>
+
+  <% if paid.any? %>
+    <details class="mt-3 rounded-box border border-base-300/70 bg-base-100 shadow-sm">
+      <summary class="cursor-pointer list-none px-4 py-3 text-sm font-medium text-base-content/60 hover:text-base-content">
+        <span class="inline-flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+          <%= t("commitments.show.paid_history", count: paid.size) %>
+        </span>
+      </summary>
+      <div class="divide-y divide-base-300/40 px-4 pb-3">
+        <% paid.each do |occurrence| %>
+          <%= render "commitments/occurrence", occurrence: occurrence, context: :show %>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+</div>

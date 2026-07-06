@@ -46,7 +46,9 @@ Rails.application.routes.draw do
           constraints: { step: /profile|accounts|incomes|cards/ }
 
     resources :bank_accounts, only: %i[index create edit update destroy]  # edit/update: nickname, kind & balance
-    resources :incomes,       only: %i[index create edit update destroy]   # R1 — recurring income schedules
+    resources :incomes,       only: %i[index create edit update destroy] do  # R1 — recurring income schedules
+      member { patch :receive }   # mark this month's expected deposit as received (hub card)
+    end
     resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
 
     # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the
@@ -60,7 +62,12 @@ Rails.application.routes.draw do
     resources :transfers,  only: :create                         # R5 — single-row transfer between accounts
 
     # R10/R11 — recurring commitments and their computed occurrences.
-    resources :commitments, only: %i[index show create update destroy]
+    resources :commitments, only: %i[index show create update destroy] do
+      member do
+        patch :settle      # early payoff of a debit installment plan
+        patch :pay_batch   # pay several selected parcels at once
+      end
+    end
     resources :commitment_occurrences, only: [] do
       member do
         patch :pay

@@ -36,9 +36,8 @@
     </div>
     <% if transaction.expense? %>
       <div class="form-control sm:col-span-2">
-        <%= f.label :category_id, t("transactions.row.category"), class: "mb-1 block text-xs font-medium text-base-content/60" %>
-        <%= f.collection_select :category_id, Current.user.categories.ordered, :id, :name,
-              { include_blank: t("transactions.ledger.uncategorized") }, class: "select select-bordered select-sm w-full" %>
+        <label class="mb-1 block text-xs font-medium text-base-content/60"><%= t("transactions.row.category") %></label>
+        <%= render "categories/picker", field_name: "transaction[category_id]", selected_id: transaction.category_id %>
       </div>
     <% end %>
   <% end %>

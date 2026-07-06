@@ -67,4 +67,23 @@ class CommitmentTest < ActiveSupport::TestCase
                         amount_cents: 100_000, occurred_on: Date.new(2026, 7, 5))
     assert c.paid_in?(Date.new(2026, 7, 1))
   end
+
+  test "next_charge_month skips already-paid months and ends with the plan" do
+    month = Date.current.beginning_of_month
+    c = Commitment.create!(user: @user, bank_account: @account, name: "carro", kind: "installment",
+                           amount_cents: 120_000, installments_count: 3, schedule_day: 10, starts_on: month)
+    assert_equal month, c.next_charge_month
+    Commitments::MarkPaid.call(c, month)
+    assert_equal month >> 1, c.next_charge_month
+    Commitments::MarkPaid.call(c, month >> 1)
+    Commitments::MarkPaid.call(c, month >> 2)
+    assert_nil c.next_charge_month
+  end
+
+  test "next_charge_month of a future-starting commitment is its first month" do
+    start = Date.current.beginning_of_month >> 2
+    c = Commitment.create!(user: @user, bank_account: @account, name: "curso", kind: "fixed",
+                           amount_cents: 50_000, schedule_day: 5, starts_on: start)
+    assert_equal start, c.next_charge_month
+  end
 end

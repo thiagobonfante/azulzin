@@ -31,6 +31,21 @@ class CommitmentOccurrence
     commitments.map { |c| new(c, month, payment: payments[c.id]) }
   end
 
+  # A commitment's occurrence history for its show page, oldest first, over
+  # [starts_on .. min(last occurrence, current + 12mo)] — one payments query.
+  def self.history_for(commitment)
+    first = commitment.starts_on.beginning_of_month
+    last  = [ commitment.last_month&.beginning_of_month || (Date.current.beginning_of_month >> 12),
+              Date.current.beginning_of_month >> 12 ].min
+    payments = commitment.payments.posted.index_by(&:billing_month)
+    months, m = [], first
+    while m <= last
+      months << m
+      m = m >> 1
+    end
+    months.map { |mo| new(commitment, mo, payment: payments[mo]) }
+  end
+
   def due_on = commitment.due_on(month)
   def installment_no = commitment.installment_no(month)
   def card? = commitment.credit_card_id.present?

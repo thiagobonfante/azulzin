@@ -1,2 +1,2 @@
-<%= turbo_stream.replace occurrence_dom_id(@occurrence), partial: "commitments/occurrence",
-      locals: { occurrence: @occurrence, context: :show } %>
+<%= turbo_stream.replace "commitment_occurrences", partial: "commitments/occurrences",
+      locals: { commitment: @occurrence.commitment } %>

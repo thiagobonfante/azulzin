@@ -3,7 +3,10 @@
 <% if rows.any? %>
   <section id="a_pagar" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
     <header class="mb-2 flex items-center justify-between">
-      <h2 class="text-sm font-semibold"><%= t("transactions.due.title") %></h2>
+      <h2 class="text-sm font-semibold">
+        <%= t("transactions.due.title") %>
+        <%= link_to "(#{t("app.nav.commitments")})", commitments_path, class: "text-xs font-normal text-primary hover:underline" %>
+      </h2>
       <span class="font-display text-sm font-bold tabular-nums">
         <%= brl(occurrences.reject(&:paid?).sum { |o| o.commitment.amount_cents }) %>
       </span>
@@ -12,9 +15,6 @@
       <% rows.each do |occurrence| %>
         <%= render "commitments/occurrence", occurrence: occurrence, context: :hub %>
       <% end %>
-    </div>
-    <div class="mt-2 text-right">
-      <%= link_to t("app.nav.commitments"), commitments_path, class: "text-xs text-primary hover:underline" %>
     </div>
   </section>
 <% end %>

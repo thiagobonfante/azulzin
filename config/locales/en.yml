@@ -273,6 +273,8 @@ en:
       created: "Income added."
     update:
       updated: "Income updated."
+    receive:
+      received: "Deposit recorded."
     destroy:
       removed: "Income removed."
   commitments:
@@ -291,6 +293,9 @@ en:
     occurrences:
       mark_paid: "Mark paid"
       unmark_paid: "Undo payment"
+      pay_amount: "Amount paid"
+      pay_hint: "Paying early or late? Adjust the amount if there's a discount or interest."
+      confirm_pay: "Confirm payment"
       on_bill: "On the card bill"
       paid: "Payment recorded."
       statuses:
@@ -308,6 +313,7 @@ en:
       day_card_hint: "lands on the bill per the card's closing date"
       instrument: "Paid with"
       submit: "Add"
+      save: "Save"
       kind_hints:
         installment: "e.g. financed car, phone in 12×"
         fixed: "e.g. alimony, rent, tuition"
@@ -324,7 +330,19 @@ en:
       total_committed: "Total committed per month"
     show:
       vencimentos: "Due dates"
+      all_settled: "All settled here."
+      paid_history: "Paid installments (%{count})"
       remaining: "%{amount} remaining"
+      settle: "Pay off"
+      settle_hint: "Pay the rest at once — early payoff usually earns a discount, so adjust the amount."
+      settle_confirm: "Pay off this commitment? Remaining due dates stop appearing."
+      settle_submit: "Pay off"
+      batch_hint: "Check installments to pay several at once."
+      batch_select: "Select installment"
+      batch_one: "installment selected"
+      batch_many: "installments selected"
+      batch_amount: "How much did you pay for them?"
+      batch_submit: "Pay selected"
       edit: "Edit commitment"
       finish: "End commitment"
       finish_hint: "History is kept; new due dates stop appearing."
@@ -332,6 +350,12 @@ en:
       updated: "Commitment updated."
     create:
       created: "Commitment added."
+    settle:
+      settled: "Commitment paid off."
+      invalid: "Couldn't pay it off. Check the amount."
+    pay_batch:
+      paid: "Installments paid."
+      invalid: "Couldn't record it. Check the installments and the amount."
     destroy:
       removed: "Commitment ended."
   categories:
@@ -431,6 +455,11 @@ en:
       setup_billing: "Set closing and due day"
     due:
       title: "To pay this month"
+    receivable:
+      title: "To receive this month"
+      mark_received: "Received"
+      received: "Received"
+      expected: "Expected"
     ledger:
       title: "Activity"
       add: "Add"
@@ -462,8 +491,8 @@ en:
         boleto: "Boleto"
     row:
       amount: "Amount"
-      merchant: "Merchant"
-      merchant_placeholder: "Where was it?"
+      merchant: "Description"
+      merchant_placeholder: "e.g. groceries, rent, salary"
       save: "Save"
       instrument: "Account or card"
       unassigned: "No account set"

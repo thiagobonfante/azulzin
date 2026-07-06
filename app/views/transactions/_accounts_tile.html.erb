@@ -1,7 +1,12 @@
 <%# locals: summary — Zone D, Contas. "What do I have, and how much is put away?" %>
 <section id="accounts_tile" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
   <header class="mb-3 flex items-baseline justify-between">
-    <h2 class="text-sm font-semibold"><%= t("transactions.accounts.title") %></h2>
+    <h2 class="text-sm font-semibold">
+      <%= link_to bank_accounts_path, class: "inline-flex items-center gap-1 hover:text-primary" do %>
+        <%= t("transactions.accounts.title") %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+      <% end %>
+    </h2>
     <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.accounts_total_cents) %></span>
   </header>
 
@@ -40,7 +45,4 @@
           class: "block rounded-box border border-dashed border-base-300 px-4 py-6 text-center text-sm text-primary" %>
   <% end %>
 
-  <div class="mt-3 text-right">
-    <%= link_to t("app.nav.accounts"), bank_accounts_path, class: "text-xs text-primary hover:underline" %>
-  </div>
 </section>
