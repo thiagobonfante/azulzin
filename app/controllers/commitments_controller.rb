@@ -105,6 +105,10 @@ class CommitmentsController < ApplicationController
         c.starts_on = Date.current.beginning_of_month << p[:installments_paid].to_i # mid-plan anchor
       else # fixed / subscription
         c.starts_on = Date.current.beginning_of_month
+        # Created after the charge day already passed → the first occurrence is next month
+        # (no retroactive "overdue" born on day one). A matching posted card charge rewinds
+        # this in link_existing_card_charge.
+        c.starts_on = c.starts_on >> 1 if c.due_on(c.starts_on) < Date.current
         c.ends_on = p[:ends_on].presence
       end
       c
@@ -135,6 +139,9 @@ class CommitmentsController < ApplicationController
                        .max_by { |t| name_similarity(t.merchant, commitment.name) }
       return unless best && name_similarity(best.merchant, commitment.name) >= 0.6
       best.update!(commitment_id: commitment.id)
+      # The charge proves this bill's occurrence happened — keep it (paid) even when
+      # build_commitment pushed starts_on past the already-elapsed charge day.
+      commitment.update!(starts_on: month) if month < commitment.starts_on
     rescue ActiveRecord::RecordNotUnique
       # another charge already occupies this commitment-month slot → leave unlinked
     end

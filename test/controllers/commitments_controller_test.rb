@@ -69,6 +69,46 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, c2.payments.posted.kept.count, "the payment survives in the ledger"
   end
 
+  test "a subscription created after its charge day starts next month (no retroactive vencimento)" do
+    travel_to Date.new(2026, 7, 6) do
+      post commitments_url, as: :turbo_stream, params: {
+        commitment: { name: "iCloud", kind: "subscription", amount_reais: "29,90", schedule_day: 1 },
+        instrument: "credit_card-#{@card.id}" }
+      c = @user.account.commitments.subscription.last
+      assert_equal Date.new(2026, 8, 1), c.starts_on
+      assert_equal Date.new(2026, 8, 1), c.next_charge_month
+    end
+  end
+
+  test "a commitment created before its charge day keeps the current month" do
+    travel_to Date.new(2026, 7, 6) do
+      post commitments_url, as: :turbo_stream, params: {
+        commitment: { name: "aluguel", kind: "fixed", amount_reais: "1.000", schedule_day: 15 },
+        instrument: "bank_account-#{@account.id}" }
+      c = @user.account.commitments.last
+      assert_equal Date.new(2026, 7, 1), c.starts_on
+      assert_equal Date.new(2026, 7, 1), c.next_charge_month
+    end
+  end
+
+  test "an adopted posted charge rewinds starts_on so the elapsed month shows as paid" do
+    travel_to Date.new(2026, 7, 6) do
+      card = @user.account.credit_cards.create!(institution: @inst, bill_due_day: 28, closing_offset_days: 7)
+      month = card.billing_month_for(Date.current)   # bill still open → July
+      charge = @user.account.transactions.create!(credit_card: card, direction: "expense", status: "posted",
+                                          amount_cents: 2_990, occurred_on: Date.new(2026, 7, 1), merchant: "iCloud",
+                                          billing_month: month, billing_month_manual: true)
+      post commitments_url, as: :turbo_stream, params: {
+        commitment: { name: "iCloud", kind: "subscription", amount_reais: "29,90", schedule_day: 1 },
+        instrument: "credit_card-#{card.id}" }
+      c = @user.account.commitments.subscription.last
+      assert_equal c.id, charge.reload.commitment_id
+      assert_equal Date.new(2026, 7, 1), c.starts_on
+      assert c.paid_in?(Date.new(2026, 7, 1))
+      assert_equal Date.new(2026, 8, 1), c.next_charge_month
+    end
+  end
+
   test "bill-constancy: a card subscription retroactively links its charge; the bill stays constant" do
     month  = @card.billing_month_for(Date.current)
     charge = @user.account.transactions.create!(credit_card: @card, direction: "expense", status: "posted",
