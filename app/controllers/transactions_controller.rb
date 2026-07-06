@@ -6,6 +6,7 @@
 class TransactionsController < ApplicationController
   layout "app"
   before_action :require_onboarding
+  before_action :require_instrument, only: %i[new create]
   before_action :set_transaction, only: %i[edit update assign confirm destroy]
 
   helper_method :viewed_month, :summary
@@ -105,6 +106,12 @@ class TransactionsController < ApplicationController
   end
 
   private
+    # No instrument in the account yet (onboarding skipped): the new_entry frame shows a
+    # "create an account or card first" prompt instead of the form; a direct POST gets it too.
+    def require_instrument
+      render partial: "transactions/needs_instrument" unless account_has_instruments?
+    end
+
     def set_transaction
       @transaction = Current.account.transactions.kept.find(params[:id])
     end

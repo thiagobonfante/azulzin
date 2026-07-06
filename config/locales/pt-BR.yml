@@ -18,6 +18,11 @@ pt-BR:
     not_allowed: "Esta conta não está autorizada a acessar o azulzin."
     confirm: "Confirmar"
     deleted_suffix: "(excluído)"
+    needs_instrument:
+      title: "Crie uma conta ou cartão primeiro"
+      hint: "Para registrar transações e compromissos, você precisa de pelo menos uma conta bancária ou um cartão de crédito."
+      add_bank_account: "Criar conta bancária"
+      add_credit_card: "Criar cartão"
     attribution:
       by: "por %{name}"
       edited_by: "editado por %{name}"
@@ -155,7 +160,7 @@ pt-BR:
     back: "Voltar"
     finished: "Tudo pronto! Boas-vindas ao azulzin."
     skip_to_app: "Pular e ir para o app"
-    skip_hint: "Sua família já configurou contas — você pode adicionar as suas depois."
+    skip_hint: "Você pode configurar contas, cartões e rendas depois — só será preciso criar uma conta ou cartão antes de registrar gastos."
     steps:
       profile: "Perfil"
       accounts: "Contas"

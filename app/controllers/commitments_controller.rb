@@ -4,6 +4,7 @@
 class CommitmentsController < ApplicationController
   layout "app"
   before_action :require_onboarding, only: %i[index show]
+  before_action :require_instrument, only: :create
 
   def index
     @commitments = Current.account.commitments.kept.active.includes(:bank_account, :credit_card, :category).order(:kind, :created_at)
@@ -81,6 +82,12 @@ class CommitmentsController < ApplicationController
   end
 
   private
+    # No instrument in the account yet (onboarding skipped): the index sidebar already swaps
+    # the form for a "create an account or card first" prompt; this stops a direct POST.
+    def require_instrument
+      redirect_to commitments_path, alert: t("shared.needs_instrument.title") unless account_has_instruments?
+    end
+
     def commitment_params
       params.expect(commitment: %i[name kind amount_reais installments_count installments_paid
                                    schedule_day ends_on category_id])

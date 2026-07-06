@@ -15,7 +15,11 @@
   <div class="lg:col-span-2">
     <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
       <h2 class="mb-4 font-display text-lg font-bold"><%= t("commitments.index.new") %></h2>
-      <%= render "commitments/form", commitment: @commitment %>
+      <% if account_has_instruments? %>
+        <%= render "commitments/form", commitment: @commitment %>
+      <% else %>
+        <%= render "shared/needs_instrument" %>
+      <% end %>
     </div>
   </div>
 </div>

@@ -188,4 +188,29 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to commitment_url(fixed)
     assert_not fixed.reload.archived?
   end
+
+  # ── No instruments (onboarding skipped): creation is blocked until an account/card exists ──
+
+  def remove_instruments
+    @account.soft_delete!(by: @user)
+    @card.soft_delete!(by: @user)
+  end
+
+  test "index with no instruments shows the create-an-account-first prompt instead of the form" do
+    remove_instruments
+    get commitments_url
+    assert_response :success
+    assert_includes response.body, I18n.t("shared.needs_instrument.title", locale: :"pt-BR")
+    assert_select "form#commitment_form", false
+  end
+
+  test "create with no instruments is blocked" do
+    remove_instruments
+    assert_no_difference -> { @user.account.commitments.count } do
+      post commitments_url, params: {
+        commitment: { name: "pensão", kind: "fixed", amount_reais: "1.000", schedule_day: 5 },
+        instrument: "" }
+    end
+    assert_redirected_to commitments_url
+  end
 end

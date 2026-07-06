@@ -317,4 +317,31 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal future, txn.billing_month
     assert_predicate txn, :posted?
   end
+
+  # ── No instruments (onboarding skipped): creation is blocked until an account/card exists ──
+
+  def remove_instruments
+    @account.soft_delete!(by: @user)
+    @card.soft_delete!(by: @user)
+  end
+
+  test "new with no instruments renders the create-an-account-first prompt instead of the form" do
+    remove_instruments
+    get new_transaction_url(kind: "expense")
+    assert_response :success
+    assert_includes response.body, I18n.t("shared.needs_instrument.title", locale: :"pt-BR")
+    assert_select "form", false
+  end
+
+  test "create with no instruments is blocked" do
+    remove_instruments
+    assert_no_difference -> { @user.account.transactions.count } do
+      post transactions_url(kind: "expense"), params: {
+        transaction: { amount_reais: "100,00", merchant: "test", occurred_on: Date.current.to_s,
+                       category_id: "", payment_method: "pix" },
+        instrument: ""
+      }, as: :turbo_stream
+    end
+    assert_includes response.body, I18n.t("shared.needs_instrument.title", locale: :"pt-BR")
+  end
 end

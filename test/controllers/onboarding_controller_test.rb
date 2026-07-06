@@ -155,12 +155,17 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
 
   def skip_label = I18n.t("onboarding.skip_to_app", locale: :"pt-BR")
 
-  # Path A: a fresh owner with an empty account must add ≥1 account — no skip yet.
-  test "a fresh owner with an empty account sees no skip on the accounts step" do
+  # A fresh owner with an empty account may skip everything past profile; recording
+  # transactions/commitments stays blocked until an instrument exists (require_instrument).
+  test "a fresh owner with an empty account can skip to the app from the accounts step" do
     complete_profile
     get onboarding_step_url("accounts")
     assert_response :success
-    assert_not_includes response.body, skip_label
+    assert_includes response.body, skip_label
+
+    patch onboarding_skip_url
+    assert_redirected_to dashboard_url
+    assert @user.reload.onboarded?
   end
 
   test "an invited member of a stocked account can skip to the app without duplicating categories" do
@@ -196,14 +201,12 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_not member.reload.onboarded?
   end
 
-  test "when the only account is soft-deleted the skip is hidden and skipping bounces" do
+  test "skipping still finishes when the only account was soft-deleted after advancing" do
     complete_profile
     add_account.soft_delete!(by: @user)                           # the only account is soft-deleted
-    get onboarding_step_url("accounts")
-    assert_response :success
-    assert_not_includes response.body, skip_label
     patch onboarding_skip_url
-    assert_not @user.reload.onboarded?
+    assert_redirected_to dashboard_url
+    assert @user.reload.onboarded?
   end
 
   test "the owner names the shared account on the profile step" do

@@ -18,6 +18,11 @@ en:
     confirm: "Confirm"
     cancel: "Cancel"
     deleted_suffix: "(deleted)"
+    needs_instrument:
+      title: "Add a bank account or card first"
+      hint: "To record transactions and commitments, you need at least one bank account or credit card."
+      add_bank_account: "Add bank account"
+      add_credit_card: "Add card"
     attribution:
       by: "by %{name}"
       edited_by: "edited by %{name}"
@@ -154,7 +159,7 @@ en:
     back: "Back"
     finished: "All set! Welcome to azulzin."
     skip_to_app: "Skip and go to the app"
-    skip_hint: "Your family already set up accounts — you can add yours later."
+    skip_hint: "You can set up accounts, cards, and income later — you'll just need an account or card before recording expenses."
     steps:
       profile: "Profile"
       accounts: "Accounts"

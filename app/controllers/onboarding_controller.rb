@@ -32,11 +32,12 @@ class OnboardingController < ApplicationController
     end
   end
 
-  # Explicit "skip to the app" for a member joining a stocked account (D5). Same anti-forge
-  # posture as update: the server re-checks the condition and a forged request bounces to
-  # resume_step silently (matching the existing style).
+  # Explicit "skip to the app" from any step past profile — new owners and invited members
+  # alike, with or without instruments. Name + phone stay required (profile can't be skipped),
+  # and recording transactions/commitments stays blocked until the account has an instrument.
+  # Anti-forge: the server re-checks profile completeness and bounces to resume_step.
   def skip
-    return redirect_to onboarding_step_path(resume_step) unless skippable?
+    return redirect_to onboarding_step_path(resume_step) if resume_step == "profile"
     finish
   end
 
@@ -100,14 +101,6 @@ class OnboardingController < ApplicationController
       name = params.dig(:user, :account_name)
       Current.account.update(name: name) if account_owner? && name.present?
     end
-
-    # D5: profile complete (name + phone — phone kept required, decision #13 accepted) AND the
-    # shared account already has instruments. Re-checked server-side so a forged skip bounces.
-    def skippable?
-      Current.user.name.present? && Current.user.phone.present? &&
-        Current.account.bank_accounts.kept.any?
-    end
-    helper_method :skippable?
 
     def advance_from_accounts
       if Current.account.bank_accounts.kept.any?

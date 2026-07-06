@@ -1,0 +1,14 @@
+<%# Shown wherever creating a transaction/commitment is blocked because the account has no
+    bank account or card yet (onboarding skipped). Links break out of any enclosing frame. %>
+<div class="flex flex-col items-center gap-3 py-4 text-center">
+  <div>
+    <p class="text-sm font-semibold"><%= t("shared.needs_instrument.title") %></p>
+    <p class="mt-1 text-xs text-base-content/60"><%= t("shared.needs_instrument.hint") %></p>
+  </div>
+  <div class="flex flex-wrap justify-center gap-2">
+    <%= link_to t("shared.needs_instrument.add_bank_account"), bank_accounts_path,
+          data: { turbo_frame: "_top" }, class: "btn btn-primary btn-sm" %>
+    <%= link_to t("shared.needs_instrument.add_credit_card"), credit_cards_path,
+          data: { turbo_frame: "_top" }, class: "btn btn-ghost btn-sm" %>
+  </div>
+</div>

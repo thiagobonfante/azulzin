@@ -1,0 +1,7 @@
+<%# Rendered by require_instrument into the ledger's new_entry frame in place of the add form
+    when the account has no bank account or card yet. %>
+<%= turbo_frame_tag "new_entry" do %>
+  <div class="mb-3 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
+    <%= render "shared/needs_instrument" %>
+  </div>
+<% end %>

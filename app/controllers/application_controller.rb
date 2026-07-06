@@ -13,6 +13,13 @@ class ApplicationController < ActionController::Base
   helper_method :account_owner?
   def account_owner? = Current.user&.account_membership&.owner? || false
 
+  # Money movements need somewhere to land: an account with no bank account and no card
+  # (e.g. onboarding skipped) can't create transactions/commitments until one exists.
+  helper_method :account_has_instruments?
+  def account_has_instruments?
+    Current.account.bank_accounts.kept.any? || Current.account.credit_cards.kept.any?
+  end
+
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
