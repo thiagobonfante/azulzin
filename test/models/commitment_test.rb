@@ -99,4 +99,19 @@ class CommitmentTest < ActiveSupport::TestCase
                            amount_cents: 50_000, schedule_day: 5, starts_on: start)
     assert_equal start, c.next_charge_month
   end
+
+  test "destroy detaches paid parcels whole — commitment_id AND installment_number clear together" do
+    plan = Commitment.create!(user: @user, bank_account: @account, name: "carro", kind: "installment",
+                              amount_cents: 100_000, installments_count: 12,
+                              starts_on: Date.current.beginning_of_month)
+    parcel = Commitments::MarkPaid.call(plan, Date.current.beginning_of_month)
+    assert_equal 1, parcel.installment_number
+
+    assert_nothing_raised { plan.destroy! }
+
+    parcel.reload
+    assert_nil parcel.commitment_id
+    assert_nil parcel.installment_number   # paired by the transactions_installment_requires_commitment check
+    assert parcel.posted?                  # history survives the plan's deletion
+  end
 end

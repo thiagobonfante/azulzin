@@ -11,7 +11,11 @@ class Commitment < ApplicationRecord
   belongs_to :bank_account, optional: true
   belongs_to :credit_card,  optional: true
   belongs_to :category,     optional: true
-  has_many :payments, class_name: "Transaction", foreign_key: :commitment_id, dependent: :nullify
+  has_many :payments, class_name: "Transaction", foreign_key: :commitment_id
+  # Detach payments on destroy in ONE update: the DB pairs installment_number with commitment_id
+  # (transactions_installment_requires_commitment), so dependent: :nullify — which clears only
+  # the FK — would trip the check on any paid parcel (e.g. in the LGPD user cascade).
+  before_destroy { payments.update_all(commitment_id: nil, installment_number: nil) }
 
   money_column :amount, :total
 

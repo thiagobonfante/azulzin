@@ -12,6 +12,12 @@ class UserLgpdTest < ActiveSupport::TestCase
     com  = user.commitments.create!(bank_account: acct, category: cat, name: "aluguel", kind: "fixed",
                                     amount_cents: 100_000, schedule_day: 5, starts_on: Date.current)
     Commitments::MarkPaid.call(com, Date.current.beginning_of_month)
+    # A PAID PARCEL is the hard case: its transaction carries installment_number, which the DB
+    # pairs with commitment_id — the cascade must not nullify one without the other.
+    plan = user.commitments.create!(bank_account: acct, name: "carro", kind: "installment",
+                                    amount_cents: 200_000, installments_count: 12,
+                                    starts_on: Date.current.beginning_of_month)
+    Commitments::MarkPaid.call(plan, Date.current.beginning_of_month)
     user.transactions.create!(bank_account: acct, direction: "expense", status: "posted", amount_cents: 100, occurred_on: Date.current)
 
     assert_nothing_raised { user.destroy }
