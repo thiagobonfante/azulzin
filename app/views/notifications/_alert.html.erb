@@ -9,6 +9,14 @@
            class="alert <%= notification_alert_class(notification.kind) %> py-2.5">
         <%= notification_icon_tag(notification.kind) %>
         <span class="text-sm"><%= notification_message(notification) %></span>
+        <%# The surplus nudge always ships its one action (03 §5: no empty praise): the
+            hub's hero renders the pre-filled "guardar na caixinha" transfer for the same
+            savings account the pick verified, with the live sobra. %>
+        <% if notification.kind == "surplus_nudge" %>
+          <%= link_to t("transactions.hero.save_cta"),
+                transactions_path(month: notification.period_key.strftime("%Y-%m")),
+                class: "btn btn-primary btn-xs" %>
+        <% end %>
         <%= button_to t(".dismiss"), dismiss_notification_path(notification), method: :patch,
               class: "btn btn-ghost btn-xs" %>
       </div>

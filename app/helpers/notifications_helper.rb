@@ -42,14 +42,18 @@ module NotificationsHelper
   end
 
   # Banner copy, templated from the payload snapshot (01 §1: neither renderer re-queries;
-  # a deleted subject still renders). Reminder payloads carry integer cents plus a days
-  # count: money is formatted here, at render time, in the viewer's locale — never baked
-  # into the snapshot — and days_until / days_overdue drive pluralization ("vence hoje /
+  # a deleted subject still renders). Payloads carry integer cents (any *_cents key) plus
+  # optionally a days count: money is formatted here, at render time, in the viewer's
+  # locale — never baked into the snapshot (amount_cents → %{amount}, spent_cents →
+  # %{spent}, …) — and days_until / days_overdue drive pluralization ("vence hoje /
   # amanhã / em N dias").
   def notification_message(notification)
     payload = notification.payload.symbolize_keys
-    args = payload.except(:amount_cents, :days_until, :days_overdue, :event)
-    args[:amount] = brl(payload[:amount_cents]) if payload.key?(:amount_cents)
+    args = payload.except(:days_until, :days_overdue, :event)
+    payload.each_key do |key|
+      next unless key.to_s.end_with?("_cents")
+      args[key.to_s.delete_suffix("_cents").to_sym] = brl(args.delete(key))
+    end
     if (days = payload[:days_until] || payload[:days_overdue])
       args[:count] = days
     end

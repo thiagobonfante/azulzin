@@ -1,14 +1,23 @@
-<%# locals: rows — top-5 spend categories as proportional bars (R6). Shown via the ledger's
-    List/Categories view switch; renders nothing when there is no spend to break down. %>
+<%# locals: rows, month — top-5 spend categories as proportional bars (R6). Shown via the
+    ledger's List/Categories view switch; renders nothing when there is no spend to break down.
+    Budgeted categories (up-tier 03 §6) render actual over budget instead — width = spent/budget
+    (capped), colored by the viewer's bands (blue under warn, amber to breach, red over), with
+    the actual from Budgets::Actuals so the bar and the weekly alert always agree. %>
 <% expenses = rows.select { |r| r.direction == "expense" } %>
 <% if expenses.any? %>
   <% by_cat = expenses.group_by(&:category).transform_values { |rs| rs.sum(&:amount_cents) }.sort_by { |_, v| -v } %>
   <% top = by_cat.first(5) %>
   <% other = by_cat.drop(5).sum { |_, v| v } %>
   <% max = (top.map { |_, v| v } + [ other ]).max.to_f %>
+  <% if top.any? { |category, _| category&.monthly_budget_cents } %>
+    <% actuals = Budgets::Actuals.for(Current.account, month) %>
+    <% prefs = Current.user.notification_prefs %>
+  <% end %>
   <ul class="flex flex-col gap-2.5">
     <% top.each do |category, cents| %>
       <li>
+        <% budget = category&.monthly_budget_cents %>
+        <% spent = budget ? actuals[category.id].to_i : cents %>
         <div class="flex items-baseline justify-between text-xs">
           <span class="flex items-center gap-1.5 text-base-content/70">
             <% if category %>
@@ -16,10 +25,17 @@
             <% end %>
             <%= category&.name || t("transactions.ledger.uncategorized") %>
           </span>
-          <span class="tabular-nums text-base-content/60"><%= brl(cents) %></span>
+          <span class="tabular-nums text-base-content/60">
+            <%= budget ? "#{brl(spent)} / #{brl(budget)}" : brl(cents) %>
+          </span>
         </div>
         <div class="mt-1 h-2 overflow-hidden rounded-full bg-base-200">
-          <div class="h-full rounded-full" style="width: <%= (cents / max * 100).round %>%; background-color: <%= category&.display_color || Category::DEFAULT_COLOR %>"></div>
+          <% if budget %>
+            <div class="h-full rounded-full <%= budget_bar_class(spent, budget, warn_percent: prefs.budget_warn_percent, breach_percent: prefs.budget_breach_percent) %>"
+                 style="width: <%= [ spent.fdiv(budget) * 100, 100 ].min.round %>%"></div>
+          <% else %>
+            <div class="h-full rounded-full" style="width: <%= (cents / max * 100).round %>%; background-color: <%= category&.display_color || Category::DEFAULT_COLOR %>"></div>
+          <% end %>
         </div>
       </li>
     <% end %>

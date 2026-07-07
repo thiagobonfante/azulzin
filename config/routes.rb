@@ -90,6 +90,7 @@ Rails.application.routes.draw do
     resources :categories, only: %i[index create edit update destroy] do  # R6 — account-owned spend categories
       post :restore, on: :collection                                  # re-seed the locale defaults
       get  :suggest, on: :collection                                  # merchant-memory preselect (LLM-free)
+      get  :suggest_budget, on: :member                               # 3-month-median budget pre-fill (up-tier 03 §3)
       post :backfill,         on: :collection                         # categorize history (1/day cap)
       post :backfill_undo,    on: :collection                         # revert the last run
       post :backfill_dismiss, on: :collection                         # hide the banner, keep the categories

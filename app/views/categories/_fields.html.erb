@@ -1,5 +1,27 @@
-<%# locals: f, category — the color + icon pickers, shared by the add and edit forms. Pure
-    radio inputs (peer-checked) — no JS. Both sets are validated server-side. %>
+<%# locals: f, category — the color + icon pickers and the monthly budget, shared by the
+    add and edit forms. Pickers are pure radio inputs (peer-checked) — no JS. The budget's
+    "sugerir" chip (up-tier 03 §3) pre-fills the trailing-3-month median — persisted
+    categories only, since a new category has no history to suggest from. %>
+<div class="form-control"
+     <% if category.persisted? %>data-controller="budget-suggest"
+     data-budget-suggest-url-value="<%= suggest_budget_category_path(category) %>"<% end %>>
+  <%= f.label :monthly_budget_reais, t("categories.budget"), class: "mb-1 block text-sm font-medium" %>
+  <div class="flex items-center gap-2">
+    <label class="input input-bordered input-sm flex w-40 items-center gap-2">
+      <span class="text-base-content/50"><%= t("money.symbol") %></span>
+      <%= f.text_field :monthly_budget_reais, inputmode: "decimal", placeholder: "0,00", class: "grow",
+            data: (category.persisted? ? { budget_suggest_target: "input", action: "input->budget-suggest#hideHint" } : {}) %>
+    </label>
+    <% if category.persisted? %>
+      <button type="button" class="btn btn-ghost btn-xs text-primary" data-action="budget-suggest#fill">
+        <%= t("categories.budget_suggest") %>
+      </button>
+      <span class="badge badge-ghost badge-sm" hidden data-budget-suggest-target="hint"><%= t("categories.budget_suggested") %></span>
+    <% end %>
+  </div>
+  <p class="mt-1 text-xs text-base-content/50"><%= t("categories.budget_hint") %></p>
+</div>
+
 <div class="form-control">
   <label class="mb-1.5 block text-sm font-medium"><%= t("categories.color") %></label>
   <div class="flex flex-wrap gap-2">

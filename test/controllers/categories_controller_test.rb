@@ -118,4 +118,42 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "#22C55E", mercado.color
     assert_equal "cart", mercado.icon
   end
+
+  test "update sets the monthly budget from a human reais string; blank clears it" do
+    cat = @user.account.categories.create!(name: "Restaurantes")
+    patch category_url(cat), as: :turbo_stream, params: { category: { monthly_budget_reais: "600,00" } }
+    assert_equal 60_000, cat.reload.monthly_budget_cents
+
+    patch category_url(cat), as: :turbo_stream, params: { category: { monthly_budget_reais: "" } }
+    assert_nil cat.reload.monthly_budget_cents
+  end
+
+  test "a zero budget is rejected (must be positive when present)" do
+    cat = @user.account.categories.create!(name: "Restaurantes")
+    patch category_url(cat), as: :turbo_stream, params: { category: { monthly_budget_reais: "0,00" } }
+    assert_response :unprocessable_entity
+    assert_nil cat.reload.monthly_budget_cents
+  end
+
+  test "suggest_budget pre-fills the 3-month median as a reais string" do
+    travel_to Time.utc(2026, 7, 15, 15, 0) do
+      cat  = @user.account.categories.create!(name: "Restaurantes")
+      bank = @user.account.bank_accounts.create!(institution: Institution.find_by(code: "260"))
+      { 4 => 40_000, 5 => 42_000, 6 => 410_000 }.each do |month, cents|
+        @user.account.transactions.create!(amount_cents: cents, occurred_on: Date.new(2026, month, 10),
+                                           status: "posted", direction: "expense",
+                                           category: cat, bank_account: bank)
+      end
+
+      get suggest_budget_category_url(cat)
+      assert_response :success
+      assert_equal "420,00", JSON.parse(response.body)["budget_reais"]
+    end
+  end
+
+  test "suggest_budget is 204 with less than one full month of history" do
+    cat = @user.account.categories.create!(name: "Restaurantes")
+    get suggest_budget_category_url(cat)
+    assert_response :no_content
+  end
 end

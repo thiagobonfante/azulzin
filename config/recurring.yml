@@ -33,3 +33,7 @@ production:
     class: Reminders::DailyDispatchJob
     queue: default
     schedule: every day at 11am # UTC => 08:00 America/Sao_Paulo, after quiet hours
+  budgets_weekly_check:
+    class: Budgets::WeeklyCheckDispatchJob
+    queue: default
+    schedule: every monday at 11am # UTC => 08:00 America/Sao_Paulo (D6: weekly sweep)
