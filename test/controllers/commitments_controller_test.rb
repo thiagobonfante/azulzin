@@ -31,8 +31,8 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @account, c.bank_account
   end
 
-  test "a card installment fans out into posted parcels via Installments::Create" do
-    assert_difference -> { @user.account.transactions.where.not(installment_number: nil).count }, 10 do
+  test "a card installment creates an unpaid commitment via Installments::Create (no eager posted rows)" do
+    assert_no_difference -> { @user.account.transactions.count } do
       post commitments_url, as: :turbo_stream, params: {
         commitment: { name: "celular", kind: "installment", amount_reais: "500", installments_count: 10, installments_paid: 0 },
         instrument: "credit_card-#{@card.id}" }
@@ -40,6 +40,7 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     c = @user.account.commitments.installment.last
     assert_equal 10, c.installments_count
     assert_equal 500_000, c.total_cents
+    assert_equal 0, c.paid_count, "parcels start unpaid and advance as faturas are marked paid"
   end
 
   test "mid-plan já pagas=13 → installment_no(current)=14, progress 13/36, zero transaction rows" do
@@ -231,41 +232,37 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 36, c.reload.installments_count
   end
 
-  test "update grows a card installment: new parcels ride the following bills" do
+  test "update grows a card installment: count and total follow (parcels stay computed)" do
     c = Installments::Create.call(account: @user.account, created_by: @user, card: @card,
                                   total_cents: 500_000, count: 10, occurred_on: Date.current, merchant: "celular")
     patch commitment_url(c), params: { commitment: { name: "celular", installments_count: 12 } }
     assert_redirected_to commitment_url(c)
     c.reload
     assert_equal 12, c.installments_count
-    assert_equal 12, c.payments.posted.kept.count
-    last = c.payments.posted.kept.order(:installment_number).last
-    assert_equal 12, last.installment_number
-    assert_equal c.starts_on >> 11, last.billing_month
     assert_equal 600_000, c.total_cents
+    assert_equal 0, c.payments.count, "no eager parcel rows are created on resize"
   end
 
-  test "update shrinks a card installment: tail parcels are soft-deleted, total follows" do
+  test "update shrinks a card installment: count and total follow" do
     c = Installments::Create.call(account: @user.account, created_by: @user, card: @card,
                                   total_cents: 500_000, count: 10, occurred_on: Date.current, merchant: "celular")
     patch commitment_url(c), params: { commitment: { name: "celular", installments_count: 8 } }
     assert_redirected_to commitment_url(c)
     c.reload
     assert_equal 8, c.installments_count
-    assert_equal 8, c.payments.posted.kept.count
-    assert_equal 2, c.payments.soft_deleted.count
     assert_equal 400_000, c.total_cents
   end
 
-  test "update can't drop card parcels already on closed bills" do
+  test "update can't drop card parcels already marked paid on closed bills" do
     c = Installments::Create.call(account: @user.account, created_by: @user, card: @card,
                                   total_cents: 500_000, count: 10, occurred_on: Date.current << 4, merchant: "celular")
+    # Mark the first three parcels paid ("Ajustar"): they land on already-closed bills.
+    [ c.starts_on, c.starts_on >> 1, c.starts_on >> 2 ].each { |m| Commitments::MarkPaid.call(c, m, amount: c.amount_cents) }
     closed = c.payments.posted.kept.where(billing_month: ...@card.current_open_bill_month).count
     assert_operator closed, :>=, 3
     patch commitment_url(c), params: { commitment: { name: "celular", installments_count: 2 } }
     assert_response :unprocessable_entity
     assert_equal 10, c.reload.installments_count
-    assert_equal 10, c.payments.posted.kept.count
   end
 
   test "update leaves the count alone for non-installment kinds" do

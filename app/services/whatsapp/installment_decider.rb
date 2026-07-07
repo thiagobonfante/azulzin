@@ -23,11 +23,10 @@ module Whatsapp
       if instrument.is_a?(CreditCard)
         commitment = Installments::Create.call(account: account, created_by: @msg.user,
           card: instrument, total_cents: total, count: count,
-          occurred_on: occurred, merchant: @extraction.merchant,
-          source_message_id: @msg.wa_message_id, whatsapp_message: @msg)
-        first_bill = commitment.payments.posted.minimum(:billing_month)
+          occurred_on: occurred, merchant: @extraction.merchant, category_id: resolve_category,
+          source_message_id: @msg.wa_message_id)
         reply("installments_posted", count: count, parcel: currency(commitment.amount_cents),
-              instrument: instrument.display_name, month: month_label(first_bill))
+              instrument: instrument.display_name, month: month_label(commitment.starts_on))
       else
         commitment = create_debit_plan(instrument, total, count)
         reply("installment_commitment_created", count: count, parcel: currency(commitment.amount_cents),
@@ -57,8 +56,17 @@ module Whatsapp
         bank_account: bank, name: @extraction.merchant.presence || I18n.t("commitments.default_installment_name"),
         kind: "installment", amount_cents: (total.to_f / count).round, total_cents: total, installments_count: count,
         schedule_kind: "fixed_day", schedule_day: occurred.day, starts_on: occurred.beginning_of_month,
-        source: "whatsapp", source_message_id: @msg.wa_message_id
+        source: "whatsapp", source_message_id: @msg.wa_message_id, category_id: resolve_category
       )
+    end
+
+    # Fuzzy-match the LLM's category guess against the account's categories (mirrors Decider).
+    def resolve_category
+      guess = @extraction.category
+      return nil if guess.blank?
+      term = Whatsapp.normalize(guess)
+      best = account.categories.kept.max_by { |c| Whatsapp.similarity(term, Whatsapp.normalize(c.name)) }
+      best&.id if best && Whatsapp.similarity(term, Whatsapp.normalize(best.name)) >= 0.75
     end
 
     # Parse missing count → one ask on a pending stub carrying the rest inside extraction jsonb.

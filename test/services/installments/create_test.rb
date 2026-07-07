@@ -13,22 +13,24 @@ class Installments::CreateTest < ActiveSupport::TestCase
     assert_equal [ 1, 0 ], Installments::Create.split_cents(1, 2)
   end
 
-  test "R$5000 em 10x on a d10/f10 card bought day 3 → 1 commitment + 10 posted parcels of 50000" do
+  test "R$5000 em 10x on a d10/f10 card bought day 3 → 1 unpaid commitment, no eager posted parcels" do
     commitment = Installments::Create.call(account: @user.account, created_by: @user, card: @card, total_cents: 500_000, count: 10,
                                            occurred_on: Date.new(2026, 7, 3), merchant: "celular")
-    parcels = commitment.payments.posted.order(:installment_number).to_a
-    assert_equal 10, parcels.size
-    assert(parcels.all? { |p| p.amount_cents == 50_000 })
-    assert_equal 500_000, parcels.sum(&:amount_cents)
-    assert_equal Date.new(2026, 8, 1), parcels.first.billing_month # founder R11: first parcel next month
-    parcels.each_with_index { |p, i| assert_equal(Date.new(2026, 8, 1) >> i, p.billing_month, "parcel #{i + 1}") }
+    assert commitment.installment?
+    assert_equal 10, commitment.installments_count
+    assert_equal 500_000, commitment.total_cents
+    assert_equal 50_000, commitment.amount_cents
+    assert_equal Date.new(2026, 8, 1), commitment.starts_on # first parcel rides next month's bill
+    assert_equal 0, commitment.payments.count, "parcels are computed occurrences, not eager rows"
+    assert_equal 0, commitment.paid_count, "starts unpaid — advances as each fatura is marked paid"
   end
 
-  test "parcels sum to the total for adversarial inputs" do
+  test "total_cents holds the plan total exactly for adversarial inputs" do
     [ [ 100_001, 3 ], [ 10_035, 3 ], [ 1, 2 ] ].each do |total, count|
       c = Installments::Create.call(account: @user.account, created_by: @user, card: @card, total_cents: total, count: count,
                                     occurred_on: Date.new(2026, 7, 3), merchant: "x-#{total}")
-      assert_equal total, c.payments.posted.sum(:amount_cents)
+      assert_equal total, c.total_cents
+      assert_equal Installments::Create.split_cents(total, count).first, c.amount_cents
     end
   end
 

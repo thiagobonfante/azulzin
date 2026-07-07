@@ -74,7 +74,7 @@ class CreditCardTest < ActiveSupport::TestCase
     assert_equal 5_500, card.open_bill_cents
   end
 
-  test "a fanned-out card installment holds exactly the plan total (posted parcels, no double count)" do
+  test "a card installment holds exactly the plan total (reserved unpaid parcels, no double count)" do
     card = configured_card(limit: "5000")
     Installments::Create.call(account: @user.account, created_by: @user, card: card, total_cents: 100_000, count: 10,
                               occurred_on: Date.current, merchant: "Sofá")

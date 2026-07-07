@@ -57,13 +57,26 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
     assert salary.received_in?(Date.current.beginning_of_month)
   end
 
-  test "high-confidence installment fans out via the command; replay creates zero rows" do
+  test "high-confidence installment creates an unpaid commitment; replay creates zero rows" do
     ex = extraction(intent: "installment_purchase", amount_raw: "5000", amount_cents: 500_000,
                     installments_count: 10, installment_total_raw: "5000", instrument_phrase: "Roxinho", payment_method: "credito")
     msg = inbound("comprei um celular, 5000 em 10x")
     interpret(msg, ex)
-    assert_equal 10, @user.account.transactions.where.not(installment_number: nil).count
-    assert_no_difference("Transaction.count") { interpret(msg, ex) }
+    c = @user.account.commitments.installment.last
+    assert_equal 10, c.installments_count
+    assert_equal 500_000, c.total_cents
+    assert_equal 0, c.payments.count, "parcels are computed occurrences, not eager posted rows"
+    assert_no_difference("Commitment.count") { interpret(msg, ex) }
+  end
+
+  test "installment resolves the extracted category guess onto the commitment" do
+    viagem = @user.account.categories.create!(name: "Viagem")
+    ex = extraction(intent: "installment_purchase", amount_raw: "1337,48", amount_cents: 133_748,
+                    installments_count: 6, installment_total_raw: "1337,48", instrument_phrase: "Roxinho",
+                    payment_method: "credito", category: "viagem")
+    interpret(inbound("lançar compromisso no cartão 1337,48 em 6x categoria viagem"), ex)
+    c = @user.account.commitments.installment.last
+    assert_equal viagem.id, c.category_id
   end
 
   test "low-confidence installment parks ONE stub, never 10 rows" do

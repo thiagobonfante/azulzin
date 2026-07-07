@@ -225,19 +225,21 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, @user.account.transactions.spend.count   # spend is .kept — the deleted row drops out
   end
 
-  test "confirming a parked installment stub fans out the plan and supersedes the stub" do
+  test "confirming a parked installment stub creates the plan and supersedes the stub" do
     @card.update!(bill_due_day: 10, closing_offset_days: 10)
     stub = pending_txn(amount_cents: 500_000, merchant: "celular", occurred_on: Date.new(2026, 7, 3),
                        billing_month: Date.new(2026, 7, 1), credit_card: @card,
                        extraction: { "installments_count" => 10, "installment_total_raw" => "5000" })
-    assert_difference -> { @user.account.transactions.where.not(installment_number: nil).count }, 10 do
+    assert_difference -> { @user.account.commitments.installment.count }, 1 do
       patch confirm_transaction_url(stub), params: { month: "2026-07" }, as: :turbo_stream
     end
     assert_equal "superseded", stub.reload.status
-    assert_equal 1, @user.account.commitments.installment.count
+    c = @user.account.commitments.installment.last
+    assert_equal 10, c.installments_count
+    assert_equal 0, c.payments.count, "parcels are computed occurrences, not eager posted rows"
 
     # A second confirm must NOT re-expand (the stub is already superseded).
-    assert_no_difference -> { @user.account.transactions.where.not(installment_number: nil).count } do
+    assert_no_difference -> { @user.account.commitments.installment.count } do
       patch confirm_transaction_url(stub), params: { month: "2026-07" }, as: :turbo_stream
     end
   end

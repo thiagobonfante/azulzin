@@ -40,7 +40,7 @@ class CommitmentsController < ApplicationController
     @commitment = Current.account.commitments.kept.find(params[:id])
     @commitment.assign_attributes(commitment_update_params)
     saved = ActiveRecord::Base.transaction do
-      Commitments::AdjustCount.call(@commitment, params.dig(:commitment, :installments_count), by: Current.user) &&
+      Commitments::AdjustCount.call(@commitment, params.dig(:commitment, :installments_count)) &&
         @commitment.save || raise(ActiveRecord::Rollback)
     end
     if saved
