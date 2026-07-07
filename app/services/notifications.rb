@@ -8,7 +8,11 @@ module Notifications
   # Phase 3 adds the WhatsApp channel, templated from whatsapp.replies.notifications.<kind>.
   KINDS = {
     "bill_due"         => { toggle: "bill_reminders",  i18n: "notifications.dashboard.bill_due" },
-    "card_bill"        => { toggle: "bill_reminders",  i18n: "notifications.dashboard.card_bill" },
+    "bill_overdue"     => { toggle: "bill_reminders",  i18n: "notifications.dashboard.bill_overdue" },
+    # card_bill is ONE kind with two sub-events — fatura closing and fatura due — that
+    # Reminders::Scan discriminates via payload["event"] ("closing" | "due"). The value
+    # here is the prefix NotificationsHelper completes into card_closing / card_due.
+    "card_bill"        => { toggle: "bill_reminders",  i18n: "notifications.dashboard.card" },
     "income_expected"  => { toggle: "bill_reminders",  i18n: "notifications.dashboard.income_expected" },
     "budget_warn"      => { toggle: "budget_alerts",   i18n: "notifications.dashboard.budget_warn" },
     "budget_breach"    => { toggle: "budget_alerts",   i18n: "notifications.dashboard.budget_breach" },

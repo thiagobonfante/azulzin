@@ -849,9 +849,25 @@ pt-BR:
       joined: "Você agora faz parte da conta %{account}."
   notifications:
     dashboard:
-      bill_due: "Você tem uma conta vencendo em breve."
-      card_bill: "Uma fatura de cartão está chegando."
-      income_expected: "Um recebimento esperado está próximo."
+      bill_due:
+        zero: "%{name} vence hoje — %{amount}."
+        one: "%{name} vence amanhã — %{amount}."
+        other: "%{name} vence em %{count} dias — %{amount}."
+      bill_overdue:
+        one: "%{name} venceu ontem — %{amount}. Já pagou?"
+        other: "%{name} venceu há %{count} dias — %{amount}. Já pagou?"
+      card_closing:
+        zero: "A fatura do %{card} fecha hoje — %{amount} até agora."
+        one: "A fatura do %{card} fecha amanhã — %{amount} até agora."
+        other: "A fatura do %{card} fecha em %{count} dias — %{amount} até agora."
+      card_due:
+        zero: "A fatura do %{card} vence hoje — %{amount}."
+        one: "A fatura do %{card} vence amanhã — %{amount}."
+        other: "A fatura do %{card} vence em %{count} dias — %{amount}."
+      income_expected:
+        zero: "%{name} de %{amount} deve cair hoje."
+        one: "%{name} de %{amount} deve cair amanhã."
+        other: "%{name} de %{amount} deve cair em %{count} dias."
       budget_warn: "Uma categoria está perto do orçamento do mês."
       budget_breach: "Uma categoria passou do orçamento do mês."
       surplus_nudge: "Você está com dinheiro sobrando este mês."

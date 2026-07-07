@@ -848,9 +848,25 @@ en:
       joined: "You're now part of %{account}."
   notifications:
     dashboard:
-      bill_due: "You have a bill due soon."
-      card_bill: "A card bill is coming up."
-      income_expected: "An expected income is due soon."
+      bill_due:
+        zero: "%{name} is due today — %{amount}."
+        one: "%{name} is due tomorrow — %{amount}."
+        other: "%{name} is due in %{count} days — %{amount}."
+      bill_overdue:
+        one: "%{name} was due yesterday — %{amount}. Already paid?"
+        other: "%{name} was due %{count} days ago — %{amount}. Already paid?"
+      card_closing:
+        zero: "Your %{card} bill closes today — %{amount} so far."
+        one: "Your %{card} bill closes tomorrow — %{amount} so far."
+        other: "Your %{card} bill closes in %{count} days — %{amount} so far."
+      card_due:
+        zero: "Your %{card} bill is due today — %{amount}."
+        one: "Your %{card} bill is due tomorrow — %{amount}."
+        other: "Your %{card} bill is due in %{count} days — %{amount}."
+      income_expected:
+        zero: "%{name} (%{amount}) should land today."
+        one: "%{name} (%{amount}) should land tomorrow."
+        other: "%{name} (%{amount}) should land in %{count} days."
       budget_warn: "A category is close to its monthly budget."
       budget_breach: "A category went over its monthly budget."
       surplus_nudge: "You have money left over this month."

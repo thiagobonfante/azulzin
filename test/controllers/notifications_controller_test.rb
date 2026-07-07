@@ -4,8 +4,11 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:confirmed)
     @user.update!(name: "Ana", onboarded_at: Time.current)
+    # Payload shape as Reminders::Scan produces it — the plural bill_due copy needs it to render.
     @notification = Notification.record!(user: @user, account: @user.account,
-                                         kind: "bill_due", period_key: Date.new(2026, 7, 10))
+                                         kind: "bill_due", period_key: Date.new(2026, 7, 10),
+                                         payload: { "name" => "Luz", "amount_cents" => 18_240,
+                                                    "due_on" => "2026-07-10", "days_until" => 1 })
   end
 
   test "dismiss requires authentication" do

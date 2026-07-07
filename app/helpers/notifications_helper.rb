@@ -3,6 +3,7 @@ module NotificationsHelper
   # info/success for the calm ones. Unknown kinds fall back to info (fail-soft render).
   NOTIFICATION_ALERT_CLASSES = {
     "bill_due"         => "alert-warning",
+    "bill_overdue"     => "alert-error",
     "card_bill"        => "alert-warning",
     "income_expected"  => "alert-info",
     "budget_warn"      => "alert-warning",
@@ -17,6 +18,7 @@ module NotificationsHelper
   # CategoriesHelper) so `currentColor` follows the alert palette.
   NOTIFICATION_ICON_PATHS = {
     "bill_due"         => "M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0",
+    "bill_overdue"     => "M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0",
     "card_bill"        => "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z",
     "income_expected"  => "M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z",
     "budget_warn"      => "M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
@@ -40,10 +42,25 @@ module NotificationsHelper
   end
 
   # Banner copy, templated from the payload snapshot (01 §1: neither renderer re-queries;
-  # a deleted subject still renders). Keys are stubs in Phase 0 — the scanners of later
-  # phases fill payloads and flesh the copy out.
+  # a deleted subject still renders). Reminder payloads carry integer cents plus a days
+  # count: money is formatted here, at render time, in the viewer's locale — never baked
+  # into the snapshot — and days_until / days_overdue drive pluralization ("vence hoje /
+  # amanhã / em N dias").
   def notification_message(notification)
-    t(Notifications::KINDS.fetch(notification.kind).fetch(:i18n),
-      **notification.payload.symbolize_keys)
+    payload = notification.payload.symbolize_keys
+    args = payload.except(:amount_cents, :days_until, :days_overdue, :event)
+    args[:amount] = brl(payload[:amount_cents]) if payload.key?(:amount_cents)
+    if (days = payload[:days_until] || payload[:days_overdue])
+      args[:count] = days
+    end
+    t(notification_i18n_key(notification), **args)
+  end
+
+  # card_bill is one kind with two sub-events; Reminders::Scan stamps payload["event"]
+  # ("closing" | "due") and this completes the registry's prefix into
+  # notifications.dashboard.card_closing / card_due (up-tier 02 §1).
+  def notification_i18n_key(notification)
+    key = Notifications::KINDS.fetch(notification.kind).fetch(:i18n)
+    notification.kind == "card_bill" ? "#{key}_#{notification.payload.fetch('event', 'due')}" : key
   end
 end

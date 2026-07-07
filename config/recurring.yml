@@ -29,3 +29,7 @@ production:
     class: NotificationRetentionJob
     queue: background
     schedule: every day at 4am
+  reminders_daily_dispatch:
+    class: Reminders::DailyDispatchJob
+    queue: default
+    schedule: every day at 11am # UTC => 08:00 America/Sao_Paulo, after quiet hours
