@@ -74,6 +74,9 @@ Rails.application.routes.draw do
     end
     resources :transfers,  only: :create                         # R5 — single-row transfer between accounts
 
+    # up-tier F4 — data export: new is the form, index the sync download (send_data).
+    resources :exports, only: %i[new index]
+
     # R10/R11 — recurring commitments and their computed occurrences.
     resources :commitments, only: %i[index show create update destroy] do
       member do
