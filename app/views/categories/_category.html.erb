@@ -7,6 +7,12 @@
   </span>
   <span class="flex-1 truncate text-sm font-medium"><%= category.name %></span>
 
+  <% if category.monthly_budget_cents %>
+    <span class="shrink-0 text-xs tabular-nums text-base-content/50">
+      <%= t("categories.per_month", amount: brl(category.monthly_budget_cents)) %>
+    </span>
+  <% end %>
+
   <%= render "shared/attribution", record: category %>
 
   <%= link_to edit_category_path(category), class: "btn btn-ghost btn-sm btn-square text-base-content/50 hover:text-base-content",

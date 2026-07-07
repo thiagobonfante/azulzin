@@ -40,7 +40,8 @@ class ProcessInboundWhatsappJob < ApplicationJob
       extraction = Whatsapp::ReceiptExtractor.from_message(msg)
       match      = Whatsapp::Matcher.new(msg.account || msg.user.account, extraction).call
       confidence = Whatsapp::Confidence.new(extraction)
-      Whatsapp::Decider.new(msg, extraction, match, confidence).call
+      txn = Whatsapp::Decider.new(msg, extraction, match, confidence).call
+      attach_receipt(txn, msg)
     else
       # Text / audio: the intent layer (07 §2) — extracts + classifies + dispatches.
       Whatsapp::Interpreter.new(msg, text).call
@@ -67,6 +68,16 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
   def over_rate_limit?(user)
     user.whatsapp_messages.inbound.where(created_at: 1.minute.ago..).count > MAX_INBOUND_PER_MINUTE
+  end
+
+  # up-tier F5 (06 §2a): copy the receipt onto the transaction by referencing the SAME blob
+  # — a metadata row, no byte duplication — so it outlives the 60-day WA media purge.
+  # Swallow+log like the webhook's media attach: a missing receipt never drops the transaction.
+  def attach_receipt(txn, msg)
+    return if txn.nil? || txn.receipt.attached?
+    txn.receipt.attach(msg.media.blob)
+  rescue StandardError => e
+    Rails.logger.error("WA receipt attach failed for message #{msg.id}: #{e.message}")
   end
 
   def finish(msg) = msg.update!(status: "processed", processed_at: Time.current)

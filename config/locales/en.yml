@@ -76,6 +76,9 @@ en:
         schedule_day: "Day"
       category:
         name: "Name"
+        monthly_budget_cents: "Monthly budget"
+      transaction:
+        receipt: "Receipt"
       commitment:
         name: "Name"
         kind: "Type"
@@ -98,6 +101,12 @@ en:
       invitation:
         email: "Email"
         expires_at: "Expires at"
+      notification_preference:
+        bill_reminder_lead_days: "Days ahead for bill reminders"
+        quiet_hours_start: "Quiet hours start"
+        quiet_hours_end: "Quiet hours end"
+        budget_warn_percent: "Warn threshold"
+        budget_breach_percent: "Over-budget threshold"
     errors:
       models:
         account_membership:
@@ -129,6 +138,9 @@ en:
           attributes:
             transfer_to_bank_account:
               same_account: "can't be the same as the source account."
+            receipt:
+              too_large: "exceeds the 10 MB limit."
+              unsupported_type: "has an unsupported format. Send a JPG, PNG, WEBP, HEIC or PDF."
         document_import:
           attributes:
             file:
@@ -460,6 +472,12 @@ en:
     color: "Color"
     icon: "Icon"
     no_icon: "No icon"
+    budget: "Monthly budget"
+    budget_hint: "Optional — leave blank to skip tracking a limit."
+    budget_suggest: "suggest"
+    budget_suggested: "suggestion"
+    budget_no_history: "no history to suggest from yet"
+    per_month: "%{amount} / month"
     edit: "Edit category"
     cancel: "Cancel"
     add: "Add"
@@ -553,6 +571,7 @@ en:
     ledger:
       title: "Activity"
       add: "Add"
+      export: "Export"
       search_placeholder: "Search activity"
       no_results: "No matching activity"
       views:
@@ -601,6 +620,11 @@ en:
       cancel: "Cancel"
       category: "Category"
       direction: "Entry type"
+      receipt: "Receipt"
+      attach_receipt: "Attach receipt"
+      view_receipt: "View receipt"
+      close_receipt: "Close receipt"
+      has_receipt: "Has a receipt"
     new:
       submit: "Add"
     create:
@@ -612,6 +636,55 @@ en:
       confirmed: "Expense confirmed."
     destroy:
       removed: "Expense removed."
+  exports:
+    ledger:
+      sheet_name: "Statement"
+      totals:
+        income: "Income"
+        expenses: "Expenses"
+        transfers: "Transfers"
+        result: "Net result"
+      headers:
+        occurred_on: "Date"
+        billing_month: "Billing month"
+        description: "Description"
+        category: "Category"
+        kind: "Type"
+        amount: "Amount"
+        instrument: "Account/card"
+        status: "Status"
+      kinds:
+        expense: "Expense"
+        income: "Income"
+        transfer: "Transfer"
+    new:
+      meta_title: "Export data"
+      title: "Export data"
+      subtitle: "Download your movements as a spreadsheet or PDF."
+      format: "Format"
+      formats:
+        xlsx: "Spreadsheet (.xlsx)"
+        csv: "CSV (.csv)"
+        pdf: "PDF (.pdf)"
+      period: "Period"
+      presets:
+        current_month: "Current month"
+        last_3_months: "Last 3 months"
+        year: "This year"
+        all: "Everything"
+        custom: "Custom"
+      from: "From"
+      to: "To"
+      custom_hint: "The dates apply only to the custom period."
+      download: "Download"
+    index:
+      filename: "azulzin-statement-%{month}.%{ext}"
+    pdf:
+      title: "Statement — %{account}"
+      period: "Period: %{from} to %{to}"
+      period_empty: "No movements in the period."
+      by_category: "Totals by category"
+      net_total: "Net for the period: %{amount}"
   document_imports:
     hero_title: "Import a statement"
     choose_files: "Choose files…"
@@ -776,6 +849,9 @@ en:
       delete_confirm: "Delete this account and ALL its data, including every member's login?"
       leave_title: "Leave account"
       leave_hint: "You'll get a fresh empty account; shared data stays here."
+      notifications_title: "Alerts"
+      notifications_hint: "Bill reminders, budget alerts and summaries — each member picks their own."
+      notifications_link: "Set up alerts"
     update:
       renamed: "Account name updated."
     destroy:
@@ -837,6 +913,80 @@ en:
       will_replace_account: "Your current (empty) account will be replaced by this shared one."
     create:
       joined: "You're now part of %{account}."
+  notifications:
+    dashboard:
+      bill_due:
+        zero: "%{name} is due today — %{amount}."
+        one: "%{name} is due tomorrow — %{amount}."
+        other: "%{name} is due in %{count} days — %{amount}."
+      bill_overdue:
+        one: "%{name} was due yesterday — %{amount}. Already paid?"
+        other: "%{name} was due %{count} days ago — %{amount}. Already paid?"
+      card_closing:
+        zero: "Your %{card} bill closes today — %{amount} so far."
+        one: "Your %{card} bill closes tomorrow — %{amount} so far."
+        other: "Your %{card} bill closes in %{count} days — %{amount} so far."
+      card_due:
+        zero: "Your %{card} bill is due today — %{amount}."
+        one: "Your %{card} bill is due tomorrow — %{amount}."
+        other: "Your %{card} bill is due in %{count} days — %{amount}."
+      income_expected:
+        zero: "%{name} (%{amount}) should land today."
+        one: "%{name} (%{amount}) should land tomorrow."
+        other: "%{name} (%{amount}) should land in %{count} days."
+      budget_warn: "%{category} is already at %{spent} of %{budget} this month — %{left} to go."
+      budget_breach: "%{category} went past the plan: %{spent} of %{budget} this month."
+      surplus_nudge: "You have %{surplus} to spare this month. How about moving it to savings?"
+      rightsize_budget: "%{category}: you planned %{budget} but usually spend %{typical}. Want to adjust it?"
+      weekly_summary: "Weekly recap: you spent %{spent} and the month's leftover is at %{sobra}."
+      weekly_summary_no_spend: "Weekly recap: the month's leftover is at %{sobra}."
+      monthly_summary: "%{month} closed: %{sobra} left over, %{saved} saved."
+    summary_lines:
+      spent: "You spent %{spent} — %{cats}."
+      others: "others %{amount}"
+      upcoming: "Bills due in the next 7 days: %{bills}."
+      budget:
+        one: "You stayed within the plan in %{within} of %{count} category."
+        other: "You stayed within the plan in %{within} of %{count} categories."
+    alert:
+      dismiss: "Dismiss"
+      view_category: "View category"
+      rightsize_cta: "Adjust to %{typical}"
+  notification_preferences:
+    show:
+      meta_title: "Alerts · azulzin"
+      title: "Alerts"
+      subtitle: "Choose which alerts you get and how they reach you."
+      kinds_title: "Which alerts"
+      bill_reminders: "Bill reminders"
+      bill_reminders_hint: "Bills, card bills and expected income coming due."
+      budget_alerts: "Budget alerts"
+      budget_alerts_hint: "When a category gets close to or goes over its monthly budget."
+      surplus_nudges: "Surplus suggestions"
+      surplus_nudges_hint: "One honest suggestion when there's money left over."
+      weekly_summary: "Weekly summary"
+      weekly_summary_hint: "A recap of your week, on Sundays."
+      monthly_summary: "Monthly summary"
+      monthly_summary_hint: "A recap when the month closes."
+      tuning_title: "Tuning"
+      lead_days_label: "Bill reminder timing"
+      lead_days_option:
+        zero: "On the due date"
+        one: "1 day before"
+        other: "%{count} days before"
+      quiet_hours_title: "Quiet hours (WhatsApp)"
+      quiet_hours_hint: "No WhatsApp messages between these hours."
+      quiet_hours_start: "From"
+      quiet_hours_end: "Until"
+      bands_title: "Budget alert thresholds"
+      warn_percent_label: "Warn at (%)"
+      breach_percent_label: "Over budget at (%)"
+      whatsapp_consent: "Receive alerts on WhatsApp"
+      whatsapp_consent_hint: "Off by default. Alerts always show on your dashboard; turn this on to also get them on WhatsApp."
+      whatsapp_consent_phone_note: "To reach WhatsApp, your phone number must be verified on your profile. You can also stop anytime by replying \"stop\" there."
+      save: "Save preferences"
+    update:
+      saved: "Preferences saved."
   pages:
     home:
       meta_title: "azulzin — always in the black"
@@ -970,6 +1120,41 @@ en:
       card_bill_answer: "%{name}'s %{month} bill: %{amount} (closes on the %{closes}, due on the %{due})."
       savings_answer: "Saved: %{total} 💙 This month you moved %{month} to savings."
       help: "I didn't get that 🤔 You can send me things like:\n• \"groceries 84.90 on debit\"\n• \"saved 200 to savings\"\n• \"paid the car installment\"\n• \"bought a phone, 5000 in 10x\"\n• \"how's the month?\""
+      notifications_footer: "Reply *stop* to turn these notifications off."
+      notifications_stopped: "Done — I've stopped the notifications here. You can turn them back on anytime in *Account & members → Alerts*. 💙"
+      notifications:
+        bill_due:
+          zero: "🔔 Your *%{name}* bill (%{amount}) is due today. 💙"
+          one: "🔔 Your *%{name}* bill (%{amount}) is due tomorrow. 💙"
+          other: "🔔 Your *%{name}* bill (%{amount}) is due in %{count} days. 💙"
+        bill_overdue:
+          one: "⚠️ Your *%{name}* bill (%{amount}) was due yesterday. Paid it yet?"
+          other: "⚠️ Your *%{name}* bill (%{amount}) was due %{count} days ago. Paid it yet?"
+        card_closing:
+          zero: "📄 The *%{card}* bill closes today — %{amount} so far."
+          one: "📄 The *%{card}* bill closes tomorrow — %{amount} so far."
+          other: "📄 The *%{card}* bill closes in %{count} days — %{amount} so far."
+        card_due:
+          zero: "📄 The *%{card}* bill (%{amount}) is due today. 💙"
+          one: "📄 The *%{card}* bill (%{amount}) is due tomorrow. 💙"
+          other: "📄 The *%{card}* bill (%{amount}) is due in %{count} days. 💙"
+        income_expected:
+          zero: "💰 Your *%{name}* of %{amount} should land today. 💙"
+          one: "💰 Your *%{name}* of %{amount} should land tomorrow. 💙"
+          other: "💰 Your *%{name}* of %{amount} should land in %{count} days. 💙"
+        budget_warn: "👀 *%{category}* is at %{spent} of %{budget} this month. %{left} to go."
+        budget_breach: "⚠️ *%{category}* went past the plan: %{spent} of %{budget} this month."
+        surplus_nudge: "💙 You closed the month with *%{surplus}* to spare. Want to put it in savings?"
+        rightsize_budget: "💙 *%{category}*: you planned %{budget}, but usually spend %{typical}. You can adjust it in Categories."
+        weekly_summary: |-
+          📊 *Your week in review*
+          %{spent_line}Left over this month so far: %{sobra}.
+          %{upcoming_line}💙
+        monthly_summary: |-
+          📅 *%{month} closed*
+          In %{in}, out %{out}, card bills %{bills}.
+          Left over: %{sobra} · saved: %{saved}.
+          %{budget_line}💙
     activation:
       title: "Activate WhatsApp"
       subtitle: "Activate WhatsApp to log expenses by audio, photo, or text."

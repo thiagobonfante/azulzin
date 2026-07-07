@@ -58,6 +58,56 @@ class ProcessInboundWhatsappJobTest < ActiveSupport::TestCase
     assert_equal "processed", @msg.reload.status
   end
 
+  def receipt_msg(wa_id = "wa-img-1")
+    m = WhatsappMessage.create!(user: @user, account: @user.account, direction: "inbound",
+          message_type: "image", wa_message_id: wa_id, chat_id: "5511999998888@c.us", status: "received")
+    m.media.attach(io: File.open(file_fixture("receipt.jpg")), filename: "receipt.jpg", content_type: "image/jpeg")
+    m
+  end
+
+  # High-confidence image extraction: 0.95 * modality 0.95 = 90 ≥ floor 80 → silent post.
+  def receipt_extraction
+    extraction(modality: "image", source: "whatsapp_receipt",
+               overall_confidence: 0.95, field_confidence: { "amount" => 0.95 })
+  end
+
+  def run_receipt_job(msg)
+    Whatsapp::ReceiptExtractor.stub(:from_message, ->(*_a, **_k) { receipt_extraction }) do
+      WhatsappService.stub(:send_message, ->(_p, _b) { { id: "out-1" } }) do
+        ProcessInboundWhatsappJob.perform_now(msg.id)
+      end
+    end
+  end
+
+  # up-tier F5 (06 §2a): the post path copies the receipt onto the transaction by
+  # referencing the SAME blob — durable across the 60-day WA purge, no byte duplication.
+  test "a WhatsApp receipt attaches the media blob to the posted transaction (same blob)" do
+    msg = receipt_msg
+    run_receipt_job(msg)
+
+    txn = @user.account.transactions.sole
+    assert txn.posted?
+    assert txn.receipt.attached?
+    assert_equal msg.media.blob.id, txn.receipt.blob.id, "must reference the existing blob, not re-upload"
+    assert_equal "processed", msg.reload.status
+  end
+
+  test "a receipt attach failure logs and still posts the transaction (swallow, never drop)" do
+    msg = receipt_msg("wa-img-2")
+    logged = []
+    Transaction.class_eval { def receipt = raise("receipt boom") }
+    Rails.logger.stub(:error, ->(m) { logged << m }) do
+      assert_nothing_raised { run_receipt_job(msg) }
+    end
+
+    txn = @user.account.transactions.sole
+    assert txn.posted?, "the transaction must post even when the receipt copy fails"
+    assert_equal "processed", msg.reload.status
+    assert logged.any? { it.to_s.include?("receipt attach failed") }
+  ensure
+    Transaction.remove_method(:receipt)
+  end
+
   test "over the per-minute cap → skips AI (no extractor call), marks failed, posts nothing" do
     (ProcessInboundWhatsappJob::MAX_INBOUND_PER_MINUTE + 1).times do |i|
       WhatsappMessage.create!(user: @user, direction: "inbound", message_type: "text",

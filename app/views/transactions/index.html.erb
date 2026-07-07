@@ -1,6 +1,9 @@
 <% content_for :title, t(".meta_title") %>
 
 <div class="flex flex-col gap-6">
+  <%# Proactive alerts (up-tier 01 §4) — not month-scoped, so they sit above the nav. %>
+  <%= render "notifications/alert", notifications: @notifications %>
+
   <%# A — month navigator %>
   <%= render "transactions/month_nav", month: @month %>
 

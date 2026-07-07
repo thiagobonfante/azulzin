@@ -2,9 +2,13 @@
 # (Categories::SeedDefaults), plain user data afterwards — rename/delete freely, zero runtime
 # i18n coupling. Deleting a category never touches movements (nullify).
 class Category < ApplicationRecord
-  include AccountScoped, Attributable, SoftDeletable
+  include AccountScoped, Attributable, SoftDeletable, MoneyColumns
   has_many :categorized_transactions, class_name: "Transaction", dependent: :nullify
   has_many :commitments, dependent: :nullify   # deleting a category never breaks a commitment
+
+  # The standing monthly budget (up-tier 03 §1): nil = no budget; per-account, so it's the
+  # household's shared limit for this category.
+  money_column :monthly_budget
 
   # Curated presentation sets (R6) — the form only offers these, and both are validated so a
   # crafted request can't inject arbitrary CSS/markup. ICON_KEYS map to SVGs in CategoriesHelper.
@@ -20,6 +24,7 @@ class Category < ApplicationRecord
                    uniqueness: { scope: :account_id, case_sensitive: false, conditions: -> { kept } }
   validates :color, inclusion: { in: COLORS }, allow_blank: true
   validates :icon,  inclusion: { in: ICON_KEYS }, allow_blank: true
+  validates :monthly_budget_cents, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
   scope :ordered, -> { order(:position, :name) }
 

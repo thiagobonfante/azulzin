@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -91,6 +91,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000002) do
     t.datetime "deleted_at"
     t.bigint "deleted_by_id"
     t.string "icon"
+    t.bigint "monthly_budget_cents"
     t.citext "name", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
@@ -172,7 +173,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000002) do
     t.string "status", default: "uploaded", null: false
     t.datetime "updated_at", null: false
     t.bigint "updated_by_id"
-    t.index ["account_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL ((ARRAY['dismissed'::character varying, 'failed'::character varying])::text[]))"
+    t.index ["account_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL (ARRAY[('dismissed'::character varying)::text, ('failed'::character varying)::text]))"
     t.index ["account_id", "status"], name: "index_document_imports_on_account_id_and_status"
     t.index ["account_id"], name: "index_document_imports_on_account_id"
     t.index ["created_by_id"], name: "index_document_imports_on_created_by_id"
@@ -226,6 +227,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000002) do
     t.index ["account_id"], name: "index_invitations_on_account_id"
     t.index ["invited_by_id"], name: "index_invitations_on_invited_by_id"
     t.index ["token"], name: "index_invitations_on_token", unique: true
+  end
+
+  create_table "notification_preferences", force: :cascade do |t|
+    t.integer "bill_reminder_lead_days", default: 1, null: false
+    t.boolean "bill_reminders", default: true, null: false
+    t.boolean "budget_alerts", default: true, null: false
+    t.integer "budget_breach_percent", default: 100, null: false
+    t.integer "budget_warn_percent", default: 80, null: false
+    t.datetime "created_at", null: false
+    t.boolean "monthly_summary", default: false, null: false
+    t.integer "quiet_hours_end", default: 8, null: false
+    t.integer "quiet_hours_start", default: 21, null: false
+    t.boolean "surplus_nudges", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.datetime "wa_intro_sent_at"
+    t.boolean "weekly_summary", default: false, null: false
+    t.boolean "whatsapp_consent", default: false, null: false
+    t.index ["user_id"], name: "index_notification_preferences_on_user_id", unique: true
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "dismissed_at"
+    t.string "kind", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.date "period_key", null: false
+    t.bigint "subject_id"
+    t.string "subject_type"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.datetime "whatsapp_sent_at"
+    t.index ["account_id"], name: "index_notifications_on_account_id"
+    t.index ["user_id", "dismissed_at"], name: "index_notifications_on_user_id_and_dismissed_at"
+    t.index ["user_id", "kind", "subject_type", "subject_id", "period_key"], name: "index_notifications_dedup", unique: true, nulls_not_distinct: true
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "oauth_identities", force: :cascade do |t|
@@ -393,6 +431,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000002) do
   add_foreign_key "incomes", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "invitations", "accounts"
   add_foreign_key "invitations", "users", column: "invited_by_id", on_delete: :nullify
+  add_foreign_key "notification_preferences", "users"
+  add_foreign_key "notifications", "accounts"
+  add_foreign_key "notifications", "users"
   add_foreign_key "oauth_identities", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "transactions", "accounts"

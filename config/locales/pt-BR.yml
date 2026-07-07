@@ -77,6 +77,9 @@ pt-BR:
         schedule_day: "Dia"
       category:
         name: "Nome"
+        monthly_budget_cents: "Orçamento do mês"
+      transaction:
+        receipt: "Comprovante"
       commitment:
         name: "Nome"
         kind: "Tipo"
@@ -99,6 +102,12 @@ pt-BR:
       invitation:
         email: "E-mail"
         expires_at: "Expira em"
+      notification_preference:
+        bill_reminder_lead_days: "Antecedência dos lembretes"
+        quiet_hours_start: "Início do silêncio"
+        quiet_hours_end: "Fim do silêncio"
+        budget_warn_percent: "Faixa de aviso"
+        budget_breach_percent: "Faixa de estouro"
     errors:
       models:
         account_membership:
@@ -130,6 +139,9 @@ pt-BR:
           attributes:
             transfer_to_bank_account:
               same_account: "não pode ser a mesma conta de origem."
+            receipt:
+              too_large: "excede o limite de 10 MB."
+              unsupported_type: "tem um formato não suportado. Envie JPG, PNG, WEBP, HEIC ou PDF."
         document_import:
           attributes:
             file:
@@ -461,6 +473,12 @@ pt-BR:
     color: "Cor"
     icon: "Ícone"
     no_icon: "Sem ícone"
+    budget: "Orçamento do mês"
+    budget_hint: "Opcional — deixe em branco para não acompanhar um limite."
+    budget_suggest: "sugerir"
+    budget_suggested: "sugestão"
+    budget_no_history: "ainda sem histórico para sugerir"
+    per_month: "%{amount} / mês"
     edit: "Editar categoria"
     cancel: "Cancelar"
     add: "Adicionar"
@@ -554,6 +572,7 @@ pt-BR:
     ledger:
       title: "Movimentos"
       add: "Adicionar"
+      export: "Exportar"
       search_placeholder: "Buscar movimentos"
       no_results: "Nenhum movimento encontrado"
       views:
@@ -602,6 +621,11 @@ pt-BR:
       cancel: "Cancelar"
       category: "Categoria"
       direction: "Tipo de lançamento"
+      receipt: "Comprovante"
+      attach_receipt: "Anexar comprovante"
+      view_receipt: "Ver comprovante"
+      close_receipt: "Fechar comprovante"
+      has_receipt: "Tem comprovante"
     new:
       submit: "Adicionar"
     create:
@@ -613,6 +637,55 @@ pt-BR:
       confirmed: "Lançamento confirmado."
     destroy:
       removed: "Lançamento removido."
+  exports:
+    ledger:
+      sheet_name: "Extrato"
+      totals:
+        income: "Entradas"
+        expenses: "Saídas"
+        transfers: "Transferências"
+        result: "Resultado"
+      headers:
+        occurred_on: "Data"
+        billing_month: "Mês de competência"
+        description: "Descrição"
+        category: "Categoria"
+        kind: "Tipo"
+        amount: "Valor"
+        instrument: "Conta/cartão"
+        status: "Status"
+      kinds:
+        expense: "Saída"
+        income: "Entrada"
+        transfer: "Transferência"
+    new:
+      meta_title: "Exportar dados"
+      title: "Exportar dados"
+      subtitle: "Baixe seus movimentos em planilha ou PDF."
+      format: "Formato"
+      formats:
+        xlsx: "Planilha (.xlsx)"
+        csv: "CSV (.csv)"
+        pdf: "PDF (.pdf)"
+      period: "Período"
+      presets:
+        current_month: "Mês atual"
+        last_3_months: "Últimos 3 meses"
+        year: "Este ano"
+        all: "Tudo"
+        custom: "Personalizado"
+      from: "De"
+      to: "Até"
+      custom_hint: "As datas valem apenas para o período personalizado."
+      download: "Baixar"
+    index:
+      filename: "azulzin-extrato-%{month}.%{ext}"
+    pdf:
+      title: "Extrato — %{account}"
+      period: "Período: %{from} a %{to}"
+      period_empty: "Nenhum movimento no período."
+      by_category: "Totais por categoria"
+      net_total: "Resultado do período: %{amount}"
   document_imports:
     hero_title: "Importar extrato"
     choose_files: "Escolher arquivos…"
@@ -777,6 +850,9 @@ pt-BR:
       delete_confirm: "Excluir esta conta e TODOS os dados, incluindo o acesso de todos os membros?"
       leave_title: "Sair da conta"
       leave_hint: "Você recebe uma conta nova e vazia; os dados compartilhados ficam aqui."
+      notifications_title: "Avisos"
+      notifications_hint: "Lembretes de contas, alertas de orçamento e resumos — cada membro escolhe os seus."
+      notifications_link: "Configurar avisos"
     update:
       renamed: "Nome da conta atualizado."
     destroy:
@@ -838,6 +914,80 @@ pt-BR:
       will_replace_account: "Sua conta atual (vazia) será substituída por esta conta compartilhada."
     create:
       joined: "Você agora faz parte da conta %{account}."
+  notifications:
+    dashboard:
+      bill_due:
+        zero: "%{name} vence hoje — %{amount}."
+        one: "%{name} vence amanhã — %{amount}."
+        other: "%{name} vence em %{count} dias — %{amount}."
+      bill_overdue:
+        one: "%{name} venceu ontem — %{amount}. Já pagou?"
+        other: "%{name} venceu há %{count} dias — %{amount}. Já pagou?"
+      card_closing:
+        zero: "A fatura do %{card} fecha hoje — %{amount} até agora."
+        one: "A fatura do %{card} fecha amanhã — %{amount} até agora."
+        other: "A fatura do %{card} fecha em %{count} dias — %{amount} até agora."
+      card_due:
+        zero: "A fatura do %{card} vence hoje — %{amount}."
+        one: "A fatura do %{card} vence amanhã — %{amount}."
+        other: "A fatura do %{card} vence em %{count} dias — %{amount}."
+      income_expected:
+        zero: "%{name} de %{amount} deve cair hoje."
+        one: "%{name} de %{amount} deve cair amanhã."
+        other: "%{name} de %{amount} deve cair em %{count} dias."
+      budget_warn: "%{category} já está em %{spent} de %{budget} este mês — faltam %{left}."
+      budget_breach: "%{category} passou do combinado: %{spent} de %{budget} este mês."
+      surplus_nudge: "Você está com %{surplus} de sobra este mês. Que tal guardar na caixinha?"
+      rightsize_budget: "%{category}: você combinou %{budget}, mas costuma gastar %{typical}. Que tal ajustar?"
+      weekly_summary: "Resumo da semana: você gastou %{spent} e a sobra do mês está em %{sobra}."
+      weekly_summary_no_spend: "Resumo da semana: a sobra do mês está em %{sobra}."
+      monthly_summary: "%{month} fechou: sobra %{sobra}, guardado %{saved}."
+    summary_lines:
+      spent: "Você gastou %{spent} — %{cats}."
+      others: "outros %{amount}"
+      upcoming: "Contas nos próximos 7 dias: %{bills}."
+      budget:
+        one: "Você ficou dentro do combinado em %{within} de %{count} categoria."
+        other: "Você ficou dentro do combinado em %{within} de %{count} categorias."
+    alert:
+      dismiss: "Dispensar"
+      view_category: "Ver categoria"
+      rightsize_cta: "Ajustar para %{typical}"
+  notification_preferences:
+    show:
+      meta_title: "Avisos · azulzin"
+      title: "Avisos"
+      subtitle: "Escolha quais avisos você recebe e por onde."
+      kinds_title: "Quais avisos"
+      bill_reminders: "Lembretes de contas"
+      bill_reminders_hint: "Contas, faturas de cartão e recebimentos esperados chegando ao vencimento."
+      budget_alerts: "Alertas de orçamento"
+      budget_alerts_hint: "Quando uma categoria chega perto ou passa do orçamento do mês."
+      surplus_nudges: "Sugestões de sobra"
+      surplus_nudges_hint: "Uma sugestão honesta quando sobra dinheiro."
+      weekly_summary: "Resumo semanal"
+      weekly_summary_hint: "Um resumo da sua semana, aos domingos."
+      monthly_summary: "Resumo mensal"
+      monthly_summary_hint: "Um resumo quando o mês fecha."
+      tuning_title: "Ajustes"
+      lead_days_label: "Antecedência dos lembretes de conta"
+      lead_days_option:
+        zero: "No dia do vencimento"
+        one: "1 dia antes"
+        other: "%{count} dias antes"
+      quiet_hours_title: "Horário de silêncio (WhatsApp)"
+      quiet_hours_hint: "Sem mensagens no WhatsApp entre esses horários."
+      quiet_hours_start: "De"
+      quiet_hours_end: "Até"
+      bands_title: "Faixas de alerta de orçamento"
+      warn_percent_label: "Avisar em (%)"
+      breach_percent_label: "Estouro em (%)"
+      whatsapp_consent: "Receber avisos no WhatsApp"
+      whatsapp_consent_hint: "Desligado por padrão. Os avisos sempre aparecem no painel; ligue para recebê-los também no WhatsApp."
+      whatsapp_consent_phone_note: "Para chegar no WhatsApp, seu número precisa estar verificado no perfil. Você também pode parar a qualquer momento respondendo \"parar\" por lá."
+      save: "Salvar preferências"
+    update:
+      saved: "Preferências salvas."
   pages:
     home:
       meta_title: "azulzin — seu dinheiro sempre no azul"
@@ -971,6 +1121,41 @@ pt-BR:
       card_bill_answer: "Fatura de %{month} do %{name}: %{amount} (fecha dia %{closes}, vence dia %{due})."
       savings_answer: "Guardado: %{total} 💙 Esse mês você moveu %{month} pra caixinha."
       help: "Não entendi 🤔 Você pode me mandar coisas como:\n• \"mercado 84,90 no débito\"\n• \"guardei 200 na caixinha\"\n• \"paguei a parcela do carro\"\n• \"comprei um celular, 5000 em 10x\"\n• \"como tá o mês?\""
+      notifications_footer: "Responda *parar* para desativar estes avisos."
+      notifications_stopped: "Prontinho, parei os avisos por aqui. É só reativar em *Conta e membros → Avisos* quando quiser. 💙"
+      notifications:
+        bill_due:
+          zero: "🔔 Sua conta *%{name}* (%{amount}) vence hoje. 💙"
+          one: "🔔 Sua conta *%{name}* (%{amount}) vence amanhã. 💙"
+          other: "🔔 Sua conta *%{name}* (%{amount}) vence em %{count} dias. 💙"
+        bill_overdue:
+          one: "⚠️ Sua conta *%{name}* (%{amount}) venceu ontem. Já pagou?"
+          other: "⚠️ Sua conta *%{name}* (%{amount}) venceu há %{count} dias. Já pagou?"
+        card_closing:
+          zero: "📄 A fatura do *%{card}* fecha hoje — %{amount} até agora."
+          one: "📄 A fatura do *%{card}* fecha amanhã — %{amount} até agora."
+          other: "📄 A fatura do *%{card}* fecha em %{count} dias — %{amount} até agora."
+        card_due:
+          zero: "📄 A fatura do *%{card}* (%{amount}) vence hoje. 💙"
+          one: "📄 A fatura do *%{card}* (%{amount}) vence amanhã. 💙"
+          other: "📄 A fatura do *%{card}* (%{amount}) vence em %{count} dias. 💙"
+        income_expected:
+          zero: "💰 Seu *%{name}* de %{amount} deve cair hoje. 💙"
+          one: "💰 Seu *%{name}* de %{amount} deve cair amanhã. 💙"
+          other: "💰 Seu *%{name}* de %{amount} deve cair em %{count} dias. 💙"
+        budget_warn: "👀 *%{category}* já está em %{spent} de %{budget} este mês. Faltam %{left}."
+        budget_breach: "⚠️ *%{category}* passou do combinado: %{spent} de %{budget} este mês."
+        surplus_nudge: "💙 Você fechou o mês com *%{surplus}* de sobra. Quer guardar na caixinha?"
+        rightsize_budget: "💙 *%{category}*: você combinou %{budget}, mas costuma gastar %{typical}. Dá pra ajustar em Categorias."
+        weekly_summary: |-
+          📊 *Resumo da semana*
+          %{spent_line}Sobra do mês até agora: %{sobra}.
+          %{upcoming_line}💙
+        monthly_summary: |-
+          📅 *%{month} fechou*
+          Entrou %{in}, saiu %{out}, faturas %{bills}.
+          Sobra do mês: %{sobra} · guardado: %{saved}.
+          %{budget_line}💙
     activation:
       title: "Ative o WhatsApp"
       subtitle: "Ative o WhatsApp para lançar gastos por áudio, foto ou texto."

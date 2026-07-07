@@ -12,6 +12,10 @@ class User < ApplicationRecord
   # Account. No reverse has_many here — attribution reverse-lookups, if ever needed, go
   # through explicit queries; we don't ship speculative associations.
   has_many :whatsapp_messages, dependent: :nullify   # sender attribution survives as NULL (D8)
+  # Notifications are per-member (recipient-owned), not account domain data — they live
+  # here so erasing the user erases their alerts + preferences (up-tier 01).
+  has_many :notifications,           dependent: :destroy
+  has_one  :notification_preference, dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   # Phone is stored as E.164 digits (country code + national number). The profile form
@@ -73,6 +77,13 @@ class User < ApplicationRecord
   # Imports belong to the account now (spine D2), so count over the shared account's imports.
   def proposed_import_count
     account.document_imports.awaiting_review.sum { it.proposed_items.size }
+  end
+
+  # Notification preferences, lazily: the existing row or an unsaved default (up-tier
+  # 01 §2 — no backfill). build_ memoizes on the association, so repeated calls return
+  # the same object and the first save persists it.
+  def notification_prefs
+    notification_preference || build_notification_preference
   end
 
   # Step 1 of the wizard. Validates name/phone in the :profile context only, leaving

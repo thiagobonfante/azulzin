@@ -70,9 +70,13 @@ Rails.application.routes.draw do
     resources :transactions, only: %i[index new create edit update destroy] do
       member do
         patch :confirm   # commit a pending/needs_* row → posted (saves review edits first)
+        get   :receipt   # up-tier F5 — authenticated, account-scoped receipt bytes (proxied)
       end
     end
     resources :transfers,  only: :create                         # R5 — single-row transfer between accounts
+
+    # up-tier F4 — data export: new is the form, index the sync download (send_data).
+    resources :exports, only: %i[new index]
 
     # R10/R11 — recurring commitments and their computed occurrences.
     resources :commitments, only: %i[index show create update destroy] do
@@ -90,10 +94,18 @@ Rails.application.routes.draw do
     resources :categories, only: %i[index create edit update destroy] do  # R6 — account-owned spend categories
       post :restore, on: :collection                                  # re-seed the locale defaults
       get  :suggest, on: :collection                                  # merchant-memory preselect (LLM-free)
+      get  :suggest_budget, on: :member                               # 3-month-median budget pre-fill (up-tier 03 §3)
       post :backfill,         on: :collection                         # categorize history (1/day cap)
       post :backfill_undo,    on: :collection                         # revert the last run
       post :backfill_dismiss, on: :collection                         # hide the banner, keep the categories
     end
+
+    # Notification spine (.plans/up-tier 01): dashboard alerts (dismiss only — rows are
+    # scanner-created) and the per-member "Avisos" preferences screen.
+    resources :notifications, only: [] do
+      member { patch :dismiss }
+    end
+    resource :notification_preferences, only: %i[show update]
 
     # Shared account: settings page (members, invites, rename, danger zone). Owner-gated
     # actions live in AccountOwnership#require_owner! (.plans/multi-user, D9).

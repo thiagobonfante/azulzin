@@ -11,6 +11,7 @@ class CommitmentOccurrencesController < ApplicationController
     @occurrence = CommitmentOccurrence.find_for!(Current.account, params[:id])
     payment = Commitments::MarkPaid.call(@occurrence.commitment, @occurrence.month, amount: paid_amount_cents)
     @occurrence = CommitmentOccurrence.new(@occurrence.commitment, @occurrence.month, payment: payment)
+    dismiss_notification
     respond_to do |format|
       format.turbo_stream { render :pay }
       format.html { redirect_to commitment_path(@occurrence.commitment), notice: t("commitments.occurrences.paid") }
@@ -28,6 +29,16 @@ class CommitmentOccurrencesController < ApplicationController
   end
 
   private
+    # Paying from an alert banner (up-tier 01 §4) dismisses that banner in the same tap:
+    # the button names its notification; scoped exactly like NotificationsController#dismiss.
+    # find_by (not find): a stale/foreign id just skips the dismissal, never blocks the pay.
+    def dismiss_notification
+      return if params[:notification_id].blank?
+      @notification = Current.user.notifications.where(account: Current.account)
+                             .find_by(id: params[:notification_id])
+      @notification&.dismiss!
+    end
+
     # Paying early/late may change the value (discount / interest) — the pay form can
     # override the scheduled amount. Blank or non-positive input keeps the schedule's.
     def paid_amount_cents

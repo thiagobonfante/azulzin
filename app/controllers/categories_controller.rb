@@ -59,6 +59,19 @@ class CategoriesController < ApplicationController
     end
   end
 
+  # Budget pre-fill for the "sugerir" chip (up-tier 03 §3): the category's trailing
+  # 3-full-month median — deterministic, LLM-free, the person's own baseline. 204 with
+  # less than one full month of data (the chip stays quiet). The reais string uses the
+  # money_column prefill shape so the field reads exactly like an edit would.
+  def suggest_budget
+    category = Current.account.categories.kept.find(params[:id])
+    if (cents = Budgets::Suggest.call(Current.account)[category.id])
+      render json: { budget_reais: MoneyColumns.prefill(cents) }
+    else
+      head :no_content
+    end
+  end
+
   # Empty-state "restaurar padrões" — idempotent re-seed of the locale defaults.
   def restore
     Categories::SeedDefaults.call(Current.account, locale: Current.user.locale)
@@ -91,5 +104,5 @@ class CategoriesController < ApplicationController
   end
 
   private
-    def category_params = params.expect(category: %i[name color icon])
+    def category_params = params.expect(category: %i[name color icon monthly_budget_reais])
 end

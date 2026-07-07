@@ -50,7 +50,7 @@
   <%# By-category view (R6) — toggled in, never a nested disclosure %>
   <% if has_expenses %>
     <div data-ledger-target="categoryView" hidden class="pt-1">
-      <%= render "transactions/category_bars", rows: all_rows %>
+      <%= render "transactions/category_bars", rows: all_rows, month: month %>
     </div>
   <% end %>
 </div>

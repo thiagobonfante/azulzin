@@ -36,13 +36,9 @@ module TransactionsHelper
   # Returns nil (nothing to show) when there's neither spend nor a positive leftover.
   def monthly_flow_chart(account, month)
     summary = MonthSummary.new(account, month)
-    spend_by_cat = account.transactions.posted_in(month).where(direction: "expense")
-                          .group(:category_id).sum(:amount_cents)
-    # Fold the still-unpaid debit commitments in by their own category, so the bar reflects the
-    # full projected month — commitments are categorized but haven't posted as spend yet.
-    summary.projected_debit_commitments.each do |c|
-      spend_by_cat[c.category_id] = spend_by_cat[c.category_id].to_i + c.amount_cents
-    end
+    # Posted expenses by category with the still-unpaid debit commitments folded in — the ONE
+    # spend map (Budgets::Actuals), shared with Budgets::Check so bars and alerts always agree.
+    spend_by_cat = Budgets::Actuals.for(account, month, summary: summary)
     total_spend = spend_by_cat.values.sum
     left = [ summary.remaining_cents, 0 ].max
     base = total_spend + left

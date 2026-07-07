@@ -3,6 +3,7 @@ class DashboardController < AppController
 
   def show
     prepare_whatsapp_activation
+    @notifications = Notification.dashboard_for(Current.user, Current.account)
     @bank_accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at)
     @credit_cards  = Current.account.credit_cards.kept.includes(:institution).order(:created_at)
 

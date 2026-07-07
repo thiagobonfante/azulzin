@@ -1,0 +1,93 @@
+<% content_for :title, t(".meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t(".subtitle") %></p>
+</header>
+
+<%= form_with model: @preference, url: notification_preferences_path, method: :patch,
+      class: "flex max-w-2xl flex-col gap-6" do |f| %>
+  <% if @preference.errors.any? %>
+    <div class="alert alert-error" role="alert">
+      <span class="text-sm"><%= @preference.errors.full_messages.to_sentence %></span>
+    </div>
+  <% end %>
+
+  <%# ── Per-kind toggles (gate dashboard AND WhatsApp) ─────────────────── %>
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="mb-4 font-display text-lg font-bold"><%= t(".kinds_title") %></h2>
+    <div class="flex flex-col gap-4">
+      <% %i[bill_reminders budget_alerts surplus_nudges weekly_summary monthly_summary].each do |kind_toggle| %>
+        <label class="flex cursor-pointer items-start justify-between gap-4">
+          <span>
+            <span class="block text-sm font-semibold"><%= t(".#{kind_toggle}") %></span>
+            <span class="block text-xs text-base-content/55"><%= t(".#{kind_toggle}_hint") %></span>
+          </span>
+          <%= f.check_box kind_toggle, class: "toggle toggle-primary shrink-0" %>
+        </label>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── Tuning: lead days, quiet hours, budget bands ───────────────────── %>
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="mb-4 font-display text-lg font-bold"><%= t(".tuning_title") %></h2>
+    <div class="flex flex-col gap-4">
+      <label class="flex items-center justify-between gap-4">
+        <span class="text-sm font-semibold"><%= t(".lead_days_label") %></span>
+        <%= f.select :bill_reminder_lead_days,
+              (0..7).map { |d| [ t(".lead_days_option", count: d), d ] },
+              {}, class: "select select-bordered select-sm" %>
+      </label>
+
+      <div>
+        <p class="text-sm font-semibold"><%= t(".quiet_hours_title") %></p>
+        <p class="mb-2 text-xs text-base-content/55"><%= t(".quiet_hours_hint") %></p>
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 text-sm">
+            <%= t(".quiet_hours_start") %>
+            <%= f.select :quiet_hours_start, (0..23).map { |h| [ format("%02d:00", h), h ] },
+                  {}, class: "select select-bordered select-sm" %>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <%= t(".quiet_hours_end") %>
+            <%= f.select :quiet_hours_end, (0..23).map { |h| [ format("%02d:00", h), h ] },
+                  {}, class: "select select-bordered select-sm" %>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <p class="mb-2 text-sm font-semibold"><%= t(".bands_title") %></p>
+        <div class="flex flex-wrap items-center gap-4">
+          <label class="flex items-center gap-2 text-sm">
+            <%= t(".warn_percent_label") %>
+            <%= f.number_field :budget_warn_percent, min: 1, max: 200,
+                  class: "input input-bordered input-sm w-20 tabular-nums" %>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <%= t(".breach_percent_label") %>
+            <%= f.number_field :budget_breach_percent, min: 1, max: 200,
+                  class: "input input-bordered input-sm w-20 tabular-nums" %>
+          </label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# ── The master WhatsApp consent switch (ADR 0011: opt-in, default off) ─ %>
+  <section class="rounded-box border border-primary/30 bg-primary/5 p-5 shadow-sm">
+    <label class="flex cursor-pointer items-start justify-between gap-4">
+      <span>
+        <span class="block font-display text-lg font-bold"><%= t(".whatsapp_consent") %></span>
+        <span class="block text-sm text-base-content/60"><%= t(".whatsapp_consent_hint") %></span>
+        <span class="mt-1 block text-xs text-base-content/55"><%= t(".whatsapp_consent_phone_note") %></span>
+      </span>
+      <%= f.check_box :whatsapp_consent, class: "toggle toggle-primary shrink-0" %>
+    </label>
+  </section>
+
+  <div>
+    <%= f.submit t(".save"), class: "btn btn-primary" %>
+  </div>
+<% end %>

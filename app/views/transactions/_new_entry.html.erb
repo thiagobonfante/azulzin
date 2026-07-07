@@ -117,6 +117,13 @@
           </div>
         <% end %>
 
+        <%# Comprovante (up-tier F5) — optional photo/PDF attached to the entry. %>
+        <div class="form-control col-span-full">
+          <%= f.label :receipt, t("transactions.row.attach_receipt"), class: "mb-1 text-xs text-base-content/60" %>
+          <%= f.file_field :receipt, accept: Transaction::RECEIPT_CONTENT_TYPES.join(","),
+                class: "file-input file-input-bordered file-input-sm w-full" %>
+        </div>
+
         <div class="col-span-full flex justify-end gap-2 pt-1">
           <%= link_to t("transactions.row.cancel"), transactions_path(month: params[:month]), data: { turbo_frame: "new_entry" }, class: "btn btn-ghost btn-sm" %>
           <%= f.submit t("transactions.new.submit"), class: "btn btn-primary btn-sm" %>

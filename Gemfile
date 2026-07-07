@@ -56,6 +56,12 @@ gem "image_processing", "~> 1.2"
 gem "csv"                    # bundled gem on Ruby 3.4 — MUST be declared or `require "csv"` breaks
 gem "pdf-reader", "~> 2.12"  # pure-Ruby PDF text extraction; no native deps, no shell-out
 
+# Data export (up-tier F4 — .plans/up-tier/05): XLSX + PDF, all pure Ruby (no system deps)
+gem "caxlsx", "~> 4.1"        # XLSX builder
+gem "caxlsx_rails", "~> 0.6"  # registers the :xlsx Mime type for the download route
+gem "prawn", "~> 2.5"         # PDF "extrato"
+gem "prawn-table", "~> 0.2"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
