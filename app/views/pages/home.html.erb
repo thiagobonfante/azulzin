@@ -32,44 +32,35 @@
       <p class="mt-6 text-sm text-base-content/55"><%= t(".hero_footnote") %></p>
     </div>
 
-    <%# ── Signature: the balance card ─────────────────────────────── %>
+    <%# ── Signature: the real "Sobra do mês" screen, sample data ──── %>
     <div class="relative mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
       <div class="card border border-base-300/70 bg-base-100 shadow-xl">
-        <div class="card-body gap-6">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-sm font-medium text-base-content/60"><%= t(".card_total_balance") %></p>
-              <p class="mt-1 font-display text-4xl font-extrabold tabular-nums tracking-tight">
-                R$&nbsp;12.480<span class="text-base-content/50">,00</span>
-              </p>
-            </div>
-            <span class="badge badge-success gap-1 font-medium">▲ 2,4%</span>
-          </div>
-
-          <%# a calm week of cash flow — decorative sample %>
+        <div class="card-body gap-5">
           <div>
-            <div class="flex h-24 items-end justify-between gap-2" aria-hidden="true">
-              <div class="w-full rounded-t-md bg-primary/25" style="height:42%"></div>
-              <div class="w-full rounded-t-md bg-primary/35" style="height:60%"></div>
-              <div class="w-full rounded-t-md bg-primary/30" style="height:48%"></div>
-              <div class="w-full rounded-t-md bg-primary/60" style="height:82%"></div>
-              <div class="w-full rounded-t-md bg-primary/40" style="height:55%"></div>
-              <div class="w-full rounded-t-md bg-primary" style="height:95%"></div>
-              <div class="w-full rounded-t-md bg-primary/45" style="height:64%"></div>
+            <p class="text-sm text-base-content/60"><%= t(".preview_label") %></p>
+            <div class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span class="font-display text-4xl font-extrabold tabular-nums tracking-tight text-primary"><%= brl(184230) %></span>
+              <span class="badge badge-ghost"><%= t(".preview_badge_azul") %></span>
             </div>
-            <div class="mt-2 flex justify-between text-xs text-base-content/40">
-              <span><%= t(".day_start") %></span><span><%= t(".day_end") %></span>
-            </div>
+            <p class="mt-2 text-xs text-base-content/50 tabular-nums">
+              <%= t(".preview_in") %> <%= brl(685000) %> · <%= t(".preview_out") %> <%= brl(400770) %> · <%= t(".preview_saved") %> <%= brl(100000) %>
+            </p>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div class="rounded-box bg-success/10 px-4 py-3">
-              <p class="text-xs font-medium text-success"><%= t(".card_in") %></p>
-              <p class="mt-0.5 font-display text-lg font-bold tabular-nums">R$&nbsp;6.200</p>
+          <%# monthly flow — where the money went, with a blue "sobra" tail %>
+          <div>
+            <div class="flex h-2.5 overflow-hidden rounded-full bg-base-200" aria-hidden="true">
+              <span class="block h-full" style="width:24%;background-color:#22C55E"></span>
+              <span class="block h-full" style="width:16%;background-color:#F97316"></span>
+              <span class="block h-full" style="width:10%;background-color:#3B82F6"></span>
+              <span class="block h-full" style="width:8%;background-color:#06B6D4"></span>
+              <span class="block h-full" style="width:15%;background-color:#64748B"></span>
+              <span class="block h-full" style="width:27%;background-color:var(--color-primary)"></span>
             </div>
-            <div class="rounded-box bg-error/10 px-4 py-3">
-              <p class="text-xs font-medium text-error"><%= t(".card_out") %></p>
-              <p class="mt-0.5 font-display text-lg font-bold tabular-nums">R$&nbsp;3.940</p>
+            <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/60">
+              <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background-color:#22C55E"></span><%= t(".cat_mercado") %></span>
+              <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background-color:#F97316"></span><%= t(".cat_restaurantes") %></span>
+              <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background-color:#3B82F6"></span><%= t(".cat_transporte") %></span>
             </div>
           </div>
         </div>
@@ -79,44 +70,94 @@
   </div>
 </section>
 
-<%# ── Three simple promises ───────────────────────────────────────── %>
+<%# ── The real product, with sample data ──────────────────────────── %>
 <section id="features" class="container mx-auto px-5 pb-20 lg:pb-28">
-  <div class="grid gap-5 sm:grid-cols-3">
-    <div class="card border border-base-300/70 bg-base-100 transition-shadow hover:shadow-md">
-      <div class="card-body gap-3">
-        <span class="inline-grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9V6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 19.5h-15A2.25 2.25 0 012.25 17.25V9z"/>
-          </svg>
-        </span>
-        <h3 class="card-title font-display text-lg"><%= t(".feature_1_title") %></h3>
-        <p class="text-base-content/65"><%= t(".feature_1_body") %></p>
+  <div class="mx-auto max-w-2xl text-center">
+    <h2 class="font-display text-3xl font-extrabold tracking-tight sm:text-4xl"><%= t(".showcase_title") %></h2>
+    <p class="mt-3 text-base-content/65"><%= t(".showcase_subtitle") %></p>
+  </div>
+
+  <div class="mt-12 grid gap-6 lg:grid-cols-3">
+    <%# 1 · Movimentações — the real day-grouped ledger %>
+    <div class="flex flex-col">
+      <p class="mb-3 text-sm font-semibold text-primary"><%= t(".showcase_ledger_eyebrow") %></p>
+      <div class="rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
+        <div class="px-1 pb-1 text-xs font-medium text-base-content/60"><%= t(".showcase_day") %></div>
+        <div class="divide-y divide-base-300/50">
+          <% [
+               { title: "Salário", cat: t(".row_salario"), income: true, cents: 650000 },
+               { title: "iFood", cat: t(".cat_restaurantes"), color: "#F97316", icon: "utensils", cents: 4590 },
+               { title: "Uber", cat: t(".cat_transporte"), color: "#3B82F6", icon: "truck", cents: 1890 },
+               { title: "Netflix", cat: t(".cat_assinaturas"), color: "#06B6D4", icon: "arrow-path", cents: 5590 }
+             ].each do |r| %>
+            <div class="flex items-center gap-3 px-1 py-2.5">
+              <% if r[:income] %>
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-success/15 text-base font-bold text-success">+</span>
+              <% else %>
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full" style="background-color: <%= r[:color] %>1a; color: <%= r[:color] %>"><%= category_icon_tag(r[:icon], css_class: "h-4 w-4") %></span>
+              <% end %>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium"><%= r[:title] %></p>
+                <p class="truncate text-xs text-base-content/50"><%= r[:cat] %></p>
+              </div>
+              <span class="shrink-0 text-sm font-medium tabular-nums <%= r[:income] ? "text-success" : "text-base-content/80" %>"><%= r[:income] ? "+" : "" %><%= brl(r[:cents]) %></span>
+            </div>
+          <% end %>
+        </div>
       </div>
+      <p class="mt-3 text-sm text-base-content/60"><%= t(".showcase_ledger_caption") %></p>
     </div>
 
-    <div class="card border border-base-300/70 bg-base-100 transition-shadow hover:shadow-md">
-      <div class="card-body gap-3">
-        <span class="inline-grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21m9-9h-2.25M5.25 12H3m15.364-6.364l-1.591 1.591M7.227 16.773l-1.591 1.591M18.364 18.364l-1.591-1.591M7.227 7.227L5.636 5.636"/>
-            <circle cx="12" cy="12" r="3.25"/>
-          </svg>
-        </span>
-        <h3 class="card-title font-display text-lg"><%= t(".feature_2_title") %></h3>
-        <p class="text-base-content/65"><%= t(".feature_2_body") %></p>
+    <%# 2 · Por categoria — proportional spend bars %>
+    <div class="flex flex-col">
+      <p class="mb-3 text-sm font-semibold text-primary"><%= t(".showcase_categories_eyebrow") %></p>
+      <div class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+        <div class="space-y-4">
+          <% [
+               { name: t(".cat_mercado"), color: "#22C55E", icon: "cart", cents: 98000, pct: 100 },
+               { name: t(".cat_restaurantes"), color: "#F97316", icon: "utensils", cents: 64000, pct: 65 },
+               { name: t(".cat_transporte"), color: "#3B82F6", icon: "truck", cents: 41000, pct: 42 },
+               { name: t(".cat_assinaturas"), color: "#06B6D4", icon: "arrow-path", cents: 32000, pct: 33 }
+             ].each do |b| %>
+            <div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="inline-flex min-w-0 items-center gap-2">
+                  <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full" style="background-color: <%= b[:color] %>1a; color: <%= b[:color] %>"><%= category_icon_tag(b[:icon], css_class: "h-3.5 w-3.5") %></span>
+                  <span class="truncate font-medium"><%= b[:name] %></span>
+                </span>
+                <span class="shrink-0 tabular-nums text-base-content/70"><%= brl(b[:cents]) %></span>
+              </div>
+              <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-base-200">
+                <div class="h-full rounded-full" style="width: <%= b[:pct] %>%; background-color: <%= b[:color] %>"></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
       </div>
+      <p class="mt-3 text-sm text-base-content/60"><%= t(".showcase_categories_caption") %></p>
     </div>
 
-    <div class="card border border-base-300/70 bg-base-100 transition-shadow hover:shadow-md">
-      <div class="card-body gap-3">
-        <span class="inline-grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v16.5A1.5 1.5 0 004.5 21H21M7.5 15l3-3 3 2.25L18 9"/>
-          </svg>
-        </span>
-        <h3 class="card-title font-display text-lg"><%= t(".feature_3_title") %></h3>
-        <p class="text-base-content/65"><%= t(".feature_3_body") %></p>
+    <%# 3 · Cartões — the threshold credit-usage bar %>
+    <div class="flex flex-col">
+      <p class="mb-3 text-sm font-semibold text-primary"><%= t(".showcase_card_eyebrow") %></p>
+      <div class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+        <div class="flex items-center gap-3">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><%= category_icon_tag("credit-card", css_class: "h-5 w-5") %></span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold">Nubank</p>
+            <p class="truncate text-xs text-base-content/50 tabular-nums">•••• 4821</p>
+          </div>
+          <p class="shrink-0 font-display text-sm font-bold tabular-nums"><%= brl(260000) %></p>
+        </div>
+        <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-base-200">
+          <div class="h-full rounded-full bg-primary" style="width:65%"></div>
+        </div>
+        <div class="mt-1.5 flex justify-between text-xs text-base-content/50">
+          <span><%= t(".showcase_card_available") %> <span class="font-semibold text-success tabular-nums"><%= brl(140000) %></span></span>
+          <span class="tabular-nums"><%= brl(260000) %> / <%= brl(400000) %></span>
+        </div>
       </div>
+      <p class="mt-3 text-sm text-base-content/60"><%= t(".showcase_card_caption") %></p>
     </div>
   </div>
 </section>
