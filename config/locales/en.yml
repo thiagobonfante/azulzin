@@ -912,6 +912,7 @@ en:
       breach_percent_label: "Over budget at (%)"
       whatsapp_consent: "Receive alerts on WhatsApp"
       whatsapp_consent_hint: "Off by default. Alerts always show on your dashboard; turn this on to also get them on WhatsApp."
+      whatsapp_consent_phone_note: "To reach WhatsApp, your phone number must be verified on your profile. You can also stop anytime by replying \"stop\" there."
       save: "Save preferences"
     update:
       saved: "Preferences saved."
@@ -1048,6 +1049,32 @@ en:
       card_bill_answer: "%{name}'s %{month} bill: %{amount} (closes on the %{closes}, due on the %{due})."
       savings_answer: "Saved: %{total} 💙 This month you moved %{month} to savings."
       help: "I didn't get that 🤔 You can send me things like:\n• \"groceries 84.90 on debit\"\n• \"saved 200 to savings\"\n• \"paid the car installment\"\n• \"bought a phone, 5000 in 10x\"\n• \"how's the month?\""
+      notifications_footer: "Reply *stop* to turn these notifications off."
+      notifications_stopped: "Done — I've stopped the notifications here. You can turn them back on anytime in Settings → Notifications. 💙"
+      notifications:
+        bill_due:
+          zero: "🔔 Your *%{name}* bill (%{amount}) is due today. 💙"
+          one: "🔔 Your *%{name}* bill (%{amount}) is due tomorrow. 💙"
+          other: "🔔 Your *%{name}* bill (%{amount}) is due in %{count} days. 💙"
+        bill_overdue:
+          one: "⚠️ Your *%{name}* bill (%{amount}) was due yesterday. Paid it yet?"
+          other: "⚠️ Your *%{name}* bill (%{amount}) was due %{count} days ago. Paid it yet?"
+        card_closing:
+          zero: "📄 The *%{card}* bill closes today — %{amount} so far."
+          one: "📄 The *%{card}* bill closes tomorrow — %{amount} so far."
+          other: "📄 The *%{card}* bill closes in %{count} days — %{amount} so far."
+        card_due:
+          zero: "📄 The *%{card}* bill (%{amount}) is due today. 💙"
+          one: "📄 The *%{card}* bill (%{amount}) is due tomorrow. 💙"
+          other: "📄 The *%{card}* bill (%{amount}) is due in %{count} days. 💙"
+        income_expected:
+          zero: "💰 Your *%{name}* of %{amount} should land today. 💙"
+          one: "💰 Your *%{name}* of %{amount} should land tomorrow. 💙"
+          other: "💰 Your *%{name}* of %{amount} should land in %{count} days. 💙"
+        budget_warn: "👀 *%{category}* is at %{spent} of %{budget} this month. %{left} to go."
+        budget_breach: "⚠️ *%{category}* went past the plan: %{spent} of %{budget} this month."
+        surplus_nudge: "💙 You closed the month with *%{surplus}* to spare. Want to put it in savings?"
+        rightsize_budget: "💙 *%{category}*: you planned %{budget}, but usually spend %{typical}. Want to adjust it?"
     activation:
       title: "Activate WhatsApp"
       subtitle: "Activate WhatsApp to log expenses by audio, photo, or text."

@@ -6,6 +6,7 @@ ENV["PGGSSENCMODE"] ||= "disable"
 require_relative "../config/environment"
 require "rails/test_help"
 require_relative "test_helpers/session_test_helper"
+require_relative "test_helpers/notification_shape_assertions"
 
 # minitest 6 dropped `minitest/mock`, and this project pulls in no stubbing gem. This is a
 # minimal block-form `Object#stub` (same alias-based mechanism minitest used) so tests can

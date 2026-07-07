@@ -6,6 +6,12 @@ amount + merchant + date + payment method, matches it to the user's own account/
 under the decided **silent auto-commit** posture — records it, letting the user reverse or
 reassign it in the app. It is an ingestion funnel, not a chatbot.
 
+Outbound posture: **reply-only, plus opted-in proactive notifications**
+([ADR 0011](decisions/0011-proactive-notifications.md)) — bill reminders and budget alerts
+push to members who flipped the `whatsapp_consent` switch (default off), fail-closed behind
+a per-user daily cap, quiet hours and an atomic send claim; every send is a logged
+`WhatsappMessage`, and replying "parar" turns the push off instantly.
+
 Design of record: [`.plans/whats/`](../.plans/whats/) (gitignored). This doc is the
 operational summary + the steps to take it live.
 
@@ -92,7 +98,8 @@ QR appears live; scan it with the commercial number's WhatsApp (linked-device). 
 admin in the console: `User.find_by(email_address: "you@…").update!(admin: true)`.
 
 **Number hygiene** (wwebjs ban-risk mitigation): warm the number with real human use before
-scanning; stay reply-only; keep a backup number. The sidecar already throttles outbound and
+scanning; stay reply-only plus the opted-in proactive notifications above (ADR 0011); keep a
+backup number. The sidecar already throttles outbound and
 runs a zombie-session guard. Migration triggers to the official Cloud API: see
 [`.plans/whats/08-security-and-ops.md`](../.plans/whats/08-security-and-ops.md).
 

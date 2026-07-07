@@ -18,6 +18,9 @@ module Whatsapp
     end
 
     def call
+      # Service-level opt-out (up-tier 01 §2): deterministic stop pre-pass BEFORE any
+      # extraction — consent off + one confirmation, then the pipeline stops here.
+      return Notifications::StopCommand.call(@msg) if Notifications::StopCommand.detect(@text) # 0 LLM calls
       return UndoHandler.new(@msg).call if UNDO_RE.match?(Whatsapp.normalize(@text)) # 0 LLM calls
 
       extraction = Whatsapp::Extractor.from_text(@msg.user, @text, modality: @msg.type_audio? ? "audio" : "text")

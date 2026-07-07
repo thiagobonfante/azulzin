@@ -3,9 +3,11 @@
 # formatted with number_to_currency (never an interpolated R$). Runs from a job, not a
 # web request. See .plans/whats §3.5.
 class WhatsappReply
-  # key: an i18n key under whatsapp.replies.*  ·  transaction: optional link
-  def self.deliver(user:, key:, transaction: nil, **i18n_args)
-    body = render(user, key, **i18n_args)
+  # key: an i18n key under whatsapp.replies.*  ·  transaction: optional link  ·
+  # footer_key: optional one-line appendix rendered in the same locale (the first-push
+  # opt-out courtesy, .plans/up-tier 01 §2)
+  def self.deliver(user:, key:, transaction: nil, footer_key: nil, **i18n_args)
+    body = render(user, key, footer_key: footer_key, **i18n_args)
     outbound = WhatsappMessage.create!(
       user: user, account: user.account, direction: "outbound", message_type: "text",
       body: body, status: "sent", linked_transaction: transaction
@@ -18,13 +20,19 @@ class WhatsappReply
   end
 
   # Format money for a reply body inside the user's locale (no view helper in a job).
+  # The amount is always BRL, so the unit is pinned via money.symbol exactly like
+  # MoneyHelper#brl — an en-US recipient must never see reais rendered as dollars.
   def self.currency(cents, locale:)
     I18n.with_locale(locale) do
-      ActionController::Base.helpers.number_to_currency(BigDecimal(cents.to_i) / 100)
+      ActionController::Base.helpers.number_to_currency(
+        BigDecimal(cents.to_i) / 100, unit: I18n.t("money.symbol"))
     end
   end
 
-  def self.render(user, key, **i18n_args)
-    I18n.with_locale(user.locale) { I18n.t(key, **i18n_args) }
+  def self.render(user, key, footer_key: nil, **i18n_args)
+    I18n.with_locale(user.locale) do
+      body = I18n.t(key, **i18n_args)
+      footer_key ? "#{body}\n#{I18n.t(footer_key)}" : body
+    end
   end
 end

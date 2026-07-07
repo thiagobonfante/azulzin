@@ -1,8 +1,9 @@
 require "test_helper"
 
-# Gate tests for the one send policy (up-tier 01 §3). Phase 0 posture: even when every
-# gate passes, NOTHING is sent and no claim is burned — the send step is inert until
-# Phase 3 (ADR 0011 dashboard-only soak).
+# Gate + send tests for the one send policy (up-tier 01 §3). Phase 3 posture (ADR 0011
+# signed): the push is live — the atomic fail-closed claim referees concurrency, every
+# send is a logged WhatsappMessage rendered in the recipient's locale, and the first-ever
+# push carries the one-time opt-out footer.
 class Notifications::DeliverTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
@@ -10,28 +11,92 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
     @user    = users(:confirmed)
     @account = @user.account
     # A fully push-ready member: verified ownership + captured JID + explicit consent +
-    # a live sidecar. Each test below breaks exactly one gate.
+    # a live sidecar. The intro footer is already spent (its own tests reset it); each
+    # gate test below breaks exactly one gate.
     @user.update!(phone: "5511912345678", phone_verified_at: Time.current,
                   whatsapp_id: "5511912345678", whatsapp_jid: "5511912345678@c.us")
-    @user.notification_prefs.update!(whatsapp_consent: true)
+    @user.notification_prefs.update!(whatsapp_consent: true, wa_intro_sent_at: 1.week.ago)
     WhatsappConnection.instance.update!(status: "connected")
     travel_to Time.utc(2026, 7, 7, 15, 0)   # 12:00 in São Paulo — outside quiet hours
   end
 
-  def notification(kind: "bill_due", period_key: Date.new(2026, 7, 8), **overrides)
-    Notification.record!(user: @user, account: @account, kind: kind, period_key: period_key, **overrides)
+  BILL_PAYLOAD = { "name" => "Luz", "amount_cents" => 18_240,
+                   "due_on" => "2026-07-08", "days_until" => 1 }.freeze
+
+  def notification(kind: "bill_due", period_key: Date.new(2026, 7, 8), payload: BILL_PAYLOAD, **overrides)
+    Notification.record!(user: @user, account: @account, kind: kind, period_key: period_key,
+                         payload: payload, **overrides)
   end
 
   def deliver(n) = Notifications::Deliver.new(n)
 
-  test "all gates pass → would push, but Phase 0 sends NOTHING and burns no claim" do
-    n = notification
-    assert deliver(n).push_allowed?, "every gate should pass for the push-ready member"
+  # Runs the block with the sidecar wire stubbed, collecting each outbound body.
+  def capture_sends(&block)
+    bodies = []
+    WhatsappService.stub(:send_message, ->(_to, body) { bodies << body; { id: "out-#{SecureRandom.hex(3)}" } }, &block)
+    bodies
+  end
 
-    assert_no_difference -> { WhatsappMessage.count } do
-      assert_not Notifications::Deliver.call(n), "the inert send step reports no push"
+  test "all gates pass → ONE outbound WhatsappMessage, claim stamped, localized body with money" do
+    n = notification
+    bodies = nil
+    assert_difference -> { WhatsappMessage.count }, 1 do
+      bodies = capture_sends { assert Notifications::Deliver.call(n), "a real push reports true" }
     end
-    assert_nil n.reload.whatsapp_sent_at, "the claim must not be burned while no send exists"
+    assert_not_nil n.reload.whatsapp_sent_at, "the claim is stamped by the send"
+    assert_includes bodies.sole, "*Luz*"
+    assert_includes bodies.sole, "R$ 182,40", "money is pre-formatted by Ruby, in pt-BR"
+    assert_includes bodies.sole, "vence amanhã", "days_until drives the plural branch"
+  end
+
+  test "claim race: two deliveries for one notification → exactly ONE outbound message" do
+    n = notification
+    assert_difference -> { WhatsappMessage.count }, 1 do
+      capture_sends do
+        assert Notifications::Deliver.call(n)
+        assert_not Notifications::Deliver.call(n), "the loser's update_all matches zero rows"
+      end
+    end
+  end
+
+  test "a pre-claimed notification never sends again (update_all on the nil claim)" do
+    n = notification
+    n.update!(whatsapp_sent_at: Time.current)
+    assert_no_difference -> { WhatsappMessage.count } do
+      capture_sends { assert_not Notifications::Deliver.call(n) }
+    end
+  end
+
+  test "an en-US recipient gets the en template, money still in reais" do
+    @user.update!(locale: "en-US")
+    bodies = capture_sends { Notifications::Deliver.call(notification) }
+    assert_includes bodies.sole, "is due tomorrow", "I18n.with_locale(user.locale) picks en"
+    assert bodies.sole.match?(/R\$\s?\d/), "reais never render as dollars"
+  end
+
+  test "card_bill resolves its sub-event template through the shared key (closing vs due)" do
+    payload = { "event" => "closing", "card" => "Nubank", "amount_cents" => 234_056,
+                "date" => "2026-07-10", "days_until" => 3 }
+    bodies = capture_sends do
+      Notifications::Deliver.call(notification(kind: "card_bill", payload: payload))
+    end
+    assert_includes bodies.sole, "fecha em 3 dias", "payload event completes card_bill into card_closing"
+    assert_includes bodies.sole, "*Nubank*"
+  end
+
+  test "the first-ever push carries the opt-out footer; the second doesn't" do
+    @user.notification_prefs.update!(wa_intro_sent_at: nil)
+    bodies = capture_sends do
+      Notifications::Deliver.call(notification)
+      Notifications::Deliver.call(notification(kind: "card_bill", period_key: Date.new(2026, 7, 10),
+                                               payload: { "event" => "due", "card" => "Nubank",
+                                                          "amount_cents" => 234_056, "date" => "2026-07-10",
+                                                          "days_until" => 1 }))
+    end
+    assert_equal 2, bodies.size
+    assert_includes bodies.first, "*parar*", "first push teaches the opt-out once"
+    assert_not_includes bodies.second, "parar", "no repeated boilerplate"
+    assert_not_nil @user.notification_prefs.reload.wa_intro_sent_at, "the stamp is spent atomically"
   end
 
   test "kind toggle off → no push (gates both channels' push, dashboard row remains)" do
@@ -66,12 +131,15 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
     assert_not deliver(notification).push_allowed?
   end
 
-  test "sidecar disconnected → no push and the claim is NOT burned (next sweep covers it)" do
+  test "sidecar disconnected → no send, the claim is NOT burned, the dashboard row is intact" do
     WhatsappConnection.instance.update!(status: "disconnected")
     n = notification
 
-    assert_not Notifications::Deliver.call(n)
+    assert_no_difference -> { WhatsappMessage.count } do
+      assert_not Notifications::Deliver.call(n)
+    end
     assert_nil n.reload.whatsapp_sent_at
+    assert_includes Notification.dashboard_for(@user, @account), n
   end
 
   test "quiet hours wrap midnight in São Paulo time" do
@@ -103,5 +171,17 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
 
     claim.call("weekly_summary", Time.current)   # summaries are counted too
     assert_not deliver(notification).push_allowed?
+    assert_no_difference -> { WhatsappMessage.count } do
+      assert_not Notifications::Deliver.call(notification), "over the cap → dashboard-only"
+    end
+  end
+
+  test "quiet hours → dashboard-only, nothing sent and no claim burned" do
+    travel_to Time.utc(2026, 7, 8, 2, 0)     # 23:00 SP — quiet
+    n = notification
+    assert_no_difference -> { WhatsappMessage.count } do
+      assert_not Notifications::Deliver.call(n)
+    end
+    assert_nil n.reload.whatsapp_sent_at
   end
 end

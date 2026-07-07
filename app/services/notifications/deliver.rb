@@ -5,8 +5,10 @@ module Notifications
   # closed: toggle + consent → identity + channel → quiet hours → daily cap → atomic
   # claim → WhatsappReply.deliver.
   #
-  # Phase 0 (dashboard-only soak, ADR 0011): claim_and_send is deliberately inert — it
-  # neither claims nor sends, so whatsapp_sent_at is never burned while no push exists.
+  # Phase 3 (ADR 0011 signed): the push is LIVE. The claim is fail-closed — a crash after
+  # claim loses the message, never duplicates it — and every send goes through
+  # WhatsappReply (logged as an outbound WhatsappMessage, rendered in the recipient's
+  # locale, money pre-formatted by Ruby; NEVER raw WhatsappService.send_message).
   class Deliver
     DAILY_WA_CAP = 3                  # per-user WhatsApp pushes/day (07 D14; tunable constant)
     TIME_ZONE    = "America/Sao_Paulo"
@@ -62,21 +64,39 @@ module Notifications
 
     def now_sp = Time.current.in_time_zone(TIME_ZONE)
 
-    # Gates 5–6 — Phase 3 fills in THIS method and nothing else: the atomic fail-closed
-    # claim (only the winner sends; a crash after claim loses the message, never
-    # duplicates it) followed by the logged + localized send:
-    #
-    #   claimed = Notification.where(id: @notification.id, whatsapp_sent_at: nil)
-    #                         .update_all(whatsapp_sent_at: Time.current) == 1
-    #   return false unless claimed
-    #   WhatsappReply.deliver(user: @user,
-    #                         key: "whatsapp.replies.notifications.#{@notification.kind}",
-    #                         **payload_args)
-    #
-    # Until then it is inert: no claim is taken and nothing is sent — the dashboard-only
-    # soak required by ADR 0011.
+    # Gates 5–6 — the atomic fail-closed claim followed by the logged + localized send.
+    # update_all on the nil-claim predicate makes the DB the referee: two concurrent
+    # deliveries race, exactly one matches a row, only the winner sends. A crash after
+    # claim loses the message, never duplicates it (no rollback, no retry — the next
+    # sweep covers time-relevant items).
     def claim_and_send
-      false
+      claimed = Notification.where(id: @notification.id, whatsapp_sent_at: nil)
+                            .update_all(whatsapp_sent_at: Time.current) == 1
+      return false unless claimed
+      WhatsappReply.deliver(user: @user,
+                            key: "whatsapp.replies.notifications.#{Notifications.template_key(@notification)}",
+                            footer_key: ("whatsapp.replies.notifications_footer" if intro_footer?),
+                            **template_args)
+      true
+    end
+
+    # Money formatted by Ruby BEFORE interpolation, in the RECIPIENT's locale — the same
+    # payload transform the dashboard banner uses (Notifications.template_args), with the
+    # brl-equivalent formatter for a job context.
+    def template_args
+      Notifications.template_args(@notification) do |cents|
+        WhatsappReply.currency(cents, locale: @user.locale)
+      end
+    end
+
+    # The one-time opt-out courtesy (01 §2): the FIRST push a user ever receives carries
+    # a "responda *parar*" footer; subsequent ones don't. The nil-stamp update_all is the
+    # atomic guard (belt to the per-user job serialization's braces) — concurrent sends
+    # can't both win it, so no double footer. prefs is always persisted here: consent
+    # (gate 1) is only ever true on a saved row.
+    def intro_footer?
+      NotificationPreference.where(id: prefs.id, wa_intro_sent_at: nil)
+                            .update_all(wa_intro_sent_at: Time.current) == 1
     end
   end
 end

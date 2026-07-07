@@ -913,6 +913,7 @@ pt-BR:
       breach_percent_label: "Estouro em (%)"
       whatsapp_consent: "Receber avisos no WhatsApp"
       whatsapp_consent_hint: "Desligado por padrão. Os avisos sempre aparecem no painel; ligue para recebê-los também no WhatsApp."
+      whatsapp_consent_phone_note: "Para chegar no WhatsApp, seu número precisa estar verificado no perfil. Você também pode parar a qualquer momento respondendo \"parar\" por lá."
       save: "Salvar preferências"
     update:
       saved: "Preferências salvas."
@@ -1049,6 +1050,32 @@ pt-BR:
       card_bill_answer: "Fatura de %{month} do %{name}: %{amount} (fecha dia %{closes}, vence dia %{due})."
       savings_answer: "Guardado: %{total} 💙 Esse mês você moveu %{month} pra caixinha."
       help: "Não entendi 🤔 Você pode me mandar coisas como:\n• \"mercado 84,90 no débito\"\n• \"guardei 200 na caixinha\"\n• \"paguei a parcela do carro\"\n• \"comprei um celular, 5000 em 10x\"\n• \"como tá o mês?\""
+      notifications_footer: "Responda *parar* para desativar estes avisos."
+      notifications_stopped: "Prontinho, parei os avisos por aqui. É só voltar em Ajustes → Avisos quando quiser. 💙"
+      notifications:
+        bill_due:
+          zero: "🔔 Sua conta *%{name}* (%{amount}) vence hoje. 💙"
+          one: "🔔 Sua conta *%{name}* (%{amount}) vence amanhã. 💙"
+          other: "🔔 Sua conta *%{name}* (%{amount}) vence em %{count} dias. 💙"
+        bill_overdue:
+          one: "⚠️ Sua conta *%{name}* (%{amount}) venceu ontem. Já pagou?"
+          other: "⚠️ Sua conta *%{name}* (%{amount}) venceu há %{count} dias. Já pagou?"
+        card_closing:
+          zero: "📄 A fatura do *%{card}* fecha hoje — %{amount} até agora."
+          one: "📄 A fatura do *%{card}* fecha amanhã — %{amount} até agora."
+          other: "📄 A fatura do *%{card}* fecha em %{count} dias — %{amount} até agora."
+        card_due:
+          zero: "📄 A fatura do *%{card}* (%{amount}) vence hoje. 💙"
+          one: "📄 A fatura do *%{card}* (%{amount}) vence amanhã. 💙"
+          other: "📄 A fatura do *%{card}* (%{amount}) vence em %{count} dias. 💙"
+        income_expected:
+          zero: "💰 Seu *%{name}* de %{amount} deve cair hoje. 💙"
+          one: "💰 Seu *%{name}* de %{amount} deve cair amanhã. 💙"
+          other: "💰 Seu *%{name}* de %{amount} deve cair em %{count} dias. 💙"
+        budget_warn: "👀 *%{category}* já está em %{spent} de %{budget} este mês. Faltam %{left}."
+        budget_breach: "⚠️ *%{category}* passou do combinado: %{spent} de %{budget} este mês."
+        surplus_nudge: "💙 Você fechou o mês com *%{surplus}* de sobra. Quer guardar na caixinha?"
+        rightsize_budget: "💙 *%{category}*: você combinou %{budget}, mas costuma gastar %{typical}. Quer ajustar?"
     activation:
       title: "Ative o WhatsApp"
       subtitle: "Ative o WhatsApp para lançar gastos por áudio, foto ou texto."

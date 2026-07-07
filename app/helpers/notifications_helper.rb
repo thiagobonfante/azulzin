@@ -41,30 +41,18 @@ module NotificationsHelper
                 viewBox: "0 0 24 24", "stroke-width": "1.6", stroke: "currentColor", "aria-hidden": "true")
   end
 
-  # Banner copy, templated from the payload snapshot (01 §1: neither renderer re-queries;
-  # a deleted subject still renders). Payloads carry integer cents (any *_cents key) plus
-  # optionally a days count: money is formatted here, at render time, in the viewer's
-  # locale — never baked into the snapshot (amount_cents → %{amount}, spent_cents →
-  # %{spent}, …) — and days_until / days_overdue drive pluralization ("vence hoje /
-  # amanhã / em N dias").
+  # Banner copy, templated from the payload snapshot through the shared
+  # Notifications.template_args transform (integer cents formatted at render time in the
+  # viewer's locale, days → count pluralization) — the same transform the WhatsApp push
+  # renders from, so the two channels never drift.
   def notification_message(notification)
-    payload = notification.payload.symbolize_keys
-    args = payload.except(:days_until, :days_overdue, :event)
-    payload.each_key do |key|
-      next unless key.to_s.end_with?("_cents")
-      args[key.to_s.delete_suffix("_cents").to_sym] = brl(args.delete(key))
-    end
-    if (days = payload[:days_until] || payload[:days_overdue])
-      args[:count] = days
-    end
+    args = Notifications.template_args(notification) { |cents| brl(cents) }
     t(notification_i18n_key(notification), **args)
   end
 
-  # card_bill is one kind with two sub-events; Reminders::Scan stamps payload["event"]
-  # ("closing" | "due") and this completes the registry's prefix into
-  # notifications.dashboard.card_closing / card_due (up-tier 02 §1).
+  # The dashboard namespace completed from the shared per-kind template key (the
+  # card_bill closing/due split lives in Notifications.template_key, once).
   def notification_i18n_key(notification)
-    key = Notifications::KINDS.fetch(notification.kind).fetch(:i18n)
-    notification.kind == "card_bill" ? "#{key}_#{notification.payload.fetch('event', 'due')}" : key
+    "notifications.dashboard.#{Notifications.template_key(notification)}"
   end
 end
