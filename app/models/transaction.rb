@@ -24,6 +24,13 @@ class Transaction < ApplicationRecord
   has_many :reply_messages, class_name: "WhatsappMessage",
            foreign_key: :transaction_id, dependent: :nullify, inverse_of: :linked_transaction
 
+  # up-tier F5: the durable receipt (photo/PDF). WhatsApp receipts copy the SAME blob here
+  # so the image outlives the 60-day WA media purge; manual rows upload one on the form.
+  # dependent defaults to :purge_later — hard-destroying the row purges the bytes (LGPD).
+  has_one_attached :receipt do |attachable|
+    attachable.variant :thumb, resize_to_limit: [ 96, 96 ]
+  end
+
   money_column :amount
 
   # string-backed enums (readable in the DB, give scopes). New pattern for this codebase.
@@ -46,10 +53,26 @@ class Transaction < ApplicationRecord
   # surfaces posted-but-unassigned rows — see #in_pending_inbox? and the pending_inbox scope.
   PENDING_INBOX_STATUSES = (OPEN_ASK_STATUSES + %w[pending_review]).freeze
 
+  # Receipt gates (up-tier F5, the DocumentImport lesson): browsers/clients send unreliable
+  # MIME types, so a receipt must both declare an allowed type AND carry that format's real
+  # magic bytes (an .exe renamed .jpg fails the byte probe).
+  MAX_RECEIPT_BYTES     = 10.megabytes
+  RECEIPT_CONTENT_TYPES = %w[image/jpeg image/png image/webp image/heic application/pdf].freeze
+  RECEIPT_MAGIC_BYTES = {
+    "image/jpeg"      => ->(head) { head.start_with?("\xFF\xD8\xFF".b) },
+    "image/png"       => ->(head) { head.start_with?("\x89PNG\r\n\x1A\n".b) },
+    "image/webp"      => ->(head) { head[0, 4] == "RIFF" && head[8, 4] == "WEBP" },
+    "image/heic"      => ->(head) { head[4, 4] == "ftyp" && %w[heic heix heim heis hevc mif1 msf1].include?(head[8, 4]) },
+    "application/pdf" => ->(head) { head.start_with?("%PDF-".b) }
+  }.freeze
+
   validates :amount_cents, numericality: { only_integer: true }
   validates :occurred_on, presence: true
   validates :billing_month, presence: true
   validates :confidence, numericality: { in: 0..100 }, allow_nil: true
+  # Only when a new receipt is being attached on this save (never re-reads a settled blob).
+  validate :receipt_acceptable,
+           if: -> { attachment_changes["receipt"].is_a?(ActiveStorage::Attached::Changes::CreateOne) }
   # A posted transfer needs both accounts, distinct, and no card. Model-level (not a DB check)
   # so a low-confidence WA transfer can still park in pending_review with slots missing.
   validate :transfer_shape, if: -> { posted? && transfer? }
@@ -158,5 +181,46 @@ class Transaction < ApplicationRecord
         errors.add(:transfer_to_bank_account_id, :same_account)
       end
       errors.add(:credit_card_id, :present) if credit_card_id.present?
+    end
+
+    # Size + declared-type + magic-byte gates in one validation (imports re-derive the real
+    # format in a job; a receipt is served back to the user, so it is checked before persisting).
+    def receipt_acceptable
+      change = attachment_changes["receipt"]
+      errors.add(:receipt, :too_large) if change.blob.byte_size > MAX_RECEIPT_BYTES
+      unless RECEIPT_CONTENT_TYPES.include?(change.blob.content_type) && receipt_magic_bytes_ok?(change)
+        errors.add(:receipt, :unsupported_type)
+      end
+    end
+
+    def receipt_magic_bytes_ok?(change)
+      head = receipt_head_bytes(change.attachable).to_s.b
+      RECEIPT_MAGIC_BYTES.values.any? { |probe| probe.call(head) }
+    end
+
+    # First bytes of the attachable, whatever shape it arrived in: an existing blob (the
+    # WhatsApp copy path), an uploaded file, or an io: hash.
+    def receipt_head_bytes(attachable)
+      case attachable
+      when ActiveStorage::Blob
+        head = +""
+        attachable.download do |chunk|
+          head << chunk
+          break if head.bytesize >= 16
+        end
+        head
+      when Hash
+        read_head(attachable[:io])
+      else
+        read_head(attachable)
+      end
+    end
+
+    def read_head(io)
+      return "" unless io.respond_to?(:read) && io.respond_to?(:rewind)
+      io.rewind
+      head = io.read(16).to_s
+      io.rewind
+      head
     end
 end

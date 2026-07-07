@@ -70,9 +70,13 @@ Rails.application.routes.draw do
     resources :transactions, only: %i[index new create edit update destroy] do
       member do
         patch :confirm   # commit a pending/needs_* row → posted (saves review edits first)
+        get   :receipt   # up-tier F5 — authenticated, account-scoped receipt bytes (proxied)
       end
     end
     resources :transfers,  only: :create                         # R5 — single-row transfer between accounts
+
+    # up-tier F4 — data export: new is the form, index the sync download (send_data).
+    resources :exports, only: %i[new index]
 
     # R10/R11 — recurring commitments and their computed occurrences.
     resources :commitments, only: %i[index show create update destroy] do

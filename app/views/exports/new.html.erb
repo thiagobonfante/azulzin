@@ -1,0 +1,48 @@
+<% content_for :title, t(".meta_title") %>
+
+<div class="mx-auto flex max-w-lg flex-col gap-6">
+  <div>
+    <h1 class="font-display text-xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+    <p class="mt-1 text-sm text-base-content/60"><%= t(".subtitle") %></p>
+  </div>
+
+  <%# Plain GET → send_data attachment; Turbo is off so the browser downloads natively
+      and the form page stays put. %>
+  <%= form_with url: exports_path, method: :get, data: { turbo: false },
+        class: "flex flex-col gap-5 rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm" do |f| %>
+    <div>
+      <%= f.label :format, t(".format"), class: "mb-1 block text-sm font-medium" %>
+      <%= f.select :format,
+            [ [ t(".formats.xlsx"), "xlsx" ], [ t(".formats.csv"), "csv" ], [ t(".formats.pdf"), "pdf" ] ],
+            {}, class: "select select-bordered w-full" %>
+    </div>
+
+    <fieldset>
+      <legend class="mb-2 block text-sm font-medium"><%= t(".period") %></legend>
+      <div class="flex flex-col gap-2">
+        <% %w[current_month last_3_months year all custom].each_with_index do |preset, index| %>
+          <label class="flex items-center gap-2 text-sm">
+            <%= f.radio_button :preset, preset, checked: index.zero?, class: "radio radio-sm" %>
+            <%= t(".presets.#{preset}") %>
+          </label>
+        <% end %>
+      </div>
+    </fieldset>
+
+    <div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <%= f.label :from, t(".from"), class: "mb-1 block text-sm font-medium" %>
+          <%= f.date_field :from, class: "input input-bordered w-full" %>
+        </div>
+        <div>
+          <%= f.label :to, t(".to"), class: "mb-1 block text-sm font-medium" %>
+          <%= f.date_field :to, class: "input input-bordered w-full" %>
+        </div>
+      </div>
+      <p class="mt-1 text-xs text-base-content/50"><%= t(".custom_hint") %></p>
+    </div>
+
+    <%= f.submit t(".download"), class: "btn btn-primary" %>
+  <% end %>
+</div>

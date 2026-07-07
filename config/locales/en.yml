@@ -77,6 +77,8 @@ en:
       category:
         name: "Name"
         monthly_budget_cents: "Monthly budget"
+      transaction:
+        receipt: "Receipt"
       commitment:
         name: "Name"
         kind: "Type"
@@ -136,6 +138,9 @@ en:
           attributes:
             transfer_to_bank_account:
               same_account: "can't be the same as the source account."
+            receipt:
+              too_large: "exceeds the 10 MB limit."
+              unsupported_type: "has an unsupported format. Send a JPG, PNG, WEBP, HEIC or PDF."
         document_import:
           attributes:
             file:
@@ -565,6 +570,7 @@ en:
     ledger:
       title: "Activity"
       add: "Add"
+      export: "Export"
       search_placeholder: "Search activity"
       no_results: "No matching activity"
       views:
@@ -613,6 +619,11 @@ en:
       cancel: "Cancel"
       category: "Category"
       direction: "Entry type"
+      receipt: "Receipt"
+      attach_receipt: "Attach receipt"
+      view_receipt: "View receipt"
+      close_receipt: "Close receipt"
+      has_receipt: "Has a receipt"
     new:
       submit: "Add"
     create:
@@ -624,6 +635,51 @@ en:
       confirmed: "Expense confirmed."
     destroy:
       removed: "Expense removed."
+  exports:
+    ledger:
+      sheet_name: "Statement"
+      total: "Total"
+      headers:
+        occurred_on: "Date"
+        billing_month: "Billing month"
+        description: "Description"
+        category: "Category"
+        kind: "Type"
+        amount: "Amount"
+        instrument: "Account/card"
+        status: "Status"
+      kinds:
+        expense: "Expense"
+        income: "Income"
+        transfer: "Transfer"
+    new:
+      meta_title: "Export data"
+      title: "Export data"
+      subtitle: "Download your movements as a spreadsheet or PDF."
+      format: "Format"
+      formats:
+        xlsx: "Spreadsheet (.xlsx)"
+        csv: "CSV (.csv)"
+        pdf: "PDF (.pdf)"
+      period: "Period"
+      presets:
+        current_month: "Current month"
+        last_3_months: "Last 3 months"
+        year: "This year"
+        all: "Everything"
+        custom: "Custom"
+      from: "From"
+      to: "To"
+      custom_hint: "The dates apply only to the custom period."
+      download: "Download"
+    index:
+      filename: "azulzin-statement-%{month}.%{ext}"
+    pdf:
+      title: "Statement — %{account}"
+      period: "Period: %{from} to %{to}"
+      period_empty: "No movements in the period."
+      by_category: "Totals by category"
+      net_total: "Net for the period: %{amount}"
   document_imports:
     hero_title: "Import a statement"
     choose_files: "Choose files…"

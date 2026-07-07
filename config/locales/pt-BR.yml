@@ -78,6 +78,8 @@ pt-BR:
       category:
         name: "Nome"
         monthly_budget_cents: "Orçamento do mês"
+      transaction:
+        receipt: "Comprovante"
       commitment:
         name: "Nome"
         kind: "Tipo"
@@ -137,6 +139,9 @@ pt-BR:
           attributes:
             transfer_to_bank_account:
               same_account: "não pode ser a mesma conta de origem."
+            receipt:
+              too_large: "excede o limite de 10 MB."
+              unsupported_type: "tem um formato não suportado. Envie JPG, PNG, WEBP, HEIC ou PDF."
         document_import:
           attributes:
             file:
@@ -566,6 +571,7 @@ pt-BR:
     ledger:
       title: "Movimentos"
       add: "Adicionar"
+      export: "Exportar"
       search_placeholder: "Buscar movimentos"
       no_results: "Nenhum movimento encontrado"
       views:
@@ -614,6 +620,11 @@ pt-BR:
       cancel: "Cancelar"
       category: "Categoria"
       direction: "Tipo de lançamento"
+      receipt: "Comprovante"
+      attach_receipt: "Anexar comprovante"
+      view_receipt: "Ver comprovante"
+      close_receipt: "Fechar comprovante"
+      has_receipt: "Tem comprovante"
     new:
       submit: "Adicionar"
     create:
@@ -625,6 +636,51 @@ pt-BR:
       confirmed: "Lançamento confirmado."
     destroy:
       removed: "Lançamento removido."
+  exports:
+    ledger:
+      sheet_name: "Extrato"
+      total: "Total"
+      headers:
+        occurred_on: "Data"
+        billing_month: "Mês de competência"
+        description: "Descrição"
+        category: "Categoria"
+        kind: "Tipo"
+        amount: "Valor"
+        instrument: "Conta/cartão"
+        status: "Status"
+      kinds:
+        expense: "Saída"
+        income: "Entrada"
+        transfer: "Transferência"
+    new:
+      meta_title: "Exportar dados"
+      title: "Exportar dados"
+      subtitle: "Baixe seus movimentos em planilha ou PDF."
+      format: "Formato"
+      formats:
+        xlsx: "Planilha (.xlsx)"
+        csv: "CSV (.csv)"
+        pdf: "PDF (.pdf)"
+      period: "Período"
+      presets:
+        current_month: "Mês atual"
+        last_3_months: "Últimos 3 meses"
+        year: "Este ano"
+        all: "Tudo"
+        custom: "Personalizado"
+      from: "De"
+      to: "Até"
+      custom_hint: "As datas valem apenas para o período personalizado."
+      download: "Baixar"
+    index:
+      filename: "azulzin-extrato-%{month}.%{ext}"
+    pdf:
+      title: "Extrato — %{account}"
+      period: "Período: %{from} a %{to}"
+      period_empty: "Nenhum movimento no período."
+      by_category: "Totais por categoria"
+      net_total: "Resultado do período: %{amount}"
   document_imports:
     hero_title: "Importar extrato"
     choose_files: "Escolher arquivos…"
