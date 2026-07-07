@@ -488,6 +488,7 @@ pt-BR:
       needs_disambiguation: "Qual foi?"
     index:
       meta_title: "Transações"
+    fab_add: "Adicionar lançamento"
     hub:
       add_incomes_prompt: "Cadastre suas rendas para ver a projeção do mês"
       import_review_prompt:
@@ -947,6 +948,7 @@ pt-BR:
       title: "Ative o WhatsApp"
       subtitle: "Ative o WhatsApp para lançar gastos por áudio, foto ou texto."
       code_label: "Seu código de ativação"
+      copy_code: "Copiar código"
       instructions_html: "Envie a palavra %{code} para o nosso WhatsApp %{number} para ativar."
       instructions_pending_html: "Envie a palavra %{code} assim que o nosso número estiver ativo para ativar."
       refresh: "Já enviei — atualizar"

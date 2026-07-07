@@ -42,3 +42,14 @@
       the same way as the current month (a future date bills to that month). %>
   <%= render "transactions/ledger", ledger: @ledger, month: @month %>
 </div>
+
+<%# Mobile quick-add FAB — the inline add form sits at the bottom of the page and is easy to
+    miss on a phone. This floats over the content on small screens; on lg+ the sidebar layout
+    keeps the ledger's own "Adicionar" within reach, so it's hidden there. Tapping it opens the
+    add form (in the new_entry frame) and scrolls it into view. %>
+<%= link_to new_transaction_path(kind: :expense, month: @month.strftime("%Y-%m")),
+      data: { turbo_frame: "new_entry", controller: "quick-add", action: "click->quick-add#open" },
+      class: "btn btn-primary btn-circle btn-lg fixed bottom-6 left-1/2 z-20 -translate-x-1/2 shadow-lg lg:hidden",
+      aria: { label: t("transactions.fab_add") } do %>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+<% end %>

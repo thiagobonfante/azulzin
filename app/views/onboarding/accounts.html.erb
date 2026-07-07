@@ -4,7 +4,9 @@
   <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl"><%= t("onboarding.accounts.title") %></h1>
   <p class="mt-2 text-base-content/70"><%= t("onboarding.accounts.subtitle") %></p>
 
-  <%= render "document_imports/uploader" %>
+  <div class="mt-6">
+    <%= render "document_imports/uploader" %>
+  </div>
 
   <div id="bank_accounts_list" class="mt-6 flex flex-col gap-3">
     <% if @bank_accounts.any? %>
