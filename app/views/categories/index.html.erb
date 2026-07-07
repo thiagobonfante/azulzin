@@ -21,5 +21,17 @@
       <h2 class="mb-4 font-display text-lg font-bold"><%= t("categories.add_title") %></h2>
       <%= render "categories/form", category: @category %>
     </div>
+
+    <% if @uncategorized_count.positive? %>
+      <div class="mt-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+        <h2 class="mb-1 font-display text-lg font-bold"><%= t("categories.backfill.title") %></h2>
+        <p class="mb-3 text-sm text-base-content/60"><%= t("categories.backfill.description", count: @uncategorized_count) %></p>
+        <% if Current.account.category_backfill_at&.after?(24.hours.ago) %>
+          <p class="text-xs text-base-content/50"><%= t("categories.backfill.ran_recently") %></p>
+        <% else %>
+          <%= button_to t("categories.backfill.button"), backfill_categories_path, class: "btn btn-primary btn-sm" %>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 </div>

@@ -15,6 +15,9 @@ module Commitments
         confirmed_at:         Time.current,
         amount_cents:         amount || commitment.amount_cents,
         category_id:          commitment.category_id,
+        # Provenance for merchant memory: app-created commitments had their category picked or
+        # confirmed by a person ("user"); WhatsApp-created ones were AI-resolved ("ai").
+        category_source:      (commitment.category_id ? (commitment.source == "whatsapp" ? "ai" : "user") : nil),
         occurred_on:          Date.current.in_time_zone("America/Sao_Paulo").to_date,
         billing_month:        month,
         billing_month_manual: true,

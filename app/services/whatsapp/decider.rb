@@ -26,7 +26,12 @@ module Whatsapp
     def post
       instrument = assignable_instrument
       txn = upsert(status: "posted", confirmed_at: Time.current, instrument: instrument)
-      if instrument
+      # Naming the auto-assigned category in the reply is the cheap correction loop (O2):
+      # a wrong silent category becomes visible immediately, not at month-end.
+      if instrument && txn.category
+        reply("whatsapp.replies.posted_categorized", txn,
+              amount: currency, instrument: instrument.display_name, category: txn.category.name)
+      elsif instrument
         reply("whatsapp.replies.posted", txn,
               amount: currency, instrument: instrument.display_name)
       else
@@ -71,7 +76,9 @@ module Whatsapp
         # Explicit billing_month write site (02 §3.2-1): the closing rule for a matched card,
         # calendar month otherwise. Computed here, not left solely to the before_validation net.
         t.billing_month    = billing_month_for(instrument, t.occurred_on)
-        t.category_id      = resolve_category      # R6 guess resolved in Ruby (≥ 0.75), never an LLM id
+        # R6: memory → LLM label resolved in Ruby (≥ MATCH_MIN), never an LLM id.
+        t.category_id, t.category_source =
+          Categories.auto_assign(account: account, merchant: @extraction.merchant, label: @extraction.category)
         t.status           = status
         t.confirmed_at     = (Time.current if status == "posted")
         t.source           = @extraction.source
@@ -86,14 +93,6 @@ module Whatsapp
         # so the bill projection drops out (no double-count).
         t.commitment_id = link_card_commitment(t) if status == "posted" && instrument.is_a?(CreditCard)
       end
-    end
-
-    def resolve_category
-      guess = @extraction.category
-      return nil if guess.blank?
-      term = Whatsapp.normalize(guess)
-      best = account.categories.kept.max_by { |c| Whatsapp.similarity(term, Whatsapp.normalize(c.name)) }
-      best&.id if best && Whatsapp.similarity(term, Whatsapp.normalize(best.name)) >= 0.75
     end
 
     # "Whose stuff?" → account (spine D6), with the deploy-window nil fallback (doc 04 §3.1/§4).

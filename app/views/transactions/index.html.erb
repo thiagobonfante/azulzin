@@ -26,6 +26,19 @@
     <% end %>
   <% end %>
 
+  <%# Backfill result banner (auto-categories O3): silent apply + one-click undo. Derived
+      from category_backfill_at + the run's row count — dismiss just clears the timestamp. %>
+  <% if (backfill_at = Current.account.category_backfill_at) && backfill_at.after?(7.days.ago) &&
+        (backfilled = Current.account.transactions.auto_categorized_since(backfill_at).count).positive? %>
+    <div class="flex items-center justify-between gap-2 rounded-box border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+      <span class="text-primary"><%= t("categories.backfill.banner", count: backfilled) %></span>
+      <div class="flex shrink-0 gap-1">
+        <%= button_to t("categories.backfill.undo"), backfill_undo_categories_path, class: "btn btn-ghost btn-xs" %>
+        <%= button_to t("categories.backfill.dismiss"), backfill_dismiss_categories_path, class: "btn btn-ghost btn-xs" %>
+      </div>
+    </div>
+  <% end %>
+
   <%# D — tiles %>
   <div class="grid gap-4 sm:grid-cols-2">
     <%= render "transactions/accounts_tile", summary: @summary %>

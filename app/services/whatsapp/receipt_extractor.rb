@@ -20,6 +20,7 @@ module Whatsapp
       - origin_phrase = null em comprovantes de compra.
       - purchase_date em ISO (YYYY-MM-DD) só se estiver no comprovante; senão null.
       - is_receipt = false se a imagem não for um comprovante (de compra ou transferência).
+      - category: um palpite de categoria do gasto, se der (será resolvido no app).
       - Preencha field_confidence e overall_confidence com honestidade. Não invente.
     PT
 
@@ -29,7 +30,7 @@ module Whatsapp
         "type" => "object", "additionalProperties" => false,
         "required" => %w[is_receipt document_type merchant_name merchant_cnpj purchase_date
                          currency total_raw payment_method origin_phrase field_confidence
-                         overall_confidence notes],
+                         overall_confidence notes category],
         "properties" => {
           "is_receipt"    => { "type" => "boolean" },
           "document_type" => { "type" => "string", "enum" => %w[nfce nfe cupom_fiscal card_slip transferencia other] },
@@ -47,7 +48,8 @@ module Whatsapp
             "properties" => %w[merchant total date payment_method].index_with { { "type" => "number" } }
           },
           "overall_confidence" => { "type" => "number" },
-          "notes" => { "type" => %w[string null] }
+          "notes" => { "type" => %w[string null] },
+          "category" => { "type" => %w[string null] }
         }
       }
     }.freeze
@@ -57,7 +59,8 @@ module Whatsapp
       messages = [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: [
-          { type: "text", text: "Extraia os dados deste comprovante." },
+          { type: "text", text: [ "Extraia os dados deste comprovante.",
+                                  Categories.closed_set_line(msg.account || msg.user&.account) ].compact.join("\n\n") },
           { type: "image_url", image_url: { url: data_url(msg.media) } }
         ] }
       ]
@@ -80,7 +83,8 @@ module Whatsapp
         overall_confidence: effective_confidence(parsed, total_raw),
         modality:           "image",
         source:             "whatsapp_receipt",
-        raw:                parsed
+        raw:                parsed,
+        category:           parsed["category"].presence
       )
     end
 

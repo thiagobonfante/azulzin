@@ -37,6 +37,38 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_not @user.account.categories.kept.exists?(cat.id), "gone from the kept list"
   end
 
+  test "suggest returns the memory category for a known merchant" do
+    cat = @user.account.categories.create!(name: "Restaurantes")
+    @user.account.transactions.create!(amount_cents: 100, occurred_on: Date.current, status: "posted",
+                                       direction: "expense", merchant: "iFood",
+                                       category: cat, category_source: "user")
+    get suggest_categories_url, params: { merchant: "IFOOD" }
+    assert_response :success
+    assert_equal cat.id, JSON.parse(response.body)["category_id"]
+  end
+
+  test "suggest is 204 on a miss and for machine-categorized history" do
+    get suggest_categories_url, params: { merchant: "desconhecido" }
+    assert_response :no_content
+
+    cat = @user.account.categories.create!(name: "Transporte")
+    @user.account.transactions.create!(amount_cents: 100, occurred_on: Date.current, status: "posted",
+                                       direction: "expense", merchant: "Uber",
+                                       category: cat, category_source: "ai")
+    get suggest_categories_url, params: { merchant: "Uber" }
+    assert_response :no_content
+  end
+
+  test "suggest never leaks another account's memory" do
+    other = users(:english)
+    cat = other.account.categories.create!(name: "Groceries")
+    other.account.transactions.create!(amount_cents: 100, occurred_on: Date.current, status: "posted",
+                                       direction: "expense", merchant: "Zaffari", created_by: other,
+                                       category: cat, category_source: "user")
+    get suggest_categories_url, params: { merchant: "Zaffari" }
+    assert_response :no_content
+  end
+
   test "restore re-seeds the 12 locale defaults, idempotently" do
     assert_difference -> { @user.account.categories.count }, 12 do
       post restore_categories_url

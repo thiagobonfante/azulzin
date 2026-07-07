@@ -37,6 +37,33 @@ class Whatsapp::ExtractorTest < ActiveSupport::TestCase
     assert_equal "whatsapp_audio", ex.source
   end
 
+  test "closed-set category line rides the user message, capped and usage-ordered" do
+    user = users(:confirmed)
+    Categories::SeedDefaults.call(user.account, locale: "pt-BR")
+    sent = nil
+    fake_result = Struct.new(:parsed).new({ "amount_raw" => "10" })
+    client = Object.new
+    client.define_singleton_method(:chat) { |**kwargs| sent = kwargs; fake_result }
+
+    Whatsapp::Extractor.from_text(user, "10 no mercado", client: client)
+
+    user_msg = sent[:messages].last[:content]
+    assert_includes user_msg, "Categorias do usuário:"
+    assert_includes user_msg, "Mercado"
+    assert_equal "10 no mercado", user_msg.split("\n\n").first
+    assert_not_includes sent[:messages].first[:content], "Categorias do usuário:" # system prompt stays static
+  end
+
+  test "no categories → no closed-set line (message is just the text)" do
+    sent = nil
+    fake_result = Struct.new(:parsed).new({ "amount_raw" => "10" })
+    client = Object.new
+    client.define_singleton_method(:chat) { |**kwargs| sent = kwargs; fake_result }
+
+    Whatsapp::Extractor.from_text(users(:confirmed), "10 no mercado", client: client)
+    assert_equal "10 no mercado", sent[:messages].last[:content]
+  end
+
   test "rejects a future occurred_on and keeps a nil amount nil" do
     client = client_returning({ "amount_raw" => nil, "occurred_on" => (Date.current + 5).iso8601 })
     ex = Whatsapp::Extractor.from_text(users(:confirmed), "sei la", client: client)

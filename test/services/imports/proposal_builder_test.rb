@@ -47,6 +47,23 @@ class Imports::ProposalBuilderTest < ActiveSupport::TestCase
     assert_equal "260", import.reload.institution.code
   end
 
+  test "a resolvable category_guess lands on the commitment proposal; an unresolvable one is dropped" do
+    Categories::SeedDefaults.call(@user.account, locale: "pt-BR")
+    contas = @user.account.categories.find_by(name: "Contas")
+    labels = (0..10).map do |i|
+      { "id" => i, "label" => "fixed_bill", "merchant_canonical" => "Copel", "commitment_name" => "Energia",
+        "category_guess" => "contas", "schedule_day" => 10, "confidence" => 0.9 }
+    end
+    import = build!(ofx_import, labels)
+    copel = import.proposals.find { it["kind"] == "commitment" }
+    assert_equal contas.id, copel.dig("payload", "category_id")
+
+    bogus = labels.map { it.merge("category_guess" => "xyzzy") }
+    import2 = build!(ofx_import, bogus)
+    copel2 = import2.proposals.find { it["kind"] == "commitment" }
+    assert_nil copel2.dig("payload", "category_id"), "unresolvable guess must not invent a category"
+  end
+
   test "pids are deterministic across re-runs (idempotent)" do
     import = build!(ofx_import)
     first = import.proposals.map { it["pid"] }

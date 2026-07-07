@@ -34,6 +34,13 @@ module DocumentImportsHelper
   end
 
   # Editable name input default: the suggested nickname/name, else the institution name.
+  # The resolved category on a commitment proposal (auto-categories, Phase 4) — looked up
+  # live so a category deleted between extract and review simply drops the chip.
+  def proposal_category(proposal)
+    id = proposal.dig("payload", "category_id")
+    Current.account.categories.kept.find_by(id: id) if id
+  end
+
   def proposal_name(proposal)
     proposal.dig("payload", "nickname").presence ||
       proposal.dig("payload", "name").presence ||

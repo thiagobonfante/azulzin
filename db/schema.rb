@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_06_200034) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -27,6 +27,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_200034) do
   end
 
   create_table "accounts", force: :cascade do |t|
+    t.datetime "category_backfill_at"
     t.datetime "created_at", null: false
     t.integer "members_count", default: 0, null: false
     t.string "name", null: false
@@ -255,6 +256,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_200034) do
     t.date "billing_month", null: false
     t.boolean "billing_month_manual", default: false, null: false
     t.bigint "category_id"
+    t.string "category_source"
     t.bigint "commitment_id"
     t.integer "confidence"
     t.datetime "confirmed_at"
@@ -270,6 +272,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_200034) do
     t.integer "installment_number"
     t.jsonb "match_meta", default: {}, null: false
     t.string "merchant"
+    t.string "merchant_norm"
     t.date "occurred_on", null: false
     t.string "payment_method"
     t.string "source"
@@ -280,6 +283,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_200034) do
     t.bigint "updated_by_id"
     t.bigint "whatsapp_message_id"
     t.index ["account_id", "billing_month"], name: "index_transactions_on_account_id_and_billing_month"
+    t.index ["account_id", "merchant_norm"], name: "index_transactions_on_account_id_and_merchant_norm"
     t.index ["account_id", "status"], name: "index_transactions_on_account_id_and_status"
     t.index ["account_id"], name: "index_transactions_on_account_id"
     t.index ["bank_account_id"], name: "index_transactions_on_bank_account_id"

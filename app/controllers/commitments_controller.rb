@@ -8,7 +8,7 @@ class CommitmentsController < ApplicationController
 
   def index
     @commitments = Current.account.commitments.kept.active.includes(:bank_account, :credit_card, :category).order(:kind, :created_at)
-    @archived    = Current.account.commitments.kept.where.not(archived_at: nil).includes(:bank_account, :credit_card)
+    @archived    = Current.account.commitments.kept.where.not(archived_at: nil).includes(:bank_account, :credit_card, :category)
     @commitment  = Commitment.new
   end
 
