@@ -54,8 +54,9 @@ class Transaction < ApplicationRecord
   PENDING_INBOX_STATUSES = (OPEN_ASK_STATUSES + %w[pending_review]).freeze
 
   # Receipt gates (up-tier F5, the DocumentImport lesson): browsers/clients send unreliable
-  # MIME types, so a receipt must both declare an allowed type AND carry that format's real
-  # magic bytes (an .exe renamed .jpg fails the byte probe).
+  # MIME types, so a receipt must both declare an allowed type AND carry the DECLARED
+  # format's real magic bytes (an .exe renamed .jpg fails the byte probe; so does a PDF
+  # blob declared image/webp — the probe is keyed by the declared type).
   MAX_RECEIPT_BYTES     = 10.megabytes
   RECEIPT_CONTENT_TYPES = %w[image/jpeg image/png image/webp image/heic application/pdf].freeze
   RECEIPT_MAGIC_BYTES = {
@@ -193,9 +194,12 @@ class Transaction < ApplicationRecord
       end
     end
 
+    # The probe is looked up by the DECLARED content type — the bytes must match what the
+    # client claims, not just any allowed format (a %PDF- blob declared image/webp fails).
     def receipt_magic_bytes_ok?(change)
-      head = receipt_head_bytes(change.attachable).to_s.b
-      RECEIPT_MAGIC_BYTES.values.any? { |probe| probe.call(head) }
+      probe = RECEIPT_MAGIC_BYTES[change.blob.content_type]
+      return false unless probe
+      probe.call(receipt_head_bytes(change.attachable).to_s.b)
     end
 
     # First bytes of the attachable, whatever shape it arrived in: an existing blob (the

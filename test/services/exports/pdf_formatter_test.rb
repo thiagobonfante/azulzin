@@ -21,11 +21,15 @@ class Exports::PdfFormatterTest < ActiveSupport::TestCase
     PDF::Reader.new(StringIO.new(pdf)).pages.map(&:text).join("\n")
   end
 
-  test "renders account header, period, month groups, category and net totals — localized" do
+  test "renders account header, period, month groups, category and labelled totals — localized" do
     category = @account.categories.create!(name: "Alimentação")
     txn(merchant: "Padaria São João", category: category, category_source: "user")
     txn(direction: "income", description: "Salário", amount_cents: 500_000,
         occurred_on: Date.new(2026, 6, 10))
+    savings = @account.bank_accounts.create!(institution: Institution.find_by(code: "260"),
+                                             nickname: "Caixinha", kind: "savings")
+    txn(direction: "transfer", amount_cents: 100_000, transfer_to_bank_account: savings,
+        occurred_on: Date.new(2026, 7, 5))
 
     text = pdf_text
     assert_includes text, @account.name
@@ -36,7 +40,11 @@ class Exports::PdfFormatterTest < ActiveSupport::TestCase
     assert_includes text, "Totais por categoria"
     assert_includes text, "Alimentação"
     assert_includes text, "R$ 123,45"
-    assert_includes text, "Resultado do período: R$ 4.876,55"
+    assert_includes text, "Entradas: R$ 5.000,00"
+    assert_includes text, "Saídas: R$ 123,45"
+    assert_includes text, "Transferências: R$ 1.000,00"
+    assert_includes text, "Resultado do período: R$ 4.876,55",
+                    "the transfer is neutral — it must not deflate the result"
   end
 
   test "text a Windows-1252 font cannot draw (emoji) is stripped, not crashed on" do

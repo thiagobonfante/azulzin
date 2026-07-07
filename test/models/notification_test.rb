@@ -11,6 +11,17 @@ class NotificationTest < ActiveSupport::TestCase
     Notification.record!(**defaults.merge(overrides))
   end
 
+  test "record! stringifies a symbol-keyed payload — in-memory reads like a reloaded row" do
+    row = record!(payload: { name: "Luz", amount_cents: 18_240,
+                             nested: [ { cents: 1 } ] })
+
+    assert_equal 18_240, row.payload["amount_cents"],
+                 "consumers read string keys straight off the record! return value, no reload"
+    assert_equal "Luz", row.payload["name"]
+    assert_equal [ { "cents" => 1 } ], row.payload["nested"], "stringification is deep"
+    assert_equal row.payload, row.reload.payload
+  end
+
   test "record! is idempotent on the dedup keys — one row, snapshot untouched" do
     first  = record!(payload: { "amount_cents" => 18_240 })
     second = record!(payload: { "amount_cents" => 99_999 })

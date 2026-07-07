@@ -56,7 +56,17 @@ class Exports::LedgerTest < ActiveSupport::TestCase
     txn(direction: "transfer", amount_cents: 2_000, transfer_to_bank_account: @savings)
     assert_equal [ 5_000, -1_234, -2_000 ],
                  rows.sort_by { |r| -r.amount_cents }.map(&:amount_cents)
-    assert_equal 1_766, Exports::Ledger.new(@account).total_cents
+  end
+
+  test "totals are per direction, and the result excludes transfers (hub parity)" do
+    txn(direction: "income", amount_cents: 5_000, description: "Salário", merchant: nil)
+    txn(direction: "expense", amount_cents: 1_234)
+    txn(direction: "transfer", amount_cents: 2_000, transfer_to_bank_account: @savings)
+    ledger = Exports::Ledger.new(@account)
+    assert_equal 5_000,  ledger.income_cents
+    assert_equal(-1_234, ledger.expense_cents)
+    assert_equal(-2_000, ledger.transfer_cents)
+    assert_equal 3_766,  ledger.result_cents, "a transfer is neutral — it must not deflate the result"
   end
 
   test "category name is a history snapshot — it survives the category's soft delete" do

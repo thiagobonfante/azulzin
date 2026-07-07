@@ -1,7 +1,9 @@
 <%# Proactive alert surface (.plans/up-tier 01 §4): one alert per undismissed
     notification for the current member in the current account, newest first. Copy is
     templated from the payload snapshot via notifications.dashboard.<kind>; dismissing
-    PATCHes and removes the banner (Turbo Stream). %>
+    PATCHes and removes the banner (Turbo Stream). Kinds with a promised deep-link (01 §4:
+    bill → mark-paid, budget → the category, surplus → the transfer form) render ONE
+    primary action; the rest are text + dismiss. %>
 <% if notifications.any? %>
   <div id="notifications" class="flex flex-col gap-2">
     <% notifications.each do |notification| %>
@@ -16,6 +18,33 @@
           <%= link_to t("transactions.hero.save_cta"),
                 transactions_path(month: notification.period_key.strftime("%Y-%m")),
                 class: "btn btn-primary btn-xs" %>
+        <% elsif %w[bill_due bill_overdue].include?(notification.kind) %>
+          <%# The hub's exact pay endpoint (Commitments::MarkPaid, double-pay-safe): subject +
+              period_key name the occurrence. Paying also dismisses this banner (notification_id);
+              from/month reuse the hub's Turbo refresh — its targets are absent on the dashboard,
+              so those streams no-op there. No button once paid elsewhere or the commitment is gone. %>
+          <% if (occurrence = notification_payable_occurrence(notification)) %>
+            <%= button_to t("commitments.occurrences.mark_paid"),
+                  pay_commitment_occurrence_path(occurrence, month: params[:month], from: "hub",
+                                                 notification_id: notification.id),
+                  method: :patch, class: "btn btn-primary btn-xs" %>
+          <% end %>
+        <% elsif %w[budget_warn budget_breach].include?(notification.kind) %>
+          <%# Deep-link to the category (01 §4): the budget field lives on the categories
+              index (in-place edit), anchored at the subject's row. %>
+          <%= link_to t(".view_category"),
+                categories_path(anchor: ("category_#{notification.subject_id}" if notification.subject_id)),
+                class: "btn btn-primary btn-xs" %>
+        <% elsif notification.kind == "rightsize_budget" %>
+          <%# The promised ONE TAP (03 §5.2): lower the budget to the typical (median) value
+              through the existing categories#update. Plain-HTML submit → the update redirect
+              lands on the categories index, where the new "R$ X / mês" shows. %>
+          <% if (category = notification.subject) && !category.soft_deleted? %>
+            <%= button_to t(".rightsize_cta", typical: brl(notification.payload["typical_cents"])),
+                  category_path(category), method: :patch,
+                  params: { category: { monthly_budget_reais: MoneyColumns.prefill(notification.payload["typical_cents"]) } },
+                  form: { data: { turbo: false } }, class: "btn btn-primary btn-xs" %>
+          <% end %>
         <% end %>
         <%= button_to t(".dismiss"), dismiss_notification_path(notification), method: :patch,
               class: "btn btn-ghost btn-xs" %>

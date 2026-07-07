@@ -8,9 +8,9 @@ module Reminders
   #   bill_due / bill_overdue — unpaid commitment occurrences (fixa / assinatura / parcela).
   #     Card-charged commitments are included: they remind via their occurrence's due_on,
   #     NEVER via the fatura — the fatura reminder below is the aggregate (anti-pattern 02 §6).
-  #   card_bill — fatura closing + due for each billing-configured card. Two sub-events,
-  #     one kind, discriminated by payload["event"] ("closing" | "due"); distinct
-  #     period_keys let both fire, once each.
+  #   card_closing / card_due — fatura closing + due for each billing-configured card.
+  #     Two kinds (the dedup key is kind-scoped, so a closing landing on the previous
+  #     month's due date never dedups away); distinct period_keys let both fire, once each.
   #   income_expected — expected incomes not yet received, checked through
   #     MonthSummary#income_received? (linked receipt OR unlinked deposit within ±10%),
   #     never a bare received check.
@@ -70,16 +70,16 @@ module Reminders
       end
     end
 
-    # Both sub-events carry the composed hub figure (CreditCard#bill_cents: posted rows +
+    # Both kinds carry the composed hub figure (CreditCard#bill_cents: posted rows +
     # unlinked card-commitment projection) — the running total at closing, the bill amount
-    # at due. With closing_offset_days = 0 the two dates coincide and dedup collapses them
-    # into the earlier-recorded row; that card genuinely has one fatura moment.
+    # at due. With closing_offset_days = 0 the two dates coincide and both still fire
+    # (distinct kinds, distinct copy): that card's fatura closes and falls due at once.
     def fatura_events(card, billing_month)
-      { "closing" => card.closing_date(billing_month),
-        "due"     => card.due_date(billing_month) }.filter_map do |sub_event, date|
+      { "card_closing" => card.closing_date(billing_month),
+        "card_due"     => card.due_date(billing_month) }.filter_map do |kind, date|
         next unless date.between?(@from, @to)
-        event("card_bill", card, date,
-              event: sub_event, card: card.display_name,
+        event(kind, card, date,
+              card: card.display_name,
               amount_cents: card.bill_cents(billing_month),
               date: date.iso8601, days_until: (date - @from).to_i)
       end

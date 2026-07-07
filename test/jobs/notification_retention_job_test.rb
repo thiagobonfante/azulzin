@@ -9,7 +9,7 @@ class NotificationRetentionJobTest < ActiveSupport::TestCase
 
   test "deletes only rows whose period_key is older than the window" do
     old    = make_notification("bill_due",    60.days.ago.to_date)
-    edge   = make_notification("card_bill",   45.days.ago.to_date)
+    edge   = make_notification("card_due",    45.days.ago.to_date)
     recent = make_notification("budget_warn", Date.current)
 
     assert_equal 1, NotificationRetentionJob.new.perform

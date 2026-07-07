@@ -81,22 +81,21 @@ class Reminders::ScanTest < ActiveSupport::TestCase
     assert_equal [ "bill_due" ], events.map { |e| e[:kind] }
   end
 
-  test "card fatura: closing and due fire as separate events at their own dates" do
+  test "card fatura: closing and due fire as separate kinds at their own dates" do
     card = card!(due_day: 10, offset: 2)   # July fatura closes 07-08, due 07-10
     @account.transactions.create!(direction: "expense", status: "posted", amount_cents: 12_300,
                                   occurred_on: Date.new(2026, 7, 1), credit_card: card)
 
     closing_events = scan   # window 07-07..07-08 catches the closing only
-    assert_equal [ "card_bill" ], closing_events.map { |e| e[:kind] }
+    assert_equal [ "card_closing" ], closing_events.map { |e| e[:kind] }
     closing = closing_events.first
     assert_equal card, closing[:subject]
     assert_equal Date.new(2026, 7, 8), closing[:period_key]
-    assert_equal "closing", closing[:payload][:event]
     assert_equal 12_300, closing[:payload][:amount_cents]
     assert_equal 1, closing[:payload][:days_until]
 
     due_events = scan(from: TODAY + 2, to: TODAY + 3)   # window 07-09..07-10 catches the due
-    assert_equal [ "due" ], due_events.map { |e| e[:payload][:event] }
+    assert_equal [ "card_due" ], due_events.map { |e| e[:kind] }
     assert_equal Date.new(2026, 7, 10), due_events.first[:period_key]
     assert_equal 12_300, due_events.first[:payload][:amount_cents]
   end
@@ -113,8 +112,8 @@ class Reminders::ScanTest < ActiveSupport::TestCase
                        amount_cents: 3_990, schedule_day: 8, starts_on: TODAY.beginning_of_month)
 
     events = scan   # occurrence due 07-08 AND fatura closing 07-08 — different subjects
-    assert_equal({ "bill_due" => 1, "card_bill" => 1 }, events.map { |e| e[:kind] }.tally)
-    fatura = events.find { |e| e[:kind] == "card_bill" }
+    assert_equal({ "bill_due" => 1, "card_closing" => 1 }, events.map { |e| e[:kind] }.tally)
+    fatura = events.find { |e| e[:kind] == "card_closing" }
     assert_equal 3_990, fatura[:payload][:amount_cents],
                  "the fatura event carries the aggregate (the unlinked charge), never a per-charge reminder"
   end

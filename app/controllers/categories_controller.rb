@@ -66,7 +66,7 @@ class CategoriesController < ApplicationController
   def suggest_budget
     category = Current.account.categories.kept.find(params[:id])
     if (cents = Budgets::Suggest.call(Current.account)[category.id])
-      render json: { budget_reais: format("%.2f", cents.fdiv(100)).tr(".", ",") }
+      render json: { budget_reais: MoneyColumns.prefill(cents) }
     else
       head :no_content
     end

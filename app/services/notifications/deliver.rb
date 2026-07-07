@@ -73,10 +73,12 @@ module Notifications
       claimed = Notification.where(id: @notification.id, whatsapp_sent_at: nil)
                             .update_all(whatsapp_sent_at: Time.current) == 1
       return false unless claimed
+      footer = intro_footer_pending?
       WhatsappReply.deliver(user: @user,
                             key: "whatsapp.replies.notifications.#{Notifications.template_key(@notification)}",
-                            footer_key: ("whatsapp.replies.notifications_footer" if intro_footer?),
+                            footer_key: ("whatsapp.replies.notifications_footer" if footer),
                             **template_args)
+      mark_intro_sent! if footer
       true
     end
 
@@ -93,14 +95,20 @@ module Notifications
       end
     end
 
-    # The one-time opt-out courtesy (01 §2): the FIRST push a user ever receives carries
-    # a "responda *parar*" footer; subsequent ones don't. The nil-stamp update_all is the
-    # atomic guard (belt to the per-user job serialization's braces) — concurrent sends
-    # can't both win it, so no double footer. prefs is always persisted here: consent
-    # (gate 1) is only ever true on a saved row.
-    def intro_footer?
-      NotificationPreference.where(id: prefs.id, wa_intro_sent_at: nil)
-                            .update_all(wa_intro_sent_at: Time.current) == 1
+    # The one-time opt-out courtesy (01 §2): the FIRST push a user ever gets DELIVERED
+    # carries a "responda *parar*" footer; subsequent ones don't. Read-then-stamp, with
+    # the stamp AFTER the send succeeds — a failed send must not burn the courtesy. The
+    # per-user job serialization (the shared "proactive_notify" concurrency group) keeps
+    # the read race-free; the remaining failure mode is the benign direction: a crash
+    # between send and stamp repeats the footer once on the NEXT push. prefs is always
+    # persisted here: consent (gate 1) is only ever true on a saved row.
+    def intro_footer_pending? = prefs.wa_intro_sent_at.nil?
+
+    # update_column (not update_all) so the cached association object is stamped too —
+    # a multi-event sweep reuses the same user across Deliver calls, and the second push
+    # of a first-ever sweep must not repeat the footer.
+    def mark_intro_sent!
+      prefs.update_column(:wa_intro_sent_at, Time.current)
     end
   end
 end

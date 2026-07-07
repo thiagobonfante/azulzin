@@ -9,8 +9,9 @@ module Reminders
     queue_as :default
 
     def perform
+      as_of = Date.current   # SP (app TZ) at DISPATCH time — a member job drained late still keys this day
       pairs = AccountMembership.pluck(:account_id, :user_id)
-      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id) }
+      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id, as_of) }
       Rails.logger.info("reminders_daily_dispatch: enqueued #{pairs.size} member scans")
     end
   end

@@ -1,3 +1,5 @@
+<%# Paid from an alert banner → the dismissed notification leaves the page too (01 §4). %>
+<%= turbo_stream.remove @notification if @notification %>
 <% if params[:from] == "hub" %>
   <%= turbo_stream.replace "a_pagar", partial: "transactions/a_pagar", locals: { occurrences: hub_occurrences, month: viewed_month } %>
   <%# The payment is an ordinary posted row — surface it in Movimentos right away. %>

@@ -93,6 +93,18 @@ class Summaries::NotifyMemberJobTest < ActiveSupport::TestCase
     assert_no_difference(-> { Notification.count }) { run_for(period: "monthly") }
   end
 
+  test "a run drained past Sunday midnight still files under the DISPATCHED week (as_of)" do
+    @user.notification_prefs.update!(weekly_summary: true)
+    seed_week!
+    travel_to Time.utc(2026, 7, 13, 4, 0)   # Monday 01:00 SP — the queue drained a day late
+
+    Summaries::NotifyMemberJob.perform_now(@account.id, @user.id, "weekly", Date.new(2026, 7, 12))
+
+    row = Notification.find_by!(kind: "weekly_summary")
+    assert_equal MONDAY, row.period_key, "keyed to the dispatched week's Monday, not the next"
+    assert_equal 42_000, row.payload["spent_cents"], "the window is the dispatched week too"
+  end
+
   test "a member no longer in the account gets nothing" do
     outsider = users(:english)
     outsider.notification_prefs.update!(weekly_summary: true)

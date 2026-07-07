@@ -74,29 +74,53 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
     assert bodies.sole.match?(/R\$\s?\d/), "reais never render as dollars"
   end
 
-  test "card_bill resolves its sub-event template through the shared key (closing vs due)" do
-    payload = { "event" => "closing", "card" => "Nubank", "amount_cents" => 234_056,
-                "date" => "2026-07-10", "days_until" => 3 }
+  test "a REAL scanner event round-trips: Scan (symbol keys) → record! → push renders" do
+    inst = Institution.find_by(code: "260")
+    card = CreditCard.create!(account: @account, institution: inst,
+                              bill_due_day: 10, closing_offset_days: 2)   # July fatura closes 07-08
+    @account.transactions.create!(direction: "expense", status: "posted", amount_cents: 12_300,
+                                  occurred_on: Date.new(2026, 7, 1), credit_card: card)
+    event = Reminders::Scan.call(@account, from: Date.new(2026, 7, 7), to: Date.new(2026, 7, 8)).sole
+    assert_equal "card_closing", event[:kind]
+
     bodies = capture_sends do
-      Notifications::Deliver.call(notification(kind: "card_bill", payload: payload))
+      assert Notifications::Deliver.call(
+        Notification.record!(user: @user, account: @account, **event))
     end
-    assert_includes bodies.sole, "fecha em 3 dias", "payload event completes card_bill into card_closing"
-    assert_includes bodies.sole, "*Nubank*"
+    assert_includes bodies.sole, "fecha amanhã", "the scanner payload templates without a DB round-trip"
+    assert_includes bodies.sole, "R$ 123,00"
   end
+
+  CARD_DUE_PAYLOAD = { "card" => "Nubank", "amount_cents" => 234_056,
+                       "date" => "2026-07-10", "days_until" => 1 }.freeze
 
   test "the first-ever push carries the opt-out footer; the second doesn't" do
     @user.notification_prefs.update!(wa_intro_sent_at: nil)
     bodies = capture_sends do
       Notifications::Deliver.call(notification)
-      Notifications::Deliver.call(notification(kind: "card_bill", period_key: Date.new(2026, 7, 10),
-                                               payload: { "event" => "due", "card" => "Nubank",
-                                                          "amount_cents" => 234_056, "date" => "2026-07-10",
-                                                          "days_until" => 1 }))
+      Notifications::Deliver.call(notification(kind: "card_due", period_key: Date.new(2026, 7, 10),
+                                               payload: CARD_DUE_PAYLOAD))
     end
     assert_equal 2, bodies.size
     assert_includes bodies.first, "*parar*", "first push teaches the opt-out once"
     assert_not_includes bodies.second, "parar", "no repeated boilerplate"
-    assert_not_nil @user.notification_prefs.reload.wa_intro_sent_at, "the stamp is spent atomically"
+    assert_not_nil @user.notification_prefs.reload.wa_intro_sent_at, "the stamp is spent by the send"
+  end
+
+  test "a failed send does not burn the intro footer — the next delivered push teaches parar" do
+    @user.notification_prefs.update!(wa_intro_sent_at: nil)
+    WhatsappService.stub(:send_message, ->(*) { raise IOError, "sidecar hiccup" }) do
+      assert_raises(IOError) { Notifications::Deliver.call(notification) }
+    end
+    assert_nil @user.notification_prefs.reload.wa_intro_sent_at,
+               "the stamp lands only AFTER a successful send"
+
+    bodies = capture_sends do
+      Notifications::Deliver.call(notification(kind: "card_due", period_key: Date.new(2026, 7, 10),
+                                               payload: CARD_DUE_PAYLOAD))
+    end
+    assert_includes bodies.sole, "*parar*", "the first DELIVERED push still carries the courtesy"
+    assert_not_nil @user.notification_prefs.reload.wa_intro_sent_at
   end
 
   test "kind toggle off → no push (gates both channels' push, dashboard row remains)" do
@@ -166,7 +190,7 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
     end
     claim.call("budget_warn", 30.hours.ago)   # yesterday SP — doesn't count
     claim.call("budget_breach", Time.current)
-    claim.call("card_bill", Time.current)
+    claim.call("card_due", Time.current)
     assert deliver(notification).push_allowed?, "two claims today is under the cap"
 
     claim.call("weekly_summary", Time.current)   # summaries are counted too

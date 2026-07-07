@@ -139,6 +139,16 @@ class Summaries::BuildTest < ActiveSupport::TestCase
     assert_equal 2, payload[:budget_total]
   end
 
+  test "monthly: exactly-on-budget counts as blown, agreeing with the breach alert (spent >= budget)" do
+    cat = category!("Mercado", budget: 42_000)
+    spend!(42_000, on: Date.new(2026, 7, 8), category: cat)
+    travel_to Time.utc(2026, 8, 1, 11, 0)
+
+    payload = Summaries::Build.call(@account, :monthly)[:payload]
+    assert_equal 0, payload[:budget_within], "Budgets::Check fires budget_breach at spent == budget"
+    assert_equal 1, payload[:budget_total]
+  end
+
   test "monthly: no budgets set → no budget counts in the payload (the line skips)" do
     income!(100_000, on: Date.new(2026, 7, 5))
     travel_to Time.utc(2026, 8, 1, 11, 0)

@@ -23,10 +23,20 @@ module Exports
       end
     end
 
-    # Net of the exported range (signed cents) — the XLSX/PDF totals figure.
-    def total_cents = rows.sum(&:amount_cents)
+    # Labelled totals for XLSX/PDF (signed cents). The hub treats an internal transfer as
+    # neutral (MonthSummary counts savings via guardado), so Resultado excludes transfers —
+    # entradas + saídas only. Transfers get their own labelled figure instead of silently
+    # deflating the number a person reconciles against the hub.
+    def income_cents   = direction_cents("income")
+    def expense_cents  = direction_cents("expense")
+    def transfer_cents = direction_cents("transfer")
+    def result_cents   = income_cents + expense_cents
 
     private
+      def direction_cents(direction)
+        rows.sum { |row| row.direction == direction ? row.amount_cents : 0 }
+      end
+
       def scope
         base = account.transactions.posted.kept
                       .includes(:category, :bank_account, :credit_card, :commitment,

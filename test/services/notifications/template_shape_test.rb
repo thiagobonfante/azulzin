@@ -15,8 +15,8 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
   CASES = {
     "bill_due"         => (0..3).map { |d| { kind: "bill_due", payload: { "name" => "Luz", "amount_cents" => 18_240, "due_on" => "2026-07-08", "days_until" => d } } },
     "bill_overdue"     => [ 1, 3 ].map { |d| { kind: "bill_overdue", payload: { "name" => "Luz", "amount_cents" => 18_240, "due_on" => "2026-07-04", "days_overdue" => d } } },
-    "card_closing"     => (0..3).map { |d| { kind: "card_bill", payload: { "event" => "closing", "card" => "Nubank", "amount_cents" => 234_056, "date" => "2026-07-10", "days_until" => d } } },
-    "card_due"         => (0..3).map { |d| { kind: "card_bill", payload: { "event" => "due", "card" => "Nubank", "amount_cents" => 234_056, "date" => "2026-07-17", "days_until" => d } } },
+    "card_closing"     => (0..3).map { |d| { kind: "card_closing", payload: { "card" => "Nubank", "amount_cents" => 234_056, "date" => "2026-07-10", "days_until" => d } } },
+    "card_due"         => (0..3).map { |d| { kind: "card_due", payload: { "card" => "Nubank", "amount_cents" => 234_056, "date" => "2026-07-17", "days_until" => d } } },
     "income_expected"  => (0..3).map { |d| { kind: "income_expected", payload: { "name" => "Salário", "amount_cents" => 450_000, "expected_on" => "2026-07-05", "days_until" => d } } },
     "budget_warn"      => [ { kind: "budget_warn", payload: { "category" => "Restaurantes", "spent_cents" => 50_000, "budget_cents" => 60_000, "left_cents" => 10_000 } } ],
     "budget_breach"    => [ { kind: "budget_breach", payload: { "category" => "Restaurantes", "spent_cents" => 66_000, "budget_cents" => 60_000, "left_cents" => 0 } } ],
@@ -69,6 +69,17 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
           assert_notification_shape(body, type: variant.fetch(:type, :alert),
                                           label: "#{template_key} (#{locale}): #{body}")
         end
+      end
+    end
+
+    # 08 §6: a CTA must be answerable in-channel. No inbound intent parses a budget
+    # adjustment, so rightsize_budget is a statement — fact + nudge, zero questions
+    # (the app tap lives on the dashboard banner instead).
+    test "rightsize_budget is a statement in #{locale} — no dead-end question (08 §6)" do
+      CASES["rightsize_budget"].each do |variant|
+        body = render("rightsize_budget", locale: locale, **variant)
+        assert_equal 0, body.count("?"),
+                     "rightsize_budget (#{locale}) must not ask what no reply can answer: #{body}"
       end
     end
   end

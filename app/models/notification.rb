@@ -20,12 +20,14 @@ class Notification < ApplicationRecord
   # scanner gets the existing row back untouched — NEVER clobbering whatsapp_sent_at,
   # dismissed_at, or payload (the goals lesson: no find_or_initialize-overwrite). The
   # unique index referees the race: a concurrent loser rescues RecordNotUnique and loads
-  # the winner's row.
+  # the winner's row. The payload is stringified at the door so the in-memory row is
+  # indistinguishable from a reloaded one — scanners build symbol-keyed events, consumers
+  # (template_key, template_args) read string keys.
   def self.record!(user:, account:, kind:, period_key:, subject: nil, payload: {})
     dedup = { user: user, kind: kind, subject: subject, period_key: period_key }
     find_or_create_by!(dedup) do |notification|
       notification.account = account
-      notification.payload = payload
+      notification.payload = payload.deep_stringify_keys
     end
   rescue ActiveRecord::RecordNotUnique
     find_by!(dedup)

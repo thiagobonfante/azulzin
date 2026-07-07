@@ -20,4 +20,28 @@ class NotificationsHelperTest < ActionView::TestCase
     assert_match(/R\$\s*600,00/, message)
     assert_match(/R\$\s*100,00/, message)
   end
+
+  # 04 §3–4: a look-ahead-only week (Summaries::Build emits spent_cents: 0 when upcoming
+  # bills exist) must never render "você gastou R$ 0,00" — the dashboard picks the
+  # no-spend sibling key and drops the spent clause.
+  test "a zero-spend weekly summary renders on the dashboard without the R$ 0,00 filler" do
+    user = users(:confirmed)
+    row = Notification.record!(user: user, account: user.account, kind: "weekly_summary",
+                               period_key: Date.new(2026, 7, 6),
+                               payload: { spent_cents: 0, sobra_cents: 41_000, other_cents: 0,
+                                          top_categories: [],
+                                          upcoming: [ { "name" => "Luz", "cents" => 18_240 } ] })
+
+    message = I18n.with_locale(:"pt-BR") { notification_message(row) }
+    assert_no_match(/R\$\s*0,00/, message)
+    assert_match(/R\$\s*410,00/, message)
+
+    # A week with real spend keeps the regular copy.
+    spent = Notification.record!(user: user, account: user.account, kind: "weekly_summary",
+                                 period_key: Date.new(2026, 7, 13),
+                                 payload: { spent_cents: 92_000, sobra_cents: 41_000, other_cents: 0,
+                                            top_categories: [ { "name" => "Mercado", "cents" => 92_000 } ],
+                                            upcoming: [] })
+    assert_match(/R\$\s*920,00/, I18n.with_locale(:"pt-BR") { notification_message(spent) })
+  end
 end

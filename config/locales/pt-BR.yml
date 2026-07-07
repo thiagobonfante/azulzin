@@ -639,7 +639,11 @@ pt-BR:
   exports:
     ledger:
       sheet_name: "Extrato"
-      total: "Total"
+      totals:
+        income: "Entradas"
+        expenses: "Saídas"
+        transfers: "Transferências"
+        result: "Resultado"
       headers:
         occurred_on: "Data"
         billing_month: "Mês de competência"
@@ -935,6 +939,7 @@ pt-BR:
       surplus_nudge: "Você está com %{surplus} de sobra este mês. Que tal guardar na caixinha?"
       rightsize_budget: "%{category}: você combinou %{budget}, mas costuma gastar %{typical}. Que tal ajustar?"
       weekly_summary: "Resumo da semana: você gastou %{spent} e a sobra do mês está em %{sobra}."
+      weekly_summary_no_spend: "Resumo da semana: a sobra do mês está em %{sobra}."
       monthly_summary: "%{month} fechou: sobra %{sobra}, guardado %{saved}."
     summary_lines:
       spent: "Você gastou %{spent} — %{cats}."
@@ -945,6 +950,8 @@ pt-BR:
         other: "Você ficou dentro do combinado em %{within} de %{count} categorias."
     alert:
       dismiss: "Dispensar"
+      view_category: "Ver categoria"
+      rightsize_cta: "Ajustar para %{typical}"
   notification_preferences:
     show:
       meta_title: "Avisos · azulzin"
@@ -1114,7 +1121,7 @@ pt-BR:
       savings_answer: "Guardado: %{total} 💙 Esse mês você moveu %{month} pra caixinha."
       help: "Não entendi 🤔 Você pode me mandar coisas como:\n• \"mercado 84,90 no débito\"\n• \"guardei 200 na caixinha\"\n• \"paguei a parcela do carro\"\n• \"comprei um celular, 5000 em 10x\"\n• \"como tá o mês?\""
       notifications_footer: "Responda *parar* para desativar estes avisos."
-      notifications_stopped: "Prontinho, parei os avisos por aqui. É só voltar em Ajustes → Avisos quando quiser. 💙"
+      notifications_stopped: "Prontinho, parei os avisos por aqui. É só reativar em *Conta e membros → Avisos* quando quiser. 💙"
       notifications:
         bill_due:
           zero: "🔔 Sua conta *%{name}* (%{amount}) vence hoje. 💙"
@@ -1138,7 +1145,7 @@ pt-BR:
         budget_warn: "👀 *%{category}* já está em %{spent} de %{budget} este mês. Faltam %{left}."
         budget_breach: "⚠️ *%{category}* passou do combinado: %{spent} de %{budget} este mês."
         surplus_nudge: "💙 Você fechou o mês com *%{surplus}* de sobra. Quer guardar na caixinha?"
-        rightsize_budget: "💙 *%{category}*: você combinou %{budget}, mas costuma gastar %{typical}. Quer ajustar?"
+        rightsize_budget: "💙 *%{category}*: você combinou %{budget}, mas costuma gastar %{typical}. Dá pra ajustar em Categorias."
         weekly_summary: |-
           📊 *Resumo da semana*
           %{spent_line}Sobra do mês até agora: %{sobra}.

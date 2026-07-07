@@ -64,7 +64,7 @@ class Reminders::NotifyMemberJobTest < ActiveSupport::TestCase
     end
   end
 
-  test "card closing and due each land once, at their own dates, with the event discriminator" do
+  test "card closing and due each land once, at their own dates, as their own kinds" do
     card = CreditCard.create!(account: @account, institution: @inst,
                               bill_due_day: 10, closing_offset_days: 2)
     @account.transactions.create!(direction: "expense", status: "posted", amount_cents: 12_300,
@@ -75,9 +75,21 @@ class Reminders::NotifyMemberJobTest < ActiveSupport::TestCase
     run_for                                   # 07-09: due (07-10) enters the window
     run_for                                   # re-run: dedup holds
 
-    rows = Notification.where(kind: "card_bill").order(:period_key)
+    rows = Notification.where(kind: %w[card_closing card_due]).order(:period_key)
     assert_equal [ Date.new(2026, 7, 8), Date.new(2026, 7, 10) ], rows.map(&:period_key)
-    assert_equal %w[closing due], rows.map { |r| r.payload["event"] }
+    assert_equal %w[card_closing card_due], rows.map(&:kind)
+  end
+
+  test "a closing landing ON the previous month's due date keeps BOTH rows (kind is in the dedup key)" do
+    travel_to Time.utc(2026, 2, 14, 15, 0)    # 12:00 SP → today 2026-02-14
+    CreditCard.create!(account: @account, institution: @inst,
+                       bill_due_day: 15, closing_offset_days: 28)
+
+    run_for   # window 02-14..02-15: Feb's due (02-15) AND March's closing (03-15 − 28 = 02-15)
+
+    rows = Notification.where(period_key: Date.new(2026, 2, 15)).order(:kind)
+    assert_equal %w[card_closing card_due], rows.map(&:kind),
+                 "one kind + a payload discriminator used to silently dedup the closing away"
   end
 
   test "the bill_reminders toggle off → the member's sweep is skipped entirely" do

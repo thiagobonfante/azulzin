@@ -7,8 +7,9 @@ module Summaries
     queue_as :default
 
     def perform
+      as_of = Date.current   # SP (app TZ) at DISPATCH time — a member job drained past midnight still files this week
       pairs = AccountMembership.pluck(:account_id, :user_id)
-      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id, "weekly") }
+      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id, "weekly", as_of) }
       Rails.logger.info("summaries_weekly: enqueued #{pairs.size} member digests")
     end
   end

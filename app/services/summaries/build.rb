@@ -11,22 +11,24 @@ module Summaries
   # Summaries::Lines in each recipient's locale — money formatting and locale words like
   # "outros" are never baked into the stored snapshot.
   class Build
-    TIME_ZONE      = "America/Sao_Paulo"
     WEEK_DAYS      = 7
     TOP_CATEGORIES = 3   # 04 §4: top-3 + "outros", never a wall
     UPCOMING_BILLS = 2   # next-2 bills in the weekly look-ahead
     LOOKAHEAD_DAYS = 7
 
-    def self.call(account, period)
+    # as_of anchors the windows and period_keys — the dispatch jobs pass their SP "today"
+    # so a delayed run still files under the dispatched week/month; the default covers
+    # manual/console runs (Date.current is SP, the app TZ).
+    def self.call(account, period, as_of: Date.current)
       case period
-      when :weekly  then new(account).weekly
-      when :monthly then new(account).monthly
+      when :weekly  then new(account, as_of: as_of).weekly
+      when :monthly then new(account, as_of: as_of).monthly
       end
     end
 
-    def initialize(account)
+    def initialize(account, as_of: Date.current)
       @account = account
-      @today   = Date.current.in_time_zone(TIME_ZONE).to_date
+      @today   = as_of
     end
 
     # Last 7 days of spend by category + month-to-date sobra + the next bills.
@@ -88,7 +90,7 @@ module Summaries
     # isn't a bill, and the scan's behind-the-window overdue grace isn't "upcoming".
     def upcoming_bills
       Reminders::Scan.call(@account, from: @today, to: @today + LOOKAHEAD_DAYS)
-        .select { |e| e[:kind] == "bill_due" || (e[:kind] == "card_bill" && e[:payload][:event] == "due") }
+        .select { |e| %w[bill_due card_due].include?(e[:kind]) }
         .sort_by { |e| e[:period_key] }
         .first(UPCOMING_BILLS)
         .map { |e| { "name" => e[:payload][:name] || e[:payload][:card], "cents" => e[:payload][:amount_cents] } }
@@ -96,12 +98,14 @@ module Summaries
 
     # "dentro do combinado em N de M" — the same Actuals map vs the same standing budgets
     # Budgets::Check reads, so the digest can never disagree with the alerts. Omitted
-    # entirely when no budgets are set (the template line skips).
+    # entirely when no budgets are set (the template line skips). Within is STRICTLY
+    # under: Budgets::Check fires budget_breach at spent >= budget (default 100% band),
+    # so exactly-on-budget counts as blown here too.
     def budget_counts(spend)
       budgets = @account.categories.kept.where.not(monthly_budget_cents: nil)
                         .pluck(:id, :monthly_budget_cents)
       return {} if budgets.empty?
-      { budget_within: budgets.count { |id, budget| spend[id].to_i <= budget },
+      { budget_within: budgets.count { |id, budget| spend[id].to_i < budget },
         budget_total: budgets.size }
     end
   end

@@ -56,6 +56,47 @@ class CommitmentOccurrencesControllerTest < ActionDispatch::IntegrationTest
     assert_not @debit.paid_in?(@month)
   end
 
+  # The dashboard alert's "marcar paga" (up-tier 01 §4) rides this exact endpoint: the
+  # banner names its notification, paying dismisses it and streams the banner away.
+  test "the bill_due banner offers mark-paid, and paying through it dismisses the notification" do
+    due = @debit.due_on(@month)
+    notification = Notification.record!(user: @user, account: @user.account, kind: "bill_due",
+                                        subject: @debit, period_key: due,
+                                        payload: { "name" => "aluguel", "amount_cents" => 100_000,
+                                                   "due_on" => due.iso8601, "days_until" => 1 })
+
+    get dashboard_url
+    assert_match pay_commitment_occurrence_path(occ(@debit, @month)), response.body
+
+    patch pay_commitment_occurrence_url(occ(@debit, @month)),
+          params: { from: "hub", notification_id: notification.id }, as: :turbo_stream
+    assert_response :success
+    assert @debit.paid_in?(@month)
+    assert_not_nil notification.reload.dismissed_at
+    assert_match %(turbo-stream action="remove" target="notification_#{notification.id}"), response.body
+
+    # Once paid, the banner (still rendered until dismissed elsewhere) drops the button.
+    other = Notification.record!(user: @user, account: @user.account, kind: "bill_overdue",
+                                 subject: @debit, period_key: due,
+                                 payload: { "name" => "aluguel", "amount_cents" => 100_000,
+                                            "due_on" => due.iso8601, "days_overdue" => 1 })
+    get dashboard_url
+    assert_match "notification_#{other.id}", response.body
+    assert_no_match pay_commitment_occurrence_path(occ(@debit, @month)), response.body
+  end
+
+  test "a foreign notification_id never blocks the pay and dismisses nothing" do
+    other = User.create!(email_address: "w@example.com", password: "password123")
+    Accounts::Bootstrap.call(other)
+    foreign = Notification.record!(user: other, account: other.account, kind: "bill_due",
+                                   period_key: @month, payload: {})
+    patch pay_commitment_occurrence_url(occ(@debit, @month)),
+          params: { from: "show", notification_id: foreign.id }, as: :turbo_stream
+    assert_response :success
+    assert @debit.paid_in?(@month)
+    assert_nil foreign.reload.dismissed_at
+  end
+
   test "cannot pay another user's commitment occurrence" do
     other = User.create!(email_address: "z@example.com", password: "password123")
     Accounts::Bootstrap.call(other)

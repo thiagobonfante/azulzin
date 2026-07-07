@@ -38,6 +38,15 @@ class TransactionReceiptTest < ActiveSupport::TestCase
     assert_not @txn.reload.receipt.attached?
   end
 
+  test "rejects bytes of one allowed format declared as another (PDF posing as webp)" do
+    # identify: false keeps the client-declared type, as a direct upload would — the magic
+    # bytes must match the DECLARED type's probe, not just any allowed format.
+    @txn.receipt.attach(io: File.open(file_fixture("receipt.pdf")), filename: "nota.webp",
+                        content_type: "image/webp", identify: false)
+    assert @txn.errors.of_kind?(:receipt, :unsupported_type)
+    assert_not @txn.reload.receipt.attached?
+  end
+
   test "hard-destroying the transaction purges the receipt blob and its bytes" do
     attach(fixture: "receipt.jpg", filename: "nota.jpg", content_type: "image/jpeg")
     blob    = @txn.receipt.blob

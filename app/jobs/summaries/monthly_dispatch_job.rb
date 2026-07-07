@@ -6,8 +6,9 @@ module Summaries
     queue_as :default
 
     def perform
+      as_of = Date.current   # SP (app TZ) at DISPATCH time — a member job drained late still recaps the same closed month
       pairs = AccountMembership.pluck(:account_id, :user_id)
-      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id, "monthly") }
+      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id, "monthly", as_of) }
       Rails.logger.info("summaries_monthly: enqueued #{pairs.size} member digests")
     end
   end

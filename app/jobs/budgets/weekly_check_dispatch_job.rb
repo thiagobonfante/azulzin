@@ -8,8 +8,9 @@ module Budgets
     queue_as :default
 
     def perform
+      as_of = Date.current   # SP (app TZ) at DISPATCH time — a member job drained late still keys this day
       pairs = AccountMembership.pluck(:account_id, :user_id)
-      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id) }
+      pairs.each { |account_id, user_id| NotifyMemberJob.perform_later(account_id, user_id, as_of) }
       Rails.logger.info("budgets_weekly_check: enqueued #{pairs.size} member checks")
     end
   end

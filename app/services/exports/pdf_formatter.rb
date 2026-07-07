@@ -1,6 +1,6 @@
 module Exports
   # A printable "extrato" (05 §2): account header, period line, one table per month on the
-  # occurred_on axis, then per-category spend totals and the net of the range. Pure Ruby
+  # occurred_on axis, then per-category spend totals and the labelled range totals. Pure Ruby
   # (prawn + prawn-table) — deliberately no system dependency. Helvetica is a Windows-1252
   # font, so user text (WhatsApp merchants can carry emoji) is transliterated defensively
   # before drawing.
@@ -81,7 +81,21 @@ module Exports
                                         padding: [ 3, 4 ] }) { |table| table.column(-1).align = :right }
           pdf.move_down 12
         end
-        pdf.text safe(I18n.t("exports.pdf.net_total", amount: currency(@ledger.total_cents))),
+        summary_section(pdf)
+      end
+
+      # Labelled figures, not one conflated net: entradas / saídas / transferências, then
+      # Resultado = entradas − saídas (transfers excluded — the hub's cash-flow meaning,
+      # see Exports::Ledger#result_cents). Saídas/transferências read as absolutes under
+      # their labels, like the category table above.
+      def summary_section(pdf)
+        [ [ "income",    currency(@ledger.income_cents) ],
+          [ "expenses",  currency(@ledger.expense_cents.abs) ],
+          [ "transfers", currency(@ledger.transfer_cents.abs) ] ].each do |key, amount|
+          pdf.text safe("#{I18n.t("exports.ledger.totals.#{key}")}: #{amount}"), size: 10
+        end
+        pdf.move_down 4
+        pdf.text safe(I18n.t("exports.pdf.net_total", amount: currency(@ledger.result_cents))),
                  size: 11, style: :bold
       end
 
