@@ -2,6 +2,10 @@
 # App strings live here; en.yml holds the shared English base that :"en-US" inherits.
 # rails-i18n supplies date/number/currency formats and pluralization for pt-BR.
 pt-BR:
+  pwa:
+    name: "azulzin"
+    short_name: "azulzin"
+    description: "Seu dinheiro sempre no azul."
   layout:
     title: "azulzin — seu dinheiro sempre no azul"
     nav:

@@ -1,6 +1,10 @@
 # Shared English base. :"en-US" inherits these app strings via the dash-split fallback.
 # pt-BR is the default UI locale (ADR 0006 / docs/i18n.md); :en is never shown as a UI option.
 en:
+  pwa:
+    name: "azulzin"
+    short_name: "azulzin"
+    description: "Your money, always in the black."
   layout:
     title: "azulzin — always in the black"
     nav:

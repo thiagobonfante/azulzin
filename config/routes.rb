@@ -23,6 +23,10 @@ Rails.application.routes.draw do
 
   # ── Product app · app.azulzin.com.br ─────────────────────────────────────
   constraints(on_app) do
+    # PWA (install-only): manifest + service worker, served on the app host.
+    get "manifest.json"     => "rails/pwa#manifest",       as: :pwa_manifest
+    get "service-worker.js" => "rails/pwa#service_worker", as: :pwa_service_worker
+
     resource :session
     resource :registration, only: %i[new create]
     resources :passwords, param: :token
