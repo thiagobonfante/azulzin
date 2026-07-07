@@ -31,6 +31,9 @@ class TransactionsController < ApplicationController
     sanitize_account_fks(attrs)
     @transaction = Current.account.transactions.new(attrs)
     @transaction.assign_attributes(direction: new_kind, status: "posted", confirmed_at: Time.current, source: "manual")
+    # Provenance: a category arriving from the form was picked (or saw the preselect and
+    # confirmed) by a person — the only rows merchant memory learns from (01 §6).
+    @transaction.category_source = "user" if @transaction.category_id
     assign_instrument_from_token(params[:instrument])
     auto_assign_instrument      # server-side mirror of the form's auto-select (robust to JS)
     # A manual add with no instrument is a form slip, not a WhatsApp guess — 422 with the picker
@@ -182,6 +185,9 @@ class TransactionsController < ApplicationController
       sanitize_account_fks(attrs)
       attrs["category_id"] = nil if attrs["direction"] == "transfer"   # transfers are never categorized (§6.3.5)
       @transaction.assign_attributes(attrs)
+      # A manual category change is human signal: ai/memory rows flip to "user" (and start
+      # feeding merchant memory); clearing the category clears the provenance with it.
+      @transaction.category_source = (@transaction.category_id ? "user" : nil) if @transaction.category_id_changed?
       apply_instrument_param
       apply_bill_month_override(bill, original_bill)
       @transaction.save

@@ -13,7 +13,8 @@ module Whatsapp
       - installment_purchase: compra parcelada ("comprei um celular, 5000 em 10x", "6x de 300").
       - pay_commitment: pagamento de compromisso/parcela/conta fixa ("paguei a parcela do carro", "pensão paga").
       - move_bill: mover uma compra para outra fatura ("joga pra próxima fatura").
-      - edit_last: corrigir o último lançamento ("na verdade foi 54,90", "era no crédito").
+      - edit_last: corrigir o último lançamento ("na verdade foi 54,90", "era no crédito",
+        "muda a categoria pra mercado").
       - undo_last: desfazer/cancelar o último ("apaga o último", "cancela isso").
       - query: consulta de saldo/fatura/mês ("quanto tenho na nubank?", "como tá o mês?").
       - other: qualquer outra coisa.
@@ -27,7 +28,9 @@ module Whatsapp
       - commitment_phrase = o compromisso citado ("o carro", "a pensão", "netflix").
       - occurred_on: data ISO só se explícita; caso contrário null.
       - payment_method: debito, credito, pix, dinheiro, boleto ou desconhecido.
-      - category: um palpite de categoria do gasto, se der (será resolvido no app).
+      - category: um palpite de categoria do gasto, se der (será resolvido no app). Em edit_last
+        de categoria, é a categoria pedida.
+      - edit_field_hint: qual campo o edit_last corrige (amount, merchant, instrument, date, category).
     PT
 
     SCHEMA = {
@@ -64,7 +67,7 @@ module Whatsapp
           "installment_parcel_raw" => { "type" => %w[string null] },
           "commitment_phrase"      => { "type" => %w[string null] },
           "target_bill_raw"        => { "type" => %w[string null] },
-          "edit_field_hint"        => { "type" => %w[string null], "enum" => [ "amount", "merchant", "instrument", "date", nil ] },
+          "edit_field_hint"        => { "type" => %w[string null], "enum" => [ "amount", "merchant", "instrument", "date", "category", nil ] },
           "query_kind"             => { "type" => %w[string null], "enum" => [ "account_balance", "card_bill", "month_summary", "savings_total", nil ] },
           "category"               => { "type" => %w[string null] }
         }
@@ -74,9 +77,11 @@ module Whatsapp
     # Returns a Whatsapp::Extraction. `client` is injectable for tests.
     def self.from_text(user, text, modality: "text", client: nil)
       client ||= OpenRouterClient.new(task: :extraction)
+      # Closed-set category line in the USER message (per-account data never goes in the
+      # frozen shared system prompt); the answer is still a string, resolved in Ruby.
       messages = [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user",   content: text.to_s }
+        { role: "user",   content: [ text.to_s, Categories.closed_set_line(user&.account) ].compact.join("\n\n") }
       ]
       parsed = client.chat(messages: messages, schema: SCHEMA).parsed || {}
       build(parsed, modality:, source: source_for(modality), text: text)

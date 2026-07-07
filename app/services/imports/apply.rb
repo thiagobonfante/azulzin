@@ -133,6 +133,11 @@ module Imports
         attrs[:installments_count] = payload["installments_count"]
         attrs[:total_cents]        = payload["total_cents"]
       end
+      # Resolved category_guess (auto-categories, Phase 4). Re-checked against the account's
+      # kept categories — a stale/foreign id in a replayed proposal is dropped, never raised.
+      if payload["category_id"] && @account.categories.kept.exists?(payload["category_id"])
+        attrs[:category_id] = payload["category_id"]
+      end
       case instrument
       when CreditCard  then attrs[:credit_card]  = instrument
       when BankAccount then attrs[:bank_account] = instrument

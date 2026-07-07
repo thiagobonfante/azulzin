@@ -27,3 +27,10 @@ import_vision:
   model: "google/gemini-2.5-flash"
   temperature: 0
   max_tokens: 8000
+
+# Historical auto-categorization backfill (.plans/auto-categories Phase 5): batches of
+# ~100 compact rows per call, closed-set category answers.
+category_backfill:
+  model: "google/gemini-2.5-flash"
+  temperature: 0
+  max_tokens: 8000

@@ -4,7 +4,15 @@
   <div class="flex items-center gap-3">
     <% if commitment.instrument %><%= institution_avatar(commitment.instrument.institution, size: 28) %><% end %>
     <div class="min-w-0 flex-1">
-      <p class="truncate text-sm font-semibold"><%= commitment.name %></p>
+      <p class="truncate text-sm font-semibold">
+        <%= commitment.name %>
+        <% if commitment.category %>
+          <span class="badge badge-ghost badge-xs ml-1 gap-1 align-middle">
+            <span class="h-1.5 w-1.5 rounded-full" style="background-color: <%= commitment.category.display_color %>"></span>
+            <%= commitment.category.name %>
+          </span>
+        <% end %>
+      </p>
       <p class="truncate text-xs text-base-content/50">
         <% parts = [ commitment_schedule_phrase(commitment).presence,
                      commitment.instrument&.display_name,

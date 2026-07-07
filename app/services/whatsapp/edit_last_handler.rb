@@ -34,6 +34,7 @@ module Whatsapp
       when "merchant"   then set_merchant(row)
       when "instrument" then set_instrument(row)
       when "date"       then set_date(row)
+      when "category"   then set_category(row)
       else                   infer(row)
       end
     end
@@ -61,9 +62,18 @@ module Whatsapp
       row.update!(occurred_on: @extraction.occurred_on)
     end
 
+    # "muda pra mercado": a spoken correction is human signal — stamped "user", so it
+    # feeds merchant memory from now on (auto-categories 01 §6).
+    def set_category(row)
+      category = Categories::Resolve.call(account: account, label: @extraction.category)
+      return false unless category
+      row.update!(category_id: category.id, category_source: "user")
+    end
+
     def infer(row)
       if @extraction.amount_present? then row.update!(amount_cents: @extraction.amount_cents)
       elsif @extraction.merchant.present? then row.update!(merchant: @extraction.merchant)
+      elsif @extraction.category.present? then set_category(row)
       else false
       end
     end

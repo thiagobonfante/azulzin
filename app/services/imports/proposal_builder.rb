@@ -23,7 +23,7 @@ module Imports
       import.fingerprint = fingerprint(parsed, kind, institution)
 
       instruments = build_instrument_proposals(parsed, kind, institution)
-      recurring   = build_recurring_proposals(parsed, kind, institution, instruments.first, client)
+      recurring   = build_recurring_proposals(parsed, kind, institution, instruments.first, client, import.account)
       proposals   = instruments + recurring
       # A vision (OCR) extraction is never trusted enough to pre-check — cap every proposal.
       proposals.each { it["confidence"] = [ it["confidence"], Confidence::VISION_CAP ].min } if parsed["vision"]
@@ -144,22 +144,22 @@ module Imports
     end
 
     # ── income / commitments (Phase 3) ──────────────────────────────────────────
-    def build_recurring_proposals(parsed, kind, institution, instrument, client)
+    def build_recurring_proposals(parsed, kind, institution, instrument, client, account)
       return [] if instrument.nil? # dependents need a same-import instrument to attach to
 
       rows = SignalTagger.tag(Array(parsed["rows"]))
       candidates = rows.reject { |row| SignalTagger.excluded?(row) }
       return [] if candidates.empty?
 
-      classified = RecurringClassifier.call(candidates, client: client).index_by { it["id"] }
+      classified = RecurringClassifier.call(candidates, account: account, client: client).index_by { it["id"] }
       period_end = parse_date(parsed.dig("meta", "period_end"))
       proposals = candidates.each_with_index.filter_map do |row, id|
-        recurring_proposal(row, classified[id] || {}, instrument, kind, institution, period_end)
+        recurring_proposal(row, classified[id] || {}, instrument, kind, institution, period_end, account)
       end
       merge_by_pid(proposals)
     end
 
-    def recurring_proposal(row, classification, instrument, doc_kind, institution, period_end)
+    def recurring_proposal(row, classification, instrument, doc_kind, institution, period_end, account)
       label = effective_label(row, classification)
       return nil if %w[one_off noise transfer].include?(label)
       return nil if label == "income" && row["direction"] != "in"
@@ -167,11 +167,19 @@ module Imports
 
       conf = Confidence.effective(row, classification["confidence"], label: label, single_month: label == "income")
       ref  = { "pid" => instrument["pid"] }
-      case label
-      when "income"       then income_proposal(row, classification, ref, conf, doc_kind, institution)
-      when "installment"  then installment_proposal(row, classification, ref, conf, instrument, doc_kind, institution, period_end)
-      else                     commitment_proposal(row, classification, ref, conf, label, doc_kind, institution)
+      proposal =
+        case label
+        when "income"       then income_proposal(row, classification, ref, conf, doc_kind, institution)
+        when "installment"  then installment_proposal(row, classification, ref, conf, instrument, doc_kind, institution, period_end)
+        else                     commitment_proposal(row, classification, ref, conf, label, doc_kind, institution)
+        end
+      # category_guess resolved in Ruby onto commitment proposals only (incomes stay
+      # categoryless, D9). Was generated-and-dropped before .plans/auto-categories.
+      if proposal && proposal["kind"] == "commitment" &&
+         (category = Categories::Resolve.call(account: account, label: classification["category_guess"]))
+        proposal["payload"]["category_id"] = category.id
       end
+      proposal
     end
 
     # Deterministic signals force the label; the LLM only fills the gaps (never overridden down).

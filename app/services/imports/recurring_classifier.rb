@@ -51,14 +51,17 @@ module Imports
     }.freeze
 
     # rows: the §8 normalized rows (post-exclusion). Returns the LLM row objects, id-indexed by the
-    # caller. Rows the LLM drops default to one_off/0 downstream.
-    def call(rows, client: nil)
+    # caller. Rows the LLM drops default to one_off/0 downstream. `account` adds the closed-set
+    # category line so category_guess answers inside the user's own taxonomy.
+    def call(rows, account: nil, client: nil)
       return [] if rows.empty?
 
       client ||= OpenRouterClient.new(task: :import_extraction)
+      user_content = [ compact(rows).to_json,
+                       Categories.closed_set_line(account, field: "category_guess") ].compact.join("\n\n")
       messages = [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user",   content: compact(rows).to_json }
+        { role: "user",   content: user_content }
       ]
       Array((client.chat(messages: messages, schema: SCHEMA).parsed || {})["rows"])
     end

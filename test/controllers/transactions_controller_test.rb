@@ -304,7 +304,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   test "new expense form renders the payment-method control and avatar instrument options" do
     get new_transaction_url(kind: "expense", month: Date.current.strftime("%Y-%m"))
     assert_response :success
-    assert_select "[data-controller='entry-instrument']"
+    assert_select "[data-controller~='entry-instrument']"
+    assert_select "[data-controller~='category-suggest']"
     assert_select "button[data-method='credito']"
     assert_select "button[data-method='pix']"
     assert_select "[data-entry-instrument-target='option'][data-value='credit_card-#{@card.id}']"

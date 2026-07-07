@@ -14,6 +14,22 @@ class Whatsapp::ReceiptExtractorTest < ActiveSupport::TestCase
     assert_nil ex.instrument_phrase
   end
 
+  test "the category guess flows through the extraction (resolved later by the Decider ladder)" do
+    ex = Whatsapp::ReceiptExtractor.build(
+      "is_receipt" => true, "total_raw" => "84,90", "merchant_name" => "Zaffari",
+      "payment_method" => "debito", "purchase_date" => nil, "category" => "mercado",
+      "overall_confidence" => 0.9, "field_confidence" => { "total" => 0.9 }
+    )
+    assert_equal "mercado", ex.category
+
+    no_guess = Whatsapp::ReceiptExtractor.build(
+      "is_receipt" => true, "total_raw" => "84,90", "merchant_name" => "Zaffari",
+      "payment_method" => "debito", "purchase_date" => nil, "category" => nil,
+      "overall_confidence" => 0.9, "field_confidence" => { "total" => 0.9 }
+    )
+    assert_nil no_guess.category
+  end
+
   test "a Pix transfer receipt extracts amount, recipient, and the origin account phrase" do
     ex = Whatsapp::ReceiptExtractor.build(
       "is_receipt" => true, "document_type" => "transferencia", "total_raw" => "80,00",

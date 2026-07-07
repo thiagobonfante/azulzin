@@ -5,25 +5,11 @@
 # Values are normalized (accent-stripped, downcased, whitespace-collapsed) at load so the
 # Matcher can compare against an equally-normalized instrument phrase.
 module Whatsapp
-  # Normalize a term the pt-BR way: strip accents, downcase, collapse whitespace.
-  def self.normalize(term)
-    I18n.transliterate(term.to_s).downcase.gsub(/\s+/, " ").strip
-  end
-
-  # Fuzzy string similarity in [0,1] for the Matcher — trigram (Sørensen–Dice) over
-  # space-padded strings. Hand-rolled to avoid a native gem for a 2–15 row candidate set.
-  def self.similarity(a, b)
-    return 0.0 if a.blank? || b.blank?
-    return 1.0 if a == b
-    ta, tb = trigrams(a), trigrams(b)
-    return 0.0 if ta.empty? || tb.empty?
-    2.0 * (ta & tb).size / (ta.size + tb.size)
-  end
-
-  def self.trigrams(str)
-    s = "  #{str} "
-    (0..s.length - 3).map { |i| s[i, 3] }.uniq
-  end
+  # Normalize / similarity primitives live in TextMatch (shared with Categories::*);
+  # these delegates keep the long-standing Whatsapp.* call sites and tests intact.
+  def self.normalize(term) = TextMatch.normalize(term)
+  def self.similarity(a, b) = TextMatch.similarity(a, b)
+  def self.trigrams(str) = TextMatch.trigrams(str)
 
   INSTITUTION_ALIASES =
     YAML.safe_load_file(Rails.root.join("config/institution_aliases.yml"))

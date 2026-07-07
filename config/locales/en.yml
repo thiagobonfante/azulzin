@@ -425,6 +425,20 @@ en:
     destroy:
       removed: "Commitment ended."
   categories:
+    backfill:
+      title: "Auto-categorize"
+      description:
+        one: "1 uncategorized entry in your history."
+        other: "%{count} uncategorized entries in your history."
+      button: "Categorize history"
+      queued: "We're categorizing your history — categories will show up in the ledger shortly."
+      ran_recently: "Auto-categorization already ran today. Try again tomorrow."
+      banner:
+        one: "1 entry categorized automatically."
+        other: "%{count} entries categorized automatically."
+      undo: "Undo"
+      dismiss: "OK"
+      undone: "Automatic categories reverted."
     # Seeded per user at onboarding (Categories::SeedDefaults) in the user's locale. Read
     # dynamically — kept in ignore_unused. Both locales MUST have the same length (seed asserts).
     defaults:
@@ -563,6 +577,7 @@ en:
       expense: "Expense"
       income: "Income"
       transfer: "Transfer"
+      suggestion_hint: "suggested"
       payment_method: "Payment method"
       methods:
         credito: "Credit"
@@ -655,6 +670,7 @@ en:
         installments: "Installment plans"
         fixed_bills: "Fixed bills"
       check_badge: "check this"
+      category_chip_title: "Suggested category"
       seen_in: "seen in: %{source} · %{date} · %{amount}"
       balance: "Balance %{amount}"
       due_day: "due on day %{day}"
@@ -916,6 +932,7 @@ en:
   whatsapp:
     replies:
       posted: "✅ Recorded: %{amount} on %{instrument}."
+      posted_categorized: "✅ Recorded: %{amount} on %{instrument} · %{category}."
       posted_unassigned: "✅ Recorded: %{amount}. Pick the account or card in the app."
       parked: "Got it 👍 I've left it pending in the app for you to review."
       clarify_amount: "I couldn't read the amount. How much was it?"
@@ -931,6 +948,7 @@ en:
       ask_transfer_to: "To which account? Reply with the number:\n%{options}"
       ask_transfer_from: "From which account? Reply with the number:\n%{options}"
       installments_posted: "✅ Installments: %{count}x of %{parcel} on %{instrument}. First installment on the %{month} bill."
+      installments_posted_categorized: "✅ Installments: %{count}x of %{parcel} on %{instrument} · %{category}. First installment on the %{month} bill."
       installment_commitment_created: "✅ Noted: %{count}x of %{parcel} (%{name}), monthly on %{instrument}. I'll remind you to mark it paid."
       ask_installments_count: "In how many installments?"
       commitment_paid: "✅ %{name} installment paid: %{amount} (%{month}). %{remaining} of %{count} remaining."

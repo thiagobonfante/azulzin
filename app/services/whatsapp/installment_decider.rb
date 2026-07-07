@@ -25,8 +25,14 @@ module Whatsapp
           card: instrument, total_cents: total, count: count,
           occurred_on: occurred, merchant: @extraction.merchant, category_id: resolve_category,
           source_message_id: @msg.wa_message_id)
-        reply("installments_posted", count: count, parcel: currency(commitment.amount_cents),
-              instrument: instrument.display_name, month: month_label(commitment.starts_on))
+        if commitment.category
+          reply("installments_posted_categorized", count: count, parcel: currency(commitment.amount_cents),
+                instrument: instrument.display_name, category: commitment.category.name,
+                month: month_label(commitment.starts_on))
+        else
+          reply("installments_posted", count: count, parcel: currency(commitment.amount_cents),
+                instrument: instrument.display_name, month: month_label(commitment.starts_on))
+        end
       else
         commitment = create_debit_plan(instrument, total, count)
         reply("installment_commitment_created", count: count, parcel: currency(commitment.amount_cents),
@@ -60,13 +66,10 @@ module Whatsapp
       )
     end
 
-    # Fuzzy-match the LLM's category guess against the account's categories (mirrors Decider).
+    # Ladder (auto-categories 01 §5), mirroring Decider. Commitments carry only the id;
+    # parcel transactions get provenance stamped at MarkPaid time from commitment.source.
     def resolve_category
-      guess = @extraction.category
-      return nil if guess.blank?
-      term = Whatsapp.normalize(guess)
-      best = account.categories.kept.max_by { |c| Whatsapp.similarity(term, Whatsapp.normalize(c.name)) }
-      best&.id if best && Whatsapp.similarity(term, Whatsapp.normalize(best.name)) >= 0.75
+      Categories.auto_assign(account: account, merchant: @extraction.merchant, label: @extraction.category).first
     end
 
     # Parse missing count → one ask on a pending stub carrying the rest inside extraction jsonb.

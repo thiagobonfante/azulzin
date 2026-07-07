@@ -24,6 +24,12 @@
         <% elsif (summary = proposal_summary(proposal)) %>
           <span class="text-sm text-base-content/70"><%= summary %></span>
         <% end %>
+        <% if (category = proposal_category(proposal)) %>
+          <span class="badge badge-ghost badge-sm gap-1" title="<%= t("document_imports.review.category_chip_title") %>">
+            <span class="h-2 w-2 rounded-full" style="background-color: <%= category.display_color %>"></span>
+            <%= category.name %>
+          </span>
+        <% end %>
         <% unless checked %>
           <span class="badge badge-warning badge-sm"><%= t("document_imports.review.check_badge") %></span>
         <% end %>

@@ -59,6 +59,10 @@ class Transaction < ApplicationRecord
   # guarded_update (update_all) skips this by design and never touches occurred_on / instrument.
   before_validation :assign_billing_month
 
+  # Denormalized key for merchant memory (Categories::Suggest); kept in sync on every
+  # callback-bearing write. guarded_update (update_all) never touches merchant by design.
+  before_save :assign_merchant_norm, if: :merchant_changed?
+
   # .kept folded into the composed scopes = the single aggregate choke point (doc 05 §2.5):
   # MonthSummary, the ledger, bill_cents, inbox all read through these. Enum status scopes and
   # idempotency finders (find_by(source_message_id:), guarded_update) stay unscoped by design.
@@ -66,6 +70,12 @@ class Transaction < ApplicationRecord
   scope :posted_in, ->(month) { posted.kept.where(billing_month: month) }   # the ledger scope + every aggregate
   scope :unassigned, -> { where(bank_account_id: nil, credit_card_id: nil) }
   scope :in_app_inbox, -> { kept.where(status: %w[pending_review needs_confirmation needs_clarification needs_disambiguation]) }
+
+  # Rows the backfill run anchored at `at` auto-categorized: machine-stamped, existed before
+  # the run, touched by it. Drives the ledger banner count and the one-click undo.
+  scope :auto_categorized_since, lambda { |at|
+    kept.where(category_source: %w[memory ai]).where("updated_at >= ? AND created_at < ?", at, at)
+  }
 
   # The in-app pending inbox (.plans/whats §5.8): open/pending asks PLUS posted expenses with
   # no instrument yet (auto-committed, waiting for the user to pick an account in-app).
@@ -122,6 +132,10 @@ class Transaction < ApplicationRecord
   end
 
   private
+    def assign_merchant_norm
+      self.merchant_norm = TextMatch.normalize(merchant).presence
+    end
+
     # Recompute billing_month from occurred_on + instrument, unless the row was manually moved
     # (R2 sticky). Card rows use the closing rule; card PARCELS stagger by installment_number so
     # every recompute reproduces the fan-out instead of collapsing it. Bank/unassigned rows =

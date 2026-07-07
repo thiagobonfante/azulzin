@@ -89,6 +89,10 @@ Rails.application.routes.draw do
     end
     resources :categories, only: %i[index create edit update destroy] do  # R6 — account-owned spend categories
       post :restore, on: :collection                                  # re-seed the locale defaults
+      get  :suggest, on: :collection                                  # merchant-memory preselect (LLM-free)
+      post :backfill,         on: :collection                         # categorize history (1/day cap)
+      post :backfill_undo,    on: :collection                         # revert the last run
+      post :backfill_dismiss, on: :collection                         # hide the banner, keep the categories
     end
 
     # Shared account: settings page (members, invites, rename, danger zone). Owner-gated
