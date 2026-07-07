@@ -76,6 +76,8 @@ en:
         schedule_day: "Day"
       category:
         name: "Name"
+      transaction:
+        receipt: "Receipt"
       commitment:
         name: "Name"
         kind: "Type"
@@ -129,6 +131,9 @@ en:
           attributes:
             transfer_to_bank_account:
               same_account: "can't be the same as the source account."
+            receipt:
+              too_large: "exceeds the 10 MB limit."
+              unsupported_type: "has an unsupported format. Send a JPG, PNG, WEBP, HEIC or PDF."
         document_import:
           attributes:
             file:
@@ -602,6 +607,11 @@ en:
       cancel: "Cancel"
       category: "Category"
       direction: "Entry type"
+      receipt: "Receipt"
+      attach_receipt: "Attach receipt"
+      view_receipt: "View receipt"
+      close_receipt: "Close receipt"
+      has_receipt: "Has a receipt"
     new:
       submit: "Add"
     create:

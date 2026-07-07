@@ -77,6 +77,8 @@ pt-BR:
         schedule_day: "Dia"
       category:
         name: "Nome"
+      transaction:
+        receipt: "Comprovante"
       commitment:
         name: "Nome"
         kind: "Tipo"
@@ -130,6 +132,9 @@ pt-BR:
           attributes:
             transfer_to_bank_account:
               same_account: "não pode ser a mesma conta de origem."
+            receipt:
+              too_large: "excede o limite de 10 MB."
+              unsupported_type: "tem um formato não suportado. Envie JPG, PNG, WEBP, HEIC ou PDF."
         document_import:
           attributes:
             file:
@@ -603,6 +608,11 @@ pt-BR:
       cancel: "Cancelar"
       category: "Categoria"
       direction: "Tipo de lançamento"
+      receipt: "Comprovante"
+      attach_receipt: "Anexar comprovante"
+      view_receipt: "Ver comprovante"
+      close_receipt: "Fechar comprovante"
+      has_receipt: "Tem comprovante"
     new:
       submit: "Adicionar"
     create:

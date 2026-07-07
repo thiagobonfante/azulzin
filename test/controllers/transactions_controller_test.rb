@@ -389,4 +389,91 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_includes response.body, I18n.t("shared.needs_instrument.title", locale: :"pt-BR")
   end
+
+  # ── Receipts (up-tier F5): manual upload, scoped serving, display ──
+
+  def posted_with_receipt(fixture: "receipt.jpg", content_type: "image/jpeg")
+    txn = @user.account.transactions.create!(amount_cents: 1_000, occurred_on: Date.current,
+                                             status: "posted", bank_account: @account)
+    txn.receipt.attach(io: File.open(file_fixture(fixture)), filename: fixture, content_type: content_type)
+    txn
+  end
+
+  test "manual add with a receipt attaches it and the ledger row shows the paperclip" do
+    post transactions_url(kind: "expense"), params: {
+      transaction: { amount_reais: "50,00", merchant: "padaria", occurred_on: Date.current.to_s,
+                     category_id: "", payment_method: "pix",
+                     receipt: fixture_file_upload("receipt.jpg", "image/jpeg") },
+      instrument: "bank_account-#{@account.id}"
+    }
+    assert_redirected_to transactions_path
+    txn = @user.account.transactions.sole
+    assert txn.receipt.attached?
+
+    get transactions_url
+    assert_select "[title=?]", I18n.t("transactions.row.has_receipt")
+  end
+
+  test "an .exe renamed .jpg is rejected by magic bytes and nothing is created" do
+    assert_no_difference -> { @user.account.transactions.count } do
+      post transactions_url(kind: "expense"), params: {
+        transaction: { amount_reais: "50,00", merchant: "padaria", occurred_on: Date.current.to_s,
+                       category_id: "", payment_method: "pix",
+                       receipt: fixture_file_upload("receipt_fake.jpg", "image/jpeg") },
+        instrument: "bank_account-#{@account.id}"
+      }, headers: { "Accept" => "text/vnd.turbo-stream.html, text/html" }
+    end
+    assert_response :unprocessable_entity
+    assert_match I18n.t("activerecord.errors.models.transaction.attributes.receipt.unsupported_type"), response.body
+  end
+
+  test "editing without picking a new file keeps the existing receipt" do
+    txn = posted_with_receipt
+    patch transaction_url(txn), params: { transaction: { amount_reais: "13,23", receipt: "" } }
+    assert txn.reload.receipt.attached?, "a blank file field must never detach the current receipt"
+  end
+
+  test "serves the receipt bytes and the thumb variant to a member of the account" do
+    txn = posted_with_receipt
+    get receipt_transaction_url(txn)
+    assert_response :success
+    assert_equal "image/jpeg", response.media_type
+
+    get receipt_transaction_url(txn, size: "thumb")
+    assert_response :success
+    assert_match(/\Aimage\//, response.media_type)
+  end
+
+  test "a member of another account cannot fetch the receipt (404)" do
+    other = User.create!(email_address: "other-receipt@example.com", password: "password123")
+    Accounts::Bootstrap.call(other)
+    theirs = other.account.transactions.create!(amount_cents: 500, occurred_on: Date.current, status: "posted")
+    theirs.receipt.attach(io: File.open(file_fixture("receipt.jpg")), filename: "r.jpg", content_type: "image/jpeg")
+
+    get receipt_transaction_url(theirs)
+    assert_response :not_found
+  end
+
+  test "a transaction without a receipt 404s on the receipt path" do
+    txn = @user.account.transactions.create!(amount_cents: 500, occurred_on: Date.current,
+                                             status: "posted", bank_account: @account)
+    get receipt_transaction_url(txn)
+    assert_response :not_found
+  end
+
+  test "the edit row shows a thumbnail for an image receipt" do
+    txn = posted_with_receipt
+    get edit_transaction_url(txn)
+    assert_response :success
+    assert_select "img[src=?]", receipt_transaction_path(txn, size: "thumb")
+  end
+
+  test "a PDF receipt shows the view link instead of a thumbnail" do
+    txn = posted_with_receipt(fixture: "receipt.pdf", content_type: "application/pdf")
+    get edit_transaction_url(txn)
+    assert_response :success
+    assert_select "a[href=?]", receipt_transaction_path(txn),
+                  text: I18n.t("transactions.row.view_receipt")
+    assert_select "img[src=?]", receipt_transaction_path(txn, size: "thumb"), count: 0
+  end
 end

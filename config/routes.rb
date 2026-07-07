@@ -70,6 +70,7 @@ Rails.application.routes.draw do
     resources :transactions, only: %i[index new create edit update destroy] do
       member do
         patch :confirm   # commit a pending/needs_* row → posted (saves review edits first)
+        get   :receipt   # up-tier F5 — authenticated, account-scoped receipt bytes (proxied)
       end
     end
     resources :transfers,  only: :create                         # R5 — single-row transfer between accounts

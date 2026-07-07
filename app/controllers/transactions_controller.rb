@@ -7,7 +7,7 @@ class TransactionsController < ApplicationController
   layout "app"
   before_action :require_onboarding
   before_action :require_instrument, only: %i[new create]
-  before_action :set_transaction, only: %i[edit update confirm destroy]
+  before_action :set_transaction, only: %i[edit update confirm destroy receipt]
 
   helper_method :viewed_month, :summary
 
@@ -28,6 +28,7 @@ class TransactionsController < ApplicationController
 
   def create
     attrs = new_entry_params.to_h
+    attrs.delete("receipt") if attrs["receipt"].blank?   # empty file field is not an attachment
     sanitize_account_fks(attrs)
     @transaction = Current.account.transactions.new(attrs)
     @transaction.assign_attributes(direction: new_kind, status: "posted", confirmed_at: Time.current, source: "manual")
@@ -94,6 +95,22 @@ class TransactionsController < ApplicationController
     end
   end
 
+  # up-tier F5 (06 §3): the receipt bytes, authenticated and account-scoped. Proxied with
+  # send_data (the export idiom) so no public blob URL ever reaches a view; set_transaction
+  # already 404s anything outside Current.account. The thumb variant is processed lazily.
+  def receipt
+    receipt = @transaction.receipt
+    return head :not_found unless receipt.attached?
+    if params[:size] == "thumb" && receipt.variable?
+      variant = receipt.variant(:thumb).processed
+      send_data variant.download, filename: variant.filename.to_s,
+                type: variant.content_type, disposition: "inline"
+    else
+      send_data receipt.download, filename: receipt.filename.to_s,
+                type: receipt.content_type, disposition: "inline"
+    end
+  end
+
   # Soft delete (doc 05 §2.6): removed from all lists, restorable via console. reverse!/rejected
   # stays a WhatsApp-pipeline status (undo/supersede), not the in-app delete path.
   def destroy
@@ -119,7 +136,8 @@ class TransactionsController < ApplicationController
     # re-renders the whole list so a first entry cleanly replaces the empty state).
     def month_ledger
       Current.account.transactions.posted_in(viewed_month)
-             .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment)
+             .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment,
+                       :receipt_attachment)
              .order(occurred_on: :desc, id: :desc)
     end
 
@@ -169,11 +187,11 @@ class TransactionsController < ApplicationController
 
     def new_kind = %w[expense income].include?(params[:kind]) ? params[:kind] : "expense"
 
-    def new_entry_params = params.expect(transaction: %i[amount_reais merchant occurred_on category_id payment_method])
+    def new_entry_params = params.expect(transaction: %i[amount_reais merchant occurred_on category_id payment_method receipt])
 
     def transaction_params
       params.expect(transaction: %i[amount_reais merchant occurred_on billing_month
-                                    category_id direction transfer_to_bank_account_id payment_method])
+                                    category_id direction transfer_to_bank_account_id payment_method receipt])
     end
 
     # Shared by update + tray confirm: apply the submitted field edits (and, when the form
@@ -182,6 +200,9 @@ class TransactionsController < ApplicationController
       original_bill = @transaction.billing_month
       attrs = transaction_params.to_h
       bill  = attrs.delete("billing_month")
+      # An untouched file field arrives as "" — assigning that would DELETE the current
+      # receipt (Active Storage turns blank into a DeleteOne change). Keep it instead.
+      attrs.delete("receipt") if attrs["receipt"].blank?
       sanitize_account_fks(attrs)
       attrs["category_id"] = nil if attrs["direction"] == "transfer"   # transfers are never categorized (§6.3.5)
       @transaction.assign_attributes(attrs)
