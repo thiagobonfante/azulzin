@@ -99,6 +99,12 @@ pt-BR:
       invitation:
         email: "E-mail"
         expires_at: "Expira em"
+      notification_preference:
+        bill_reminder_lead_days: "Antecedência dos lembretes"
+        quiet_hours_start: "Início do silêncio"
+        quiet_hours_end: "Fim do silêncio"
+        budget_warn_percent: "Faixa de aviso"
+        budget_breach_percent: "Faixa de estouro"
     errors:
       models:
         account_membership:
@@ -777,6 +783,9 @@ pt-BR:
       delete_confirm: "Excluir esta conta e TODOS os dados, incluindo o acesso de todos os membros?"
       leave_title: "Sair da conta"
       leave_hint: "Você recebe uma conta nova e vazia; os dados compartilhados ficam aqui."
+      notifications_title: "Avisos"
+      notifications_hint: "Lembretes de contas, alertas de orçamento e resumos — cada membro escolhe os seus."
+      notifications_link: "Configurar avisos"
     update:
       renamed: "Nome da conta atualizado."
     destroy:
@@ -838,6 +847,53 @@ pt-BR:
       will_replace_account: "Sua conta atual (vazia) será substituída por esta conta compartilhada."
     create:
       joined: "Você agora faz parte da conta %{account}."
+  notifications:
+    dashboard:
+      bill_due: "Você tem uma conta vencendo em breve."
+      card_bill: "Uma fatura de cartão está chegando."
+      income_expected: "Um recebimento esperado está próximo."
+      budget_warn: "Uma categoria está perto do orçamento do mês."
+      budget_breach: "Uma categoria passou do orçamento do mês."
+      surplus_nudge: "Você está com dinheiro sobrando este mês."
+      rightsize_budget: "Um dos seus orçamentos parece maior do que você usa."
+      weekly_summary: "Seu resumo da semana está pronto."
+      monthly_summary: "Seu resumo do mês está pronto."
+    alert:
+      dismiss: "Dispensar"
+  notification_preferences:
+    show:
+      meta_title: "Avisos · azulzin"
+      title: "Avisos"
+      subtitle: "Escolha quais avisos você recebe e por onde."
+      kinds_title: "Quais avisos"
+      bill_reminders: "Lembretes de contas"
+      bill_reminders_hint: "Contas, faturas de cartão e recebimentos esperados chegando ao vencimento."
+      budget_alerts: "Alertas de orçamento"
+      budget_alerts_hint: "Quando uma categoria chega perto ou passa do orçamento do mês."
+      surplus_nudges: "Sugestões de sobra"
+      surplus_nudges_hint: "Uma sugestão honesta quando sobra dinheiro."
+      weekly_summary: "Resumo semanal"
+      weekly_summary_hint: "Um resumo da sua semana, aos domingos."
+      monthly_summary: "Resumo mensal"
+      monthly_summary_hint: "Um resumo quando o mês fecha."
+      tuning_title: "Ajustes"
+      lead_days_label: "Antecedência dos lembretes de conta"
+      lead_days_option:
+        zero: "No dia do vencimento"
+        one: "1 dia antes"
+        other: "%{count} dias antes"
+      quiet_hours_title: "Horário de silêncio (WhatsApp)"
+      quiet_hours_hint: "Sem mensagens no WhatsApp entre esses horários."
+      quiet_hours_start: "De"
+      quiet_hours_end: "Até"
+      bands_title: "Faixas de alerta de orçamento"
+      warn_percent_label: "Avisar em (%)"
+      breach_percent_label: "Estouro em (%)"
+      whatsapp_consent: "Receber avisos no WhatsApp"
+      whatsapp_consent_hint: "Desligado por padrão. Os avisos sempre aparecem no painel; ligue para recebê-los também no WhatsApp."
+      save: "Salvar preferências"
+    update:
+      saved: "Preferências salvas."
   pages:
     home:
       meta_title: "azulzin — seu dinheiro sempre no azul"

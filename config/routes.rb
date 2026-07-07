@@ -95,6 +95,13 @@ Rails.application.routes.draw do
       post :backfill_dismiss, on: :collection                         # hide the banner, keep the categories
     end
 
+    # Notification spine (.plans/up-tier 01): dashboard alerts (dismiss only — rows are
+    # scanner-created) and the per-member "Avisos" preferences screen.
+    resources :notifications, only: [] do
+      member { patch :dismiss }
+    end
+    resource :notification_preferences, only: %i[show update]
+
     # Shared account: settings page (members, invites, rename, danger zone). Owner-gated
     # actions live in AccountOwnership#require_owner! (.plans/multi-user, D9).
     resource :account, only: %i[show update destroy] do

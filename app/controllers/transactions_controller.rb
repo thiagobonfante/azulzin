@@ -13,6 +13,7 @@ class TransactionsController < ApplicationController
 
   def index
     return if redirect_out_of_range_month
+    @notifications = Notification.dashboard_for(Current.user, Current.account)
     @month       = viewed_month
     @summary     = summary
     @pending     = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)

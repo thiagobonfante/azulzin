@@ -9,6 +9,9 @@
 
 <%= render "whatsapp/activation", code: @whatsapp_activation_code %>
 
+<%# ── Proactive alerts (up-tier 01 §4) ──────────────────────────────── %>
+<div class="mb-6"><%= render "notifications/alert", notifications: @notifications %></div>
+
 <%# ── Summary tiles ─────────────────────────────────────────────────── %>
 <section class="grid gap-4 sm:grid-cols-3">
   <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">

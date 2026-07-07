@@ -18,6 +18,7 @@ class Account < ApplicationRecord
   has_many :transactions,      dependent: :destroy
   has_many :whatsapp_messages, dependent: :destroy                 # account-owned audit trail
   has_many :document_imports,  dependent: :destroy
+  has_many :notifications,     dependent: :destroy                 # alerts about this account's data
 
   validates :name, presence: true, length: { maximum: 120 }
 

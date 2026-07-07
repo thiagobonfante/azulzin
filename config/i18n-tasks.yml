@@ -70,3 +70,6 @@ ignore_unused:
   - 'document_imports.found.*'
   # Review group headings looked up as t("document_imports.review.groups.#{key}").
   - 'document_imports.review.groups.*'
+  # Dashboard alert copy, resolved by kind through the Notifications::KINDS registry
+  # (NotificationsHelper#notification_message) — no static literal for the scanner.
+  - 'notifications.dashboard.*'

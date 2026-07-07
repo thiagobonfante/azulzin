@@ -1,0 +1,17 @@
+<%# Proactive alert surface (.plans/up-tier 01 §4): one alert per undismissed
+    notification for the current member in the current account, newest first. Copy is
+    templated from the payload snapshot via notifications.dashboard.<kind>; dismissing
+    PATCHes and removes the banner (Turbo Stream). %>
+<% if notifications.any? %>
+  <div id="notifications" class="flex flex-col gap-2">
+    <% notifications.each do |notification| %>
+      <div id="<%= dom_id(notification) %>" role="alert"
+           class="alert <%= notification_alert_class(notification.kind) %> py-2.5">
+        <%= notification_icon_tag(notification.kind) %>
+        <span class="text-sm"><%= notification_message(notification) %></span>
+        <%= button_to t(".dismiss"), dismiss_notification_path(notification), method: :patch,
+              class: "btn btn-ghost btn-xs" %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

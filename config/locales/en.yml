@@ -98,6 +98,12 @@ en:
       invitation:
         email: "Email"
         expires_at: "Expires at"
+      notification_preference:
+        bill_reminder_lead_days: "Days ahead for bill reminders"
+        quiet_hours_start: "Quiet hours start"
+        quiet_hours_end: "Quiet hours end"
+        budget_warn_percent: "Warn threshold"
+        budget_breach_percent: "Over-budget threshold"
     errors:
       models:
         account_membership:
@@ -776,6 +782,9 @@ en:
       delete_confirm: "Delete this account and ALL its data, including every member's login?"
       leave_title: "Leave account"
       leave_hint: "You'll get a fresh empty account; shared data stays here."
+      notifications_title: "Alerts"
+      notifications_hint: "Bill reminders, budget alerts and summaries — each member picks their own."
+      notifications_link: "Set up alerts"
     update:
       renamed: "Account name updated."
     destroy:
@@ -837,6 +846,53 @@ en:
       will_replace_account: "Your current (empty) account will be replaced by this shared one."
     create:
       joined: "You're now part of %{account}."
+  notifications:
+    dashboard:
+      bill_due: "You have a bill due soon."
+      card_bill: "A card bill is coming up."
+      income_expected: "An expected income is due soon."
+      budget_warn: "A category is close to its monthly budget."
+      budget_breach: "A category went over its monthly budget."
+      surplus_nudge: "You have money left over this month."
+      rightsize_budget: "One of your budgets looks larger than you use."
+      weekly_summary: "Your weekly summary is ready."
+      monthly_summary: "Your monthly summary is ready."
+    alert:
+      dismiss: "Dismiss"
+  notification_preferences:
+    show:
+      meta_title: "Alerts · azulzin"
+      title: "Alerts"
+      subtitle: "Choose which alerts you get and how they reach you."
+      kinds_title: "Which alerts"
+      bill_reminders: "Bill reminders"
+      bill_reminders_hint: "Bills, card bills and expected income coming due."
+      budget_alerts: "Budget alerts"
+      budget_alerts_hint: "When a category gets close to or goes over its monthly budget."
+      surplus_nudges: "Surplus suggestions"
+      surplus_nudges_hint: "One honest suggestion when there's money left over."
+      weekly_summary: "Weekly summary"
+      weekly_summary_hint: "A recap of your week, on Sundays."
+      monthly_summary: "Monthly summary"
+      monthly_summary_hint: "A recap when the month closes."
+      tuning_title: "Tuning"
+      lead_days_label: "Bill reminder timing"
+      lead_days_option:
+        zero: "On the due date"
+        one: "1 day before"
+        other: "%{count} days before"
+      quiet_hours_title: "Quiet hours (WhatsApp)"
+      quiet_hours_hint: "No WhatsApp messages between these hours."
+      quiet_hours_start: "From"
+      quiet_hours_end: "Until"
+      bands_title: "Budget alert thresholds"
+      warn_percent_label: "Warn at (%)"
+      breach_percent_label: "Over budget at (%)"
+      whatsapp_consent: "Receive alerts on WhatsApp"
+      whatsapp_consent_hint: "Off by default. Alerts always show on your dashboard; turn this on to also get them on WhatsApp."
+      save: "Save preferences"
+    update:
+      saved: "Preferences saved."
   pages:
     home:
       meta_title: "azulzin — always in the black"

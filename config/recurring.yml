@@ -25,3 +25,7 @@ production:
     class: DocumentImportRetentionJob
     queue: imports
     schedule: every day at 4am
+  notification_retention_purge:
+    class: NotificationRetentionJob
+    queue: background
+    schedule: every day at 4am

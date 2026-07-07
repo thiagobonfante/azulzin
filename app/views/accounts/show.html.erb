@@ -20,6 +20,13 @@
   </div>
 
   <div class="flex flex-col gap-6 lg:col-span-2">
+    <%# Avisos — per-member notification settings (up-tier 01 §2); every member sees it. %>
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-2 font-display text-lg font-bold"><%= t(".notifications_title") %></h2>
+      <p class="mb-3 text-sm text-base-content/60"><%= t(".notifications_hint") %></p>
+      <%= link_to t(".notifications_link"), notification_preferences_path, class: "btn btn-outline btn-sm" %>
+    </div>
+
     <% if account_owner? %>
       <%# Invite a member %>
       <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
