@@ -17,6 +17,7 @@
         <%= t("categories.budget_suggest") %>
       </button>
       <span class="badge badge-ghost badge-sm" hidden data-budget-suggest-target="hint"><%= t("categories.budget_suggested") %></span>
+      <span class="badge badge-ghost badge-sm text-base-content/60" hidden data-budget-suggest-target="empty"><%= t("categories.budget_no_history") %></span>
     <% end %>
   </div>
   <p class="mt-1 text-xs text-base-content/50"><%= t("categories.budget_hint") %></p>

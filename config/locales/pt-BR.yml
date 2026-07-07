@@ -477,6 +477,7 @@ pt-BR:
     budget_hint: "Opcional — deixe em branco para não acompanhar um limite."
     budget_suggest: "sugerir"
     budget_suggested: "sugestão"
+    budget_no_history: "ainda sem histórico para sugerir"
     per_month: "%{amount} / mês"
     edit: "Editar categoria"
     cancel: "Cancelar"

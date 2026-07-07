@@ -476,6 +476,7 @@ en:
     budget_hint: "Optional — leave blank to skip tracking a limit."
     budget_suggest: "suggest"
     budget_suggested: "suggestion"
+    budget_no_history: "no history to suggest from yet"
     per_month: "%{amount} / month"
     edit: "Edit category"
     cancel: "Cancel"
