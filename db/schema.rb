@@ -173,7 +173,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
     t.string "status", default: "uploaded", null: false
     t.datetime "updated_at", null: false
     t.bigint "updated_by_id"
-    t.index ["account_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL ((ARRAY['dismissed'::character varying, 'failed'::character varying])::text[]))"
+    t.index ["account_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL (ARRAY[('dismissed'::character varying)::text, ('failed'::character varying)::text]))"
     t.index ["account_id", "status"], name: "index_document_imports_on_account_id_and_status"
     t.index ["account_id"], name: "index_document_imports_on_account_id"
     t.index ["created_by_id"], name: "index_document_imports_on_created_by_id"
