@@ -878,8 +878,15 @@ pt-BR:
       budget_breach: "%{category} passou do combinado: %{spent} de %{budget} este mês."
       surplus_nudge: "Você está com %{surplus} de sobra este mês. Que tal guardar na caixinha?"
       rightsize_budget: "%{category}: você combinou %{budget}, mas costuma gastar %{typical}. Que tal ajustar?"
-      weekly_summary: "Seu resumo da semana está pronto."
-      monthly_summary: "Seu resumo do mês está pronto."
+      weekly_summary: "Resumo da semana: você gastou %{spent} e a sobra do mês está em %{sobra}."
+      monthly_summary: "%{month} fechou: sobra %{sobra}, guardado %{saved}."
+    summary_lines:
+      spent: "Você gastou %{spent} — %{cats}."
+      others: "outros %{amount}"
+      upcoming: "Contas nos próximos 7 dias: %{bills}."
+      budget:
+        one: "Você ficou dentro do combinado em %{within} de %{count} categoria."
+        other: "Você ficou dentro do combinado em %{within} de %{count} categorias."
     alert:
       dismiss: "Dispensar"
   notification_preferences:
@@ -1076,6 +1083,15 @@ pt-BR:
         budget_breach: "⚠️ *%{category}* passou do combinado: %{spent} de %{budget} este mês."
         surplus_nudge: "💙 Você fechou o mês com *%{surplus}* de sobra. Quer guardar na caixinha?"
         rightsize_budget: "💙 *%{category}*: você combinou %{budget}, mas costuma gastar %{typical}. Quer ajustar?"
+        weekly_summary: |-
+          📊 *Resumo da semana*
+          %{spent_line}Sobra do mês até agora: %{sobra}.
+          %{upcoming_line}💙
+        monthly_summary: |-
+          📅 *%{month} fechou*
+          Entrou %{in}, saiu %{out}, faturas %{bills}.
+          Sobra do mês: %{sobra} · guardado: %{saved}.
+          %{budget_line}💙
     activation:
       title: "Ative o WhatsApp"
       subtitle: "Ative o WhatsApp para lançar gastos por áudio, foto ou texto."

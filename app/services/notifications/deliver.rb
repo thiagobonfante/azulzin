@@ -82,10 +82,14 @@ module Notifications
 
     # Money formatted by Ruby BEFORE interpolation, in the RECIPIENT's locale — the same
     # payload transform the dashboard banner uses (Notifications.template_args), with the
-    # brl-equivalent formatter for a job context.
+    # brl-equivalent formatter for a job context. The whole transform runs inside the
+    # recipient's locale: the summary digests assemble composite lines (Summaries::Lines)
+    # here, not just money.
     def template_args
-      Notifications.template_args(@notification) do |cents|
-        WhatsappReply.currency(cents, locale: @user.locale)
+      I18n.with_locale(@user.locale) do
+        Notifications.template_args(@notification) do |cents|
+          WhatsappReply.currency(cents, locale: @user.locale)
+        end
       end
     end
 

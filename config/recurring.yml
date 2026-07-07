@@ -37,3 +37,11 @@ production:
     class: Budgets::WeeklyCheckDispatchJob
     queue: default
     schedule: every monday at 11am # UTC => 08:00 America/Sao_Paulo (D6: weekly sweep)
+  summaries_weekly:
+    class: Summaries::WeeklyDispatchJob
+    queue: default
+    schedule: every sunday at 23:00 # UTC => 20:00 America/Sao_Paulo Sunday — end-of-week
+  summaries_monthly:
+    class: Summaries::MonthlyDispatchJob
+    queue: default
+    schedule: every month on the 1st at 11am # UTC => 08:00 SP on the 1st — recaps the closed month

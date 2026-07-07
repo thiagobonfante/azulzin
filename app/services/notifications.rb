@@ -23,6 +23,10 @@ module Notifications
     "monthly_summary"  => { toggle: "monthly_summary" }
   }.freeze
 
+  # The digest kinds carry structured payloads (top_categories, upcoming, budget counts)
+  # whose composite lines are assembled at render time — see template_args below.
+  SUMMARY_KINDS = %w[weekly_summary monthly_summary].freeze
+
   # The per-kind template key BOTH renderers complete into their own namespace — the one
   # place the card_bill event-split convention lives (dashboard banner and WhatsApp push
   # must never disagree on which template a row renders).
@@ -37,8 +41,13 @@ module Notifications
   # block at render time, in the viewer's locale — never baked into the snapshot
   # (amount_cents → %{amount}, spent_cents → %{spent}, …) — and days_until /
   # days_overdue drive pluralization ("vence hoje / amanhã / em N dias").
-  def self.template_args(notification)
+  #
+  # Summary kinds add composite lines (spent/cats, upcoming, budget) assembled by
+  # Summaries::Lines from the payload's structured keys — also at render time, also in
+  # the viewer's locale, because they mix user data with localized words and money.
+  def self.template_args(notification, &money)
     payload = notification.payload.symbolize_keys
+    return summary_args(payload, &money) if SUMMARY_KINDS.include?(notification.kind)
     args = payload.except(:days_until, :days_overdue, :event)
     payload.each_key do |key|
       next unless key.to_s.end_with?("_cents")
@@ -48,5 +57,13 @@ module Notifications
       args[:count] = days
     end
     args
+  end
+
+  # A digest payload is structured keys (consumed by Summaries::Lines) + *_cents figures
+  # by construction — nothing else — so every remaining key takes the money transform.
+  def self.summary_args(payload, &money)
+    payload.except(*Summaries::Lines::STRUCTURED_KEYS)
+           .to_h { |key, cents| [ key.to_s.delete_suffix("_cents").to_sym, money.call(cents) ] }
+           .merge(Summaries::Lines.args(payload, &money))
   end
 end

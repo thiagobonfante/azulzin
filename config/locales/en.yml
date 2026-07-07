@@ -877,8 +877,15 @@ en:
       budget_breach: "%{category} went past the plan: %{spent} of %{budget} this month."
       surplus_nudge: "You have %{surplus} to spare this month. How about moving it to savings?"
       rightsize_budget: "%{category}: you planned %{budget} but usually spend %{typical}. Want to adjust it?"
-      weekly_summary: "Your weekly summary is ready."
-      monthly_summary: "Your monthly summary is ready."
+      weekly_summary: "Weekly recap: you spent %{spent} and the month's leftover is at %{sobra}."
+      monthly_summary: "%{month} closed: %{sobra} left over, %{saved} saved."
+    summary_lines:
+      spent: "You spent %{spent} — %{cats}."
+      others: "others %{amount}"
+      upcoming: "Bills due in the next 7 days: %{bills}."
+      budget:
+        one: "You stayed within the plan in %{within} of %{count} category."
+        other: "You stayed within the plan in %{within} of %{count} categories."
     alert:
       dismiss: "Dismiss"
   notification_preferences:
@@ -1075,6 +1082,15 @@ en:
         budget_breach: "⚠️ *%{category}* went past the plan: %{spent} of %{budget} this month."
         surplus_nudge: "💙 You closed the month with *%{surplus}* to spare. Want to put it in savings?"
         rightsize_budget: "💙 *%{category}*: you planned %{budget}, but usually spend %{typical}. Want to adjust it?"
+        weekly_summary: |-
+          📊 *Your week in review*
+          %{spent_line}Left over this month so far: %{sobra}.
+          %{upcoming_line}💙
+        monthly_summary: |-
+          📅 *%{month} closed*
+          In %{in}, out %{out}, card bills %{bills}.
+          Left over: %{sobra} · saved: %{saved}.
+          %{budget_line}💙
     activation:
       title: "Activate WhatsApp"
       subtitle: "Activate WhatsApp to log expenses by audio, photo, or text."
