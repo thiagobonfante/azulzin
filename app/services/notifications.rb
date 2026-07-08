@@ -21,7 +21,11 @@ module Notifications
     "surplus_nudge"    => { toggle: "surplus_nudges" },
     "rightsize_budget" => { toggle: "surplus_nudges" },
     "weekly_summary"   => { toggle: "weekly_summary" },
-    "monthly_summary"  => { toggle: "monthly_summary" }
+    "monthly_summary"  => { toggle: "monthly_summary" },
+    # Goals (.plans/goals 06 §2). goal_alert carries a finding-specific variant selected by
+    # payload["finding"] (pace / big_purchase / slipping_date) via notification_i18n_key.
+    "goal_alert"       => { toggle: "goal_alerts" },
+    "goal_achieved"    => { toggle: "goal_achieved" }
   }.freeze
 
   # The digest kinds carry structured payloads (top_categories, upcoming, budget counts)
@@ -31,7 +35,18 @@ module Notifications
   # The per-kind template key BOTH renderers complete into their own namespace (dashboard
   # banner and WhatsApp push must never disagree on which template a row renders). Every
   # kind maps 1:1 to its template today; the seam stays for a future kind that doesn't.
-  def self.template_key(notification) = notification.kind
+  def self.template_key(notification)
+    # goal_alert carries finding-specific copy (pace / big_purchase) selected by the payload —
+    # the "future kind that doesn't map 1:1" this seam was left for. Both renderers use this.
+    if notification.kind == "goal_alert" && (finding = notification.payload["finding"]).present?
+      "goal_alert_#{finding}"
+    elsif %w[budget_warn budget_breach].include?(notification.kind) && notification.payload["goal_name"].present?
+      # A goal trim (not the standing budget) is the binding limit → copy names the meta (goals 06 §3).
+      "#{notification.kind}_goal"
+    else
+      notification.kind
+    end
+  end
 
   # Interpolation args from the payload snapshot, shared by both renderers (01 §1:
   # neither re-queries; a deleted subject still renders). Payloads carry integer cents

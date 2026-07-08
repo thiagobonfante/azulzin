@@ -20,6 +20,13 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
     "income_expected"  => (0..3).map { |d| { kind: "income_expected", payload: { "name" => "Salário", "amount_cents" => 450_000, "expected_on" => "2026-07-05", "days_until" => d } } },
     "budget_warn"      => [ { kind: "budget_warn", payload: { "category" => "Restaurantes", "spent_cents" => 50_000, "budget_cents" => 60_000, "left_cents" => 10_000 } } ],
     "budget_breach"    => [ { kind: "budget_breach", payload: { "category" => "Restaurantes", "spent_cents" => 66_000, "budget_cents" => 60_000, "left_cents" => 0 } } ],
+    # Goals (.plans/goals): finding-specific alerts + the achievement, and the two goal-trim
+    # variants of the budget alerts (payload carries goal_name → template_key forks to _goal).
+    "goal_alert_pace"        => [ { kind: "goal_alert", payload: { "finding" => "pace", "goal" => "Carro", "expected_cents" => 300_000, "actual_cents" => 220_000, "gap_cents" => 80_000 } } ],
+    "goal_alert_big_purchase" => [ { kind: "goal_alert", payload: { "finding" => "big_purchase", "goal" => "Carro", "amount_cents" => 180_000, "transaction_id" => 9 } } ],
+    "goal_achieved"          => [ { kind: "goal_achieved", payload: { "goal" => "Carro", "amount_cents" => 6_000_000 } } ],
+    "budget_warn_goal"       => [ { kind: "budget_warn", payload: { "category" => "Restaurantes", "spent_cents" => 50_000, "budget_cents" => 46_500, "left_cents" => 0, "goal_id" => 1, "goal_name" => "Carro" } } ],
+    "budget_breach_goal"     => [ { kind: "budget_breach", payload: { "category" => "Restaurantes", "spent_cents" => 61_000, "budget_cents" => 46_500, "left_cents" => 0, "goal_id" => 1, "goal_name" => "Carro" } } ],
     "surplus_nudge"    => [ { kind: "surplus_nudge", payload: { "surplus_cents" => 40_000, "savings_account_id" => 1 }, type: :suggestion } ],
     "rightsize_budget" => [ { kind: "rightsize_budget", payload: { "category" => "Lazer", "budget_cents" => 60_000, "typical_cents" => 30_000 }, type: :suggestion } ],
     # Phase 4 digests, exactly as Summaries::Build snapshots them: the full week, a week

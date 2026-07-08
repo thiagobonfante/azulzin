@@ -9,6 +9,15 @@ module Goals
   VARIANCE_FLEX_CV    = BigDecimal("0.40")   # tier-3 tiebreak: monthly-spend CV above this → flexible
   COMMITTED_ESSENTIAL = BigDecimal("0.50")   # tier-3: >50% of a category's spend committed → essential
   TRIM_FLOOR_CENTS    = 5_000    # R$50 — don't propose a cut smaller than this from a category's max
+  TZ = "America/Sao_Paulo"
+
+  # Weekly-checker calibration (.plans/goals 03 §3; tunable, justified by observed accuracy).
+  PACE_AT_RISK_PCT = 95          # actual < 95% of expected guardado → at_risk pace finding
+  PACE_OFF_PCT     = 80          # actual < 80% of expected → off_track
+  GRACE_DAYS       = 14          # no findings in the first 2 weeks after activation
+  BIG_PURCHASE_TARGET_FRACTION = BigDecimal("0.20")  # a purchase ≥ 20% of the monthly target trips…
+  BIG_PURCHASE_MEDIAN_MULT     = 3                    # …or ≥ 3× the category's baseline median
+  BIG_PURCHASE_LOOKBACK_DAYS   = 7
 
   # Per-template max trim fraction of a trimmable category's median (01 §5).
   TRIM_PCT = { "leve" => BigDecimal("0.15"), "recomendado" => BigDecimal("0.25"), "acelerado" => BigDecimal("0.40") }.freeze

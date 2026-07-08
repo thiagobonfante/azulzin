@@ -85,6 +85,22 @@
   </section>
 <% end %>
 
+<%# ── Weekly check timeline ───────────────────────────────────────────── %>
+<% checks = @goal.checks.latest_first.limit(8) %>
+<% if checks.any? %>
+  <section class="mb-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="mb-3 font-semibold"><%= t("goals.show.checks_title") %></h2>
+    <ul class="flex flex-col gap-2 text-sm">
+      <% checks.each do |check| %>
+        <li class="flex items-center justify-between">
+          <span class="text-base-content/60"><%= l(check.period_start, format: :weekday_day) %></span>
+          <span class="badge <%= goal_pace_badge_class(check.status) %> badge-sm"><%= t("goals.pace.#{check.status}") %></span>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
 <% unless @goal.achieved? %>
   <div class="flex items-center gap-3">
     <%= button_to t("goals.show.abandon"), abandon_goal_path(@goal), method: :patch,
