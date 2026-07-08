@@ -1,0 +1,7 @@
+<%# locals: path, label — icon-only back button. Rendered inside a `flex items-stretch`
+    header so it spans the full title + subtitle height; the thin border marks it as a
+    control without spending a line of text. %>
+<%= link_to path, aria: { label: label },
+      class: "flex shrink-0 items-center rounded-lg border border-base-300/70 px-2 text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content" do %>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+<% end %>

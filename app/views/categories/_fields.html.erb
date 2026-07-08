@@ -13,9 +13,11 @@
             data: (category.persisted? ? { budget_suggest_target: "input", action: "input->budget-suggest#hideHint" } : {}) %>
     </label>
     <% if category.persisted? %>
-      <button type="button" class="btn btn-ghost btn-xs text-primary" data-action="budget-suggest#fill">
-        <%= t("categories.budget_suggest") %>
-      </button>
+      <span class="tooltip tooltip-bottom" data-tip="<%= t("categories.budget_suggest_help") %>">
+        <button type="button" class="btn btn-ghost btn-xs text-primary" data-action="budget-suggest#fill">
+          <%= t("categories.budget_suggest") %>
+        </button>
+      </span>
       <span class="badge badge-ghost badge-sm" hidden data-budget-suggest-target="hint"><%= t("categories.budget_suggested") %></span>
       <span class="badge badge-ghost badge-sm text-base-content/60" hidden data-budget-suggest-target="empty"><%= t("categories.budget_no_history") %></span>
     <% end %>

@@ -26,8 +26,11 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
+  # True on the product-app host (always true in dev/test, where the host split is off).
+  # Exposed to views so PWA tags (manifest link / SW registration) only render on the app host.
+  helper_method :on_app_host?
+
   private
-    # True on the product-app host (always true in dev/test, where the host split is off).
     def on_app_host?
       !Rails.env.production? || request.host == Rails.application.config.x.app_host
     end

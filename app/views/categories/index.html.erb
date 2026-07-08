@@ -17,10 +17,9 @@
   </div>
 
   <div class="lg:col-span-2">
-    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
-      <h2 class="mb-4 font-display text-lg font-bold"><%= t("categories.add_title") %></h2>
+    <%= render layout: "shared/add_card", locals: { title: t("categories.add_title") } do %>
       <%= render "categories/form", category: @category %>
-    </div>
+    <% end %>
 
     <% if @uncategorized_count.positive? %>
       <div class="mt-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">

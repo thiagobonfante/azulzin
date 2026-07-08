@@ -12,9 +12,12 @@
 
     <%= render "categories/fields", f: f, category: category %>
 
-    <div class="flex justify-end gap-2">
-      <%= link_to t("categories.cancel"), categories_path, data: { turbo_frame: dom_id(category) }, class: "btn btn-ghost btn-sm" %>
-      <%= f.submit t("categories.save"), class: "btn btn-primary btn-sm" %>
+    <div class="flex items-center justify-between gap-2">
+      <div><%= render "shared/attribution", record: category %></div>
+      <div class="flex gap-2">
+        <%= link_to t("categories.cancel"), categories_path, data: { turbo_frame: dom_id(category) }, class: "btn btn-ghost btn-sm" %>
+        <%= f.submit t("categories.save"), class: "btn btn-primary btn-sm" %>
+      </div>
     </div>
   <% end %>
 <% end %>

@@ -10,13 +10,6 @@
     <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.accounts_total_cents) %></span>
   </header>
 
-  <% if summary.guardado_total_cents.positive? %>
-    <p class="mb-3 text-xs text-base-content/50">
-      <%= t("transactions.accounts.saved_total") %>
-      <span class="font-semibold text-success tabular-nums"><%= brl(summary.guardado_total_cents) %></span>
-    </p>
-  <% end %>
-
   <% accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at) %>
   <% if accounts.any? %>
     <ul class="flex flex-col gap-2">
@@ -25,18 +18,22 @@
           <%= institution_avatar(account.institution, size: 28) %>
           <span class="flex min-w-0 flex-1 items-center gap-1.5 truncate text-sm">
             <span class="truncate"><%= account.display_name %></span>
-            <% if account.savings? %>
-              <span class="badge badge-ghost badge-xs"><%= t("transactions.accounts.savings_badge") %></span>
+            <% unless account.checking? %>
+              <%# The kind badge doubles as the "guardar dinheiro" affordance — it opens the
+                  transfer form (new_entry frame) with this account preselected as destination,
+                  so the balances column stays aligned. %>
+              <span class="tooltip tooltip-bottom shrink-0" data-tip="<%= t("transactions.accounts.save_money") %>">
+                <%= link_to t("bank_accounts.kinds.#{account.kind}"),
+                      new_transaction_path(kind: :transfer, to: account.id),
+                      data: { turbo_frame: "new_entry", controller: "quick-add", action: "click->quick-add#open" },
+                      class: "badge badge-ghost badge-xs transition-colors hover:bg-primary/15 hover:text-primary" %>
+              </span>
             <% end %>
           </span>
-          <span class="tabular-nums text-sm">
+          <%# Guardado money (poupança/investimento) reads bold blue — the product's color, never green. %>
+          <span class="tabular-nums text-sm<%= " font-bold text-primary" unless account.checking? %>">
             <%= summary.account_balances[account.id] ? brl(summary.account_balances[account.id]) : "—" %>
           </span>
-          <% if account.savings? %>
-            <%= link_to t("transactions.accounts.save_money"),
-                  new_transaction_path(kind: :transfer, to: account.id),
-                  data: { turbo_frame: "new_entry" }, class: "btn btn-ghost btn-xs text-primary" %>
-          <% end %>
         </li>
       <% end %>
     </ul>

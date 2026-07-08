@@ -47,10 +47,8 @@ class BankAccountsController < ApplicationController
   def destroy
     @bank_account = Current.account.bank_accounts.kept.find(params[:id])
     if @bank_account.soft_delete!(by: Current.user)   # restrict mirror: false while a kept income depends on it
-      respond_to do |format|
-        format.turbo_stream
-        format.html { redirect_to after_change_path, notice: t(".removed") }
-      end
+      # Remove lives on the edit page (not the list rows), so a redirect is the only response.
+      redirect_to after_change_path, notice: t(".removed"), status: :see_other
     else
       redirect_to after_change_path, alert: @bank_account.errors.full_messages.to_sentence, status: :see_other
     end

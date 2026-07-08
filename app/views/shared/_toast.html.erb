@@ -1,0 +1,16 @@
+<%# locals: message, variant (:success | :info | :error, default :info), href (optional) —
+    THE app toast: self-dismissing (toast controller), click to dismiss, fade-out. Stream it
+    into the layout's #toasts container: turbo_stream.prepend "toasts" { render "shared/toast", ... }.
+    With href it's a link instead — navigation is the dismissal, so no click->dismiss on it. %>
+<% css = { success: "alert-success", info: "alert-info", error: "alert-error" }.fetch((local_assigns[:variant] || :info).to_sym) %>
+<% if local_assigns[:href] %>
+  <%= link_to local_assigns[:href], data: { controller: "toast" },
+        class: "alert #{css} cursor-pointer shadow-lg transition-opacity duration-300" do %>
+    <span><%= message %></span>
+  <% end %>
+<% else %>
+  <div role="status" data-controller="toast" data-action="click->toast#dismiss"
+       class="alert <%= css %> cursor-pointer shadow-lg transition-opacity duration-300">
+    <span><%= message %></span>
+  </div>
+<% end %>

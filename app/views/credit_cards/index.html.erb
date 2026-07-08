@@ -17,9 +17,8 @@
   </div>
 
   <div class="lg:col-span-2">
-    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
-      <h2 class="mb-4 font-display text-lg font-bold"><%= t("credit_cards.add_title") %></h2>
+    <%= render layout: "shared/add_card", locals: { title: t("credit_cards.add_title") } do %>
       <%= render "credit_cards/form", credit_card: @credit_card %>
-    </div>
+    <% end %>
   </div>
 </div>

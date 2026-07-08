@@ -7,6 +7,11 @@
 <%= csrf_meta_tags %>
 <%= csp_meta_tag %>
 
+<%# PWA: manifest + service worker are served on the app host only (see routes on_app). %>
+<% if on_app_host? %>
+  <%= tag.link rel: "manifest", href: pwa_manifest_path %>
+<% end %>
+
 <%= yield :head %>
 
 <%# Favicons. The ?v= busts the year-long edge cache (Cloudflare) when an icon changes —

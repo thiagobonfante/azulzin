@@ -1,30 +1,23 @@
-<%# locals: credit_card %>
+<%# locals: credit_card — the name block links to edit (a pen fades in on hover);
+    attribution + remove live on the edit page, not the row. %>
 <div id="<%= dom_id(credit_card) %>" class="rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
   <div class="flex items-center gap-3">
-    <%= institution_avatar(credit_card.institution, size: 40) %>
-    <div class="min-w-0 flex-1">
-      <p class="flex items-center gap-1.5 truncate text-sm font-semibold">
-        <span class="truncate"><%= credit_card.display_name %></span>
-        <% if credit_card.virtual? %>
-          <span class="badge badge-info badge-xs"><%= t("credit_cards.card_types.virtual") %></span>
-        <% end %>
-      </p>
-      <p class="truncate text-xs text-base-content/50">
-        <%= credit_card.institution.display_name %>
-        <% if credit_card.last4.present? %>· <%= t("credit_cards.ending", last4: credit_card.last4) %><% end %>
-      </p>
-    </div>
-    <%= render "shared/attribution", record: credit_card %>
-    <%= link_to edit_credit_card_path(credit_card),
-          class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-primary",
+    <%= link_to edit_credit_card_path(credit_card), class: "group flex min-w-0 flex-1 items-center gap-3",
           aria: { label: t("credit_cards.edit_title") } do %>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
-    <% end %>
-    <%= button_to credit_card_path(credit_card), method: :delete,
-          class: "btn btn-ghost btn-sm btn-square text-base-content/40 hover:text-error",
-          form: { data: { turbo_confirm: t("credit_cards.confirm_remove") } },
-          aria: { label: t("credit_cards.remove") } do %>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+      <%= institution_avatar(credit_card.institution, size: 40) %>
+      <div class="min-w-0 flex-1">
+        <p class="flex items-center gap-1.5 truncate text-sm font-semibold">
+          <span class="truncate"><%= credit_card.display_name %></span>
+          <% if credit_card.virtual? %>
+            <span class="badge badge-info badge-xs"><%= t("credit_cards.card_types.virtual") %></span>
+          <% end %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-50 group-focus-visible:opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
+        </p>
+        <p class="truncate text-xs text-base-content/50">
+          <%= credit_card.institution.display_name %>
+          <% if credit_card.last4.present? %>· <%= t("credit_cards.ending", last4: credit_card.last4) %><% end %>
+        </p>
+      </div>
     <% end %>
   </div>
 

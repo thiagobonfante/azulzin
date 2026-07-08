@@ -1,0 +1,51 @@
+<%# locals: summary, month, error_message — the modal's form; keyed by id so the 422 stream can
+    re-render it in place (the dialog stays open). Posts to TransfersController#create as a batch:
+    one transfer per source account with an amount filled (sources[<account_id>] = amount). %>
+<%= form_with url: transfers_path(month: month.strftime("%Y-%m")), method: :post, id: "save_money_form",
+      class: "mt-4 flex flex-col gap-4" do %>
+  <% if error_message.present? %>
+    <div class="alert alert-error py-2 text-xs" role="alert"><span><%= error_message %></span></div>
+  <% end %>
+
+  <div class="form-control">
+    <label class="mb-1.5 block text-sm font-medium"><%= t("transactions.hero.save_modal.sources") %></label>
+    <div class="flex flex-col gap-2">
+      <%# Sources are checking accounts only — poupança/investimento are destinations here. %>
+      <% Current.account.bank_accounts.kept.checking.includes(:institution).order(:created_at).each do |account| %>
+        <div class="flex items-center gap-2">
+          <%= institution_avatar(account.institution, size: 24) %>
+          <span class="min-w-0 flex-1 text-sm">
+            <span class="block truncate"><%= account.display_name %></span>
+            <% if (balance = summary.account_balances[account.id]) %>
+              <span class="block text-xs tabular-nums text-base-content/40"><%= brl(balance) %></span>
+            <% end %>
+          </span>
+          <label class="input input-bordered input-sm flex w-32 shrink-0 items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= text_field_tag "sources[#{account.id}]", nil, inputmode: "decimal", placeholder: "0,00",
+                  class: "min-w-0 grow", aria: { label: account.display_name } %>
+          </label>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-2">
+    <div class="form-control">
+      <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.to") %></label>
+      <% targets = Current.account.bank_accounts.kept.where(kind: %w[savings investment]).order(:created_at) %>
+      <%= select_tag "transfer[transfer_to_bank_account_id]",
+            options_from_collection_for_select(targets, :id, :display_name, targets.first&.id),
+            class: "select select-bordered select-sm w-full" %>
+    </div>
+    <div class="form-control">
+      <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.date") %></label>
+      <%= date_field_tag "transfer[occurred_on]", Date.current.in_time_zone("America/Sao_Paulo").to_date,
+            class: "input input-bordered input-sm w-full" %>
+    </div>
+  </div>
+
+  <div class="flex justify-end">
+    <%= submit_tag t("transactions.hero.save_modal.submit"), class: "btn btn-primary btn-sm" %>
+  </div>
+<% end %>
