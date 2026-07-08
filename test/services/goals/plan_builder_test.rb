@@ -13,7 +13,7 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
     Goals::Profile.new(sufficiency:, categories: cats, median_income_cents: income,
                        median_capacity_base_cents: capacity, median_guardado_cents: guardado,
                        income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
-                       window: [Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1)])
+                       window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ])
   end
 
   def build(profile, **kw)
@@ -44,7 +44,7 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
     r.plans.each do |pl|
       assert_operator r.capacity_base_cents + pl.total_cut_cents, :>=, pl.monthly_target_cents, pl.template
       # cuts fund exactly the part above capacity — no rounding drift (trap #3)
-      assert_equal [pl.monthly_target_cents - r.capacity_base_cents, 0].max, pl.total_cut_cents, pl.template
+      assert_equal [ pl.monthly_target_cents - r.capacity_base_cents, 0 ].max, pl.total_cut_cents, pl.template
     end
   end
 
@@ -92,7 +92,7 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
                                 kind: "savings_rate", target_cents: 50_000, starts_on: Date.new(2026, 7, 1))
     assert r.feasible?
     assert_equal 150_000, r.required_monthly_cents                # 100_000 baseline + 50_000 extra
-    assert_equal [150_000, 150_000], r.plans.first(2).map(&:monthly_target_cents)
+    assert_equal [ 150_000, 150_000 ], r.plans.first(2).map(&:monthly_target_cents)
     assert r.plans.all? { |p| p.projected_done_on.nil? }         # open-ended
   end
 

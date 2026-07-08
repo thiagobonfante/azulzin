@@ -24,7 +24,7 @@ module Goals
     def call
       if required <= max_achievable
         BuildResult.new(feasible: true,
-                        plans: [leve, recomendado, acelerado],
+                        plans: [ leve, recomendado, acelerado ],
                         counter_offers: nil,
                         capacity_base_cents: capacity_base, required_monthly_cents: required)
       else
@@ -41,13 +41,13 @@ module Goals
       def required
         @required ||=
           if purchase?
-            Goals.ceil_div(remaining_target, [Goals.months_between(@starts_on, @target_date), 1].max)
+            Goals.ceil_div(remaining_target, [ Goals.months_between(@starts_on, @target_date), 1 ].max)
           else
             @profile.median_guardado_cents + @target_cents
           end
       end
 
-      def remaining_target = [@target_cents - @initial_saved_cents, 0].max
+      def remaining_target = [ @target_cents - @initial_saved_cents, 0 ].max
 
       # median(entradas − saidas − faturas) minus money already promised to other active goals
       # (07 §1.3 capacity contention) — a dream committed once can't be promised to a second.
@@ -77,7 +77,7 @@ module Goals
       # Leve: light touch — 15% off the top-3 trimmables, capped at required. The date may slip.
       def leve
         ceiling = capacity_base + max_trims(trimmables.first(LEVE_TOP_N), TRIM_PCT["leve"])
-        plan("leve", target_contribution: [required, ceiling].min, pct: TRIM_PCT["leve"], candidates: trimmables.first(LEVE_TOP_N))
+        plan("leve", target_contribution: [ required, ceiling ].min, pct: TRIM_PCT["leve"], candidates: trimmables.first(LEVE_TOP_N))
       end
 
       # Recomendado: hold the date — trim greedily (25% max each) until the required monthly is met.
@@ -88,7 +88,7 @@ module Goals
       # Acelerado: beat the date — push to required × 1.25, funded by up to 40% off each trimmable.
       def acelerado
         ceiling = capacity_base + max_trims(trimmables, TRIM_PCT["acelerado"])
-        target = [Goals.pct_of(required, ACCELERADO_STRETCH), ceiling].min
+        target = [ Goals.pct_of(required, ACCELERADO_STRETCH), ceiling ].min
         plan("acelerado", target_contribution: target, pct: TRIM_PCT["acelerado"], candidates: trimmables)
       end
 
@@ -118,7 +118,7 @@ module Goals
           next if remaining <= 0
           max_cut = Goals.pct_of(c.trimmable_median_cents, pct)
           next if max_cut < TRIM_FLOOR_CENTS
-          cut = [max_cut, remaining].min
+          cut = [ max_cut, remaining ].min
           remaining -= cut
           Cut.new(category_id: c.category_id, name: c.name, baseline_cents: c.median_cents, cap_cents: c.median_cents - cut)
         end
@@ -150,10 +150,10 @@ module Goals
       # per month you could realistically commit.
       def feasible_target
         if purchase?
-          reachable = @initial_saved_cents + max_achievable * [Goals.months_between(@starts_on, @target_date), 1].max
-          [reachable, @initial_saved_cents].max   # negative capacity can't erode the head start
+          reachable = @initial_saved_cents + max_achievable * [ Goals.months_between(@starts_on, @target_date), 1 ].max
+          [ reachable, @initial_saved_cents ].max   # negative capacity can't erode the head start
         else
-          [max_achievable - @profile.median_guardado_cents, 0].max
+          [ max_achievable - @profile.median_guardado_cents, 0 ].max
         end
       end
   end

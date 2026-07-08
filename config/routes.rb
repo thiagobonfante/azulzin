@@ -104,6 +104,15 @@ Rails.application.routes.draw do
       post :backfill_dismiss, on: :collection                         # hide the banner, keep the categories
     end
 
+    # Metas — financial goals (.plans/goals). draft → choose (recompute + guarded activate) → active.
+    # No goal_checks dismiss route: the notification spine owns dashboard-alert dismissal (06 §2).
+    resources :goals, only: %i[index new create show update destroy] do
+      member do
+        patch :choose    # template=leve|recomendado|acelerado (+ bank_account_id, source_bank_account_id)
+        patch :abandon
+      end
+    end
+
     # Notification spine (.plans/up-tier 01): dashboard alerts (dismiss only — rows are
     # scanner-created) and the per-member "Avisos" preferences screen.
     resources :notifications, only: [] do

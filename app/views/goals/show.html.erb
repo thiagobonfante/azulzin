@@ -1,0 +1,94 @@
+<% content_for :title, @goal.name %>
+<% actual = @progress.actual_cents %>
+<% latest = @goal.checks.latest_first.first %>
+<% pace_status = latest&.status || "insufficient_data" %>
+
+<header class="mb-6 flex items-center justify-between gap-3">
+  <div class="flex items-center gap-2">
+    <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= @goal.name %></h1>
+    <span class="badge <%= @goal.achieved? ? "badge-primary" : "badge-ghost" %> badge-sm"><%= t("goals.status.#{@goal.status}") %></span>
+  </div>
+  <%= link_to t("goals.show.back"), goals_path, class: "btn btn-ghost btn-sm" %>
+</header>
+
+<% if @goal.achieved? %>
+  <section class="mb-6 rounded-box border border-primary/40 bg-primary/5 p-6 text-center">
+    <p class="text-4xl">🎉</p>
+    <h2 class="mt-2 font-display text-xl font-extrabold text-primary"><%= t("goals.show.achieved_title") %></h2>
+    <p class="mt-1 text-sm text-base-content/70"><%= t("goals.show.achieved_body", amount: brl(actual)) %></p>
+    <%= link_to t("goals.show.next_goal"), new_goal_path, class: "btn btn-primary btn-sm mt-4" %>
+  </section>
+<% end %>
+
+<%# ── Progress ────────────────────────────────────────────────────────── %>
+<section class="mb-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+  <div class="flex items-baseline justify-between">
+    <p class="font-display text-2xl font-extrabold tabular-nums text-primary"><%= brl(actual) %></p>
+    <% if @goal.purchase? %>
+      <p class="text-sm text-base-content/60"><%= t("goals.show.saved_of", target: brl(@goal.target_cents)) %></p>
+    <% else %>
+      <p class="text-sm text-base-content/60"><%= t("goals.show.monthly_target", amount: brl(@goal.monthly_target_cents)) %></p>
+    <% end %>
+  </div>
+  <% if @goal.purchase? %>
+    <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-base-200">
+      <div class="h-full rounded-full <%= goal_bar_class(pace_status) %>" style="width: <%= goal_percent(actual, @goal.target_cents) %>%"></div>
+    </div>
+  <% end %>
+  <% unless @goal.achieved? %>
+    <div class="mt-3 flex items-center gap-2">
+      <span class="badge <%= goal_pace_badge_class(pace_status) %> badge-sm"><%= t("goals.pace.#{pace_status}") %></span>
+      <span class="text-xs text-base-content/50"><%= t("goals.show.expected", amount: brl(@progress.expected_cents)) %></span>
+    </div>
+  <% end %>
+</section>
+
+<%# ── Contribution CTA + caixinha nudge ───────────────────────────────── %>
+<% unless @goal.achieved? %>
+  <div class="mb-6 flex flex-wrap items-center gap-3">
+    <%= link_to t("goals.show.add_contribution"), transactions_path, class: "btn btn-primary btn-sm" %>
+    <% unless @goal.bank_account_id %>
+      <span class="text-xs text-base-content/55"><%= t("goals.show.no_caixinha_nudge") %></span>
+    <% end %>
+  </div>
+<% end %>
+
+<%# ── Trim map ────────────────────────────────────────────────────────── %>
+<% cuts = @goal.plan["cuts"] || [] %>
+<% if cuts.any? %>
+  <section class="mb-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="mb-3 font-semibold"><%= t("goals.show.trim_map_title") %></h2>
+    <ul class="flex flex-col gap-2 text-sm">
+      <% cuts.each do |cut| %>
+        <li class="flex justify-between">
+          <span class="text-base-content/70"><%= cut["name"] %></span>
+          <span class="tabular-nums text-base-content/60"><%= t("goals.show.cap_line", cap: brl(cut["cap_cents"]), baseline: brl(cut["baseline_cents"])) %></span>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<%# ── Contribution history ────────────────────────────────────────────── %>
+<% contributions = @progress.contributions.limit(24) %>
+<% if contributions.any? %>
+  <section class="mb-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="mb-3 font-semibold"><%= t("goals.show.contributions_title") %></h2>
+    <ul class="divide-y divide-base-200 text-sm">
+      <% contributions.each do |txn| %>
+        <li class="flex items-center justify-between py-2">
+          <span class="text-base-content/60"><%= l(txn.occurred_on, format: :weekday_day) %></span>
+          <span class="font-medium tabular-nums text-primary"><%= brl(txn.amount_cents) %></span>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<% unless @goal.achieved? %>
+  <div class="flex items-center gap-3">
+    <%= button_to t("goals.show.abandon"), abandon_goal_path(@goal), method: :patch,
+          form: { data: { turbo_confirm: t("goals.show.abandon_confirm") } }, class: "btn btn-ghost btn-sm text-error" %>
+    <span class="text-xs text-base-content/45"><%= t("goals.show.abandoned_note") %></span>
+  </div>
+<% end %>

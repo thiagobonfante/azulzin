@@ -1,0 +1,125 @@
+<% content_for :title, @goal.name %>
+<% baseline = @goal.baseline %>
+<% income = baseline["median_income_cents"].to_i %>
+<% capacity = @build.capacity_base_cents %>
+<% savings_accounts = Current.account.bank_accounts.kept.savings.includes(:institution).order(:created_at) %>
+<% source_accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at) %>
+
+<header class="mb-6 flex items-center justify-between gap-3">
+  <div>
+    <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= @goal.name %></h1>
+    <span class="badge badge-ghost badge-sm"><%= t("goals.status.draft") %></span>
+    <% if baseline["sufficiency"] == "thin" %>
+      <span class="badge badge-ghost badge-sm"><%= t("goals.states.estimate_badge") %></span>
+    <% end %>
+  </div>
+  <%= link_to t("goals.draft.discard"), goal_path(@goal), data: { turbo_method: :delete, turbo_confirm: t("goals.draft.discard_confirm") },
+        class: "btn btn-ghost btn-sm text-error" %>
+</header>
+
+<%# ── Diagnóstico ─────────────────────────────────────────────────────── %>
+<section class="mb-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+  <p class="text-sm text-base-content/70">
+    <%= t("goals.diagnosis.summary_html",
+          income: content_tag(:span, brl(income), class: "font-semibold"),
+          spend: content_tag(:span, brl(income - capacity), class: "font-semibold"),
+          capacity: content_tag(:span, brl(capacity), class: "font-semibold #{capacity >= 0 ? "text-primary" : "text-error"}")) %>
+  </p>
+  <% trimmables = (baseline["categories"] || []).select { |c| c["flexibility"] == "flexible" && c["trimmable_median_cents"].to_i.positive? }
+                    .sort_by { |c| -c["trimmable_median_cents"].to_i }.first(3) %>
+  <% if trimmables.any? %>
+    <p class="mt-3 mb-1 text-xs font-medium text-base-content/50"><%= t("goals.diagnosis.trim_candidates_title") %></p>
+    <div class="flex flex-col gap-1.5">
+      <% top = trimmables.first["trimmable_median_cents"].to_i %>
+      <% trimmables.each do |c| %>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-24 shrink-0 truncate text-base-content/70"><%= c["name"] %></span>
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-base-200">
+            <div class="h-full rounded-full bg-primary/60" style="width: <%= goal_percent(c["trimmable_median_cents"], top) %>%"></div>
+          </div>
+          <span class="shrink-0 tabular-nums text-base-content/60"><%= brl(c["trimmable_median_cents"]) %></span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</section>
+
+<% if @build.feasible? %>
+  <%# ── Screen 2 + 3: pick a plan, say where the money goes ────────────── %>
+  <%= form_with url: choose_goal_path(@goal), method: :patch, class: "flex flex-col gap-5" do %>
+    <div class="grid gap-4 lg:grid-cols-3">
+      <%= render partial: "goals/plan_card", collection: @build.plans, as: :plan, locals: { goal: @goal } %>
+    </div>
+    <p class="text-sm text-base-content/60"><%= t("goals.plans.commitment_note") %></p>
+
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-3 font-semibold"><%= t("goals.confirm.title") %></h2>
+      <% if savings_accounts.any? %>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="form-control">
+            <label class="mb-1 block text-sm font-medium"><%= t("goals.confirm.caixinha") %></label>
+            <select name="bank_account_id" class="select select-bordered w-full">
+              <% savings_accounts.each do |a| %>
+                <option value="<%= a.id %>" <%= "selected" if savings_accounts.one? %>><%= a.display_name %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="form-control">
+            <label class="mb-1 block text-sm font-medium"><%= t("goals.confirm.source") %></label>
+            <select name="source_bank_account_id" class="select select-bordered w-full">
+              <% source_accounts.each do |a| %>
+                <option value="<%= a.id %>"><%= a.display_name %></option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+      <% else %>
+        <p class="text-sm text-base-content/55"><%= t("goals.confirm.caixinha_none") %></p>
+      <% end %>
+    </div>
+
+    <%= submit_tag t("goals.confirm.activate"), class: "btn btn-primary", data: { turbo_confirm: nil } %>
+  <% end %>
+<% else %>
+  <%# ── Infeasible: honest counter-offers (02 §2.C) ────────────────────── %>
+  <% co = @build.counter_offers %>
+  <section class="rounded-box border border-warning/40 bg-warning/5 p-5">
+    <h2 class="font-display text-lg font-bold"><%= t("goals.states.too_tight_title") %></h2>
+    <% if @goal.purchase? %>
+      <p class="mt-1 text-sm text-base-content/70">
+        <%= t("goals.states.too_tight_why", month: l(@goal.target_date, format: :month_year),
+              required: brl(co.required_monthly_cents), capacity: brl(co.achievable_monthly_cents)) %>
+      </p>
+    <% end %>
+
+    <div class="mt-4 grid gap-3">
+      <% if co.feasible_date %>
+        <%= form_with url: goal_path(@goal), method: :patch, class: "contents" do |f| %>
+          <%= hidden_field_tag "goal[target_date]", co.feasible_date.iso8601 %>
+          <button class="flex w-full items-center justify-between rounded-box border border-base-300/70 bg-base-100 p-4 text-left shadow-sm hover:border-primary">
+            <span class="text-sm"><%= t("goals.states.offer_date", amount: brl(co.achievable_monthly_cents), month: l(co.feasible_date, format: :month_year)) %></span>
+            <span class="btn btn-primary btn-xs"><%= t("goals.states.use_this_date") %></span>
+          </button>
+        <% end %>
+      <% end %>
+
+      <% if co.feasible_target_cents.positive? %>
+        <%= form_with url: goal_path(@goal), method: :patch, class: "contents" do |f| %>
+          <%= hidden_field_tag "goal[target_reais]", MoneyColumns.prefill(co.feasible_target_cents) %>
+          <button class="flex w-full items-center justify-between rounded-box border border-base-300/70 bg-base-100 p-4 text-left shadow-sm hover:border-primary">
+            <span class="text-sm">
+              <%= @goal.purchase? ? t("goals.states.offer_target", month: l(@goal.target_date, format: :month_year), amount: brl(co.feasible_target_cents)) :
+                                    t("goals.states.offer_target_savings", amount: brl(co.feasible_target_cents)) %>
+            </span>
+            <span class="btn btn-primary btn-xs"><%= t("goals.states.use_this_target") %></span>
+          </button>
+        <% end %>
+      <% end %>
+
+      <%= link_to incomes_path, class: "flex w-full items-center justify-between rounded-box border border-dashed border-base-300 bg-base-100/50 p-4 hover:border-primary" do %>
+        <span class="text-sm"><%= t("goals.states.offer_income", amount: brl(co.extra_income_cents)) %></span>
+        <span class="btn btn-ghost btn-xs text-primary"><%= t("goals.states.register_income") %></span>
+      <% end %>
+    </div>
+  </section>
+<% end %>

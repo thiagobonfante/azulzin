@@ -1,0 +1,54 @@
+<%# locals: goal — Screen 1: name the dream. Three required inputs (kind, name+value, date). %>
+<%= form_with model: goal, url: goals_path, id: "goal_form", class: "flex flex-col gap-5",
+      data: { controller: "goal-kind",
+              goal_kind_purchase_label_value: t("goals.form.value_purchase"),
+              goal_kind_savings_label_value: t("goals.form.value_savings") } do |f| %>
+  <div id="goal_form_errors">
+    <% if goal.errors.any? %>
+      <div class="alert alert-error py-2 text-sm" role="alert"><span><%= goal.errors.full_messages.to_sentence %></span></div>
+    <% end %>
+  </div>
+
+  <fieldset class="grid gap-3 sm:grid-cols-2">
+    <% { "purchase" => "🎯", "savings_rate" => "📈" }.each do |kind, emoji| %>
+      <label class="flex cursor-pointer gap-3 rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm has-checked:border-primary has-checked:ring-1 has-checked:ring-primary">
+        <%= f.radio_button :kind, kind, checked: goal.kind == kind, class: "radio radio-primary mt-1",
+              data: { goal_kind_target: "kind", action: "goal-kind#toggle" } %>
+        <span class="min-w-0">
+          <span class="block font-semibold"><%= emoji %> <%= t("goals.kinds.#{kind}") %></span>
+          <span class="block text-xs text-base-content/55"><%= t("goals.kinds.#{kind}_hint") %></span>
+        </span>
+      </label>
+    <% end %>
+  </fieldset>
+
+  <div class="form-control">
+    <%= f.label :name, t("goals.form.name"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.text_field :name, placeholder: t("goals.form.name_placeholder"), required: true, maxlength: 80,
+          class: "input input-bordered w-full" %>
+  </div>
+
+  <div class="form-control">
+    <label class="mb-1 block text-sm font-medium" data-goal-kind-target="valueLabel"><%= t("goals.form.value_purchase") %></label>
+    <label class="input input-bordered flex w-full items-center gap-2">
+      <span class="text-base-content/50"><%= t("money.symbol") %></span>
+      <%= f.text_field :target_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+    </label>
+  </div>
+
+  <div class="form-control" data-goal-kind-target="dateGroup">
+    <%= f.label :target_date, t("goals.form.when"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.select :target_date, goal_month_options, { include_blank: false }, class: "select select-bordered w-full" %>
+  </div>
+
+  <div class="form-control">
+    <%= f.label :initial_saved_reais, t("goals.form.initial_saved"), class: "mb-1 block text-sm font-medium" %>
+    <label class="input input-bordered flex w-full items-center gap-2">
+      <span class="text-base-content/50"><%= t("money.symbol") %></span>
+      <%= f.text_field :initial_saved_reais, inputmode: "decimal", placeholder: "0,00", class: "grow" %>
+    </label>
+    <p class="mt-1 text-xs text-base-content/50"><%= t("goals.form.initial_saved_hint") %></p>
+  </div>
+
+  <%= f.submit t("goals.form.submit"), class: "btn btn-primary" %>
+<% end %>

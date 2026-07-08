@@ -4,13 +4,13 @@ require "test_helper"
 # rule, cents-exact division, and NO Float anywhere in the goals engine.
 class Goals::MathTest < ActiveSupport::TestCase
   test "median mirrors Budgets::Suggest (odd → middle, even → integer mean of the two middle)" do
-    assert_equal 420, Goals.median([400, 420, 4100])          # median beats the spike (trap #7)
+    assert_equal 420, Goals.median([ 400, 420, 4100 ])          # median beats the spike (trap #7)
     assert_equal 0,   Goals.median([])
-    assert_equal 150, Goals.median([100, 200])               # even count → (100+200)/2
+    assert_equal 150, Goals.median([ 100, 200 ])               # even count → (100+200)/2
   end
 
   test "median of four is the mean of the two middle values" do
-    assert_equal 250, Goals.median([100, 200, 300, 400])
+    assert_equal 250, Goals.median([ 100, 200, 300, 400 ])
   end
 
   test "prorate is one documented BigDecimal half-up rule" do
@@ -23,7 +23,7 @@ class Goals::MathTest < ActiveSupport::TestCase
     assert_equal 352_942, Goals.ceil_div(6_000_000, 17)
     assert_equal 34,      Goals.ceil_div(100, 3)
     # property: monthly × months ≥ remaining, for adversarial pairs
-    [[6_000_000, 17], [100, 3], [1, 48], [100_001, 3], [999_999, 7], [50_000, 1]].each do |remaining, months|
+    [ [ 6_000_000, 17 ], [ 100, 3 ], [ 1, 48 ], [ 100_001, 3 ], [ 999_999, 7 ], [ 50_000, 1 ] ].each do |remaining, months|
       monthly = Goals.ceil_div(remaining, months)
       assert_operator monthly * months, :>=, remaining, "ceil_div(#{remaining},#{months}) undershot"
       assert_operator (monthly - 1) * months, :<, remaining, "ceil_div(#{remaining},#{months}) overshot by a whole month"
@@ -37,8 +37,8 @@ class Goals::MathTest < ActiveSupport::TestCase
   end
 
   test "cv_squared stays in BigDecimal and flags irregular income" do
-    steady = [500_000, 505_000, 495_000]
-    spiky  = [200_000, 900_000, 100_000]
+    steady = [ 500_000, 505_000, 495_000 ]
+    spiky  = [ 200_000, 900_000, 100_000 ]
     assert Goals.cv_squared(steady) < Goals::INCOME_IRREGULAR_CV**2
     assert Goals.cv_squared(spiky)  > Goals::INCOME_IRREGULAR_CV**2
     assert_kind_of BigDecimal, Goals.cv_squared(steady)

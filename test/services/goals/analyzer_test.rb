@@ -8,7 +8,7 @@ class Goals::AnalyzerTest < ActiveSupport::TestCase
 
   # window is the 3 full months before as_of: Apr, May, Jun 2026.
   AS_OF = Date.new(2026, 7, 15)
-  WIN   = [Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1)].freeze
+  WIN   = [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ].freeze
 
   setup do
     @account  = users(:confirmed).account

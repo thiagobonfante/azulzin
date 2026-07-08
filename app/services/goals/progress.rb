@@ -24,6 +24,16 @@ module Goals
     # Purchase goals conclude when the saved amount reaches the target (checked weekly + on render).
     def achieved? = @goal.purchase? && actual_cents >= @goal.target_cents
 
+    # The posted transfers that count toward this goal, newest first — the show page's history.
+    def contributions
+      ids = savings_account_ids
+      return @goal.account.transactions.none if ids.empty? || @goal.starts_on.blank?
+      @goal.account.transactions.posted.kept
+           .where(direction: "transfer", transfer_to_bank_account_id: ids)
+           .where(billing_month: @goal.starts_on..)
+           .order(occurred_on: :desc, id: :desc)
+    end
+
     # Suppress pace findings when this month's income is < 70% of the baseline median — the shortfall
     # isn't behavior (irregular-income guard, 01 §6). No baseline income ⇒ always allowed.
     def pace_flag_allowed?
@@ -44,14 +54,14 @@ module Goals
 
       # Linked caixinha counts only its own transfers; unlinked counts every savings account (01 §1).
       def savings_account_ids
-        return [@goal.bank_account_id] if @goal.bank_account_id
+        return [ @goal.bank_account_id ] if @goal.bank_account_id
         @goal.account.bank_accounts.kept.savings.pluck(:id)
       end
 
       def current_month = @as_of.beginning_of_month
 
       def full_months_elapsed
-        [Goals.months_between(@goal.starts_on, current_month), 0].max
+        [ Goals.months_between(@goal.starts_on, current_month), 0 ].max
       end
 
       # 0 before the household's earliest expected payday this month, then linear pro-rata to month end.

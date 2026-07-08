@@ -1,0 +1,5 @@
+<%= link_to new_goal_path, class: "block rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-10 text-center hover:border-primary/50" do %>
+  <p class="font-display text-lg font-bold text-base-content/70"><%= t("goals.empty.title") %></p>
+  <p class="mt-1 text-sm text-base-content/50"><%= t("goals.empty.subtitle") %></p>
+  <span class="btn btn-primary btn-sm mt-4"><%= t("goals.empty.cta") %></span>
+<% end %>

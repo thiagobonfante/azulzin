@@ -1,0 +1,41 @@
+<%# locals: plan, goal — one scannable plan card; identical row structure across all three. %>
+<% recommended = plan.template == "recomendado" %>
+<% max_achievable = plan.monthly_target_cents + plan.buffer_cents %>
+<% effort = goal_percent(plan.monthly_target_cents, max_achievable) %>
+<label class="relative flex cursor-pointer flex-col gap-3 rounded-box border bg-base-100 p-4 shadow-sm has-checked:ring-2 has-checked:ring-primary <%= recommended ? "border-primary" : "border-base-300/70" %>">
+  <div class="flex items-center justify-between">
+    <span class="badge <%= recommended ? "badge-primary" : "badge-ghost" %>"><%= t("goals.plans.labels.#{plan.template}") %></span>
+    <%= radio_button_tag "template", plan.template, recommended, class: "radio radio-primary radio-sm" %>
+  </div>
+
+  <p class="font-display text-2xl font-extrabold tabular-nums text-primary">
+    <%= t("goals.plans.monthly_html", amount: brl(plan.monthly_target_cents)) %>
+  </p>
+
+  <% if goal.purchase? && plan.projected_done_on %>
+    <% margin = goal_plan_margin(plan, goal) %>
+    <p class="text-sm text-base-content/70">
+      <%= t("goals.plans.reaches_on", month: l(plan.projected_done_on, format: :month_year)) %>
+      <% if margin != :none && margin != :exact %>
+        <span class="<%= margin == :ahead ? "text-primary" : "text-warning" %>">· <%= t("goals.plans.margin_#{margin}") %></span>
+      <% end %>
+    </p>
+  <% end %>
+
+  <% if plan.cuts.any? %>
+    <ul class="flex flex-col gap-1 text-xs text-base-content/60">
+      <% plan.cuts.each do |cut| %>
+        <li><%= t("goals.plans.trim_line", amount: brl(cut.cut_cents), category: cut.name, current: brl(cut.baseline_cents)) %></li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-xs text-base-content/50"><%= t("goals.plans.no_cuts") %></p>
+  <% end %>
+
+  <div>
+    <div class="h-1.5 w-full overflow-hidden rounded-full bg-base-200">
+      <div class="h-full rounded-full bg-primary" style="width: <%= effort %>%"></div>
+    </div>
+    <p class="mt-1 text-xs text-base-content/45"><%= t("goals.plans.note_default_#{plan.template}") %></p>
+  </div>
+</label>
