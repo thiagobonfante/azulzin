@@ -1,7 +1,10 @@
-# A recurring obligation (R10) OR a card installment-purchase parent (R11). Three kinds:
+# A recurring obligation (R10) OR a card installment-purchase parent (R11). Four kinds:
 #   installment  — finite: a car loan (debit) or a "5000 em 10x" card purchase. count present.
 #   fixed        — a rent/school obligation with a known amount and (optional) end date.
 #   subscription — Netflix etc.; charge day often unknown (schedule_day nil ⇒ end of month).
+#   savings      — a goal's "pay yourself first" monthly contribution (.plans/goals 07 §1). The
+#                  bank_account is the SOURCE; paying it posts a transfer into the goal's caixinha
+#                  (not an expense), so it reduces sobra via MonthSummary#projected_guardado_cents.
 # Exactly one instrument (bank XOR card, DB-enforced). Occurrences are COMPUTED, never stored;
 # a payment is an ordinary posted transaction linked by commitment_id. See 01-domain-model.md §5.
 class Commitment < ApplicationRecord
@@ -11,6 +14,7 @@ class Commitment < ApplicationRecord
   belongs_to :bank_account, optional: true
   belongs_to :credit_card,  optional: true
   belongs_to :category,     optional: true
+  belongs_to :goal,         optional: true   # set only on kind: "savings" (.plans/goals 07 §1.2)
   has_many :payments, class_name: "Transaction", foreign_key: :commitment_id
   # Detach payments on destroy in ONE update: the DB pairs installment_number with commitment_id
   # (transactions_installment_requires_commitment), so dependent: :nullify — which clears only
@@ -19,13 +23,14 @@ class Commitment < ApplicationRecord
 
   money_column :amount, :total
 
-  enum :kind, { installment: "installment", fixed: "fixed", subscription: "subscription" }, validate: true
+  enum :kind, { installment: "installment", fixed: "fixed", subscription: "subscription", savings: "savings" }, validate: true
   enum :schedule_kind, { fixed_day: "fixed_day", nth_business_day: "nth_business_day" }, validate: true
 
   validates :name, presence: true, length: { maximum: 80 }
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :starts_on, presence: true
   validate  :exactly_one_instrument
+  validate  :goal_only_on_savings   # goal_id is set only on the "pay yourself first" savings kind
   validates :installments_count, numericality: { only_integer: true, greater_than: 0 }, if: :installment?
   validates :installments_count, absence: true, unless: :installment?
   validates :schedule_day, presence: true, if: :fixed?   # subscription: unknown; installment: posted parcels
@@ -115,5 +120,9 @@ class Commitment < ApplicationRecord
     def exactly_one_instrument
       return if bank_account_id.present? ^ credit_card_id.present?
       errors.add(:base, :one_instrument)
+    end
+
+    def goal_only_on_savings
+      errors.add(:goal, :only_on_savings) if goal_id.present? && !savings?
     end
 end

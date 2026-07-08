@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_08_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -90,6 +90,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
     t.bigint "created_by_id"
     t.datetime "deleted_at"
     t.bigint "deleted_by_id"
+    t.string "flexibility"
     t.string "icon"
     t.bigint "monthly_budget_cents"
     t.citext "name", null: false
@@ -113,6 +114,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
     t.datetime "deleted_at"
     t.bigint "deleted_by_id"
     t.date "ends_on"
+    t.bigint "goal_id"
     t.integer "installments_count"
     t.string "kind", null: false
     t.string "name", limit: 80, null: false
@@ -130,6 +132,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
     t.index ["category_id"], name: "index_commitments_on_category_id"
     t.index ["created_by_id"], name: "index_commitments_on_created_by_id"
     t.index ["credit_card_id"], name: "index_commitments_on_credit_card_id"
+    t.index ["goal_id"], name: "index_commitments_on_goal_id"
+    t.index ["goal_id"], name: "index_commitments_one_active_per_goal", unique: true, where: "((goal_id IS NOT NULL) AND (archived_at IS NULL) AND (deleted_at IS NULL))"
     t.index ["source_message_id"], name: "index_commitments_on_source_message_id", unique: true, where: "(source_message_id IS NOT NULL)"
     t.check_constraint "(kind::text = 'installment'::text) = (installments_count IS NOT NULL)", name: "commitments_installment_count_paired"
     t.check_constraint "num_nonnulls(bank_account_id, credit_card_id) = 1", name: "commitments_exactly_one_instrument"
@@ -178,6 +182,52 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
     t.index ["account_id"], name: "index_document_imports_on_account_id"
     t.index ["created_by_id"], name: "index_document_imports_on_created_by_id"
     t.index ["institution_id"], name: "index_document_imports_on_institution_id"
+  end
+
+  create_table "goal_checks", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "actual_cents", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.bigint "expected_cents", default: 0, null: false
+    t.jsonb "findings", default: [], null: false
+    t.bigint "goal_id", null: false
+    t.date "period_start", null: false
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_goal_checks_on_account_id"
+    t.index ["goal_id", "period_start"], name: "index_goal_checks_on_goal_id_and_period_start", unique: true
+  end
+
+  create_table "goals", force: :cascade do |t|
+    t.datetime "abandoned_at"
+    t.bigint "account_id", null: false
+    t.datetime "achieved_at"
+    t.datetime "activated_at"
+    t.integer "ai_calls_count", default: 0, null: false
+    t.bigint "bank_account_id"
+    t.jsonb "baseline", default: {}, null: false
+    t.datetime "celebrated_at"
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "initial_saved_cents", default: 0, null: false
+    t.string "kind", null: false
+    t.bigint "monthly_target_cents"
+    t.string "name", limit: 80, null: false
+    t.jsonb "plan", default: {}, null: false
+    t.date "starts_on"
+    t.string "status", default: "draft", null: false
+    t.bigint "target_cents", null: false
+    t.date "target_date"
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_id"
+    t.index ["account_id", "status"], name: "index_goals_on_account_id_and_status"
+    t.index ["account_id"], name: "index_goals_on_account_id"
+    t.index ["bank_account_id"], name: "index_goals_on_bank_account_id"
+    t.index ["created_by_id"], name: "index_goals_on_created_by_id"
+    t.check_constraint "(kind::text = 'purchase'::text) = (target_date IS NOT NULL)", name: "goals_purchase_has_date"
+    t.check_constraint "initial_saved_cents >= 0", name: "goals_initial_saved_non_negative"
+    t.check_constraint "monthly_target_cents IS NULL OR monthly_target_cents > 0", name: "goals_monthly_target_positive"
+    t.check_constraint "target_cents > 0", name: "goals_target_positive"
   end
 
   create_table "incomes", force: :cascade do |t|
@@ -412,6 +462,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
   add_foreign_key "commitments", "bank_accounts"
   add_foreign_key "commitments", "categories"
   add_foreign_key "commitments", "credit_cards"
+  add_foreign_key "commitments", "goals", on_delete: :nullify
   add_foreign_key "commitments", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "commitments", "users", column: "deleted_by_id", on_delete: :nullify
   add_foreign_key "commitments", "users", column: "updated_by_id", on_delete: :nullify
@@ -424,6 +475,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_190000) do
   add_foreign_key "document_imports", "institutions"
   add_foreign_key "document_imports", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "document_imports", "users", column: "updated_by_id", on_delete: :nullify
+  add_foreign_key "goal_checks", "accounts"
+  add_foreign_key "goal_checks", "goals"
+  add_foreign_key "goals", "accounts"
+  add_foreign_key "goals", "bank_accounts", on_delete: :nullify
+  add_foreign_key "goals", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "goals", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "incomes", "accounts"
   add_foreign_key "incomes", "bank_accounts"
   add_foreign_key "incomes", "users", column: "created_by_id", on_delete: :nullify

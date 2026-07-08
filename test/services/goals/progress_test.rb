@@ -1,0 +1,114 @@
+require "test_helper"
+
+# Progress: guardado-vs-expected pace, pay-schedule-aware expected, irregular-income guard
+# (.plans/goals 01 §6). Pace is never projected-sobra — a saver who contributes early is on track.
+class Goals::ProgressTest < ActiveSupport::TestCase
+  include ActiveSupport::Testing::TimeHelpers
+
+  setup do
+    @account  = users(:confirmed).account
+    @inst     = Institution.find_by(code: "260")
+    @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
+    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+  end
+
+  teardown { travel_back }
+
+  def goal(**attrs)
+    @account.goals.create!({ name: "Carro", kind: "purchase", target_cents: 6_000_000,
+                             target_date: Date.new(2027, 12, 1), status: "active",
+                             monthly_target_cents: 300_000, starts_on: Date.new(2026, 7, 1),
+                             bank_account: @caixinha,
+                             baseline: { "median_income_cents" => 500_000 } }.merge(attrs))
+  end
+
+  def save_to_caixinha!(cents:, month:)
+    @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: cents,
+                                  bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                  occurred_on: month, billing_month: month, billing_month_manual: true)
+  end
+
+  test "actual = initial head start + guardado since starts_on" do
+    travel_to Time.utc(2026, 8, 20, 12)
+    g = goal(initial_saved_cents: 50_000)
+    save_to_caixinha!(cents: 300_000, month: Date.new(2026, 7, 1))
+    save_to_caixinha!(cents: 200_000, month: Date.new(2026, 8, 1))
+    assert_equal 50_000 + 500_000, Goals::Progress.new(g).actual_cents
+  end
+
+  test "transfers before starts_on don't count toward the goal" do
+    travel_to Time.utc(2026, 7, 20, 12)
+    g = goal
+    save_to_caixinha!(cents: 999_000, month: Date.new(2026, 6, 1))   # before the goal existed
+    assert_equal 0, Goals::Progress.new(g).actual_cents
+  end
+
+  test "a linked caixinha ignores transfers into other savings accounts" do
+    travel_to Time.utc(2026, 7, 20, 12)
+    other = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    g = goal
+    @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 400_000,
+                                  bank_account: @checking, transfer_to_bank_account: other,
+                                  occurred_on: Date.new(2026, 7, 5), billing_month: Date.new(2026, 7, 1),
+                                  billing_month_manual: true)
+    assert_equal 0, Goals::Progress.new(g).actual_cents
+  end
+
+  test "expected is 0 before the household's payday and pro-rates after it" do
+    @account.incomes.create!(name: "Salário", amount_cents: 500_000, bank_account: @checking,
+                             schedule_day: 10, schedule_kind: "fixed_day")
+    g = goal   # starts July, so in July full_months_elapsed = 0
+
+    travel_to Time.utc(2026, 7, 8, 12)          # before payday (day 10)
+    assert_equal 0, Goals::Progress.new(g).expected_cents
+
+    travel_to Time.utc(2026, 7, 20, 12)         # after payday: pro-rata 300_000 × (20−10)/(31−10)
+    expected = Goals.prorate(300_000, 20 - 10, 31 - 10)
+    assert_equal expected, Goals::Progress.new(g).expected_cents
+  end
+
+  test "full months elapsed accrue the whole monthly target" do
+    travel_to Time.utc(2026, 9, 5, 12)   # Jul + Aug elapsed fully; Sep just started
+    @account.incomes.create!(name: "Salário", amount_cents: 500_000, bank_account: @checking,
+                             schedule_day: 10, schedule_kind: "fixed_day")
+    g = goal
+    # 2 full months × 300_000 + (Sep 5 is before payday → 0)
+    assert_equal 600_000, Goals::Progress.new(g).expected_cents
+  end
+
+  test "a saver contributing on schedule is on pace (guardado ≥ expected, never punished for it)" do
+    travel_to Time.utc(2026, 7, 20, 12)
+    @account.incomes.create!(name: "Salário", amount_cents: 500_000, bank_account: @checking,
+                             schedule_day: 5, schedule_kind: "fixed_day")
+    g = goal
+    save_to_caixinha!(cents: 300_000, month: Date.new(2026, 7, 1))   # already saved the whole month
+    p = Goals::Progress.new(g)
+    assert_operator p.actual_cents, :>=, p.expected_cents
+  end
+
+  test "irregular-income guard: a low-income month suppresses pace flagging" do
+    travel_to Time.utc(2026, 7, 20, 12)
+    g = goal   # baseline median income 500_000
+    # only 200_000 income this month (< 70% of 500_000) → shortfall isn't behavior
+    @account.transactions.create!(direction: "income", status: "posted", amount_cents: 200_000,
+                                  bank_account: @checking, occurred_on: Date.new(2026, 7, 3),
+                                  billing_month: Date.new(2026, 7, 1), billing_month_manual: true)
+    refute Goals::Progress.new(g).pace_flag_allowed?
+  end
+
+  test "a normal-income month allows pace flagging" do
+    travel_to Time.utc(2026, 7, 20, 12)
+    g = goal
+    @account.transactions.create!(direction: "income", status: "posted", amount_cents: 500_000,
+                                  bank_account: @checking, occurred_on: Date.new(2026, 7, 3),
+                                  billing_month: Date.new(2026, 7, 1), billing_month_manual: true)
+    assert Goals::Progress.new(g).pace_flag_allowed?
+  end
+
+  test "purchase auto-achieves when the saved amount reaches the target" do
+    travel_to Time.utc(2026, 7, 20, 12)
+    g = goal(target_cents: 500_000)
+    save_to_caixinha!(cents: 500_000, month: Date.new(2026, 7, 1))
+    assert Goals::Progress.new(g).achieved?
+  end
+end

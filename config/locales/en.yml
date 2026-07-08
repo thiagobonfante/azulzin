@@ -48,6 +48,8 @@ en:
       account: "Account"
       account_membership: "Member"
       invitation: "Invitation"
+      goal: "Goal"
+      goal_check: "Check"
     attributes:
       user:
         email_address: "Email address"
@@ -112,6 +114,18 @@ en:
         quiet_hours_end: "Quiet hours end"
         budget_warn_percent: "Warn threshold"
         budget_breach_percent: "Over-budget threshold"
+      goal:
+        name: "Name"
+        kind: "Type"
+        target_cents: "Amount"
+        target_date: "When"
+        initial_saved_cents: "Already saved"
+        monthly_target_cents: "Monthly amount"
+        bank_account: "Savings pot"
+        bank_account_id: "Savings pot"
+      goal_check:
+        status: "Status"
+        period_start: "Week"
     errors:
       models:
         account_membership:
@@ -138,6 +152,8 @@ en:
           attributes:
             installments_count:
               below_paid: "must be at least %{count} — paid installments can't be removed."
+            goal:
+              only_on_savings: "can only be linked to savings commitments."
         transaction:
           instrument_required: "Pick the account or card for this entry."
           attributes:
@@ -152,6 +168,14 @@ en:
               missing: "is required."
               too_large: "exceeds the 10 MB limit."
               unsupported_type: "has an unsupported format. Send a PDF, CSV or OFX."
+        goal:
+          attributes:
+            base:
+              too_many_active: "You already have 5 active goals. Finish or abandon one to make room."
+            bank_account:
+              not_savings: "must be a savings pot (a savings account) in this account."
+            initial_saved_cents:
+              exceeds_target: "can't be greater than or equal to the goal amount."
   app:
     nav:
       dashboard: "Dashboard"

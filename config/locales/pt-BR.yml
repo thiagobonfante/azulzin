@@ -49,6 +49,8 @@ pt-BR:
       account: "Conta"
       account_membership: "Membro"
       invitation: "Convite"
+      goal: "Meta"
+      goal_check: "Verificação"
     attributes:
       user:
         email_address: "E-mail"
@@ -113,6 +115,18 @@ pt-BR:
         quiet_hours_end: "Fim do silêncio"
         budget_warn_percent: "Faixa de aviso"
         budget_breach_percent: "Faixa de estouro"
+      goal:
+        name: "Nome"
+        kind: "Tipo"
+        target_cents: "Valor"
+        target_date: "Quando"
+        initial_saved_cents: "Já guardado"
+        monthly_target_cents: "Valor mensal"
+        bank_account: "Caixinha"
+        bank_account_id: "Caixinha"
+      goal_check:
+        status: "Situação"
+        period_start: "Semana"
     errors:
       models:
         account_membership:
@@ -139,6 +153,8 @@ pt-BR:
           attributes:
             installments_count:
               below_paid: "deve ser pelo menos %{count} — parcelas já pagas não podem ser removidas."
+            goal:
+              only_on_savings: "só pode ser vinculada a compromissos de poupança."
         transaction:
           instrument_required: "Escolha a conta ou o cartão do lançamento."
           attributes:
@@ -153,6 +169,14 @@ pt-BR:
               missing: "é obrigatório."
               too_large: "excede o limite de 10 MB."
               unsupported_type: "tem um formato não suportado. Envie PDF, CSV ou OFX."
+        goal:
+          attributes:
+            base:
+              too_many_active: "Você já tem 5 metas ativas. Conclua ou abandone uma para abrir espaço."
+            bank_account:
+              not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
+            initial_saved_cents:
+              exceeds_target: "não pode ser maior ou igual ao valor da meta."
   app:
     nav:
       dashboard: "Painel"

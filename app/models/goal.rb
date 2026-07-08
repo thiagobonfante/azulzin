@@ -1,0 +1,58 @@
+# A financial goal ("Meta") — account-scoped household savings target (.plans/goals). Two kinds:
+#   purchase     — buy something worth target_cents by target_date.
+#   savings_rate — save target_cents MORE per month than the baseline, open-ended.
+# Goals READ the ledger and never write transactions; the analysis (baseline) and chosen plan are
+# frozen jsonb snapshots so a later-deleted category still renders. Lifecycle is status, not
+# deletion: draft → active → achieved | abandoned ("guardado continua guardado"). At most
+# MAX_ACTIVE active goals per account bounds the weekly check fan-out.
+class Goal < ApplicationRecord
+  include MoneyColumns
+  include AccountScoped, Attributable
+
+  MAX_ACTIVE = 5
+
+  money_column :target, :initial_saved, :monthly_target
+
+  belongs_to :bank_account, optional: true   # linked caixinha; nil = all savings accounts
+  has_many :checks, class_name: "GoalCheck", dependent: :destroy
+  has_many :commitments, dependent: :nullify   # the kind:"savings" contribution (07 §1.2)
+
+  enum :kind,   { purchase: "purchase", savings_rate: "savings_rate" }, validate: true
+  enum :status, { draft: "draft", active: "active", achieved: "achieved", abandoned: "abandoned" },
+       default: "draft", validate: true
+
+  validates :name, presence: true, length: { maximum: 80 }
+  validates :target_cents, numericality: { only_integer: true, greater_than: 0 }
+  validates :initial_saved_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :monthly_target_cents, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  # Mirrors the DB check goals_purchase_has_date for friendly errors.
+  validates :target_date, presence: true, if: :purchase?
+  validates :target_date, absence: true, if: :savings_rate?
+  validate  :initial_below_target, if: :purchase?
+  validate  :bank_account_is_a_savings_caixinha, if: -> { bank_account_id.present? }
+  validate  :active_cap_not_exceeded, if: :becoming_active?
+
+  # The active savings commitment backing this goal, if any (07 §1.2 — one per active goal).
+  # .kept guards against a soft-deleted commitment being returned as the live one.
+  def savings_commitment = commitments.savings.kept.active.first
+
+  private
+    def becoming_active? = active? && (new_record? || status_changed?)
+
+    def active_cap_not_exceeded
+      return unless account
+      errors.add(:base, :too_many_active) if account.goals.active.where.not(id: id).count >= MAX_ACTIVE
+    end
+
+    def bank_account_is_a_savings_caixinha
+      return if bank_account&.account_id == account_id && bank_account&.savings?
+      errors.add(:bank_account, :not_savings)
+    end
+
+    # A purchase you've already saved for isn't a goal — and required-monthly would be 0, tripping
+    # goals_monthly_target_positive at choose time.
+    def initial_below_target
+      return if target_cents.blank? || initial_saved_cents.blank?
+      errors.add(:initial_saved_cents, :exceeds_target) if initial_saved_cents >= target_cents
+    end
+end
