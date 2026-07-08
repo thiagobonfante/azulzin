@@ -2,8 +2,8 @@
     Expense/income share one form whose entry-instrument controller powers the avatar picker
     (and, for expenses, the payment-method segmented control that auto-selects a card/account). %>
 <% multi_account = Current.account.bank_accounts.kept.count >= 2 %>
-<%= turbo_frame_tag "new_entry" do %>
-  <div class="mb-3 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
+<%= turbo_frame_tag "entry_form" do %>
+    <h3 class="mb-3 font-display text-lg font-bold"><%= t("transactions.new_entry.title_new") %></h3>
     <div class="mb-3 flex gap-1">
       <%# The Transferência tab is hidden with a single account — there's nowhere to transfer (R5). %>
       <% (multi_account ? %w[expense income transfer] : %w[expense income]).each do |k| %>
@@ -39,7 +39,7 @@
           <%= date_field_tag "transfer[occurred_on]", transaction.occurred_on, class: "input input-bordered input-sm w-full" %>
         </div>
         <div class="col-span-full flex justify-end gap-2 pt-1">
-          <%= link_to t("transactions.row.cancel"), transactions_path(month: params[:month]), data: { turbo_frame: "new_entry" }, class: "btn btn-ghost btn-sm" %>
+          <button type="button" data-action="entry-modal#close" class="btn btn-ghost btn-sm"><%= t("transactions.row.cancel") %></button>
           <%= submit_tag t("transfers.form.submit"), class: "btn btn-primary btn-sm" %>
         </div>
       <% end %>
@@ -125,10 +125,9 @@
         </div>
 
         <div class="col-span-full flex justify-end gap-2 pt-1">
-          <%= link_to t("transactions.row.cancel"), transactions_path(month: params[:month]), data: { turbo_frame: "new_entry" }, class: "btn btn-ghost btn-sm" %>
+          <button type="button" data-action="entry-modal#close" class="btn btn-ghost btn-sm"><%= t("transactions.row.cancel") %></button>
           <%= f.submit t("transactions.new.submit"), class: "btn btn-primary btn-sm" %>
         </div>
       <% end %>
     <% end %>
-  </div>
 <% end %>

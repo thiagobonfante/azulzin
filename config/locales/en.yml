@@ -21,6 +21,7 @@ en:
     not_allowed: "This account isn't allowed to access azulzin."
     confirm: "Confirm"
     cancel: "Cancel"
+    done: "Done"
     deleted_suffix: "(deleted)"
     needs_instrument:
       title: "Add a bank account or card first"
@@ -414,6 +415,7 @@ en:
       search_placeholder: "Search commitments"
       all_categories: "All categories"
       all_instruments: "Accounts & cards"
+      filter_sheet_title: "Filter commitments"
       no_results: "No commitments found"
     show:
       vencimentos: "Due dates"
@@ -531,6 +533,10 @@ en:
     index:
       meta_title: "Transactions"
     fab_add: "Add entry"
+    tabs:
+      summary: "Summary"
+      movements: "Activity"
+      aria_label: "Switch between summary and activity"
     hub:
       add_incomes_prompt: "Add your incomes to see the month projection"
       import_review_prompt:
@@ -608,6 +614,15 @@ en:
       instrument_all: "Accounts & cards"
       filter_accounts: "Accounts"
       filter_cards: "Cards"
+      filters_button: "Filters"
+      filter_sheet_title: "Filter activity"
+      filter_view: "View"
+      filter_kind: "Type"
+      filter_date: "Period"
+      filter_date_from: "From"
+      filter_date_to: "To"
+      filter_clear: "Clear filters"
+      filter_apply: "Apply"
       other_categories: "Other"
       uncategorized: "No category"
       empty: "No activity this month"
@@ -622,6 +637,9 @@ en:
       expense: "Expense"
       income: "Income"
       transfer: "Transfer"
+      title_new: "New entry"
+      title_edit: "Edit entry"
+      close: "Close"
       suggestion_hint: "suggested"
       payment_method: "Payment method"
       methods:

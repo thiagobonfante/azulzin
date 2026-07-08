@@ -11,6 +11,12 @@
                         when "credit_card"  then Current.account.credit_cards.kept.find_by(id: inst_id)
                         end %>
 <% instrument_token = current_instrument && params[:instrument] %>
+<%# Date filter — a specific day or a range within the viewed month (the pickers are clamped to
+    the month). Garbage params resolve to nil (= no bound). Applied to all_rows like instrument,
+    so totals and the by-category view reflect it too. %>
+<% date_from = (Date.iso8601(params[:date_from]) rescue nil) %>
+<% date_to   = (Date.iso8601(params[:date_to])   rescue nil) %>
+<% filters_active = current_filter != "all" || instrument_token.present? || date_from.present? || date_to.present? %>
 <% all_rows = ledger.to_a %>
 <% all_rows = case current_instrument
               when BankAccount
@@ -19,65 +25,128 @@
                 all_rows.select { |r| r.credit_card_id == current_instrument.id }
               else all_rows
               end %>
+<% all_rows = all_rows.select { |r| r.occurred_on >= date_from } if date_from %>
+<% all_rows = all_rows.select { |r| r.occurred_on <= date_to }   if date_to %>
 <% has_expenses  = all_rows.any? { |r| r.direction == "expense" } %>
 <% multi_account = Current.account.bank_accounts.kept.count >= 2 %>
 
 <div data-controller="ledger">
-  <% if all_rows.any? %>
-    <%# Toolbar — search (list view) + List/Categories switch. The switch is pinned right with
-        ml-auto so hiding the search in Categories view never makes it jump (issue 6a). %>
-    <div class="mb-3 flex items-center gap-2">
-      <label data-ledger-target="searchBox" class="input input-bordered input-sm flex flex-1 items-center gap-2 sm:max-w-xs">
+  <% if all_rows.any? || filters_active %>
+    <%# Toolbar — search + one "Filtros" trigger. View / kind / date / instrument moved into a sheet
+        (bottom on mobile, centered on sm+) so the list isn't buried under stacked control rows. %>
+    <div class="mb-3 flex items-center gap-2" data-controller="modal">
+      <label data-ledger-target="searchBox" class="input input-bordered input-sm flex min-w-0 flex-1 items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" /></svg>
         <input type="search" data-ledger-target="search" data-action="input->ledger#filter"
                placeholder="<%= t('transactions.ledger.search_placeholder') %>"
                class="grow border-0 bg-transparent p-0 focus:outline-none" autocomplete="off">
       </label>
 
-      <% if has_expenses %>
-        <div class="join ml-auto shrink-0">
-          <button type="button" data-ledger-target="viewBtn" data-view="list" data-action="ledger#showList"
-                  class="btn btn-xs join-item btn-primary"><%= t("transactions.ledger.views.list") %></button>
-          <button type="button" data-ledger-target="viewBtn" data-view="category" data-action="ledger#showCategory"
-                  class="btn btn-xs join-item btn-ghost"><%= t("transactions.ledger.views.category") %></button>
-        </div>
-      <% end %>
-    </div>
-
-    <%# Kind filters (list view only) — the Transferências tab is hidden with a single account (R5). %>
-    <div data-ledger-target="filters" class="mb-3 flex flex-wrap items-center gap-1">
-      <% (multi_account ? %w[all expenses incomes transfers] : %w[all expenses incomes]).each do |f| %>
-        <%= link_to t("transactions.ledger.filters.#{f}"),
-              transactions_path(month: month.strftime("%Y-%m"), filter: (f == "all" ? nil : f), instrument: instrument_token),
-              class: "btn btn-xs #{current_filter == f ? "btn-primary" : "btn-ghost"}" %>
-      <% end %>
-
-      <%# Instrument filter — only worth showing with more than one account/card to pick from. %>
-      <% if inbox_bank_accounts.size + inbox_credit_cards.size >= 2 %>
-        <%= form_with url: transactions_path, method: :get, class: "ml-auto" do %>
-          <%= hidden_field_tag :month, month.strftime("%Y-%m") %>
-          <% if current_filter != "all" %><%= hidden_field_tag :filter, current_filter %><% end %>
-          <select name="instrument" data-action="change->ledger#submitFilter"
-                  class="select select-bordered select-xs max-w-44"
-                  aria-label="<%= t("transactions.ledger.instrument_all") %>">
-            <option value=""><%= t("transactions.ledger.instrument_all") %></option>
-            <% if inbox_bank_accounts.any? %>
-              <optgroup label="<%= t("transactions.ledger.filter_accounts") %>">
-                <% inbox_bank_accounts.each do |account| %>
-                  <option value="bank_account-<%= account.id %>" <%= "selected" if instrument_token == "bank_account-#{account.id}" %>><%= account.display_name %></option>
-                <% end %>
-              </optgroup>
-            <% end %>
-            <% if inbox_credit_cards.any? %>
-              <optgroup label="<%= t("transactions.ledger.filter_cards") %>">
-                <% inbox_credit_cards.each do |card| %>
-                  <option value="credit_card-<%= card.id %>" <%= "selected" if instrument_token == "credit_card-#{card.id}" %>><%= card.display_name %></option>
-                <% end %>
-              </optgroup>
-            <% end %>
-          </select>
+      <%# Button cluster — search (flex-1) pushes it to the right; ml-auto keeps it right-aligned
+          even in Categories view, where the search box is hidden. A clear (×) shows when active. %>
+      <div class="ml-auto flex shrink-0 items-center gap-1">
+        <% if filters_active %>
+          <%= link_to transactions_path(month: month.strftime("%Y-%m")),
+                class: "btn btn-sm btn-ghost btn-square text-base-content/50 hover:text-error",
+                aria: { label: t("transactions.ledger.filter_clear") } do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          <% end %>
         <% end %>
-      <% end %>
+        <button type="button" data-action="modal#open"
+                class="btn btn-sm btn-ghost gap-1 <%= "text-primary" if filters_active %>">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" /></svg>
+          <%= t("transactions.ledger.filters_button") %>
+          <% if filters_active %><span class="h-2 w-2 rounded-full bg-primary" aria-hidden="true"></span><% end %>
+        </button>
+      </div>
+
+      <%# Filter sheet — Visão / Tipo / Conta. Kept inside data-controller="ledger" so the view
+          toggle and the (server-side) kind/instrument filters keep their existing wiring. %>
+      <dialog data-modal-target="dialog" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box sm:max-w-sm text-left">
+          <form method="dialog">
+            <button class="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" aria-label="<%= t("transactions.new_entry.close") %>">✕</button>
+          </form>
+          <h3 class="mb-4 font-display text-lg font-bold"><%= t("transactions.ledger.filter_sheet_title") %></h3>
+
+          <div class="flex flex-col gap-4">
+            <% if has_expenses %>
+              <div>
+                <p class="mb-1.5 text-xs font-medium text-base-content/60"><%= t("transactions.ledger.filter_view") %></p>
+                <div class="join">
+                  <button type="button" data-ledger-target="viewBtn" data-view="list" data-action="ledger#showList modal#close"
+                          class="btn btn-sm join-item btn-primary"><%= t("transactions.ledger.views.list") %></button>
+                  <button type="button" data-ledger-target="viewBtn" data-view="category" data-action="ledger#showCategory modal#close"
+                          class="btn btn-sm join-item btn-ghost"><%= t("transactions.ledger.views.category") %></button>
+                </div>
+              </div>
+            <% end %>
+
+            <%# Tipo + Período + Conta apply together on "Aplicar" — the URL carries the state. %>
+            <%= form_with url: transactions_path, method: :get, class: "flex flex-col gap-4" do %>
+              <%= hidden_field_tag :month, month.strftime("%Y-%m") %>
+
+              <div data-ledger-target="filters">
+                <p class="mb-1.5 text-xs font-medium text-base-content/60"><%= t("transactions.ledger.filter_kind") %></p>
+                <div class="join">
+                  <% (multi_account ? %w[all expenses incomes transfers] : %w[all expenses incomes]).each do |f| %>
+                    <input type="radio" name="filter" value="<%= f == "all" ? "" : f %>"
+                           aria-label="<%= t("transactions.ledger.filters.#{f}") %>"
+                           class="btn btn-sm join-item" <%= "checked" if current_filter == f %>>
+                  <% end %>
+                </div>
+              </div>
+
+              <div>
+                <p class="mb-1.5 text-xs font-medium text-base-content/60"><%= t("transactions.ledger.filter_date") %></p>
+                <div class="grid grid-cols-2 gap-2">
+                  <input type="date" name="date_from" value="<%= date_from&.iso8601 %>"
+                         min="<%= month.strftime("%Y-%m-%d") %>" max="<%= month.end_of_month.strftime("%Y-%m-%d") %>"
+                         aria-label="<%= t("transactions.ledger.filter_date_from") %>" class="input input-bordered input-sm w-full">
+                  <input type="date" name="date_to" value="<%= date_to&.iso8601 %>"
+                         min="<%= month.strftime("%Y-%m-%d") %>" max="<%= month.end_of_month.strftime("%Y-%m-%d") %>"
+                         aria-label="<%= t("transactions.ledger.filter_date_to") %>" class="input input-bordered input-sm w-full">
+                </div>
+              </div>
+
+              <% if inbox_bank_accounts.size + inbox_credit_cards.size >= 2 %>
+                <div>
+                  <p class="mb-1.5 text-xs font-medium text-base-content/60"><%= t("transactions.row.instrument") %></p>
+                  <select name="instrument" class="select select-bordered select-sm w-full"
+                          aria-label="<%= t("transactions.ledger.instrument_all") %>">
+                    <option value=""><%= t("transactions.ledger.instrument_all") %></option>
+                    <% if inbox_bank_accounts.any? %>
+                      <optgroup label="<%= t("transactions.ledger.filter_accounts") %>">
+                        <% inbox_bank_accounts.each do |account| %>
+                          <option value="bank_account-<%= account.id %>" <%= "selected" if instrument_token == "bank_account-#{account.id}" %>><%= account.display_name %></option>
+                        <% end %>
+                      </optgroup>
+                    <% end %>
+                    <% if inbox_credit_cards.any? %>
+                      <optgroup label="<%= t("transactions.ledger.filter_cards") %>">
+                        <% inbox_credit_cards.each do |card| %>
+                          <option value="credit_card-<%= card.id %>" <%= "selected" if instrument_token == "credit_card-#{card.id}" %>><%= card.display_name %></option>
+                        <% end %>
+                      </optgroup>
+                    <% end %>
+                  </select>
+                </div>
+              <% end %>
+
+              <div class="mt-1 flex gap-2">
+                <% if filters_active %>
+                  <%= link_to t("transactions.ledger.filter_clear"), transactions_path(month: month.strftime("%Y-%m")),
+                        class: "btn btn-ghost btn-sm flex-1" %>
+                <% end %>
+                <%= submit_tag t("transactions.ledger.filter_apply"), class: "btn btn-primary btn-sm flex-1" %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button aria-label="<%= t("transactions.new_entry.close") %>">close</button>
+        </form>
+      </dialog>
     </div>
   <% end %>
 

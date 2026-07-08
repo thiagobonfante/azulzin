@@ -1,7 +1,8 @@
 require "application_system_test_case"
 
-# Drives the real add → assign → delete flow in a browser, so the Stimulus auto-select and the
-# Turbo Stream re-render (which unit tests can't exercise) are actually verified.
+# Drives the real add → edit → delete flow in a browser, so the Stimulus auto-select, the entry
+# drawer (bottom sheet on mobile / centered on sm+) and the Turbo Stream re-render (which unit
+# tests can't exercise) are actually verified.
 class TransactionsHubTest < ApplicationSystemTestCase
   include ActionView::RecordIdentifier   # dom_id(...) for asserting the row frame is gone
 
@@ -22,11 +23,12 @@ class TransactionsHubTest < ApplicationSystemTestCase
     assert_text I18n.t("dashboard.greeting", name: "Ana")
   end
 
-  test "pix add auto-assigns the account, renders exactly one ledger, and deletes cleanly" do
+  test "pix add auto-assigns the account in the entry drawer, renders one ledger, and deletes cleanly" do
     visit transactions_path
-    find("a[href*='transactions/new']").click   # the ledger's "Adicionar"
+    find("a[href*='transactions/new']", text: I18n.t("transactions.ledger.add")).click   # ledger "Adicionar"
 
-    within "#new_entry" do
+    # The add form now opens inside the entry drawer (a <dialog>), not inline.
+    within "#entry_form" do
       fill_in I18n.t("transactions.row.amount"), with: "12,00"
       fill_in I18n.t("transactions.row.merchant"), with: "Mercado"
       find("button[data-method='pix']").click
@@ -35,7 +37,8 @@ class TransactionsHubTest < ApplicationSystemTestCase
       click_button I18n.t("transactions.new.submit")
     end
 
-    # The row is in the ledger, not the review tray — it came out assigned (issue 3).
+    # Saved → the drawer closes and the row lands in the ledger, not the review tray (issue 3).
+    assert_no_selector "dialog.modal[open]"
     assert_text "Mercado"
     assert_no_selector "#pending_tray"
     assert_equal @account, @user.account.transactions.order(:id).last.bank_account
@@ -44,21 +47,22 @@ class TransactionsHubTest < ApplicationSystemTestCase
     assert_selector "input[type='search']", count: 1
     assert_no_text I18n.t("transactions.ledger.empty")   # empty state replaced (issue 6)
 
-    # The row opens into an editable form again (issue 5), so delete is reachable. Deleting goes
-    # through our on-brand confirm modal — a real DOM <dialog> we can drive with actual clicks,
-    # unlike the native confirm() headless Chrome never surfaces to Capybara.
+    # Tapping the row opens the edit drawer, so delete is reachable. Deleting goes through our
+    # on-brand confirm modal — a real DOM <dialog> we can drive with actual clicks, unlike the
+    # native confirm() headless Chrome never surfaces to Capybara.
     find("#ledger_list a", text: "Mercado").click
     assert_button I18n.t("transactions.row.save")
     txn = @user.account.transactions.order(:id).last
     click_link I18n.t("transactions.row.reverse")   # "Apagar"
 
-    # The modal must be actually VISIBLE — Capybara will happily click a transparent overlay, so
-    # a daisyUI/CSS regression that leaves the box at opacity:0 would otherwise pass unnoticed.
-    assert_selector "dialog.modal[open]"
-    assert_equal "1", page.evaluate_script("getComputedStyle(document.querySelector('dialog.modal .modal-box')).opacity"),
+    # The confirm dialog stacks over the open edit drawer, so target it specifically. It must be
+    # actually VISIBLE — Capybara will happily click a transparent overlay, so a CSS regression
+    # that leaves the box at opacity:0 would otherwise pass unnoticed.
+    assert_selector "dialog[data-controller='confirm'][open]"
+    assert_equal "1", page.evaluate_script("getComputedStyle(document.querySelector(\"dialog[data-controller='confirm'] .modal-box\")).opacity"),
                  "the confirm modal must be visible, not a transparent overlay"
 
-    within "dialog.modal[open]" do                   # our modal, not the native dialog
+    within "dialog[data-controller='confirm'][open]" do
       assert_text I18n.t("transactions.row.confirm_discard")
       click_button I18n.t("shared.confirm")
     end
@@ -76,30 +80,34 @@ class TransactionsHubTest < ApplicationSystemTestCase
                                      merchant: "Farmácia")
     visit transactions_path
 
-    find("#ledger_list a", text: "Farmácia").click
+    find("#ledger_list a", text: "Farmácia").click   # opens the edit drawer
+    assert_button I18n.t("transactions.row.save")     # wait for the drawer form to load
     click_link I18n.t("transactions.row.reverse")
 
-    within "dialog.modal[open]" do
+    within "dialog[data-controller='confirm'][open]" do
       click_button I18n.t("shared.cancel")
     end
 
-    assert_no_selector "dialog.modal[open]"          # modal closed
-    assert_selector "##{dom_id(txn, :row)}"          # the row is still there
-    assert_equal "posted", txn.reload.status         # nothing was reversed
+    assert_no_selector "dialog[data-controller='confirm'][open]"  # confirm dismissed
+    assert_selector "##{dom_id(txn, :row)}"                       # the row is still there
+    assert_equal "posted", txn.reload.status                      # nothing was reversed
   end
 
-  test "switching to Categories keeps the toggle in place and hides the search (issue 6a)" do
+  test "the filter sheet switches to Categories and hides the search" do
     @user.account.transactions.create!(bank_account: @account, category: @user.account.categories.first,
                                direction: "expense", status: "posted", amount_cents: 2_400,
                                occurred_on: Date.current, billing_month: Date.current.beginning_of_month,
                                merchant: "Mercado")
     visit transactions_path
 
-    toggle = find("button[data-view='category']")
-    x_before = toggle.native.location.x
-    toggle.click
+    # Filters live in a sheet now — open it and switch the view to Categories.
+    click_button I18n.t("transactions.ledger.filters_button")
+    within "dialog[data-modal-target='dialog'][open]" do
+      click_button I18n.t("transactions.ledger.views.category")
+    end
 
+    # The view switch hides the ledger search and reveals the by-category view.
     assert_no_selector "[data-ledger-target='searchBox']", visible: true
-    assert_in_delta x_before, find("button[data-view='category']").native.location.x, 2
+    assert_selector "[data-ledger-target='categoryView']", visible: true
   end
 end

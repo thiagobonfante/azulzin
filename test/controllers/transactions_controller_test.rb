@@ -64,6 +64,19 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(theirs)}", count: 0
   end
 
+  test "date_from/date_to narrow the ledger to a range within the viewed month" do
+    m = Date.current.beginning_of_month
+    early = @user.account.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
+              amount_cents: 100, occurred_on: m + 2, billing_month: m, merchant: "EarlyMercado")
+    late  = @user.account.transactions.create!(bank_account: @account, direction: "expense", status: "posted",
+              amount_cents: 200, occurred_on: m + 20, billing_month: m, merchant: "LateMercado")
+
+    get transactions_url(month: m.strftime("%Y-%m"), date_from: (m + 10).iso8601)
+    assert_response :success
+    assert_select "##{ActionView::RecordIdentifier.dom_id(late, :row)}"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(early, :row)}", count: 0
+  end
+
   test "saving the tray card charges the expense to the chosen account" do
     txn = pending_txn
     patch transaction_url(txn), params: { transaction: { amount_reais: "13,23" },

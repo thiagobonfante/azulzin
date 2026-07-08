@@ -1,71 +1,122 @@
 <% content_for :title, t(".meta_title") %>
 
-<div class="flex flex-col gap-6">
-  <%# Proactive alerts (up-tier 01 §4) — not month-scoped, so they sit above the nav. %>
+<%# On mobile the home screen is split into two bottom-tabbed panels (mobile-tabs): "Resumo"
+    (the overview) and "Movimentos" (the ledger). The notifications alert and month nav sit
+    above the panels so they show on both tabs and month switching works from either. On lg+
+    the tab toggle is inert (panels carry lg:block) and everything stacks as before.
+    Horizontal swipe (month-swipe) changes months, mirroring the month_nav arrows. %>
+<div class="flex flex-col gap-6 pb-24 lg:pb-0"
+     data-controller="mobile-tabs month-swipe entry-modal"
+     data-action="turbo:submit-end->entry-modal#submitEnd"
+     data-month-swipe-prev-url-value="<%= transactions_path(month: (@month << 1).strftime("%Y-%m")) %>"
+     data-month-swipe-next-url-value="<%= transactions_path(month: (@month >> 1).strftime("%Y-%m")) %>">
+  <%# Proactive alerts (up-tier 01 §4) — not month-scoped, so they sit above the nav/tabs. %>
   <%= render "notifications/alert", notifications: @notifications %>
 
-  <%# A — month navigator %>
+  <%# A — month navigator (visible on both tabs) %>
   <%= render "transactions/month_nav", month: @month %>
 
-  <%# B — pending tray (R8) %>
-  <%= render "transactions/pending_tray", pending: @pending %>
+  <%# Tab: Resumo — the overview. Shown by default; lg:block keeps it visible on desktop. %>
+  <div data-mobile-tabs-target="panel" data-panel="summary" class="space-y-6 lg:block">
+    <%# B — pending tray (R8) %>
+    <%= render "transactions/pending_tray", pending: @pending %>
 
-  <%# C — hero (the sobra) %>
-  <%= render "transactions/hero", summary: @summary, month: @month %>
+    <%# C — hero (the sobra) %>
+    <%= render "transactions/hero", summary: @summary, month: @month %>
 
-  <%# Backfill nudge (R1): onboarded users never re-enter the wizard — offer the on-ramp here. %>
-  <% if Current.account.incomes.kept.none? %>
-    <%= link_to incomes_path, class: "flex items-center justify-between gap-2 rounded-box border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm text-primary" do %>
-      <span><%= t("transactions.hub.add_incomes_prompt") %></span>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+    <%# Backfill nudge (R1): onboarded users never re-enter the wizard — offer the on-ramp here. %>
+    <% if Current.account.incomes.kept.none? %>
+      <%= link_to incomes_path, class: "flex items-center justify-between gap-2 rounded-box border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm text-primary" do %>
+        <span><%= t("transactions.hub.add_incomes_prompt") %></span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+      <% end %>
     <% end %>
-  <% end %>
 
-  <%# Import review nudge (D6): derived from the count of proposed items — zero dismissal state. %>
-  <% if (proposed_imports = Current.user.proposed_import_count).positive? %>
-    <%= link_to review_document_imports_path, class: "flex items-center justify-between gap-2 rounded-box border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm text-primary" do %>
-      <span><%= t("transactions.hub.import_review_prompt", count: proposed_imports) %></span>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+    <%# Import review nudge (D6): derived from the count of proposed items — zero dismissal state. %>
+    <% if (proposed_imports = Current.user.proposed_import_count).positive? %>
+      <%= link_to review_document_imports_path, class: "flex items-center justify-between gap-2 rounded-box border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm text-primary" do %>
+        <span><%= t("transactions.hub.import_review_prompt", count: proposed_imports) %></span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+      <% end %>
     <% end %>
-  <% end %>
 
-  <%# Backfill result banner (auto-categories O3): silent apply + one-click undo. Derived
-      from category_backfill_at + the run's row count — dismiss just clears the timestamp. %>
-  <% if (backfill_at = Current.account.category_backfill_at) && backfill_at.after?(7.days.ago) &&
-        (backfilled = Current.account.transactions.auto_categorized_since(backfill_at).count).positive? %>
-    <div class="flex items-center justify-between gap-2 rounded-box border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm">
-      <span class="text-primary"><%= t("categories.backfill.banner", count: backfilled) %></span>
-      <div class="flex shrink-0 gap-1">
-        <%= button_to t("categories.backfill.undo"), backfill_undo_categories_path, class: "btn btn-ghost btn-xs" %>
-        <%= button_to t("categories.backfill.dismiss"), backfill_dismiss_categories_path, class: "btn btn-ghost btn-xs" %>
+    <%# Backfill result banner (auto-categories O3): silent apply + one-click undo. Derived
+        from category_backfill_at + the run's row count — dismiss just clears the timestamp. %>
+    <% if (backfill_at = Current.account.category_backfill_at) && backfill_at.after?(7.days.ago) &&
+          (backfilled = Current.account.transactions.auto_categorized_since(backfill_at).count).positive? %>
+      <div class="flex items-center justify-between gap-2 rounded-box border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+        <span class="text-primary"><%= t("categories.backfill.banner", count: backfilled) %></span>
+        <div class="flex shrink-0 gap-1">
+          <%= button_to t("categories.backfill.undo"), backfill_undo_categories_path, class: "btn btn-ghost btn-xs" %>
+          <%= button_to t("categories.backfill.dismiss"), backfill_dismiss_categories_path, class: "btn btn-ghost btn-xs" %>
+        </div>
       </div>
-    </div>
-  <% end %>
+    <% end %>
 
-  <%# D — tiles %>
-  <div class="grid gap-4 sm:grid-cols-2">
-    <%= render "transactions/accounts_tile", summary: @summary %>
-    <%= render "transactions/bills_tile", summary: @summary, month: @month %>
+    <%# D — tiles %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%= render "transactions/accounts_tile", summary: @summary %>
+      <%= render "transactions/bills_tile", summary: @summary, month: @month %>
+    </div>
+
+    <%# E — A pagar no mês (R10) — shown in every month (future included) for full parity. %>
+    <%= render "transactions/a_pagar", occurrences: @occurrences, month: @month %>
+
+    <%# E½ — A receber no mês (R1) — expected incomes with a "Recebi" confirmation. %>
+    <%= render "transactions/a_receber", summary: @summary, month: @month %>
   </div>
 
-  <%# E — A pagar no mês (R10) — shown in every month (future included) for full parity. %>
-  <%= render "transactions/a_pagar", occurrences: @occurrences, month: @month %>
+  <%# Tab: Movimentos — only the ledger. Hidden on mobile until selected; lg:block on desktop. %>
+  <div data-mobile-tabs-target="panel" data-panel="movements" class="hidden space-y-6 lg:block">
+    <%# F — ledger (R7) — editable in every month, future included: add, search and edit
+        the same way as the current month (a future date bills to that month). %>
+    <%= render "transactions/ledger", ledger: @ledger, month: @month %>
+  </div>
 
-  <%# E½ — A receber no mês (R1) — expected incomes with a "Recebi" confirmation. %>
-  <%= render "transactions/a_receber", summary: @summary, month: @month %>
+  <%# Mobile quick-add FAB — belongs to the Movimentos tab, so it rides the same show/hide as
+      that panel and sits above the bottom bar (bottom-20). It opens the shared entry sheet. On
+      lg+ the sidebar layout keeps the ledger's own "Adicionar" in reach, so it's hidden there. %>
+  <%= link_to new_transaction_path(kind: :expense, month: @month.strftime("%Y-%m")),
+        data: { turbo_frame: "entry_form", action: "click->entry-modal#open",
+                mobile_tabs_target: "panel", panel: "movements" },
+        class: "btn btn-primary btn-circle btn-lg fixed bottom-20 left-1/2 z-20 -translate-x-1/2 shadow-lg hidden lg:hidden",
+        aria: { label: t("transactions.fab_add") } do %>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+  <% end %>
 
-  <%# F — ledger (R7) — editable in every month, future included: add, search and edit
-      the same way as the current month (a future date bills to that month). %>
-  <%= render "transactions/ledger", ledger: @ledger, month: @month %>
+  <%# Add/edit entry sheet — bottom sheet on mobile, centered on sm+ (same drawer as the
+      commitment editor). The add + edit forms load into the shared entry_form frame; a
+      successful save closes it, a 422 re-renders the form with errors inside. It lives outside
+      movements_ledger so the ledger re-render on create/update never tears it down mid-submit. %>
+  <dialog data-entry-modal-target="dialog" data-action="close->entry-modal#onClose"
+          class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box sm:max-w-lg text-left">
+      <form method="dialog">
+        <button class="btn btn-ghost btn-sm btn-circle absolute right-2 top-2"
+                aria-label="<%= t("transactions.new_entry.close") %>">✕</button>
+      </form>
+      <%= turbo_frame_tag "entry_form", data: { entry_modal_target: "frame" } do %>
+        <div class="flex justify-center py-10"><span class="loading loading-spinner loading-md text-primary"></span></div>
+      <% end %>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button aria-label="<%= t("transactions.new_entry.close") %>">close</button>
+    </form>
+  </dialog>
+
+  <%# Mobile bottom tab bar (scoped to this screen, not the global layout). Resumo = dashboard
+      grid icon; Movimentos = transactions icon — both reused from the sidebar. %>
+  <nav class="fixed inset-x-0 bottom-0 z-30 flex border-t border-base-300/60 bg-base-100/95 backdrop-blur lg:hidden"
+       aria-label="<%= t("transactions.tabs.aria_label") %>">
+    <button type="button" data-panel="summary" data-mobile-tabs-target="tab" data-action="mobile-tabs#show"
+            aria-current="page" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25A2.25 2.25 0 018.25 10.5H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+      <span class="text-xs font-medium"><%= t("transactions.tabs.summary") %></span>
+    </button>
+    <button type="button" data-panel="movements" data-mobile-tabs-target="tab" data-action="mobile-tabs#show"
+            aria-current="false" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-base-content/60">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" /></svg>
+      <span class="text-xs font-medium"><%= t("transactions.tabs.movements") %></span>
+    </button>
+  </nav>
 </div>
-
-<%# Mobile quick-add FAB — the inline add form sits at the bottom of the page and is easy to
-    miss on a phone. This floats over the content on small screens; on lg+ the sidebar layout
-    keeps the ledger's own "Adicionar" within reach, so it's hidden there. Tapping it opens the
-    add form (in the new_entry frame) and scrolls it into view. %>
-<%= link_to new_transaction_path(kind: :expense, month: @month.strftime("%Y-%m")),
-      data: { turbo_frame: "new_entry", controller: "quick-add", action: "click->quick-add#open" },
-      class: "btn btn-primary btn-circle btn-lg fixed bottom-6 left-1/2 z-20 -translate-x-1/2 shadow-lg lg:hidden",
-      aria: { label: t("transactions.fab_add") } do %>
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-<% end %>

@@ -21,6 +21,7 @@ pt-BR:
     or: "ou"
     not_allowed: "Esta conta não está autorizada a acessar o azulzin."
     confirm: "Confirmar"
+    done: "Pronto"
     deleted_suffix: "(excluído)"
     needs_instrument:
       title: "Crie uma conta ou cartão primeiro"
@@ -415,6 +416,7 @@ pt-BR:
       search_placeholder: "Buscar compromissos"
       all_categories: "Todas as categorias"
       all_instruments: "Contas e cartões"
+      filter_sheet_title: "Filtrar compromissos"
       no_results: "Nenhum compromisso encontrado"
     show:
       vencimentos: "Vencimentos"
@@ -532,6 +534,10 @@ pt-BR:
     index:
       meta_title: "Transações"
     fab_add: "Adicionar lançamento"
+    tabs:
+      summary: "Resumo"
+      movements: "Movimentos"
+      aria_label: "Alternar entre resumo e movimentos"
     hub:
       add_incomes_prompt: "Cadastre suas rendas para ver a projeção do mês"
       import_review_prompt:
@@ -609,6 +615,15 @@ pt-BR:
       instrument_all: "Contas e cartões"
       filter_accounts: "Contas"
       filter_cards: "Cartões"
+      filters_button: "Filtros"
+      filter_sheet_title: "Filtrar movimentos"
+      filter_view: "Visão"
+      filter_kind: "Tipo"
+      filter_date: "Período"
+      filter_date_from: "De"
+      filter_date_to: "Até"
+      filter_clear: "Limpar filtros"
+      filter_apply: "Aplicar"
       other_categories: "Outros"
       uncategorized: "Sem categoria"
       empty: "Nenhum movimento neste mês"
@@ -623,6 +638,9 @@ pt-BR:
       expense: "Despesa"
       income: "Receita"
       transfer: "Transferência"
+      title_new: "Novo movimento"
+      title_edit: "Editar movimento"
+      close: "Fechar"
       suggestion_hint: "sugestão"
       payment_method: "Forma de pagamento"
       methods:

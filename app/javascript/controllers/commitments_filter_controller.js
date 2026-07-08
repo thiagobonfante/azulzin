@@ -5,7 +5,19 @@ import { Controller } from "@hotwired/stimulus"
 // hides rows, folds kind groups that end up empty and swaps the top total for the selection's
 // sum. Archived rows are not targets, so they never join the filtered total.
 export default class extends Controller {
-  static targets = ["search", "category", "instrument", "row", "group", "noResults", "totalLabel", "totalValue"]
+  static targets = ["search", "category", "instrument", "row", "group", "noResults",
+                    "totalLabel", "totalValue", "filterButton", "clearButton", "filterDot"]
+
+  connect() {
+    this.updateChrome()
+  }
+
+  // Reset the sheet filters (category + instrument) and re-filter. Search is its own control.
+  clear() {
+    if (this.hasCategoryTarget) this.categoryTarget.value = ""
+    if (this.hasInstrumentTarget) this.instrumentTarget.value = ""
+    this.apply()
+  }
 
   apply() {
     const q = this.hasSearchTarget ? this.searchTarget.value.trim().toLowerCase() : ""
@@ -42,6 +54,18 @@ export default class extends Controller {
         active ? cents : Number(this.totalValueTarget.dataset.totalCents || 0)
       )
     }
+
+    this.updateChrome()
+  }
+
+  // The Filtros button reflects the sheet filters (category / instrument), not the search box:
+  // it goes primary with a dot, and the toolbar clear (×) shows, when either is set.
+  updateChrome() {
+    const on = (this.hasCategoryTarget && this.categoryTarget.value !== "") ||
+               (this.hasInstrumentTarget && this.instrumentTarget.value !== "")
+    if (this.hasFilterButtonTarget) this.filterButtonTarget.classList.toggle("text-primary", on)
+    if (this.hasFilterDotTarget) this.filterDotTarget.hidden = !on
+    if (this.hasClearButtonTarget) this.clearButtonTarget.hidden = !on
   }
 
   format(cents) {

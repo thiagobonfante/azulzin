@@ -34,9 +34,9 @@
     </p>
   </div>
   <% if badge %>
-    <span class="badge <%= occurrence_status_badge(badge) %> badge-xs"><%= t("commitments.occurrences.statuses.#{badge}") %></span>
+    <span class="badge <%= occurrence_status_badge(badge) %> badge-xs shrink-0"><%= t("commitments.occurrences.statuses.#{badge}") %></span>
   <% end %>
-  <span class="tabular-nums text-sm"><%= brl(occurrence.payment&.amount_cents || c.amount_cents) %></span>
+  <span class="shrink-0 tabular-nums text-sm"><%= brl(occurrence.payment&.amount_cents || c.amount_cents) %></span>
   <% if !occurrence.paid? %>
     <%= render "commitments/occurrence_form", occurrence: occurrence, context: context,
           mode: (occurrence.card? ? :adjust : :pay) %>

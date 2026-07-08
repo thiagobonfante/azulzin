@@ -1,5 +1,5 @@
 <% if @saved %>
-  <%= turbo_stream.update "new_entry", "" %>
+  <%= turbo_stream.update "entry_form", "" %>
   <%# Re-render the whole ledger frame (not a prepend) so a first entry replaces the empty state,
       brings in the toolbar, and lands under its day header. Rows billed to another month aren't here. %>
   <%= turbo_stream.replace "movements_ledger" do %>
@@ -18,6 +18,6 @@
     <% end %>
   <% end %>
 <% else %>
-  <%= turbo_stream.replace "new_entry", partial: "transactions/new_entry",
+  <%= turbo_stream.replace "entry_form", partial: "transactions/new_entry",
         locals: { transaction: @transaction, kind: @transaction.direction } %>
 <% end %>

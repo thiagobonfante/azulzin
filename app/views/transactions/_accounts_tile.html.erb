@@ -20,12 +20,12 @@
             <span class="truncate"><%= account.display_name %></span>
             <% unless account.checking? %>
               <%# The kind badge doubles as the "guardar dinheiro" affordance — it opens the
-                  transfer form (new_entry frame) with this account preselected as destination,
+                  transfer form in the entry sheet with this account preselected as destination,
                   so the balances column stays aligned. %>
               <span class="tooltip tooltip-bottom shrink-0" data-tip="<%= t("transactions.accounts.save_money") %>">
                 <%= link_to t("bank_accounts.kinds.#{account.kind}"),
                       new_transaction_path(kind: :transfer, to: account.id),
-                      data: { turbo_frame: "new_entry", controller: "quick-add", action: "click->quick-add#open" },
+                      data: { turbo_frame: "entry_form", action: "click->entry-modal#open" },
                       class: "badge badge-ghost badge-xs transition-colors hover:bg-primary/15 hover:text-primary" %>
               </span>
             <% end %>

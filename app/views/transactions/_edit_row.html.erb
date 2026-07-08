@@ -1,8 +1,8 @@
 <%# locals: transaction — edit-in-place. The display line stays on top (the row never
     "disappears"); the form expands under it inside a highlighted border. %>
-<%= turbo_frame_tag dom_id(transaction, :row), class: "block" do %>
-  <div class="my-1 rounded-box border border-primary/40 bg-base-100 ring-1 ring-primary/20">
-    <div class="flex items-center gap-3 border-b border-base-300/40 px-2 py-2.5">
+<%= turbo_frame_tag "entry_form" do %>
+    <h3 class="mb-3 font-display text-lg font-bold"><%= t("transactions.new_entry.title_edit") %></h3>
+    <div class="mb-2 flex items-center gap-3 border-b border-base-300/40 pb-3">
       <%= render "transactions/row_display", transaction: transaction %>
     </div>
     <%= render "shared/attribution", record: transaction, full: true %>
@@ -96,8 +96,7 @@
       </details>
 
       <div class="col-span-full flex items-center justify-end gap-2 pt-1">
-        <%= link_to t("transactions.row.cancel"), transactions_path(month: params[:month]),
-              data: { turbo_frame: dom_id(transaction, :row) }, class: "btn btn-ghost btn-sm" %>
+        <button type="button" data-action="entry-modal#close" class="btn btn-ghost btn-sm"><%= t("transactions.row.cancel") %></button>
         <%# A link (not button_to) so it isn't a <form> nested inside the edit form_with — nested
             forms are dropped by the browser, which is why delete + its confirm never fired. %>
         <%= link_to t("transactions.row.reverse"), transaction_path(transaction, month: params[:month], from: "ledger"),
@@ -106,5 +105,4 @@
         <%= f.submit t("transactions.row.save"), class: "btn btn-primary btn-sm" %>
       </div>
     <% end %>
-  </div>
 <% end %>

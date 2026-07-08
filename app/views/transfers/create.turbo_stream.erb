@@ -1,5 +1,5 @@
 <% if @saved %>
-  <%= turbo_stream.update "new_entry", "" %>
+  <%= turbo_stream.update "entry_form", "" %>
   <% @transactions.each do |transaction| %>
     <% if transaction.billing_month == viewed_month %>
       <%= turbo_stream.prepend "ledger_list", partial: "transactions/ledger_row", locals: { transaction: transaction } %>
@@ -17,5 +17,5 @@
   <%= turbo_stream.replace "save_money_form", partial: "transactions/save_money_form",
         locals: { summary: summary, month: viewed_month, error_message: @error_message } %>
 <% else %>
-  <%= turbo_stream.replace "new_entry", partial: "transactions/new_entry", locals: { transaction: @transaction, kind: "transfer" } %>
+  <%= turbo_stream.replace "entry_form", partial: "transactions/new_entry", locals: { transaction: @transaction, kind: "transfer" } %>
 <% end %>

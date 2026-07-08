@@ -1,21 +1,22 @@
-<%# locals: category — display row: colored icon + name + edit (loads the form in-place) + delete. %>
+<%# locals: category — display row: the name block links to edit in-place (a pen fades in on hover); delete lives beside it. %>
 <%= turbo_frame_tag dom_id(category), class: "flex items-center gap-3 rounded-box border border-base-300/70 bg-base-100 p-2.5 shadow-sm" do %>
-  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full"
-        style="background-color: <%= category.display_color %>1a; color: <%= category.display_color %>">
-    <%= category_icon_tag(category.icon, css_class: "h-5 w-5") ||
-          tag.span(category.name.first.upcase, class: "text-sm font-semibold") %>
-  </span>
-  <span class="flex-1 truncate text-sm font-medium"><%= category.name %></span>
+  <%= link_to edit_category_path(category), class: "group flex min-w-0 flex-1 items-center gap-3",
+        aria: { label: t("categories.edit") } do %>
+    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full"
+          style="background-color: <%= category.display_color %>1a; color: <%= category.display_color %>">
+      <%= category_icon_tag(category.icon, css_class: "h-5 w-5") ||
+            tag.span(category.name.first.upcase, class: "text-sm font-semibold") %>
+    </span>
+    <span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-medium">
+      <span class="truncate"><%= category.name %></span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-50 group-focus-visible:opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+    </span>
+  <% end %>
 
   <% if category.monthly_budget_cents %>
     <span class="shrink-0 text-xs tabular-nums text-base-content/50">
       <%= t("categories.per_month", amount: brl(category.monthly_budget_cents)) %>
     </span>
-  <% end %>
-
-  <%= link_to edit_category_path(category), class: "btn btn-ghost btn-sm btn-square text-base-content/50 hover:text-base-content",
-        aria: { label: t("categories.edit") } do %>
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
   <% end %>
 
   <% count = category.categorized_transactions.count %>

@@ -9,7 +9,8 @@
     <% end %>
     <%= render "transactions/hub_figures" %>
   <% else %>
-    <%= turbo_stream.replace dom_id(@transaction, :row), partial: "transactions/edit_row", locals: { transaction: @transaction } %>
+    <%# 422 — re-render the edit form (with errors) inside the still-open entry sheet. %>
+    <%= turbo_stream.replace "entry_form", partial: "transactions/edit_row", locals: { transaction: @transaction } %>
   <% end %>
 <% else %>
   <%# Pending-tray edit that failed validation (422) — re-render the tray row with inline

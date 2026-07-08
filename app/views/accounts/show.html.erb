@@ -48,9 +48,9 @@
       <%# Rename %>
       <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
         <h2 class="mb-3 font-display text-lg font-bold"><%= t("accounts.show.rename_title") %></h2>
-        <%= form_with model: @account, url: account_path, method: :patch, class: "flex gap-2" do |f| %>
+        <%= form_with model: @account, url: account_path, method: :patch, class: "flex flex-col gap-2 sm:flex-row" do |f| %>
           <%= f.text_field :name, class: "input input-bordered w-full", "aria-label": t("accounts.show.rename_title") %>
-          <%= f.submit t("accounts.show.rename_submit"), class: "btn btn-primary" %>
+          <%= f.submit t("accounts.show.rename_submit"), class: "btn btn-primary shrink-0" %>
         <% end %>
       </div>
 
