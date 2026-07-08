@@ -92,6 +92,8 @@ Rails.application.configure do
     thiagobonfante@gmail.com
     thiago@subbase.io
     franciane.teixeira02@gmail.com
+    marina@azulzin.dev
+    rafael@azulzin.dev
   ]
 
   # Enable DNS rebinding protection: only serve the hosts we own.
