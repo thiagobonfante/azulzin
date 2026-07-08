@@ -90,6 +90,21 @@ module Goals
 
   Plan = Data.define(:template, :monthly_target_cents, :cuts, :projected_done_on, :buffer_cents) do
     def total_cut_cents = cuts.sum(&:cut_cents)
+
+    # Frozen jsonb snapshot for goals.plan (01 §3) — category names copied so a deleted category
+    # still renders. String keys, no Date/Data objects.
+    def to_snapshot
+      {
+        "template" => template,
+        "monthly_target_cents" => monthly_target_cents,
+        "cuts" => cuts.map { |c|
+          { "category_id" => c.category_id, "name" => c.name,
+            "baseline_cents" => c.baseline_cents, "cap_cents" => c.cap_cents }
+        },
+        "projected_done_on" => projected_done_on&.iso8601,
+        "buffer_cents" => buffer_cents
+      }
+    end
   end
 
   # The honest way out when a goal doesn't close (01 §5, 02 §2.C). All cents exact.
