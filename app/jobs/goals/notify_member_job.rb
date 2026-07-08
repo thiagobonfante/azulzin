@@ -2,8 +2,10 @@ module Goals
   # One member's weekly goals sweep (.plans/goals 03, re-scoped by 06 §2). For each active goal:
   # auto-conclude if achieved (records goal_achieved), else compute the deterministic check, write
   # the idempotent goal_checks row (the dashboard widget reads it), and — only on an alert-worthy
-  # moment (delta-gate + 14-day cooldown) — record a goal_alert. RECORD-ONLY this phase: rows show
-  # as dashboard banners, zero WhatsApp (Phase 3 adds the weekly guard + Notifications::Deliver).
+  # moment (delta-gate + 14-day cooldown) — record a goal_alert. The dashboard banner always shows
+  # (record! is unconditional); WhatsApp is opt-in and adds one more gate: goal_alert passes the
+  # weekly-one-per-user guard then Notifications::Deliver (consent/channel/quiet-hours/daily-cap/
+  # atomic-claim); goal_achieved delivers through Deliver too, exempt from the weekly guard.
   #
   # MUST share the "proactive_notify" concurrency group (key user_id) with reminders/budgets/
   # summaries so Deliver's daily-cap read-then-act stays race-free once Phase 3 turns the push on.
@@ -51,8 +53,18 @@ module Goals
       def alert(goal, check, week)
         return unless alert_worthy?(goal, check, week)
         return if in_cooldown?(goal)
-        Notification.record!(user: @user, account: @account, kind: "goal_alert",
-                             subject: goal, period_key: week, payload: check.findings.first)
+        notification = Notification.record!(user: @user, account: @account, kind: "goal_alert",
+                                            subject: goal, period_key: week, payload: check.findings.first)
+        return if goals_wa_sent_this_week?(week)   # ≤1 goals message/user/week — dashboard-only past that
+        Notifications::Deliver.call(notification)
+      end
+
+      # Race-free under the shared "proactive_notify" concurrency group: the read-then-Deliver is
+      # serialized per user, and Deliver stamps whatsapp_sent_at synchronously before the next goal.
+      def goals_wa_sent_this_week?(week)
+        Notification.where(user: @user, kind: "goal_alert")
+                    .where.not(whatsapp_sent_at: nil)
+                    .where(whatsapp_sent_at: week.beginning_of_day..).exists?
       end
 
       def alert_worthy?(goal, check, week)
@@ -69,9 +81,10 @@ module Goals
       end
 
       def record_achievement(goal, week)
-        Notification.record!(user: @user, account: @account, kind: "goal_achieved",
-                             subject: goal, period_key: week,
-                             payload: { "goal" => goal.name, "amount_cents" => goal.target_cents })
+        notification = Notification.record!(user: @user, account: @account, kind: "goal_achieved",
+                                            subject: goal, period_key: week,
+                                            payload: { "goal" => goal.name, "amount_cents" => goal.target_cents })
+        Notifications::Deliver.call(notification)   # celebrations opt-out (goal_achieved default true), no weekly guard
       end
   end
 end
