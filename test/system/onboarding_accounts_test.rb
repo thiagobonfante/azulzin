@@ -23,7 +23,7 @@ class OnboardingAccountsTest < ApplicationSystemTestCase
     add_account "Itaú"
     assert_selector "#bank_accounts_list", text: "Itaú"
 
-    assert_equal 2, user.bank_accounts.count
+    assert_equal 2, user.account.bank_accounts.count
   end
 
   private

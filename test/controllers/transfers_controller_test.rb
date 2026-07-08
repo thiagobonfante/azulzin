@@ -39,10 +39,41 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 20_000, MonthSummary.new(@user.account, Date.current.beginning_of_month).guardado_cents
   end
 
-  test "the hero Save CTA appears only with a surplus and a savings account" do
+  test "the hero save-money CTA (sobra button + modal) appears only with a surplus and a savings account" do
     @user.account.transactions.create!(amount_cents: 500_00, occurred_on: Date.current, status: "posted",
                                direction: "income", bank_account: @checking)
     get transactions_url
-    assert_select "a", text: I18n.t("transactions.hero.save_cta", locale: :"pt-BR")
+    assert_select "section#hero[data-controller=?]", "sobra-cta"
+    assert_select "#save_money_form"
+  end
+
+  test "modal batch creates one transfer per filled source, skipping blanks" do
+    other = @user.account.bank_accounts.create!(institution: @inst, nickname: "Nu", balance_cents: 50_000)
+    assert_difference -> { @user.account.transactions.where(direction: "transfer").count }, 2 do
+      post transfers_url(month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
+           params: { transfer: { transfer_to_bank_account_id: @savings.id, occurred_on: Date.current.to_s },
+                     sources: { @checking.id.to_s => "100,00", other.id.to_s => "50", @savings.id.to_s => "" } }
+    end
+    assert_response :ok
+    assert_equal [ 5_000, 10_000 ],
+                 @user.account.transactions.where(direction: "transfer").pluck(:amount_cents).sort
+  end
+
+  test "modal batch is all-or-nothing: one invalid source rolls back the rest" do
+    assert_no_difference -> { @user.account.transactions.where(direction: "transfer").count } do
+      post transfers_url(month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
+           params: { transfer: { transfer_to_bank_account_id: @savings.id, occurred_on: Date.current.to_s },
+                     sources: { @checking.id.to_s => "100", @savings.id.to_s => "50" } } # savings→savings
+    end
+    assert_response :unprocessable_entity
+  end
+
+  test "modal batch with no amounts filled creates nothing and 422s" do
+    assert_no_difference -> { @user.account.transactions.where(direction: "transfer").count } do
+      post transfers_url(month: Date.current.strftime("%Y-%m")), as: :turbo_stream,
+           params: { transfer: { transfer_to_bank_account_id: @savings.id, occurred_on: Date.current.to_s },
+                     sources: { @checking.id.to_s => "" } }
+    end
+    assert_response :unprocessable_entity
   end
 end

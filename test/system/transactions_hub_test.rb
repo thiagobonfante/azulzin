@@ -9,10 +9,10 @@ class TransactionsHubTest < ApplicationSystemTestCase
     @user = users(:confirmed)
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
     inst = Institution.find_by(code: "260")
-    @account = @user.bank_accounts.create!(institution: inst, nickname: "Conta Nubank")
-    @card    = @user.credit_cards.create!(institution: inst, nickname: "Cartão Nubank",
+    @account = @user.account.bank_accounts.create!(institution: inst, nickname: "Conta Nubank")
+    @card    = @user.account.credit_cards.create!(institution: inst, nickname: "Cartão Nubank",
                                           bill_due_day: 10, closing_offset_days: 7)
-    @user.categories.create!(name: "Viagem")
+    @user.account.categories.create!(name: "Viagem")
 
     visit new_session_path
     fill_in "email_address", with: @user.email_address
@@ -38,7 +38,7 @@ class TransactionsHubTest < ApplicationSystemTestCase
     # The row is in the ledger, not the review tray — it came out assigned (issue 3).
     assert_text "Mercado"
     assert_no_selector "#pending_tray"
-    assert_equal @account, @user.transactions.order(:id).last.bank_account
+    assert_equal @account, @user.account.transactions.order(:id).last.bank_account
 
     # Exactly one ledger — the id collision that duplicated it is gone (issue 2).
     assert_selector "input[type='search']", count: 1
@@ -49,7 +49,7 @@ class TransactionsHubTest < ApplicationSystemTestCase
     # unlike the native confirm() headless Chrome never surfaces to Capybara.
     find("#ledger_list a", text: "Mercado").click
     assert_button I18n.t("transactions.row.save")
-    txn = @user.transactions.order(:id).last
+    txn = @user.account.transactions.order(:id).last
     click_link I18n.t("transactions.row.reverse")   # "Apagar"
 
     # The modal must be actually VISIBLE — Capybara will happily click a transparent overlay, so
@@ -63,13 +63,14 @@ class TransactionsHubTest < ApplicationSystemTestCase
       click_button I18n.t("shared.confirm")
     end
 
-    # Confirm streamed the removal + reversal: the row frame is gone and the record is rejected.
+    # Confirm streamed the removal: the row frame is gone and the record is soft-deleted
+    # (doc 05 §2.6 — in-app delete keeps the row, restorable via console).
     assert_no_selector "##{dom_id(txn, :row)}"
-    assert_equal "rejected", txn.reload.status
+    assert txn.reload.soft_deleted?
   end
 
   test "the confirm modal Cancel button aborts the delete — row and record stay put" do
-    txn = @user.transactions.create!(bank_account: @account, category: @user.categories.first,
+    txn = @user.account.transactions.create!(bank_account: @account, category: @user.account.categories.first,
                                      direction: "expense", status: "posted", amount_cents: 3_100,
                                      occurred_on: Date.current, billing_month: Date.current.beginning_of_month,
                                      merchant: "Farmácia")
@@ -88,7 +89,7 @@ class TransactionsHubTest < ApplicationSystemTestCase
   end
 
   test "switching to Categories keeps the toggle in place and hides the search (issue 6a)" do
-    @user.transactions.create!(bank_account: @account, category: @user.categories.first,
+    @user.account.transactions.create!(bank_account: @account, category: @user.account.categories.first,
                                direction: "expense", status: "posted", amount_cents: 2_400,
                                occurred_on: Date.current, billing_month: Date.current.beginning_of_month,
                                merchant: "Mercado")
