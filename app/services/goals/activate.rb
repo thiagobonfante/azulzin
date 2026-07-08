@@ -24,16 +24,20 @@ module Goals
       return failure(:infeasible) unless build.feasible?
       plan = build.plans.find { |p| p.template == @template }
       return failure(:invalid_template) unless plan
-      # Cap is enforced here because guarded_update uses update_all and skips model validations.
-      return failure(:too_many_active) if at_active_cap?
+      # The instrument ids come from params and are written via update_all/create! (which skip
+      # model validations), so whitelist them against THIS account here (tenancy + savings-kind).
+      return failure(:not_savings) if @bank_account_id && !valid_caixinha?
+      return failure(:invalid_source) if @source_bank_account_id && !valid_source?
 
-      ActiveRecord::Base.transaction do
-        raise ActiveRecord::Rollback, :not_draft unless guarded_activate(plan)
+      # with_lock serializes activations per account so the cap check + flip are one critical
+      # section (guarded_update alone can't referee a count across two different drafts).
+      @goal.account.with_lock do
+        return failure(:too_many_active) if at_active_cap?
+        return failure(:not_draft) unless guarded_activate(plan)
         @goal.reload
         create_savings_commitment(plan)
-        return Result.new(ok: true, error: nil)
       end
-      failure(:not_draft)
+      Result.new(ok: true, error: nil)
     end
 
     private
@@ -46,6 +50,9 @@ module Goals
           bank_account_id: @bank_account_id, updated_at: Time.current
         ).positive?
       end
+
+      def valid_caixinha? = @goal.account.bank_accounts.kept.savings.exists?(id: @bank_account_id)
+      def valid_source?   = @goal.account.bank_accounts.kept.exists?(id: @source_bank_account_id)
 
       def at_active_cap?
         @goal.account.goals.active.where.not(id: @goal.id).count >= Goal::MAX_ACTIVE

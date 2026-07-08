@@ -31,6 +31,7 @@ class Commitment < ApplicationRecord
   validates :starts_on, presence: true
   validate  :exactly_one_instrument
   validate  :goal_only_on_savings   # goal_id is set only on the "pay yourself first" savings kind
+  validate  :instrument_belongs_to_account   # tenancy backstop — a service may create! via params
   validates :installments_count, numericality: { only_integer: true, greater_than: 0 }, if: :installment?
   validates :installments_count, absence: true, unless: :installment?
   validates :schedule_day, presence: true, if: :fixed?   # subscription: unknown; installment: posted parcels
@@ -124,5 +125,11 @@ class Commitment < ApplicationRecord
 
     def goal_only_on_savings
       errors.add(:goal, :only_on_savings) if goal_id.present? && !savings?
+    end
+
+    # A commitment's instrument must live in the same account (params-driven create! backstop).
+    def instrument_belongs_to_account
+      errors.add(:bank_account, :wrong_account) if bank_account && bank_account.account_id != account_id
+      errors.add(:credit_card,  :wrong_account) if credit_card && credit_card.account_id != account_id
     end
 end

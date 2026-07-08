@@ -86,6 +86,28 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     assert_equal :infeasible, result.error
   end
 
+  test "rejects a non-savings or cross-account caixinha (update_all can't validate)" do
+    checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
+    assert_equal :not_savings, Goals::Activate.call(draft, template: "recomendado", bank_account_id: checking.id, source_bank_account_id: @checking.id).error
+
+    stray = Account.create!(name: "B").bank_accounts.create!(institution: @inst, kind: "savings")
+    assert_equal :not_savings, Goals::Activate.call(draft, template: "recomendado", bank_account_id: stray.id, source_bank_account_id: @checking.id).error
+  end
+
+  test "rejects a cross-account funding source" do
+    stray = Account.create!(name: "B").bank_accounts.create!(institution: @inst, kind: "checking")
+    result = Goals::Activate.call(draft, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: stray.id)
+    assert_equal :invalid_source, result.error
+  end
+
+  test "a commitment cannot be created with an instrument from another account (model backstop)" do
+    stray = Account.create!(name: "B").bank_accounts.create!(institution: @inst, kind: "checking")
+    goal = @account.goals.create!(name: "G", kind: "savings_rate", target_cents: 10_000, status: "active")
+    c = @account.commitments.new(kind: "savings", goal:, bank_account: stray, amount_cents: 1_000,
+                                 name: "x", starts_on: Date.new(2026, 7, 1), schedule_day: 5)
+    refute c.valid?
+  end
+
   test "an unlinked goal activates without a commitment (all-savings fallback)" do
     g = draft
     result = Goals::Activate.call(g, template: "recomendado", bank_account_id: nil, source_bank_account_id: nil)

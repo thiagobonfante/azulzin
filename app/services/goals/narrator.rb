@@ -42,7 +42,7 @@ module Goals
       narratives = Array(parsed["plans"]).to_h { |h| [ h["key"], h["narrative"].to_s ] }
                         .slice("leve", "recomendado", "acelerado")
       return nil unless narratives.size == 3 && digits_ok?(narratives.values)
-      narratives
+      narratives.merge("fp" => Goals.plan_fingerprint(@build))   # invalidates if the plans change later
     rescue OpenRouterClient::Error
       nil   # any terminal failure → template notes stand
     end
@@ -66,14 +66,19 @@ module Goals
 
       def fmt(cents) = WhatsappReply.currency(cents, locale: @locale)
 
-      # The only money figures the narrative may contain are the ones we passed in.
+      # No money figure and no large number may appear that wasn't in the pre-formatted inputs.
+      # Money is matched as a full joined-digit figure (so "R$ 5.000" can't hide behind an existing
+      # "…000"); other numbers must match a whole input run, except ≤2-digit counts ("3 meses").
       def digits_ok?(narratives)
-        allowed = money_digits(plan_lines.to_json)
-        narratives.all? { |n| (money_digits(n) - allowed).empty? }
+        allowed_money = money_figures(plan_lines.to_json)
+        allowed_runs  = number_runs(plan_lines.to_json)
+        narratives.all? do |n|
+          (money_figures(n) - allowed_money).empty? &&
+            number_runs(n).all? { |run| run.length <= 2 || allowed_runs.include?(run) }
+        end
       end
 
-      def money_digits(str)
-        str.to_s.scan(/R\$\s?[\d.,]+/).map { |t| t.scan(/\d/).join }
-      end
+      def money_figures(str) = str.to_s.scan(/R\$\s?[\d.,]+/).map { |t| t.scan(/\d/).join }
+      def number_runs(str)   = str.to_s.scan(/\d+/)
   end
 end

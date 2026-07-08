@@ -154,6 +154,10 @@ en:
               below_paid: "must be at least %{count} — paid installments can't be removed."
             goal:
               only_on_savings: "can only be linked to savings commitments."
+            bank_account:
+              wrong_account: "must belong to this account."
+            credit_card:
+              wrong_account: "must belong to this account."
         transaction:
           instrument_required: "Pick the account or card for this entry."
           attributes:
@@ -354,6 +358,8 @@ en:
         too_many_active: "You already have 5 active goals."
         invalid_template: "Pick one of the plans."
         infeasible: "This goal doesn't close yet — see the options."
+        not_savings: "Pick a valid savings pot."
+        invalid_source: "Pick where the money comes from."
     abandon:
       abandoned: "Goal abandoned. What you saved stays saved."
     destroy:

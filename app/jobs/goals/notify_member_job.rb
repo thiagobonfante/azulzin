@@ -29,7 +29,7 @@ module Goals
 
       @account.goals.active.find_each do |goal|
         if Goals::Progress.new(goal, as_of: @as_of).achieved?
-          record_achievement(goal, week) if Goals::Achieve.call(goal)
+          notify_all_members_of_achievement(goal, week) if Goals::Achieve.call(goal)
           next
         end
         check = upsert_check(goal, week, Goals::Checker.call(goal, as_of: @as_of))
@@ -80,11 +80,16 @@ module Goals
         last && last.created_at.to_date > @as_of - COOLDOWN_DAYS
       end
 
-      def record_achievement(goal, week)
-        notification = Notification.record!(user: @user, account: @account, kind: "goal_achieved",
-                                            subject: goal, period_key: week,
-                                            payload: { "goal" => goal.name, "amount_cents" => goal.target_cents })
-        Notifications::Deliver.call(notification)   # celebrations opt-out (goal_achieved default true), no weekly guard
+      # The goal flips out of `active` here, so later members' jobs won't see it — the flipping job
+      # notifies EVERY member (D8: household notifications reach every opted-in member). record! is
+      # idempotent per (user, goal, period); Deliver respects each member's own consent.
+      def notify_all_members_of_achievement(goal, week)
+        payload = { "goal" => goal.name, "amount_cents" => goal.target_cents }
+        @account.memberships.includes(:user).each do |membership|
+          notification = Notification.record!(user: membership.user, account: @account,
+                                              kind: "goal_achieved", subject: goal, period_key: week, payload: payload)
+          Notifications::Deliver.call(notification)
+        end
       end
   end
 end

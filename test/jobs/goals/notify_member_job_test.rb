@@ -89,4 +89,15 @@ class Goals::NotifyMemberJobTest < ActiveSupport::TestCase
     assert goal.reload.achieved?
     assert_nil goal.savings_commitment   # commitment archived on achieve
   end
+
+  test "every member of a household gets goal_achieved even though the goal leaves 'active' on the first flip" do
+    other = User.create!(email_address: "member2@example.com", password: "password123")
+    @account.add_member!(other)
+    travel_to Time.utc(2026, 7, 31, 12)
+    active_goal(target: 300_000)
+    save!(300_000)
+    sweep(Date.new(2026, 7, 31))   # @user's job flips the goal and notifies all members
+    assert Notification.where(kind: "goal_achieved", user: @user).exists?
+    assert Notification.where(kind: "goal_achieved", user: other).exists?
+  end
 end

@@ -155,6 +155,10 @@ pt-BR:
               below_paid: "deve ser pelo menos %{count} — parcelas já pagas não podem ser removidas."
             goal:
               only_on_savings: "só pode ser vinculada a compromissos de poupança."
+            bank_account:
+              wrong_account: "precisa ser desta conta."
+            credit_card:
+              wrong_account: "precisa ser desta conta."
         transaction:
           instrument_required: "Escolha a conta ou o cartão do lançamento."
           attributes:
@@ -355,6 +359,8 @@ pt-BR:
         too_many_active: "Você já tem 5 metas ativas."
         invalid_template: "Escolha um dos planos."
         infeasible: "Essa meta não fecha ainda — veja as opções."
+        not_savings: "Escolha uma caixinha (conta de poupança) válida."
+        invalid_source: "Escolha de onde o dinheiro vai sair."
     abandon:
       abandoned: "Meta abandonada. O que você guardou continua guardado."
     destroy:

@@ -162,6 +162,16 @@ module Goals
     (to.year * 12 + to.month) - (from.year * 12 + from.month)
   end
 
+  # A stable fingerprint of a feasible plan set's numbers — the coach narrative is stored against
+  # it, so a later re-analysis that changes the plans invalidates a now-stale narrative (review).
+  def plan_fingerprint(build)
+    return nil unless build.feasible?
+    material = build.plans.map { |p|
+      [ p.template, p.monthly_target_cents, p.projected_done_on&.iso8601, p.cuts.map { |c| [ c.category_id, c.cap_cents ] } ]
+    }
+    Digest::SHA256.hexdigest(material.to_json)[0, 16]
+  end
+
   # Squared coefficient of variation (variance / mean²) in BigDecimal — no sqrt, no Float. Compare
   # against a squared threshold (e.g. 0.35² = 0.1225) to judge irregularity without leaving integers.
   def cv_squared(values)

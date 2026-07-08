@@ -101,8 +101,14 @@ class GoalTest < ActiveSupport::TestCase
 
   test "abandoning keeps the row (status lifecycle, never destroyed by abandon)" do
     goal = @account.goals.create!(name: "G", kind: "savings_rate", target_cents: 10_000, status: "active")
-    goal.update!(status: "abandoned", abandoned_at: Time.current)
-    assert goal.persisted?
+    Goals::Abandon.call(goal)
+    assert goal.reload.persisted?
     assert goal.abandoned?
+  end
+
+  test "abandon never reverts an achieved goal" do
+    goal = @account.goals.create!(name: "G", kind: "savings_rate", target_cents: 10_000, status: "achieved", achieved_at: Time.current)
+    refute Goals::Abandon.call(goal)
+    assert goal.reload.achieved?
   end
 end

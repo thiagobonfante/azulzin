@@ -79,6 +79,15 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "a stale cached narrative (fingerprint mismatch) falls back to the template note" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
+    goal = @account.goals.last
+    goal.update!(baseline: goal.baseline.merge("narratives" => { "fp" => "stale", "recomendado" => "Texto antigo inválido." }))
+    get goal_path(goal)
+    assert_response :success
+    refute_match "Texto antigo inválido.", @response.body
+  end
+
   test "an infeasible goal shows counter-offers, not plan cards" do
     post goals_path, params: { goal: { name: "Moto", kind: "purchase", target_reais: "250.000,00",
                                        target_date: "2026-11-01", initial_saved_reais: "0,00" } }

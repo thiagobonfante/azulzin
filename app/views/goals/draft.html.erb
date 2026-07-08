@@ -48,8 +48,10 @@
   <%# ── Screen 2 + 3: pick a plan, say where the money goes ────────────── %>
   <%= form_with url: choose_goal_path(@goal), method: :patch, class: "flex flex-col gap-5" do %>
     <div class="grid gap-4 lg:grid-cols-3">
+      <% nar = @goal.baseline["narratives"] %>
+      <% nar = nil unless nar && nar["fp"] == Goals.plan_fingerprint(@build) %>
       <%= render partial: "goals/plan_card", collection: @build.plans, as: :plan,
-            locals: { goal: @goal, narratives: @goal.baseline["narratives"] } %>
+            locals: { goal: @goal, narratives: nar } %>
     </div>
     <p class="text-sm text-base-content/60"><%= t("goals.plans.commitment_note") %></p>
 

@@ -26,12 +26,21 @@ class Goals::NarratorTest < ActiveSupport::TestCase
     client = FakeClient.new(parsed_notes("Um caminho tranquilo, sem apertar."))
     result = Goals::Narrator.call(draft, client: client)
     assert_equal 1, client.calls
-    assert_equal %w[leve recomendado acelerado], result.keys
+    assert_equal %w[leve recomendado acelerado], result.keys - [ "fp" ]
+    assert result["fp"].present?, "narratives carry a plan fingerprint for staleness invalidation"
     assert_equal "Um caminho tranquilo, sem apertar.", result["recomendado"]
+
+    # the fingerprint matches the plans it was built from (so the card renders it)
+    assert_equal Goals.plan_fingerprint(Goals::Recompute.call(draft)), result["fp"]
   end
 
   test "digit-mismatch guard rejects an invented money figure → nil (template notes stand)" do
     client = FakeClient.new(parsed_notes("Guarde R$ 999.999,99 por mês e chega antes."))
+    assert_nil Goals::Narrator.call(draft, client: client)
+  end
+
+  test "digit guard also rejects an invented bare number (a wrong year/count)" do
+    client = FakeClient.new(parsed_notes("Você termina em 2050, bem tranquilo."))
     assert_nil Goals::Narrator.call(draft, client: client)
   end
 
