@@ -22,9 +22,15 @@
     <p class="truncate text-sm">
       <%= link_to c.name, commitment_path(c), class: "hover:underline" %>
       <% if c.installment? %><span class="text-xs text-base-content/50"><%= occurrence.installment_no %>/<%= c.installments_count %></span><% end %>
+      <% if c.category %>
+        <span class="badge badge-ghost badge-xs ml-1 gap-1 align-middle">
+          <span class="h-1.5 w-1.5 rounded-full" style="background-color: <%= c.category.display_color %>"></span>
+          <%= c.category.name %>
+        </span>
+      <% end %>
     </p>
     <p class="truncate text-xs <%= badge == :overdue ? "text-error" : "text-base-content/50" %>">
-      <%= l(occurrence.due_on, format: :short) %><% if instrument %> · <%= instrument.display_name %><% end %><% if c.category %> · <%= c.category.name %><% end %><% if !occurrence.card? && occurrence.payment %> · <%= t("commitments.occurrences.paid_on", date: l(occurrence.payment.occurred_on, format: :short)) %><% end %>
+      <%= l(occurrence.due_on, format: :short) %><% if instrument %> · <%= instrument.display_name %><% end %><% if !occurrence.card? && occurrence.payment %> · <%= t("commitments.occurrences.paid_on", date: l(occurrence.payment.occurred_on, format: :short)) %><% end %>
     </p>
   </div>
   <% if badge %>

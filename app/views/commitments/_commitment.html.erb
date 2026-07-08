@@ -1,6 +1,15 @@
-<%# locals: commitment — compact two-line row: name + a single meta line, amount on the right. %>
+<%# locals: commitment — compact two-line row: name + a single meta line, amount on the right.
+    Active rows carry the commitments-filter data (search text, category, instrument, amount);
+    archived rows stay out so they never join the filtered total. %>
 <%= link_to commitment_path(commitment), id: dom_id(commitment),
-      class: "block rounded-box border border-base-300/70 bg-base-100 px-3 py-2 shadow-sm hover:bg-base-200/40" do %>
+      class: "block rounded-box border border-base-300/70 bg-base-100 px-3 py-2 shadow-sm hover:bg-base-200/40",
+      data: (commitment.archived_at ? {} : {
+        commitments_filter_target: "row",
+        search: [ commitment.name, commitment.category&.name, commitment.instrument&.display_name ].compact.join(" ").downcase,
+        category: commitment.category_id,
+        instrument: (commitment.credit_card_id ? "credit_card-#{commitment.credit_card_id}" : "bank_account-#{commitment.bank_account_id}"),
+        amount: commitment.amount_cents
+      }) do %>
   <div class="flex items-center gap-3">
     <% if commitment.instrument %><%= institution_avatar(commitment.instrument.institution, size: 28) %><% end %>
     <div class="min-w-0 flex-1">
@@ -13,7 +22,7 @@
           </span>
         <% end %>
       </p>
-      <p class="truncate text-xs text-base-content/50">
+      <p class="text-xs text-base-content/50 max-sm:line-clamp-2 sm:truncate">
         <% parts = [ commitment_schedule_phrase(commitment).presence,
                      commitment.instrument&.display_name,
                      commitment.card? ? t("commitments.instrument.credit") : t("commitments.instrument.debit") ] %>
@@ -32,7 +41,6 @@
         </div>
       <% end %>
     </div>
-    <%= render "shared/attribution", record: commitment %>
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
   </div>
 <% end %>

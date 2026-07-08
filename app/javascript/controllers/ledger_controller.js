@@ -27,6 +27,11 @@ export default class extends Controller {
     }
   }
 
+  // The instrument select navigates via its GET form (URL is the state, like the kind tabs).
+  submitFilter(event) {
+    event.target.form.requestSubmit()
+  }
+
   showList() {
     this.setView("list")
   }

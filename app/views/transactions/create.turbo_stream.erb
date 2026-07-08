@@ -12,10 +12,9 @@
       month's list, so say where it went instead of letting it seem to vanish (item 4). %>
   <% if @transaction.billing_month != viewed_month %>
     <%= turbo_stream.prepend "toasts" do %>
-      <%= link_to transactions_path(month: @transaction.billing_month.strftime("%Y-%m")),
-            data: { controller: "toast" }, class: "alert alert-info cursor-pointer shadow-lg" do %>
-        <span><%= t("transactions.create.future_bill", month: l(@transaction.billing_month, format: :month_year)) %></span>
-      <% end %>
+      <%= render "shared/toast", variant: :info,
+            href: transactions_path(month: @transaction.billing_month.strftime("%Y-%m")),
+            message: t("transactions.create.future_bill", month: l(@transaction.billing_month, format: :month_year)) %>
     <% end %>
   <% end %>
 <% else %>

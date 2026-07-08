@@ -1,0 +1,17 @@
+<%# locals: title (+ block) — the sidebar "add <entity>" card. Desktop: always open (one less
+    click). Mobile: collapsed behind a full-width button so the form doesn't steal the page
+    from the list (reveal controller). Render with a block:
+      render layout: "shared/add_card", locals: { title: t("...") } do ... end %>
+<div data-controller="reveal">
+  <%# Subtle on purpose: reads like the list cards around it, not a primary CTA. %>
+  <button type="button" data-action="reveal#toggle" data-reveal-target="button" aria-expanded="false"
+          class="btn w-full border border-base-300/70 bg-base-100 font-medium text-base-content/70 shadow-sm hover:border-primary/40 hover:text-primary lg:hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+    <%= title %>
+  </button>
+  <div data-reveal-target="content"
+       class="mt-4 hidden rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm lg:mt-0 lg:block">
+    <h2 class="mb-4 font-display text-lg font-bold max-lg:hidden"><%= title %></h2>
+    <%= yield %>
+  </div>
+</div>

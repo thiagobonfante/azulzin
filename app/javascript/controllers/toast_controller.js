@@ -1,9 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Self-dismissing toast: removes itself after a few seconds (or when clicked/navigated away).
+// Self-dismissing toast: fades out and removes itself after a few seconds, or immediately on
+// click (wired via data-action by shared/_toast). Cleans its timer up if navigated away first.
 export default class extends Controller {
   connect() {
-    this.timeout = setTimeout(() => this.element.remove(), 6000)
+    this.timeout = setTimeout(() => this.dismiss(), 5000)
+  }
+
+  dismiss() {
+    clearTimeout(this.timeout)
+    this.element.classList.add("opacity-0")
+    setTimeout(() => this.element.remove(), 300)
   }
 
   disconnect() {

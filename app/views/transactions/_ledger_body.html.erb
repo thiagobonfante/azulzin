@@ -2,7 +2,23 @@
     can re-render the whole thing (toolbar + list), which is what makes a first entry replace the
     empty state cleanly. Filtered server-side (kind tabs); searched / view-switched client-side. %>
 <% current_filter = %w[expenses incomes transfers].include?(params[:filter]) ? params[:filter] : "all" %>
-<% all_rows      = ledger.to_a %>
+<%# Instrument filter — a whitelisted "bank_account-<id>" / "credit_card-<id>" token; anything
+    else resolves to nil (= all). Applied before everything so totals and the by-category view
+    reflect it too. A filtered bank account keeps its incoming transfers visible. %>
+<% inst_type, inst_id = params[:instrument].to_s.split("-", 2) %>
+<% current_instrument = case inst_type
+                        when "bank_account" then Current.account.bank_accounts.kept.find_by(id: inst_id)
+                        when "credit_card"  then Current.account.credit_cards.kept.find_by(id: inst_id)
+                        end %>
+<% instrument_token = current_instrument && params[:instrument] %>
+<% all_rows = ledger.to_a %>
+<% all_rows = case current_instrument
+              when BankAccount
+                all_rows.select { |r| r.bank_account_id == current_instrument.id || r.transfer_to_bank_account_id == current_instrument.id }
+              when CreditCard
+                all_rows.select { |r| r.credit_card_id == current_instrument.id }
+              else all_rows
+              end %>
 <% has_expenses  = all_rows.any? { |r| r.direction == "expense" } %>
 <% multi_account = Current.account.bank_accounts.kept.count >= 2 %>
 
@@ -29,11 +45,38 @@
     </div>
 
     <%# Kind filters (list view only) — the Transferências tab is hidden with a single account (R5). %>
-    <div data-ledger-target="filters" class="mb-3 flex flex-wrap gap-1">
+    <div data-ledger-target="filters" class="mb-3 flex flex-wrap items-center gap-1">
       <% (multi_account ? %w[all expenses incomes transfers] : %w[all expenses incomes]).each do |f| %>
         <%= link_to t("transactions.ledger.filters.#{f}"),
-              transactions_path(month: month.strftime("%Y-%m"), filter: (f == "all" ? nil : f)),
+              transactions_path(month: month.strftime("%Y-%m"), filter: (f == "all" ? nil : f), instrument: instrument_token),
               class: "btn btn-xs #{current_filter == f ? "btn-primary" : "btn-ghost"}" %>
+      <% end %>
+
+      <%# Instrument filter — only worth showing with more than one account/card to pick from. %>
+      <% if inbox_bank_accounts.size + inbox_credit_cards.size >= 2 %>
+        <%= form_with url: transactions_path, method: :get, class: "ml-auto" do %>
+          <%= hidden_field_tag :month, month.strftime("%Y-%m") %>
+          <% if current_filter != "all" %><%= hidden_field_tag :filter, current_filter %><% end %>
+          <select name="instrument" data-action="change->ledger#submitFilter"
+                  class="select select-bordered select-xs max-w-44"
+                  aria-label="<%= t("transactions.ledger.instrument_all") %>">
+            <option value=""><%= t("transactions.ledger.instrument_all") %></option>
+            <% if inbox_bank_accounts.any? %>
+              <optgroup label="<%= t("transactions.ledger.filter_accounts") %>">
+                <% inbox_bank_accounts.each do |account| %>
+                  <option value="bank_account-<%= account.id %>" <%= "selected" if instrument_token == "bank_account-#{account.id}" %>><%= account.display_name %></option>
+                <% end %>
+              </optgroup>
+            <% end %>
+            <% if inbox_credit_cards.any? %>
+              <optgroup label="<%= t("transactions.ledger.filter_cards") %>">
+                <% inbox_credit_cards.each do |card| %>
+                  <option value="credit_card-<%= card.id %>" <%= "selected" if instrument_token == "credit_card-#{card.id}" %>><%= card.display_name %></option>
+                <% end %>
+              </optgroup>
+            <% end %>
+          </select>
+        <% end %>
       <% end %>
     </div>
   <% end %>

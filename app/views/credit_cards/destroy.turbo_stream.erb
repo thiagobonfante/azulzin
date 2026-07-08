@@ -1,4 +1,0 @@
-<%= turbo_stream.remove dom_id(@credit_card) %>
-<% if Current.account.credit_cards.kept.none? %>
-  <%= turbo_stream.append "credit_cards_list", partial: "credit_cards/empty" %>
-<% end %>

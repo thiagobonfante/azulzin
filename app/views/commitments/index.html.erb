@@ -6,20 +6,55 @@
 </header>
 
 <div class="grid gap-6 lg:grid-cols-5">
-  <div class="lg:col-span-3">
+  <div class="lg:col-span-3" data-controller="commitments-filter">
+    <% if @commitments.any? %>
+      <%# Search + filters — client-side over the already-loaded list (commitments-filter). %>
+      <div class="mb-4 flex flex-wrap items-center gap-2">
+        <label class="input input-bordered input-sm flex min-w-40 flex-1 items-center gap-2 sm:max-w-xs">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" /></svg>
+          <input type="search" data-commitments-filter-target="search" data-action="input->commitments-filter#apply"
+                 placeholder="<%= t("commitments.index.search_placeholder") %>"
+                 class="grow border-0 bg-transparent p-0 focus:outline-none" autocomplete="off">
+        </label>
+        <select data-commitments-filter-target="category" data-action="change->commitments-filter#apply"
+                class="select select-bordered select-sm max-w-40" aria-label="<%= t("commitments.index.all_categories") %>">
+          <option value=""><%= t("commitments.index.all_categories") %></option>
+          <% Current.account.categories.kept.order(:name).each do |category| %>
+            <option value="<%= category.id %>"><%= category.name %></option>
+          <% end %>
+        </select>
+        <select data-commitments-filter-target="instrument" data-action="change->commitments-filter#apply"
+                class="select select-bordered select-sm max-w-40" aria-label="<%= t("commitments.index.all_instruments") %>">
+          <option value=""><%= t("commitments.index.all_instruments") %></option>
+          <% if inbox_bank_accounts.any? %>
+            <optgroup label="<%= t("transactions.ledger.filter_accounts") %>">
+              <% inbox_bank_accounts.each do |account| %>
+                <option value="bank_account-<%= account.id %>"><%= account.display_name %></option>
+              <% end %>
+            </optgroup>
+          <% end %>
+          <% if inbox_credit_cards.any? %>
+            <optgroup label="<%= t("transactions.ledger.filter_cards") %>">
+              <% inbox_credit_cards.each do |card| %>
+                <option value="credit_card-<%= card.id %>"><%= card.display_name %></option>
+              <% end %>
+            </optgroup>
+          <% end %>
+        </select>
+      </div>
+    <% end %>
     <div id="commitments_list" class="flex flex-col gap-4">
       <%= render "commitments/grouped_list", commitments: @commitments, archived: @archived %>
     </div>
   </div>
 
   <div class="lg:col-span-2">
-    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
-      <h2 class="mb-4 font-display text-lg font-bold"><%= t("commitments.index.new") %></h2>
+    <%= render layout: "shared/add_card", locals: { title: t("commitments.index.new") } do %>
       <% if account_has_instruments? %>
         <%= render "commitments/form", commitment: @commitment %>
       <% else %>
         <%= render "shared/needs_instrument" %>
       <% end %>
-    </div>
+    <% end %>
   </div>
 </div>

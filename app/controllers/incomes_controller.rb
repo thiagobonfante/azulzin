@@ -40,10 +40,8 @@ class IncomesController < ApplicationController
   def destroy
     @income = Current.account.incomes.kept.find(params[:id])
     @income.soft_delete!(by: Current.user)   # receipts keep income_id
-    respond_to do |format|
-      format.turbo_stream
-      format.html { redirect_to after_change_path, notice: t(".removed") }
-    end
+    # Remove lives on the edit page (not the list rows), so a redirect is the only response.
+    redirect_to after_change_path, notice: t(".removed"), status: :see_other
   end
 
   # Hub card "A receber no mês": mark this month's expected deposit received — one posted

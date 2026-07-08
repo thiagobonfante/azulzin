@@ -57,7 +57,16 @@
     </div>
   </details>
 
-  <div class="flex justify-end">
+  <%# Edit footer: attribution + the (dangerous) remove on the left, save on the right. The
+      remove is a turbo_method link, not a button_to — a nested <form> here would be invalid. %>
+  <div class="flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <% if bank_account.persisted? %>
+        <%= link_to t("bank_accounts.remove"), bank_account_path(bank_account),
+              data: { turbo_method: :delete, turbo_confirm: t("bank_accounts.confirm_remove") },
+              class: "btn btn-ghost btn-sm text-error" %>
+      <% end %>
+    </div>
     <%= f.submit (bank_account.persisted? ? t("bank_accounts.save") : t("bank_accounts.add")), class: "btn btn-primary btn-sm" %>
   </div>
 <% end %>

@@ -1,5 +1,11 @@
 <%# locals: summary, month — Zone C. The product's one number. Blue ≥ 0, red < 0 (never green). %>
-<section id="hero" class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+<%# Guardar dinheiro (R4) — the brand moment: with a surplus and somewhere to put it, hovering
+    the sobra grows the number and teases a rotating phrase; clicking opens the save-money modal. %>
+<% save_cta = summary.mode == :current && summary.remaining_cents.positive? &&
+              Current.account.bank_accounts.kept.checking.exists? &&
+              Current.account.bank_accounts.kept.where(kind: %w[savings investment]).exists? %>
+<section id="hero" class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm"
+         <% if save_cta %>data-controller="sobra-cta" data-sobra-cta-phrases-value="<%= t("transactions.hero.save_phrases").to_json %>"<% end %>>
   <% label = case summary.mode
              when :future then t("transactions.hero.remaining_projected")
              when :past   then t("transactions.hero.month_result")
@@ -13,12 +19,23 @@
   </div>
 
   <div class="mt-1 flex flex-wrap items-baseline gap-3">
-    <span class="font-display text-4xl font-extrabold tabular-nums <%= summary.in_the_blue? ? "text-primary" : "text-error" %>">
-      <%= brl(summary.remaining_cents) %>
-    </span>
+    <% amount_classes = "font-display text-4xl font-extrabold tabular-nums #{summary.in_the_blue? ? "text-primary" : "text-error"}" %>
+    <% if save_cta %>
+      <button type="button" aria-haspopup="dialog"
+              class="<%= amount_classes %> origin-left cursor-pointer transition-transform duration-200 hover:scale-110 focus-visible:scale-110"
+              data-action="sobra-cta#open mouseenter->sobra-cta#tease mouseleave->sobra-cta#untease focus->sobra-cta#tease blur->sobra-cta#untease">
+        <%= brl(summary.remaining_cents) %>
+      </button>
+    <% else %>
+      <span class="<%= amount_classes %>"><%= brl(summary.remaining_cents) %></span>
+    <% end %>
     <span class="badge badge-ghost">
       <%= summary.in_the_blue? ? t("transactions.hero.in_the_blue") : t("transactions.hero.in_the_red") %>
     </span>
+    <% if save_cta %>
+      <span data-sobra-cta-target="phrase" aria-hidden="true"
+            class="text-sm font-medium text-primary opacity-0 transition-opacity duration-200"></span>
+    <% end %>
   </div>
 
   <%# Equation strip — the sobra math stays inspectable. %>
@@ -36,14 +53,7 @@
     <div class="mt-4"><%= flow %></div>
   <% end %>
 
-  <%# Guardar na caixinha (R4) — the brand moment; only when there's a surplus and a savings account. %>
-  <% savings = Current.account.bank_accounts.kept.savings.first %>
-  <% if summary.mode == :current && summary.remaining_cents.positive? && savings %>
-    <div class="mt-4">
-      <%= link_to t("transactions.hero.save_cta"),
-            new_transaction_path(kind: :transfer, month: month.strftime("%Y-%m"),
-              amount: format("%.2f", summary.remaining_cents / 100.0), to: savings.id),
-            data: { turbo_frame: "new_entry" }, class: "btn btn-primary btn-sm" %>
-    </div>
+  <% if save_cta %>
+    <%= render "transactions/save_money_modal", summary: summary, month: month %>
   <% end %>
 </section>

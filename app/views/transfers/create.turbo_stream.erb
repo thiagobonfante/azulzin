@@ -1,16 +1,21 @@
 <% if @saved %>
   <%= turbo_stream.update "new_entry", "" %>
-  <% if @transaction.billing_month == viewed_month %>
-    <%= turbo_stream.prepend "ledger_list", partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
+  <% @transactions.each do |transaction| %>
+    <% if transaction.billing_month == viewed_month %>
+      <%= turbo_stream.prepend "ledger_list", partial: "transactions/ledger_row", locals: { transaction: transaction } %>
+    <% end %>
   <% end %>
   <%= render "transactions/hub_figures" %>
   <% if @to_savings %>
     <%= turbo_stream.prepend "toasts" do %>
-      <div class="alert alert-success shadow-lg">
-        <span><%= t("transfers.saved_celebration", amount: brl(@transaction.amount_cents), total: brl(summary.guardado_cents)) %></span>
-      </div>
+      <%= render "shared/toast", variant: :success,
+            message: t("transfers.saved_celebration", amount: brl(@transactions.sum(&:amount_cents)), total: brl(summary.guardado_cents)) %>
     <% end %>
   <% end %>
+<% elsif params[:sources].present? %>
+  <%# Modal batch failed — re-render the form in place (same id), keeping the dialog open. %>
+  <%= turbo_stream.replace "save_money_form", partial: "transactions/save_money_form",
+        locals: { summary: summary, month: viewed_month, error_message: @error_message } %>
 <% else %>
   <%= turbo_stream.replace "new_entry", partial: "transactions/new_entry", locals: { transaction: @transaction, kind: "transfer" } %>
 <% end %>
