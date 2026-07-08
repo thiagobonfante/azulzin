@@ -1,4 +1,6 @@
-<%# locals: plan, goal — one scannable plan card; identical row structure across all three. %>
+<%# locals: plan, goal, narratives — one scannable plan card; identical row structure across all three. %>
+<% narratives ||= nil %>
+<% note = narratives&.dig(plan.template).presence || t("goals.plans.note_default_#{plan.template}") %>
 <% recommended = plan.template == "recomendado" %>
 <% max_achievable = plan.monthly_target_cents + plan.buffer_cents %>
 <% effort = goal_percent(plan.monthly_target_cents, max_achievable) %>
@@ -36,6 +38,6 @@
     <div class="h-1.5 w-full overflow-hidden rounded-full bg-base-200">
       <div class="h-full rounded-full bg-primary" style="width: <%= effort %>%"></div>
     </div>
-    <p class="mt-1 text-xs text-base-content/45"><%= t("goals.plans.note_default_#{plan.template}") %></p>
+    <p class="mt-1 text-xs text-base-content/45"><%= note %></p>
   </div>
 </label>

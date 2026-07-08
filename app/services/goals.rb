@@ -11,6 +11,10 @@ module Goals
   TRIM_FLOOR_CENTS    = 5_000    # R$50 — don't propose a cut smaller than this from a category's max
   TZ = "America/Sao_Paulo"
 
+  # AI cost controls (.plans/goals 07 §2), structural not aspirational. A draft = a session.
+  MAX_AI_SESSIONS_PER_MONTH = 5   # narrative calls suppressed past this many drafts/account/month
+  MAX_CALLS_PER_SESSION     = 3   # ≤3 narrative calls per draft (creation + 2 re-analyses)
+
   # Weekly-checker calibration (.plans/goals 03 §3; tunable, justified by observed accuracy).
   PACE_AT_RISK_PCT = 95          # actual < 95% of expected guardado → at_risk pace finding
   PACE_OFF_PCT     = 80          # actual < 80% of expected → off_track

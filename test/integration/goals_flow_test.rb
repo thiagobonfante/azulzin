@@ -64,6 +64,21 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_match "Carro", @response.body
   end
 
+  test "creating a draft enqueues the coach narrative + the category classifier" do
+    assert_enqueued_with(job: Goals::NarrativeJob) do
+      assert_enqueued_with(job: Goals::ClassifyJob) do
+        post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
+      end
+    end
+  end
+
+  test "the 6th goal draft this month does not enqueue a narrative (AI session quota)" do
+    5.times { |i| @account.goals.create!(name: "d#{i}", kind: "savings_rate", target_cents: 1_000, status: "draft") }
+    assert_no_enqueued_jobs only: Goals::NarrativeJob do
+      post goals_path, params: { goal: { name: "Sexto", kind: "savings_rate", target_reais: "100,00" } }
+    end
+  end
+
   test "an infeasible goal shows counter-offers, not plan cards" do
     post goals_path, params: { goal: { name: "Moto", kind: "purchase", target_reais: "250.000,00",
                                        target_date: "2026-11-01", initial_saved_reais: "0,00" } }

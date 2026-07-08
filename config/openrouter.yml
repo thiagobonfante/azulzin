@@ -34,3 +34,16 @@ category_backfill:
   model: "google/gemini-2.5-flash"
   temperature: 0
   max_tokens: 8000
+
+# Goals (.plans/goals 04): the ONLY two LLM touchpoints, both at goal-creation, both async with
+# deterministic template fallbacks. goals_narrative phrases all 3 plan coach notes in one call
+# (never computes money — digit-mismatch guard); goals_classify labels custom categories
+# flexible/essential once, ever (closed-set, mirrors category_backfill).
+goals_narrative:
+  model: "google/gemini-2.5-flash"
+  temperature: 0.4
+  max_tokens: 500
+goals_classify:
+  model: "google/gemini-2.5-flash"
+  temperature: 0
+  max_tokens: 300

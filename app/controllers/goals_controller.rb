@@ -18,6 +18,8 @@ class GoalsController < AppController
   def create
     @goal = Current.account.goals.new(create_params.merge(status: "draft"))
     if @goal.save
+      Goals::ClassifyJob.perform_later(Current.account.id)             # exempt from the session quota
+      Goals::NarrativeJob.perform_later(@goal.id) if ai_sessions_available?
       redirect_to goal_path(@goal)
     else
       render :new, status: :unprocessable_entity
@@ -39,6 +41,7 @@ class GoalsController < AppController
   # Draft edit — counter-offer taps (new date / amount) and manual tweaks; re-scored on next view.
   def update
     if @goal.draft? && @goal.update(update_params)
+      Goals::NarrativeJob.perform_later(@goal.id) if ai_sessions_available?   # re-narrate the new plans (call cap guards)
       redirect_to goal_path(@goal)
     else
       redirect_to goal_path(@goal), alert: @goal.errors.full_messages.to_sentence.presence
@@ -72,7 +75,18 @@ class GoalsController < AppController
 
     def at_active_cap? = Current.account.goals.active.count >= Goal::MAX_ACTIVE
 
-    def analyze! = @goal.update!(baseline: Goals::Analyzer.call(Current.account).to_snapshot)
+    # Re-score on view, but keep any async coach narratives (they're keyed by template, stable).
+    def analyze!
+      snapshot = Goals::Analyzer.call(Current.account).to_snapshot
+      snapshot["narratives"] = @goal.baseline["narratives"] if @goal.baseline["narratives"].present?
+      @goal.update!(baseline: snapshot)
+    end
+
+    # ≤5 AI-assisted sessions/account/billing-month (07 §2) — a draft created this month IS a session.
+    def ai_sessions_available?
+      month_start = Date.current.in_time_zone(Goals::TZ).beginning_of_month
+      Current.account.goals.where(created_at: month_start..).count <= Goals::MAX_AI_SESSIONS_PER_MONTH
+    end
 
     def create_params
       params.expect(goal: %i[name kind target_reais target_date initial_saved_reais])
