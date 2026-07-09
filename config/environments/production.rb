@@ -94,6 +94,8 @@ Rails.application.configure do
     franciane.teixeira02@gmail.com
     marina@azulzin.dev
     rafael@azulzin.dev
+    felipe@codengage.com
+    eduardo@codengage.com
   ]
 
   # Enable DNS rebinding protection: only serve the hosts we own.
