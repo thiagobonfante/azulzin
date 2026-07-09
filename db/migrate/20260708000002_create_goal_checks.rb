@@ -18,6 +18,6 @@ class CreateGoalChecks < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :goal_checks, [:goal_id, :period_start], unique: true   # THE idempotency key
+    add_index :goal_checks, [ :goal_id, :period_start ], unique: true   # THE idempotency key
   end
 end

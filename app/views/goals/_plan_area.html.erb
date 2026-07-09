@@ -23,14 +23,14 @@
           <%= render "shared/account_select", form: f,
                 accounts: savings_accounts, method: :bank_account_id,
                 label: t("goals.confirm.caixinha"), placeholder: t("goals.confirm.caixinha_placeholder"),
-                balances: savings_accounts.index_with(&:derived_balance_cents),
+                balances: savings_accounts.index_with(&:derived_balance_cents).transform_keys(&:id),
                 selected: (savings_accounts.first.id.to_s if savings_accounts.one?) %>
           <%# The placeholder, never a preselected account — the source must be a deliberate
               choice distinct from the caixinha (Activate blocks source == caixinha). %>
           <%= render "shared/account_select", form: f,
                 accounts: source_accounts, method: :source_bank_account_id,
                 label: t("goals.confirm.source"), placeholder: t("goals.confirm.source_prompt"),
-                balances: source_accounts.index_with(&:derived_balance_cents) %>
+                balances: source_accounts.index_with(&:derived_balance_cents).transform_keys(&:id) %>
         </div>
       <% else %>
         <%# No caixinha = no activation (round 3 decision 4: a goal is always linked). %>

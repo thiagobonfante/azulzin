@@ -83,7 +83,7 @@
               accounts: initial_pots, method: :initial_saved_bank_account_id,
               label: t("goals.form.initial_saved_account"),
               placeholder: t("goals.form.initial_saved_account_placeholder"),
-              balances: initial_pots.index_with(&:derived_balance_cents),
+              balances: initial_pots.index_with(&:derived_balance_cents).transform_keys(&:id),
               selected: goal.initial_saved_bank_account_id&.to_s %>
       <% end %>
     </div>

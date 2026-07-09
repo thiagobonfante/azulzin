@@ -46,6 +46,6 @@ class CreateGoals < ActiveRecord::Migration[8.1]
     add_check_constraint :goals,
       "monthly_target_cents IS NULL OR monthly_target_cents > 0", name: "goals_monthly_target_positive"
 
-    add_index :goals, [:account_id, :status]
+    add_index :goals, [ :account_id, :status ]
   end
 end

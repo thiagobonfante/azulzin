@@ -39,7 +39,7 @@ module Goals
     "restaurantes" => "flexible", "lazer" => "flexible", "assinaturas" => "flexible",
     "vestuário" => "flexible", "viagem" => "flexible",
     "dining out" => "flexible", "leisure" => "flexible", "subscriptions" => "flexible",
-    "clothing" => "flexible", "travel" => "flexible",
+    "clothing" => "flexible", "travel" => "flexible"
   }.freeze
 
   # ---- Value objects (frozen; snapshotted verbatim into goals.baseline / goals.plan) --------

@@ -13,7 +13,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     @account = @user.account
     @inst = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings", balance_cents: 123_456)
     @rest = @account.categories.create!(name: "Restaurantes")
     travel_to Time.utc(2026, 7, 15, 12)
     seed_ledger
@@ -49,6 +49,9 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!   # draft screen
     assert_response :success
     assert_select "label", text: /Recomendado/
+    # The caixinha picker option shows the account's exact balance (round 3 P3; the partial's
+    # balances contract is { id => cents } — an object-keyed hash silently rendered "no balance").
+    assert_match "R$ 1.234,56", @response.body
     # required = ceil((6_000_000 - 0) / 16 months Aug'26→Dec'27 — plans anchor NEXT month, round 3),
     # hand-verified — shown as whole reais (ceil, round 3 P1)
     assert_match Goals.ceil_div(6_000_000, 16).then { |c| brl_whole_pt(c) }, @response.body
