@@ -49,8 +49,8 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!   # draft screen
     assert_response :success
     assert_select "label", text: /Recomendado/
-    # required = ceil((6_000_000 - 0) / 17), hand-verified
-    assert_match Goals.ceil_div(6_000_000, 17).then { |c| brl_pt(c) }, @response.body
+    # required = ceil((6_000_000 - 0) / 17), hand-verified — shown as whole reais (ceil, round 3 P1)
+    assert_match Goals.ceil_div(6_000_000, 17).then { |c| brl_whole_pt(c) }, @response.body
 
     assert_no_difference -> { @account.goals.count } do
       patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id }
@@ -150,7 +150,46 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_equal "recomendado", goal.reload.plan["template"]
   end
 
+  # ── Round 3 P1 regressions: submit what a real BROWSER submits ─────────────────────────
+  # The include_blank:false date select is always pre-filled, and a blank "já guardado"
+  # arrives as "" — both must not block a savings_rate (or purchase) creation.
+
+  test "savings_rate create succeeds even with the browser-submitted date + blank já guardado" do
+    assert_difference -> { @account.goals.count }, 1 do
+      post goals_path, params: { goal: { name: "Guardar mais", kind: "savings_rate", target_reais: "800",
+                                         target_date: Date.new(2026, 8, 1).iso8601, initial_saved_reais: "" } }
+    end
+    goal = @account.goals.last
+    assert_redirected_to goal_path(goal)
+    assert goal.savings_rate?
+    assert_nil goal.target_date
+    assert_equal 0, goal.initial_saved_cents
+    assert_equal 80_000, goal.target_cents
+  end
+
+  test "purchase create with a blank já guardado keeps the default 0 and succeeds" do
+    assert_difference -> { @account.goals.count }, 1 do
+      post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
+                                         target_date: "2027-12-01", initial_saved_reais: "" } }
+    end
+    goal = @account.goals.last
+    assert_redirected_to goal_path(goal)
+    assert_equal 0, goal.initial_saved_cents
+    assert_equal 6_000_000, goal.target_cents, "masked whole-real input (60.000) parses as whole reais"
+  end
+
+  test "a 422 re-render prefills the money inputs with whole-real strings (mask-safe)" do
+    assert_no_difference -> { @account.goals.count } do
+      post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
+                                         target_date: "2027-12-01", initial_saved_reais: "70.000" } }
+    end
+    assert_response :unprocessable_entity
+    # NEVER the default _reais prefill ("60000,00") — a digits-only mask would read it ×100.
+    assert_select "input[name='goal[target_reais]'][value='60.000']"
+    assert_select "input[name='goal[initial_saved_reais]'][value='70.000']"
+  end
+
   private
-    # brl in the pt-BR pinned UI: "R$ 3.529,42"
-    def brl_pt(cents) = I18n.with_locale(:"pt-BR") { ActionController::Base.helpers.number_to_currency(BigDecimal(cents) / 100, unit: "R$") }
+    # brl_whole in the pt-BR pinned UI (round 3 P1 — goals shows whole reais, ceil): "R$ 3.530"
+    def brl_whole_pt(cents) = I18n.with_locale(:"pt-BR") { ActionController::Base.helpers.number_to_currency(BigDecimal(Money.ceil_to_real(cents)) / 100, unit: "R$", precision: 0) }
 end

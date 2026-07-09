@@ -17,6 +17,10 @@ export default class extends Controller {
 
   format(cents) {
     const locale = document.documentElement.lang || "pt-BR"
-    return new Intl.NumberFormat(locale, { style: "currency", currency: "BRL" }).format(cents / 100)
+    // Whole reais only (round 3 P1) — slider positions are already whole-real cents
+    // (server ceils min/max/value); Math.ceil is defensive.
+    return new Intl.NumberFormat(locale, {
+      style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0
+    }).format(Math.ceil(cents / 100))
   }
 }

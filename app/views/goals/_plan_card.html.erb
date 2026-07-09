@@ -11,7 +11,7 @@
   </div>
 
   <p class="font-display text-2xl font-extrabold tabular-nums text-primary">
-    <%= t("goals.plans.monthly_html", amount: brl(plan.monthly_target_cents)) %>
+    <%= t("goals.plans.monthly_html", amount: brl_whole(plan.monthly_target_cents)) %>
   </p>
 
   <% if goal.purchase? && plan.projected_done_on %>
@@ -27,7 +27,7 @@
   <% if plan.cuts.any? %>
     <ul class="flex flex-col gap-1 text-xs text-base-content/60">
       <% plan.cuts.each do |cut| %>
-        <li><%= t("goals.plans.trim_line", amount: brl(cut.cut_cents), category: cut.name, current: brl(cut.baseline_cents)) %></li>
+        <li><%= t("goals.plans.trim_line", amount: brl_whole(cut.cut_cents), category: cut.name, current: brl_whole(cut.baseline_cents)) %></li>
       <% end %>
     </ul>
   <% else %>

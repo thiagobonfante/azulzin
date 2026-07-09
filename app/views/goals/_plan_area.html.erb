@@ -50,7 +50,7 @@
     <% if goal.purchase? %>
       <p class="mt-1 text-sm text-base-content/70">
         <%= t("goals.states.too_tight_why", month: l(goal.target_date, format: :month_year),
-              required: brl(co.required_monthly_cents), capacity: brl(co.achievable_monthly_cents)) %>
+              required: brl_whole(co.required_monthly_cents), capacity: brl_whole(co.achievable_monthly_cents, mode: :floor)) %>
       </p>
     <% end %>
 
@@ -59,19 +59,23 @@
         <%= form_with url: goal_path(goal), method: :patch, class: "contents" do |f| %>
           <%= hidden_field_tag "goal[target_date]", co.feasible_date.iso8601 %>
           <button class="flex w-full items-center justify-between rounded-box border border-base-300/70 bg-base-100 p-4 text-left shadow-sm hover:border-primary">
-            <span class="text-sm"><%= t("goals.states.offer_date", amount: brl(co.achievable_monthly_cents), month: l(co.feasible_date, format: :month_year)) %></span>
+            <span class="text-sm"><%= t("goals.states.offer_date", amount: brl_whole(co.achievable_monthly_cents, mode: :floor), month: l(co.feasible_date, format: :month_year)) %></span>
             <span class="btn btn-primary btn-xs"><%= t("goals.states.use_this_date") %></span>
           </button>
         <% end %>
       <% end %>
 
-      <% if co.feasible_target_cents.positive? %>
+      <%# Whole-real (round 3 P1): FLOOR the feasible target (never overstate what fits) and
+          submit exactly the displayed figure as bare whole reais, so accepted == shown and a
+          tapped offer can't ceil itself back to infeasible. %>
+      <% feasible_target_whole = Money.floor_to_real(co.feasible_target_cents) %>
+      <% if feasible_target_whole.positive? %>
         <%= form_with url: goal_path(goal), method: :patch, class: "contents" do |f| %>
-          <%= hidden_field_tag "goal[target_reais]", MoneyColumns.prefill(co.feasible_target_cents) %>
+          <%= hidden_field_tag "goal[target_reais]", (feasible_target_whole / 100).to_s %>
           <button class="flex w-full items-center justify-between rounded-box border border-base-300/70 bg-base-100 p-4 text-left shadow-sm hover:border-primary">
             <span class="text-sm">
-              <%= goal.purchase? ? t("goals.states.offer_target", month: l(goal.target_date, format: :month_year), amount: brl(co.feasible_target_cents)) :
-                                   t("goals.states.offer_target_savings", amount: brl(co.feasible_target_cents)) %>
+              <%= goal.purchase? ? t("goals.states.offer_target", month: l(goal.target_date, format: :month_year), amount: brl_whole(co.feasible_target_cents, mode: :floor)) :
+                                   t("goals.states.offer_target_savings", amount: brl_whole(co.feasible_target_cents, mode: :floor)) %>
             </span>
             <span class="btn btn-primary btn-xs"><%= t("goals.states.use_this_target") %></span>
           </button>
@@ -79,7 +83,7 @@
       <% end %>
 
       <%= link_to incomes_path, class: "flex w-full items-center justify-between rounded-box border border-dashed border-base-300 bg-base-100/50 p-4 hover:border-primary" do %>
-        <span class="text-sm"><%= t("goals.states.offer_income", amount: brl(co.extra_income_cents)) %></span>
+        <span class="text-sm"><%= t("goals.states.offer_income", amount: brl_whole(co.extra_income_cents, mode: :floor)) %></span>
         <span class="btn btn-ghost btn-xs text-primary"><%= t("goals.states.register_income") %></span>
       <% end %>
     </div>

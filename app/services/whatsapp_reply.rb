@@ -22,10 +22,13 @@ class WhatsappReply
   # Format money for a reply body inside the user's locale (no view helper in a job).
   # The amount is always BRL, so the unit is pinned via money.symbol exactly like
   # MoneyHelper#brl — an en-US recipient must never see reais rendered as dollars.
-  def self.currency(cents, locale:)
+  # whole: true renders whole reais (ceil, MoneyHelper#brl_whole's job-context twin) for
+  # the goals surfaces that hide cents (round 3 P1).
+  def self.currency(cents, locale:, whole: false)
+    amount = whole ? Money.ceil_to_real(cents) : cents
     I18n.with_locale(locale) do
       ActionController::Base.helpers.number_to_currency(
-        BigDecimal(cents.to_i) / 100, unit: I18n.t("money.symbol"))
+        BigDecimal(amount.to_i) / 100, unit: I18n.t("money.symbol"), precision: whole ? 0 : 2)
     end
   end
 

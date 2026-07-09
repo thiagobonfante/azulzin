@@ -17,11 +17,16 @@
 
 <%# ── Diagnóstico + orçamento sliders ─────────────────────────────────── %>
 <section class="mb-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+  <%# Whole-real figures (round 3 P1): floor income + capacity (never overstate what the
+      household has), and DERIVE the spend from the two rounded figures so the sentence
+      stays additive (recebeu X − gastou Y = ficou Z). %>
+  <% income_whole = Money.floor_to_real(income) %>
+  <% capacity_whole = Money.floor_to_real(capacity) %>
   <p class="text-sm text-base-content/70">
     <%= t("goals.diagnosis.summary_html",
-          income: content_tag(:span, brl(income), class: "font-semibold"),
-          spend: content_tag(:span, brl(income - capacity), class: "font-semibold"),
-          capacity: content_tag(:span, brl(capacity), class: "font-semibold #{capacity >= 0 ? "text-primary" : "text-error"}")) %>
+          income: content_tag(:span, brl_whole(income_whole, mode: :floor), class: "font-semibold"),
+          spend: content_tag(:span, brl_whole(income_whole - capacity_whole, mode: :floor), class: "font-semibold"),
+          capacity: content_tag(:span, brl_whole(capacity_whole, mode: :floor), class: "font-semibold #{capacity >= 0 ? "text-primary" : "text-error"}")) %>
   </p>
   <% flexibles = (baseline["categories"] || []).select { |c| c["flexibility"] == "flexible" && c["trimmable_median_cents"].to_i.positive? }
                    .sort_by { |c| -c["trimmable_median_cents"].to_i }.first(6) %>
@@ -39,20 +44,24 @@
       <div class="flex flex-col gap-2">
         <% flexibles.each do |c| %>
           <% median = c["median_cents"].to_i %>
-          <% floor = median - c["trimmable_median_cents"].to_i %>
           <% cap = (@goal.user_caps[c["category_id"].to_s] || median).to_i %>
+          <%# Whole-real grid (round 3 P1): ceiled min/max/value make every reachable slider
+              position a multiple of 100; the top position (ceil ≥ median) clamps to median
+              server-side and drops as a no-op ("no cut"). %>
+          <% slider_min = Money.ceil_to_real(median - c["trimmable_median_cents"].to_i) %>
+          <% slider_max = Money.ceil_to_real(median) %>
           <% color = categories_by_id[c["category_id"]]&.display_color || Category::DEFAULT_COLOR %>
           <div class="flex items-center gap-3 text-xs" data-controller="goal-cap">
             <span class="w-24 shrink-0 truncate text-base-content/70"><%= c["name"] %></span>
-            <input type="range" name="caps[<%= c["category_id"] %>]" min="<%= floor %>" max="<%= median %>"
-                   step="100" value="<%= cap %>" class="range range-xs flex-1"
+            <input type="range" name="caps[<%= c["category_id"] %>]" min="<%= slider_min %>" max="<%= slider_max %>"
+                   step="100" value="<%= Money.ceil_to_real(cap) %>" class="range range-xs flex-1"
                    style="color: <%= color %>; accent-color: <%= color %>"
                    data-goal-cap-target="slider"
                    data-action="input->goal-cap#preview change->goal-cap#commit"
                    aria-label="<%= c["name"] %>">
             <span class="w-56 shrink-0 whitespace-nowrap text-right tabular-nums text-base-content/60">
-              <span class="font-semibold text-base-content/80" data-goal-cap-target="label"><%= brl(cap) %></span>
-              · <%= t("goals.diagnosis.spends", amount: brl(median)) %>
+              <span class="font-semibold text-base-content/80" data-goal-cap-target="label"><%= brl_whole(cap) %></span>
+              · <%= t("goals.diagnosis.spends", amount: brl_whole(median)) %>
             </span>
           </div>
         <% end %>

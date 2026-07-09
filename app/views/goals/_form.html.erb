@@ -35,10 +35,14 @@
     <label class="mb-1 block text-sm font-medium" data-goal-kind-target="valueLabel"><%= t("goals.form.value_purchase") %></label>
     <label class="input input-bordered flex w-full items-center gap-2">
       <span class="text-base-content/50"><%= t("money.symbol") %></span>
-      <%= f.text_field :target_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+      <%# Whole-real mask (round 3 P1). value overrides the default _reais prefill ("60000,00")
+          — a digits-only mask would misread it ×100 on the 422 re-render. %>
+      <%= f.text_field :target_reais, inputmode: "numeric", required: true, placeholder: "0", class: "grow",
+            value: (goal.target_cents ? number_with_delimiter(Money.ceil_to_real(goal.target_cents) / 100) : nil),
+            data: { controller: "money-mask", action: "input->money-mask#format" } %>
     </label>
     <p class="mt-1 text-xs text-base-content/50" hidden data-goal-kind-target="savingsOnly">
-      <%= @guardado_baseline_cents.to_i.positive? ? t("goals.form.current_guardado_hint", amount: brl(@guardado_baseline_cents)) :
+      <%= @guardado_baseline_cents.to_i.positive? ? t("goals.form.current_guardado_hint", amount: brl_whole(@guardado_baseline_cents)) :
                                                     t("goals.form.current_guardado_zero") %>
     </p>
   </div>
@@ -52,7 +56,9 @@
     <%= f.label :initial_saved_reais, t("goals.form.initial_saved"), class: "mb-1 block text-sm font-medium" %>
     <label class="input input-bordered flex w-full items-center gap-2">
       <span class="text-base-content/50"><%= t("money.symbol") %></span>
-      <%= f.text_field :initial_saved_reais, inputmode: "decimal", placeholder: "0,00", class: "grow" %>
+      <%= f.text_field :initial_saved_reais, inputmode: "numeric", placeholder: "0", class: "grow",
+            value: (goal.initial_saved_cents.to_i.positive? ? number_with_delimiter(Money.floor_to_real(goal.initial_saved_cents) / 100) : nil),
+            data: { controller: "money-mask", action: "input->money-mask#format" } %>
     </label>
     <p class="mt-1 text-xs text-base-content/50"><%= t("goals.form.initial_saved_hint") %></p>
   </div>

@@ -101,8 +101,9 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
     notification = Notification.new(kind: kind, payload: payload)
     assert_equal template_key, Notifications.template_key(notification),
                  "the shared key resolution must map this payload to #{template_key}"
+    whole = %w[goal_alert goal_achieved].include?(kind)   # round 3 P1 fork, as Deliver runs it
     I18n.with_locale(locale) do
-      args = Notifications.template_args(notification) { |cents| WhatsappReply.currency(cents, locale: locale) }
+      args = Notifications.template_args(notification) { |cents| WhatsappReply.currency(cents, locale: locale, whole: whole) }
       I18n.t("whatsapp.replies.notifications.#{template_key}", raise: true, **args)
     end
   end

@@ -15,9 +15,9 @@
       <div class="h-full rounded-full <%= goal_bar_class(status) %>" style="width: <%= goal_percent(actual, goal.target_cents) %>%"></div>
     </div>
     <p class="mt-1.5 text-right text-xs tabular-nums text-base-content/60">
-      <%= t("goals.show.progress_line", actual: brl(actual), target: brl(goal.target_cents)) %>
+      <%= t("goals.show.progress_line", actual: brl_whole(actual, mode: :floor), target: brl_whole(goal.target_cents)) %>
     </p>
   <% else %>
-    <p class="mt-2 text-sm tabular-nums text-base-content/60"><%= t("goals.show.monthly_target", amount: brl(goal.monthly_target_cents)) %></p>
+    <p class="mt-2 text-sm tabular-nums text-base-content/60"><%= t("goals.show.monthly_target", amount: brl_whole(goal.monthly_target_cents)) %></p>
   <% end %>
 <% end %>

@@ -64,7 +64,8 @@ module Goals
         end
       end
 
-      def fmt(cents) = WhatsappReply.currency(cents, locale: @locale)
+      # Whole-real (ceil) so the coach note figures match the plan-card UI (round 3 P1).
+      def fmt(cents) = WhatsappReply.currency(cents, locale: @locale, whole: true)
 
       # No money figure and no large number may appear that wasn't in the pre-formatted inputs.
       # Money is matched as a full joined-digit figure (so "R$ 5.000" can't hide behind an existing

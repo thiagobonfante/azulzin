@@ -23,7 +23,7 @@ class GoalsController < AppController
     @goal.baseline = Goals::Analyzer.call(Current.account).to_snapshot
     @guardado_baseline_cents = @goal.baseline["median_guardado_cents"].to_i
     if @goal.valid? && savings_target_not_above_guardado?
-      @goal.errors.add(:target_cents, :below_current_guardado, guardado: helpers.brl(@guardado_baseline_cents))
+      @goal.errors.add(:target_cents, :below_current_guardado, guardado: helpers.brl_whole(@guardado_baseline_cents, mode: :floor))
       render :new, status: :unprocessable_entity
     elsif @goal.save
       Goals::ClassifyJob.perform_later(Current.account.id)             # exempt from the session quota
@@ -108,8 +108,15 @@ class GoalsController < AppController
       Current.account.goals.where(created_at: month_start..).count <= Goals::MAX_AI_SESSIONS_PER_MONTH
     end
 
+    # Normalizes kind-inapplicable fields the browser always submits (round 3 P1): the date
+    # select has include_blank:false so even a no-JS savings_rate submission carries one, and
+    # a blank "já guardado" must keep the DB default 0 (dropped, never assigned — the _reais=
+    # setter would write nil cents and trip numericality on this NOT NULL column).
     def create_params
-      params.expect(goal: %i[name kind target_reais target_date initial_saved_reais])
+      p = params.expect(goal: %i[name kind target_reais target_date initial_saved_reais])
+      p = p.except(:target_date, :initial_saved_reais) if p[:kind] == "savings_rate"
+      p.delete(:initial_saved_reais) if p[:initial_saved_reais].blank?
+      p
     end
 
     def update_params

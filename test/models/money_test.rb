@@ -24,4 +24,22 @@ class MoneyTest < ActiveSupport::TestCase
     assert_equal(-500, Money.to_cents("-5"))
     assert_equal(-123456, Money.to_cents("-1.234,56"))
   end
+
+  test "ceil_to_real rounds up to whole reais; negatives away from zero; nil stays nil" do
+    assert_equal 7_700, Money.ceil_to_real(7_693)
+    assert_equal 7_700, Money.ceil_to_real(7_700)
+    assert_equal 100,   Money.ceil_to_real(1)
+    assert_equal 0,     Money.ceil_to_real(0)
+    assert_equal(-7_700, Money.ceil_to_real(-7_693))   # deficit never understated
+    assert_nil Money.ceil_to_real(nil)
+  end
+
+  test "floor_to_real rounds down to whole reais; negatives away from zero; nil stays nil" do
+    assert_equal 7_600, Money.floor_to_real(7_693)
+    assert_equal 7_700, Money.floor_to_real(7_700)
+    assert_equal 0,     Money.floor_to_real(99)
+    assert_equal 0,     Money.floor_to_real(0)
+    assert_equal(-7_700, Money.floor_to_real(-7_693))  # deficit never understated
+    assert_nil Money.floor_to_real(nil)
+  end
 end
