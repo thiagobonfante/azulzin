@@ -37,6 +37,25 @@ module Goals
            .order(occurred_on: :desc, id: :desc)
     end
 
+    # Contributions count from the ACTIVATION month's begin while expected anchors on starts_on
+    # (round 3 decision 3): an eager transfer in the gap month counts toward actual — "guardado
+    # continua guardado" — without the schedule demanding anything before it starts. PUBLIC:
+    # GoalsHelper#goal_reserved_cents mirrors this exact anchor so Σ reserved == Σ actual.
+    def counting_from
+      [ @goal.activated_at&.in_time_zone(Goals::TZ)&.to_date&.beginning_of_month,
+        @goal.starts_on ].compact.min
+    end
+
+    # Derived completion forecast (round 3 decision 6) — "nesse ritmo, você chega em…". Purely
+    # computed from remaining ÷ monthly, so an extra speed-up transfer pulls it earlier with no
+    # writes; the frozen plan's projected_done_on stays honest as "the original plan".
+    def projected_done_on
+      return nil unless @goal.purchase? && @goal.monthly_target_cents.to_i.positive?
+      remaining = @goal.target_cents - actual_cents
+      return current_month if remaining <= 0
+      current_month >> Goals.ceil_div(remaining, @goal.monthly_target_cents)
+    end
+
     # Suppress pace findings when this month's income is < 70% of the baseline median — the shortfall
     # isn't behavior (irregular-income guard, 01 §6). No baseline income ⇒ always allowed.
     def pace_flag_allowed?
@@ -53,14 +72,6 @@ module Goals
              .where(direction: "transfer", transfer_to_bank_account_id: ids)
              .where(billing_month: counting_from..)
              .sum(:amount_cents)
-      end
-
-      # Contributions count from the ACTIVATION month's begin while expected anchors on starts_on
-      # (round 3 decision 3): an eager transfer in the gap month counts toward actual — "guardado
-      # continua guardado" — without the schedule demanding anything before it starts.
-      def counting_from
-        [ @goal.activated_at&.in_time_zone(Goals::TZ)&.to_date&.beginning_of_month,
-          @goal.starts_on ].compact.min
       end
 
       # Linked caixinha counts only its own transfers; unlinked counts every savings account (01 §1).

@@ -40,9 +40,9 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "a purchase target must exceed the initial saved amount (no already-achieved goals)" do
-    refute purchase(initial_saved_cents: 6_000_000).valid?
-    refute purchase(initial_saved_cents: 7_000_000).valid?
-    assert purchase(initial_saved_cents: 5_999_999).valid?
+    refute purchase(initial_saved_cents: 6_000_000, initial_saved_bank_account: @savings).valid?
+    refute purchase(initial_saved_cents: 7_000_000, initial_saved_bank_account: @savings).valid?
+    assert purchase(initial_saved_cents: 5_999_999, initial_saved_bank_account: @savings).valid?
   end
 
   test "DB check constraint rejects monthly_target_cents = 0" do
@@ -77,6 +77,31 @@ class GoalTest < ActiveSupport::TestCase
     other = Account.create!(name: "Other")
     stray = other.bank_accounts.create!(institution: @inst, kind: "savings")
     refute purchase(bank_account: stray).valid?
+  end
+
+  # ── Round 3 decision 7: initial-saved earmarking ─────────────────────────────────────────
+
+  test "initial_saved_bank_account must be a savings caixinha in the same account" do
+    refute purchase(initial_saved_cents: 1_000, initial_saved_bank_account: @checking).valid?
+    assert purchase(initial_saved_cents: 1_000, initial_saved_bank_account: @savings).valid?
+
+    other = Account.create!(name: "Other")
+    stray = other.bank_accounts.create!(institution: @inst, kind: "savings")
+    refute purchase(initial_saved_cents: 1_000, initial_saved_bank_account: stray).valid?
+  end
+
+  test "an initial amount must say where it sits when the household has a caixinha" do
+    g = purchase(initial_saved_cents: 1_000)
+    refute g.valid?
+    assert_includes g.errors.attribute_names, :initial_saved_bank_account
+    assert purchase(initial_saved_cents: 0).valid?   # zero never demands an account
+  end
+
+  test "households with no savings account keep the bare-amount behavior" do
+    solo = Account.create!(name: "Solo")
+    g = solo.goals.new(name: "Carro", kind: "purchase", target_cents: 6_000_000,
+                       target_date: Date.new(2027, 12, 1), initial_saved_cents: 1_000)
+    assert g.valid?
   end
 
   test "at most 5 active goals per account" do

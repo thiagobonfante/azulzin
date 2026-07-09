@@ -46,4 +46,31 @@ module GoalsHelper
     return 0 if whole.to_i <= 0
     [ [ (BigDecimal(part.to_i) / whole * 100).round, 0 ].max, 100 ].min
   end
+
+  # "Guardado para meta" per savings account (round 3 decision 7): the bank-accounts page's
+  # livre/reservado split. Mirrors Goals::Progress attribution EXACTLY — the initial head start
+  # goes to initial_saved_bank_account_id; transfers group by destination since each goal's
+  # counting_from anchor — so Σ over accounts == Σ Progress#actual for earmarked active goals.
+  # Active goals only (a discardable draft must not label household money; achieved/abandoned
+  # release the label — "guardado continua guardado", just no longer reserved). Integer cents,
+  # request-memoized (the index renders one row per account).
+  def goal_reserved_cents(bank_account)
+    @goal_reserved_map ||= begin
+      map = Hash.new(0)
+      savings_ids = nil
+      Current.account.goals.active.each do |goal|
+        map[goal.initial_saved_bank_account_id] += goal.initial_saved_cents.to_i if goal.initial_saved_bank_account_id
+        next if goal.starts_on.blank?   # mirrors Progress#guardado_since_start's guard
+        ids = goal.bank_account_id ? [ goal.bank_account_id ] : (savings_ids ||= Current.account.bank_accounts.kept.savings.pluck(:id))
+        next if ids.empty?
+        Current.account.transactions.posted.kept
+               .where(direction: "transfer", transfer_to_bank_account_id: ids)
+               .where(billing_month: Goals::Progress.new(goal).counting_from..)
+               .group(:transfer_to_bank_account_id).sum(:amount_cents)
+               .each { |account_id, cents| map[account_id] += cents }
+      end
+      map
+    end
+    @goal_reserved_map[bank_account.id]
+  end
 end

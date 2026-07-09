@@ -123,6 +123,7 @@ en:
         monthly_target_cents: "Monthly amount"
         bank_account: "Savings pot"
         bank_account_id: "Savings pot"
+        initial_saved_bank_account: "Pot of the saved amount"
       goal_check:
         status: "Status"
         period_start: "Week"
@@ -177,6 +178,8 @@ en:
             base:
               too_many_active: "You already have 5 active goals. Finish or abandon one to make room."
             bank_account:
+              not_savings: "must be a savings pot (a savings account) in this account."
+            initial_saved_bank_account:
               not_savings: "must be a savings pot (a savings account) in this account."
             initial_saved_cents:
               exceeds_target: "can't be greater than or equal to the goal amount."
@@ -287,7 +290,11 @@ en:
       value_savings: "How much do you want to save each month?"
       when: "When?"
       initial_saved: "Already have something saved?"
-      initial_saved_hint: "Optional. What you've already set aside for this goal."
+      initial_saved_hint: "What you've already set aside for this goal."
+      initial_mode_zero: "Start from zero"
+      initial_mode_some: "I already have some saved"
+      initial_saved_account: "Which pot is it in?"
+      initial_saved_account_placeholder: "Pick the savings pot"
       current_guardado_hint: "Today you save about %{amount}/month on average — the goal is the new total."
       current_guardado_zero: "You aren't saving a set amount every month yet — let's start."
       submit: "See my plans"
@@ -333,6 +340,7 @@ en:
     confirm:
       title: "Where does the money go?"
       caixinha: "Save into"
+      caixinha_placeholder: "Pick the savings pot"
       caixinha_none: "To activate the goal you need a savings pot — that's where the money goes every month."
       caixinha_create_cta: "Create a savings pot"
       source: "Comes from"
@@ -370,6 +378,9 @@ en:
         not_savings: "Pick a valid savings pot."
         invalid_source: "Pick where the money comes from."
         missing_caixinha: "To activate, pick a savings pot and a different source account."
+    contribute:
+      contributed: "Nice! The new forecast is %{month} 💙"
+      rejected: "That didn't work — the amount must be positive and fit this month's leftover."
     abandon:
       abandoned: "Goal abandoned. What you saved stays saved."
     destroy:
@@ -384,7 +395,14 @@ en:
       monthly_target: "%{amount}/mo"
       expected: "expected so far: %{amount}"
       starts_in: "starts in %{month}"
-      add_contribution: "Save into the pot"
+      projected_line: "At this pace, you'll get there in %{month}"
+      parcel_paid: "This month's deposit is saved 💙 (%{amount} on %{date})"
+      parcel_due: "This month's deposit: %{amount}"
+      view_commitment: "view commitment"
+      speed_up_title: "Want to speed it up?"
+      speed_up_body: "You still have %{amount} to spare this month — you could put some of it ahead."
+      speed_up_hint: "It leaves your usual source account straight into the goal's pot."
+      speed_up_submit: "Save now"
       no_caixinha_nudge: "Tip: link a savings pot to track it closely."
       trim_map_title: "The cuts map"
       cap_line: "%{cap} (was ~%{baseline})"
@@ -413,6 +431,8 @@ en:
     add: "Add account"
     save: "Save"
     no_balance: "Balance not set"
+    free_balance: "%{amount} free"
+    reserved_for_goal: "%{amount} saved for a goal"
     empty: "No accounts added yet."
     remove: "Remove account"
     confirm_remove: "Remove this account?"
@@ -675,6 +695,8 @@ en:
     create:
       created: "Transfer recorded."
     saved_celebration: "%{amount} saved! Total this month: %{total} 💙"
+    saved_goal_boost: "That speeds up %{goal}! New forecast: %{month} 💙"
+    saved_goal_boost_savings: "That counts toward your goal %{goal} 💙"
   transactions:
     empty: "Nothing pending here. You're all caught up! 🎉"
     statuses:

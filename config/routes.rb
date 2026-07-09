@@ -111,6 +111,7 @@ Rails.application.routes.draw do
         patch :choose    # template=leve|recomendado|acelerado (+ bank_account_id, source_bank_account_id)
         patch :caps      # Diagnóstico orçamento sliders — caps={category_id: cents}, draft only
         patch :abandon
+        post  :contribute  # speed-up extra transfer, bounded by the re-derived sobra (round 3 P3)
       end
     end
 

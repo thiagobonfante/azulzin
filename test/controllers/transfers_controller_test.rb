@@ -68,6 +68,47 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  # ── Round 3 P3: goal boost tie-in ──────────────────────────────────────────────────────
+
+  def active_goal!(caixinha, kind: "purchase")
+    @user.account.goals.create!(name: "Carro", kind: kind, target_cents: 6_000_000,
+                                target_date: (kind == "purchase" ? Date.new(2027, 12, 1) : nil),
+                                status: "active", monthly_target_cents: 300_000,
+                                starts_on: Date.current.beginning_of_month, bank_account: caixinha)
+  end
+
+  test "a transfer into a goal's caixinha streams the boost toast with the fresh forecast" do
+    goal = active_goal!(@savings)
+    transfer!(from: @checking, to: @savings, amount: "300,00")
+    assert_response :ok
+    projected = Goals::Progress.new(goal.reload).projected_done_on
+    assert_match I18n.t("transfers.saved_goal_boost", goal: goal.name,
+                        month: I18n.l(projected, format: :month_year)), @response.body
+    assert_match goal_path(goal), @response.body
+  end
+
+  test "a savings_rate goal gets the 'conta pra meta' framing instead of a forecast" do
+    goal = active_goal!(@savings, kind: "savings_rate")
+    transfer!(from: @checking, to: @savings, amount: "50")
+    assert_match I18n.t("transfers.saved_goal_boost_savings", goal: goal.name), @response.body
+  end
+
+  test "a savings transfer with no goal on that caixinha keeps only the plain celebration" do
+    transfer!(from: @checking, to: @savings, amount: "50")
+    assert_response :ok
+    refute_match "Nova previsão", @response.body
+  end
+
+  test "the save-money modal defaults its destination to the active goal's caixinha" do
+    other = @user.account.bank_accounts.create!(institution: @inst, nickname: "Nova caixinha",
+                                                kind: "savings", balance_cents: 0)
+    active_goal!(other)   # not the first-created savings account
+    @user.account.transactions.create!(amount_cents: 500_00, occurred_on: Date.current, status: "posted",
+                                       direction: "income", bank_account: @checking)
+    get transactions_url
+    assert_select "#save_money_form select[name='transfer[transfer_to_bank_account_id]'] option[value='#{other.id}'][selected]"
+  end
+
   test "modal batch with no amounts filled creates nothing and 422s" do
     assert_no_difference -> { @user.account.transactions.where(direction: "transfer").count } do
       post transfers_url(month: Date.current.strftime("%Y-%m")), as: :turbo_stream,

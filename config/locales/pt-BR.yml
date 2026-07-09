@@ -124,6 +124,7 @@ pt-BR:
         monthly_target_cents: "Valor mensal"
         bank_account: "Caixinha"
         bank_account_id: "Caixinha"
+        initial_saved_bank_account: "Caixinha do valor guardado"
       goal_check:
         status: "Situação"
         period_start: "Semana"
@@ -178,6 +179,8 @@ pt-BR:
             base:
               too_many_active: "Você já tem 5 metas ativas. Conclua ou abandone uma para abrir espaço."
             bank_account:
+              not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
+            initial_saved_bank_account:
               not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
             initial_saved_cents:
               exceeds_target: "não pode ser maior ou igual ao valor da meta."
@@ -288,7 +291,11 @@ pt-BR:
       value_savings: "Quanto você quer guardar por mês?"
       when: "Quando?"
       initial_saved: "Já tem algo guardado?"
-      initial_saved_hint: "Opcional. O que você já separou para esta meta."
+      initial_saved_hint: "O que você já separou para esta meta."
+      initial_mode_zero: "Começar do zero"
+      initial_mode_some: "Já tenho um valor guardado"
+      initial_saved_account: "Em qual caixinha está?"
+      initial_saved_account_placeholder: "Escolha a caixinha"
       current_guardado_hint: "Hoje vocês guardam em média %{amount}/mês — a meta é o total novo."
       current_guardado_zero: "Hoje vocês ainda não guardam um valor todo mês — vamos começar."
       submit: "Ver meus planos"
@@ -334,6 +341,7 @@ pt-BR:
     confirm:
       title: "Para onde vai o dinheiro?"
       caixinha: "Guardar em"
+      caixinha_placeholder: "Escolha a caixinha"
       caixinha_none: "Para ativar a meta você precisa de uma caixinha (conta de poupança) — é para lá que o dinheiro vai todo mês."
       caixinha_create_cta: "Criar uma caixinha"
       source: "Sai de"
@@ -371,6 +379,9 @@ pt-BR:
         not_savings: "Escolha uma caixinha (conta de poupança) válida."
         invalid_source: "Escolha de onde o dinheiro vai sair."
         missing_caixinha: "Para ativar, escolha uma caixinha e uma conta de origem diferente."
+    contribute:
+      contributed: "Boa! Agora a previsão é %{month} 💙"
+      rejected: "Não deu — o valor precisa ser positivo e caber na sobra do mês."
     abandon:
       abandoned: "Meta abandonada. O que você guardou continua guardado."
     destroy:
@@ -385,7 +396,14 @@ pt-BR:
       monthly_target: "%{amount}/mês"
       expected: "esperado até agora: %{amount}"
       starts_in: "começa em %{month}"
-      add_contribution: "Guardar na caixinha"
+      projected_line: "Nesse ritmo, você chega em %{month}"
+      parcel_paid: "Parcela deste mês guardada 💙 (%{amount} em %{date})"
+      parcel_due: "Parcela deste mês: %{amount}"
+      view_commitment: "ver compromisso"
+      speed_up_title: "Quer acelerar?"
+      speed_up_body: "Você ainda tem %{amount} sobrando este mês — dá para adiantar uma parte."
+      speed_up_hint: "Sai da mesma conta de origem e vai direto para a caixinha da meta."
+      speed_up_submit: "Guardar agora"
       no_caixinha_nudge: "Dica: ligue uma caixinha para acompanhar de perto."
       trim_map_title: "O mapa dos cortes"
       cap_line: "%{cap} (antes ~%{baseline})"
@@ -414,6 +432,8 @@ pt-BR:
     add: "Adicionar conta"
     save: "Salvar"
     no_balance: "Saldo não informado"
+    free_balance: "%{amount} livre"
+    reserved_for_goal: "%{amount} guardado para meta"
     empty: "Nenhuma conta adicionada ainda."
     remove: "Remover conta"
     confirm_remove: "Remover esta conta?"
@@ -676,6 +696,8 @@ pt-BR:
     create:
       created: "Transferência registrada."
     saved_celebration: "%{amount} guardados! Total no mês: %{total} 💙"
+    saved_goal_boost: "Isso acelera %{goal}! Nova previsão: %{month} 💙"
+    saved_goal_boost_savings: "Isso conta para a meta %{goal} 💙"
   transactions:
     empty: "Nada pendente por aqui. Tudo em dia! 🎉"
     statuses:

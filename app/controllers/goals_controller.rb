@@ -3,7 +3,7 @@
 # freshly-added income re-scores the plans), and hand choose to Goals::Activate (tamper-proof —
 # it recomputes from the frozen baseline and never trusts a plan number from params).
 class GoalsController < AppController
-  before_action :set_goal, only: %i[show update destroy choose abandon caps]
+  before_action :set_goal, only: %i[show update destroy choose abandon caps contribute]
 
   def index
     @active = Current.account.goals.active.includes(:bank_account).order(created_at: :desc)
@@ -42,7 +42,28 @@ class GoalsController < AppController
     else
       Goals::Achieve.call(@goal) if Goals::Progress.new(@goal).achieved?   # auto-conclude on render
       @progress = Goals::Progress.new(@goal)
+      @speed_up = Goals::SpeedUpOffer.for(@goal)
       render :show
+    end
+  end
+
+  # Speed-up (round 3 decision 6): an extra transfer into the caixinha, bounded by this month's
+  # sobra. The offer is RE-DERIVED here — the render-time sobra is never trusted at POST time.
+  def contribute
+    offer = Goals::SpeedUpOffer.for(@goal)
+    cents = Money.to_cents(params[:amount_reais])
+    if offer && cents.to_i.positive? && cents <= offer.sobra_cents
+      Current.account.transactions.create!(
+        direction: "transfer", status: "posted", confirmed_at: Time.current, source: "manual",
+        amount_cents: cents, occurred_on: sp_today,
+        bank_account_id: offer.source_bank_account_id,
+        transfer_to_bank_account_id: offer.destination_bank_account_id
+      )
+      # No commitment_id: a second payment row for the month would trip the paid-once index.
+      projected = Goals::Progress.new(@goal).projected_done_on
+      redirect_to goal_path(@goal), notice: t(".contributed", month: l(projected, format: :month_year))
+    else
+      redirect_to goal_path(@goal), alert: t(".rejected")
     end
   end
 
@@ -95,6 +116,8 @@ class GoalsController < AppController
 
     def at_active_cap? = Current.account.goals.active.count >= Goal::MAX_ACTIVE
 
+    def sp_today = Date.current.in_time_zone(Goals::TZ).to_date
+
     # Re-score on view, but keep any async coach narratives (they're keyed by template, stable).
     def analyze!
       snapshot = Goals::Analyzer.call(Current.account).to_snapshot
@@ -113,9 +136,10 @@ class GoalsController < AppController
     # a blank "já guardado" must keep the DB default 0 (dropped, never assigned — the _reais=
     # setter would write nil cents and trip numericality on this NOT NULL column).
     def create_params
-      p = params.expect(goal: %i[name kind target_reais target_date initial_saved_reais])
-      p = p.except(:target_date, :initial_saved_reais) if p[:kind] == "savings_rate"
+      p = params.expect(goal: %i[name kind target_reais target_date initial_saved_reais initial_saved_bank_account_id])
+      p = p.except(:target_date, :initial_saved_reais, :initial_saved_bank_account_id) if p[:kind] == "savings_rate"
       p.delete(:initial_saved_reais) if p[:initial_saved_reais].blank?
+      p.delete(:initial_saved_bank_account_id) if p[:initial_saved_bank_account_id].blank?
       p
     end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_09_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_09_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -210,6 +210,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000001) do
     t.datetime "celebrated_at"
     t.datetime "created_at", null: false
     t.bigint "created_by_id"
+    t.bigint "initial_saved_bank_account_id"
     t.bigint "initial_saved_cents", default: 0, null: false
     t.string "kind", null: false
     t.bigint "monthly_target_cents"
@@ -227,6 +228,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000001) do
     t.index ["account_id"], name: "index_goals_on_account_id"
     t.index ["bank_account_id"], name: "index_goals_on_bank_account_id"
     t.index ["created_by_id"], name: "index_goals_on_created_by_id"
+    t.index ["initial_saved_bank_account_id"], name: "index_goals_on_initial_saved_bank_account_id"
     t.check_constraint "(kind::text = 'purchase'::text) = (target_date IS NOT NULL)", name: "goals_purchase_has_date"
     t.check_constraint "initial_saved_cents >= 0", name: "goals_initial_saved_non_negative"
     t.check_constraint "monthly_target_cents IS NULL OR monthly_target_cents > 0", name: "goals_monthly_target_positive"
@@ -483,6 +485,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000001) do
   add_foreign_key "goal_checks", "accounts"
   add_foreign_key "goal_checks", "goals"
   add_foreign_key "goals", "accounts"
+  add_foreign_key "goals", "bank_accounts", column: "initial_saved_bank_account_id", on_delete: :nullify
   add_foreign_key "goals", "bank_accounts", on_delete: :nullify
   add_foreign_key "goals", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "goals", "users", column: "updated_by_id", on_delete: :nullify

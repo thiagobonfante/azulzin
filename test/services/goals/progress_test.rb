@@ -30,7 +30,7 @@ class Goals::ProgressTest < ActiveSupport::TestCase
 
   test "actual = initial head start + guardado since starts_on" do
     travel_to Time.utc(2026, 8, 20, 12)
-    g = goal(initial_saved_cents: 50_000)
+    g = goal(initial_saved_cents: 50_000, initial_saved_bank_account: @caixinha)
     save_to_caixinha!(cents: 300_000, month: Date.new(2026, 7, 1))
     save_to_caixinha!(cents: 200_000, month: Date.new(2026, 8, 1))
     assert_equal 50_000 + 500_000, Goals::Progress.new(g).actual_cents
@@ -133,5 +133,33 @@ class Goals::ProgressTest < ActiveSupport::TestCase
     g = goal(target_cents: 500_000)
     save_to_caixinha!(cents: 500_000, month: Date.new(2026, 7, 1))
     assert Goals::Progress.new(g).achieved?
+  end
+
+  # ── Round 3 decision 6: derived completion forecast ─────────────────────────────────────
+
+  test "projected_done_on ceils remaining ÷ monthly from the current month" do
+    travel_to Time.utc(2026, 8, 20, 12)
+    g = goal   # target 6_000_000, monthly 300_000
+    save_to_caixinha!(cents: 300_000, month: Date.new(2026, 8, 1))   # remaining 5_700_000 → 19 exactly
+    assert_equal Date.new(2028, 3, 1), Goals::Progress.new(g).projected_done_on
+  end
+
+  test "projected_done_on: one cent past the exact division costs a whole month" do
+    travel_to Time.utc(2026, 8, 20, 12)
+    g = goal
+    save_to_caixinha!(cents: 299_999, month: Date.new(2026, 8, 1))   # remaining 5_700_001 → ceil 20
+    assert_equal Date.new(2028, 4, 1), Goals::Progress.new(g).projected_done_on
+  end
+
+  test "projected_done_on is the current month once the target is met; nil for savings_rate" do
+    travel_to Time.utc(2026, 8, 20, 12)
+    g = goal(target_cents: 100_000)
+    save_to_caixinha!(cents: 100_000, month: Date.new(2026, 8, 1))
+    assert_equal Date.new(2026, 8, 1), Goals::Progress.new(g).projected_done_on
+
+    sr = @account.goals.create!(name: "Guardar", kind: "savings_rate", target_cents: 100_000,
+                                status: "active", monthly_target_cents: 100_000,
+                                starts_on: Date.new(2026, 7, 1), bank_account: @caixinha)
+    assert_nil Goals::Progress.new(sr).projected_done_on
   end
 end

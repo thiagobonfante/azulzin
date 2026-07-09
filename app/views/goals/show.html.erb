@@ -45,17 +45,60 @@
         <span class="text-xs text-base-content/50"><%= t("goals.show.expected", amount: brl_whole(@progress.expected_cents)) %></span>
       <% end %>
     </div>
+    <%# Derived forecast (round 3 decision 6) — moves earlier by itself after a speed-up. %>
+    <% if @goal.purchase? && (projected = @progress.projected_done_on) %>
+      <p class="mt-2 text-xs text-base-content/50"><%= t("goals.show.projected_line", month: l(projected, format: :month_year)) %></p>
+    <% end %>
   <% end %>
 </section>
 
-<%# ── Contribution CTA + caixinha nudge ───────────────────────────────── %>
+<%# ── This month's parcel — the commitment IS how you save (round 3 P3) ── %>
 <% unless @goal.achieved? %>
-  <div class="mb-6 flex flex-wrap items-center gap-3">
-    <%= link_to t("goals.show.add_contribution"), transactions_path, class: "btn btn-primary btn-sm" %>
-    <% unless @goal.bank_account_id %>
-      <span class="text-xs text-base-content/55"><%= t("goals.show.no_caixinha_nudge") %></span>
+  <% if (commitment = @goal.savings_commitment) %>
+    <% month = Date.current.in_time_zone(Goals::TZ).to_date.beginning_of_month %>
+    <%# Pre-start gap month: the first occurrence is next month (round 3 decision 3) — the
+        progress card already says "começa em <mês>", so no dead Pagar button here. %>
+    <% if commitment.active_in?(month) %>
+      <% occurrence = CommitmentOccurrence.new(commitment, month) %>
+      <div class="mb-6 flex flex-wrap items-center gap-3">
+        <% if (payment = occurrence.payment) %>
+          <span class="text-sm text-base-content/70"><%= t("goals.show.parcel_paid", amount: brl_whole(payment.amount_cents, mode: :floor), date: l(payment.occurred_on, format: :weekday_day)) %></span>
+        <% else %>
+          <span class="text-sm font-medium"><%= t("goals.show.parcel_due", amount: brl_whole(commitment.amount_cents)) %></span>
+          <%# Force html: pay.turbo_stream targets hub/commitments ids absent on this page. %>
+          <%= button_to t("commitments.occurrences.mark_paid"), pay_commitment_occurrence_path(occurrence, from: "goal"),
+                method: :patch, form: { data: { turbo: false } }, class: "btn btn-primary btn-sm" %>
+        <% end %>
+        <%= link_to t("goals.show.view_commitment"), commitment_path(commitment), class: "link-hover link text-xs text-base-content/55" %>
+      </div>
     <% end %>
-  </div>
+  <% else %>
+    <%# Legacy unlinked goal (pre round-3 activation) — no parcel to pay from here. %>
+    <div class="mb-6 flex flex-wrap items-center gap-3">
+      <%= link_to t("app.nav.commitments"), commitments_path, class: "btn btn-ghost btn-sm" %>
+      <% unless @goal.bank_account_id %>
+        <span class="text-xs text-base-content/55"><%= t("goals.show.no_caixinha_nudge") %></span>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>
+
+<%# ── Speed-up (round 3 decision 6): parcel paid + sobra ≥ 20% of it ──── %>
+<% if @speed_up %>
+  <section class="mb-6 rounded-box border border-primary/40 bg-primary/5 p-5">
+    <h2 class="font-display text-lg font-bold"><%= t("goals.show.speed_up_title") %></h2>
+    <p class="mt-1 text-sm text-base-content/70"><%= t("goals.show.speed_up_body", amount: brl_whole(@speed_up.sobra_cents, mode: :floor)) %></p>
+    <%= form_with url: contribute_goal_path(@goal), method: :post, class: "mt-3 flex flex-wrap items-center gap-2" do %>
+      <label class="input input-bordered input-sm flex w-36 items-center gap-2">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%= text_field_tag :amount_reais, nil, inputmode: "numeric", placeholder: "0", class: "min-w-0 grow",
+              data: { controller: "money-mask", action: "input->money-mask#format" },
+              aria: { label: t("goals.show.speed_up_title") } %>
+      </label>
+      <%= submit_tag t("goals.show.speed_up_submit"), class: "btn btn-primary btn-sm" %>
+    <% end %>
+    <p class="mt-2 text-xs text-base-content/50"><%= t("goals.show.speed_up_hint") %></p>
+  </section>
 <% end %>
 
 <%# ── Trim map ────────────────────────────────────────────────────────── %>

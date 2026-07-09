@@ -230,7 +230,108 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_select "input[name='goal[initial_saved_reais]'][value='70.000']"
   end
 
+  # ── Round 3 P3: initial-saved earmarking, parcel status, speed-up ──────────────────────
+
+  test "create with 'já tenho um valor guardado' persists the amount and its caixinha" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
+                                       target_date: "2027-12-01", initial_saved_reais: "5.000",
+                                       initial_saved_bank_account_id: @caixinha.id } }
+    goal = @account.goals.last
+    assert_redirected_to goal_path(goal)
+    assert_equal 500_000, goal.initial_saved_cents
+    assert_equal @caixinha.id, goal.initial_saved_bank_account_id
+  end
+
+  test "an initial amount without its caixinha is refused while one exists to point at" do
+    assert_no_difference -> { @account.goals.count } do
+      post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
+                                         target_date: "2027-12-01", initial_saved_reais: "5.000" } }
+    end
+    assert_response :unprocessable_entity
+  end
+
+  test "the gap month shows the commitment but no dead Pagar button (parcel starts next month)" do
+    goal = activate_goal!
+    get goal_path(goal)
+    assert_response :success
+    refute_match "commitment_occurrences", @response.body   # the pay form's path never renders
+  end
+
+  test "paying this month's parcel from the goal page lands back on the goal" do
+    goal = activate_goal!
+    travel_to Time.utc(2026, 8, 10, 12)
+    get goal_path(goal)
+    assert_match "commitment_occurrences/#{goal.savings_commitment.id}-2026-08/pay", @response.body
+
+    patch pay_commitment_occurrence_path("#{goal.savings_commitment.id}-2026-08", from: "goal")
+    assert_redirected_to goal_path(goal)
+    assert goal.savings_commitment.paid_in?(Date.new(2026, 8, 1))
+    follow_redirect!
+    assert_response :success
+    assert_select "form[action*='commitment_occurrences']", count: 0   # paid → quiet line, no button
+  end
+
+  test "speed-up: paid parcel + spare sobra shows the card and contribute posts a bounded transfer" do
+    goal = activate_goal!
+    august!(goal)
+
+    get goal_path(goal)
+    assert_match I18n.t("goals.show.speed_up_title"), @response.body
+
+    before = Goals::Progress.new(goal).actual_cents
+    assert_difference -> { @account.transactions.where(direction: "transfer").count }, 1 do
+      post contribute_goal_path(goal), params: { amount_reais: "100" }
+    end
+    assert_redirected_to goal_path(goal)
+    txn = @account.transactions.where(direction: "transfer").order(:id).last
+    assert_equal 10_000, txn.amount_cents
+    assert_nil txn.commitment_id, "a speed-up transfer must never look like a second parcel payment"
+    assert_equal @caixinha.id, txn.transfer_to_bank_account_id
+    assert_equal @checking.id, txn.bank_account_id
+    assert_equal before + 10_000, Goals::Progress.new(goal).actual_cents
+  end
+
+  test "a contribute above the sobra is rejected with no transfer" do
+    goal = activate_goal!
+    august!(goal)
+    assert_no_difference -> { @account.transactions.where(direction: "transfer").count } do
+      post contribute_goal_path(goal), params: { amount_reais: "999.999" }
+    end
+    assert_redirected_to goal_path(goal)
+    assert_equal I18n.t("goals.contribute.rejected"), flash[:alert]
+  end
+
+  test "contribute on a draft goal is rejected" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
+                                       target_date: "2027-12-01" } }
+    goal = @account.goals.last
+    assert_no_difference -> { @account.transactions.count } do
+      post contribute_goal_path(goal), params: { amount_reais: "100" }
+    end
+    assert_equal I18n.t("goals.contribute.rejected"), flash[:alert]
+  end
+
   private
+    def activate_goal!
+      post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00",
+                                         target_date: "2027-12-01", initial_saved_reais: "0,00" } }
+      goal = @account.goals.last
+      get goal_path(goal)   # populate baseline
+      patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id,
+                                              source_bank_account_id: @checking.id }
+      goal.reload
+    end
+
+    # First scheduled month (starts_on = August): income lands and the parcel gets paid.
+    def august!(goal)
+      travel_to Time.utc(2026, 8, 10, 12)
+      month = Date.new(2026, 8, 1)
+      @account.transactions.create!(direction: "income", status: "posted", amount_cents: 900_000,
+                                    bank_account: @checking, occurred_on: month,
+                                    billing_month: month, billing_month_manual: true)
+      Commitments::MarkPaid.call(goal.savings_commitment, month)
+    end
+
     # brl_whole in the pt-BR pinned UI (round 3 P1 — goals shows whole reais, ceil): "R$ 3.530"
     def brl_whole_pt(cents) = I18n.with_locale(:"pt-BR") { ActionController::Base.helpers.number_to_currency(BigDecimal(Money.ceil_to_real(cents)) / 100, unit: "R$", precision: 0) }
 end

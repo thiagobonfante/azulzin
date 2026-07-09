@@ -17,6 +17,9 @@ class Goal < ApplicationRecord
   money_column :target, :initial_saved, :monthly_target
 
   belongs_to :bank_account, optional: true   # linked caixinha; nil = all savings accounts
+  # Where the "já guardado" head start sits (round 3 decision 7) — the bank accounts page
+  # attributes initial_saved_cents to this caixinha in its livre/guardado-para-meta split.
+  belongs_to :initial_saved_bank_account, class_name: "BankAccount", optional: true
   has_many :checks, class_name: "GoalCheck", dependent: :destroy
   has_many :commitments, dependent: :nullify   # the kind:"savings" contribution (07 §1.2)
 
@@ -33,6 +36,10 @@ class Goal < ApplicationRecord
   validates :target_date, absence: true, if: :savings_rate?
   validate  :initial_below_target, if: :purchase?
   validate  :bank_account_is_a_savings_caixinha, if: -> { bank_account_id.present? }
+  validate  :initial_saved_account_is_a_savings_caixinha, if: -> { initial_saved_bank_account_id.present? }
+  # An amount must say WHERE it sits whenever there's a caixinha to point at; households with
+  # no savings account keep the bare-amount behavior (round 3 decision 7).
+  validate  :initial_saved_account_required, if: -> { initial_saved_cents.to_i.positive? && initial_saved_bank_account_id.blank? }
   validate  :active_cap_not_exceeded, if: :becoming_active?
 
   # The active savings commitment backing this goal, if any (07 §1.2 — one per active goal).
@@ -50,6 +57,15 @@ class Goal < ApplicationRecord
     def bank_account_is_a_savings_caixinha
       return if bank_account&.account_id == account_id && bank_account&.savings?
       errors.add(:bank_account, :not_savings)
+    end
+
+    def initial_saved_account_is_a_savings_caixinha
+      return if initial_saved_bank_account&.account_id == account_id && initial_saved_bank_account&.savings?
+      errors.add(:initial_saved_bank_account, :not_savings)
+    end
+
+    def initial_saved_account_required
+      errors.add(:initial_saved_bank_account, :blank) if account&.bank_accounts&.kept&.savings&.exists?
     end
 
     # A purchase you've already saved for isn't a goal — and required-monthly would be 0, tripping
