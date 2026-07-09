@@ -95,7 +95,7 @@ class CommitmentsController < ApplicationController
 
     def commitment_params
       params.expect(commitment: %i[name kind amount_reais installments_count installments_paid
-                                   schedule_day ends_on category_id])
+                                   schedule_day ends_on category_id transfer_to_bank_account_id])
     end
 
     def commitment_update_params
@@ -123,6 +123,7 @@ class CommitmentsController < ApplicationController
         c.starts_on = c.starts_on >> 1 if c.due_on(c.starts_on) < Date.current
         c.ends_on = p[:ends_on].presence
       end
+      c.transfer_to_bank_account_id = sanitized_caixinha(p[:transfer_to_bank_account_id]) if p[:kind] == "savings"
       c
     end
 
@@ -181,6 +182,10 @@ class CommitmentsController < ApplicationController
     end
 
     def sanitized_category(id) = (id if id.present? && Current.account.categories.kept.exists?(id))
+
+    # Standalone savings destination: only a kept savings-kind account of THIS account passes
+    # (model validation is the backstop; presence 422s when the whitelist drops a junk id).
+    def sanitized_caixinha(id) = (id if id.present? && Current.account.bank_accounts.kept.savings.exists?(id))
 
     def parse_month(param)
       return nil unless param.to_s.match?(/\A\d{4}-(0[1-9]|1[0-2])\z/)

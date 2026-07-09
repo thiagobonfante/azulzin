@@ -26,4 +26,21 @@ module Money
 
     negative ? -cents : cents
   end
+
+  # Display-boundary rounding to whole reais (goals UI shows no cents — round 3 P1).
+  # Pure integer math, nil stays nil. Negative cents are a deficit: BOTH directions round
+  # away from zero so a deficit is never understated.
+  def ceil_to_real(cents)
+    return nil if cents.nil?
+    c = cents.to_i
+    c.negative? ? -ceil_to_real(-c) : ((c + 99) / 100) * 100
+  end
+
+  # Rounds positives DOWN (never overstate what the household has/can do); negatives away
+  # from zero, same as ceil_to_real.
+  def floor_to_real(cents)
+    return nil if cents.nil?
+    c = cents.to_i
+    c.negative? ? -ceil_to_real(-c) : (c / 100) * 100
+  end
 end

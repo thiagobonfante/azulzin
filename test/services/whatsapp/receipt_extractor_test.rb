@@ -46,6 +46,52 @@ class Whatsapp::ReceiptExtractorTest < ActiveSupport::TestCase
     assert_operator ex.overall_confidence, :>=, 0.80
   end
 
+  test "the caption fills instrument_phrase and payment_method only when the receipt printed none" do
+    ex = Whatsapp::ReceiptExtractor.build(
+      { "is_receipt" => true, "total_raw" => "10,00", "payment_method" => "desconhecido",
+        "origin_phrase" => nil, "overall_confidence" => 0.9, "field_confidence" => { "total" => 0.9 } },
+      "Cartão santander")
+    assert_equal "Cartão santander", ex.instrument_phrase
+    assert_equal "credito", ex.payment_method   # caption names crédito XOR débito
+
+    printed = Whatsapp::ReceiptExtractor.build(
+      { "is_receipt" => true, "document_type" => "transferencia", "total_raw" => "10,00",
+        "payment_method" => "pix", "origin_phrase" => "Nu Pagamentos Franciane",
+        "overall_confidence" => 0.9, "field_confidence" => { "total" => 0.9 } },
+      "Cartão santander")
+    assert_equal "Nu Pagamentos Franciane", printed.instrument_phrase   # printed origin wins
+    assert_equal "pix", printed.payment_method                          # printed method wins
+  end
+
+  test "an ambiguous caption (crédito AND débito words) never decides the payment method" do
+    ex = Whatsapp::ReceiptExtractor.build(
+      { "is_receipt" => true, "total_raw" => "10,00", "payment_method" => "desconhecido",
+        "origin_phrase" => nil, "overall_confidence" => 0.9, "field_confidence" => { "total" => 0.9 } },
+      "cartão ou conta, não sei")
+    assert_equal "desconhecido", ex.payment_method
+  end
+
+  test "from_message joins the caption into the vision prompt and hints the instrument" do
+    user = users(:confirmed)
+    msg = WhatsappMessage.create!(user: user, account: user.account, direction: "inbound",
+                                  message_type: "image", wa_message_id: "wa-cap", chat_id: "x",
+                                  body: "Cartão santander", status: "received")
+    msg.media.attach(io: StringIO.new("fake-bytes"), filename: "r.jpg", content_type: "image/jpeg")
+
+    parsed = { "is_receipt" => true, "total_raw" => "10,00", "payment_method" => "desconhecido",
+               "origin_phrase" => nil, "overall_confidence" => 0.9, "field_confidence" => { "total" => 0.9 } }
+    captured = nil
+    client = Object.new
+    client.define_singleton_method(:chat) do |messages:, schema:|
+      captured = messages
+      Struct.new(:parsed).new(parsed)
+    end
+
+    ex = Whatsapp::ReceiptExtractor.from_message(msg, client: client)
+    assert_includes captured.last[:content].first[:text], "Cartão santander"
+    assert_equal "Cartão santander", ex.instrument_phrase
+  end
+
   test "is_receipt=false yields no amount (soft ack / park)" do
     ex = Whatsapp::ReceiptExtractor.build("is_receipt" => false)
     assert_not ex.amount_present?

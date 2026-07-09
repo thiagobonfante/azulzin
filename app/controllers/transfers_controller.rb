@@ -23,6 +23,7 @@ class TransfersController < ApplicationController
     ActiveRecord::Base.transaction { @transactions.each(&:save!) } if @saved
     @transaction = @transactions.first || Current.account.transactions.new(direction: "transfer")
     @to_savings = @saved && to&.savings?
+    @boosted_goal = boosted_goal(to) if @to_savings
     @error_message = batch_error_message unless @saved
     respond_to do |format|
       format.turbo_stream { render :create, status: (@saved ? :ok : :unprocessable_entity) }
@@ -54,6 +55,14 @@ class TransfersController < ApplicationController
       return t("transactions.hero.save_modal.none_error") if @transactions.empty?
       invalid = @transactions.detect { |txn| txn.errors.any? } || @transactions.first
       invalid.errors.full_messages.to_sentence
+    end
+
+    # A transfer into a goal's caixinha accelerates it (round 3 P3) — Progress attribution is
+    # automatic, so the toast just confirms. ONE goal only: exact-caixinha match first, then a
+    # legacy unlinked goal (which counts every savings transfer) — never promise two boosts.
+    def boosted_goal(to)
+      goals = Current.account.goals.active.to_a
+      goals.find { |g| g.bank_account_id == to.id } || goals.find { |g| g.bank_account_id.nil? }
     end
 
     def viewed_month

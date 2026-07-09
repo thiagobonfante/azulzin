@@ -27,10 +27,23 @@ module Commitments
       )
       txn.installment_number = commitment.installment_no(month) if commitment.installment?
       copy_instrument(txn, commitment)
+      as_savings_transfer(txn, commitment) if commitment.savings?
       txn.save!
       txn
     rescue ActiveRecord::RecordNotUnique
       commitment.payments.posted.kept.find_by(billing_month: month) # already paid → return the existing row
+    end
+
+    # "Pay yourself first" (.plans/goals 07 §1.2): paying a savings commitment is a TRANSFER into
+    # a caixinha, never an expense — so it lands in guardado and leaves sobra invariant.
+    # bank_account_id (the source) was already set by copy_instrument. Destination: the goal's
+    # caixinha (goal precedence — re-linking keeps propagating), else the commitment's own
+    # standalone destination (round 3 P4).
+    def self.as_savings_transfer(txn, commitment)
+      txn.direction = "transfer"
+      txn.category_id = nil
+      txn.category_source = nil
+      txn.transfer_to_bank_account_id = commitment.goal&.bank_account_id || commitment.transfer_to_bank_account_id
     end
 
     def self.copy_instrument(txn, commitment)

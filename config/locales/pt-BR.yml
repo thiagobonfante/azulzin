@@ -49,6 +49,8 @@ pt-BR:
       account: "Conta"
       account_membership: "Membro"
       invitation: "Convite"
+      goal: "Meta"
+      goal_check: "Verificação"
     attributes:
       user:
         email_address: "E-mail"
@@ -92,6 +94,7 @@ pt-BR:
         total_cents: "Total"
         bank_account: "Conta"
         credit_card: "Cartão"
+        transfer_to_bank_account: "Caixinha"
         category: "Categoria"
         schedule_kind: "Recorrência"
         schedule_day: "Dia"
@@ -113,6 +116,19 @@ pt-BR:
         quiet_hours_end: "Fim do silêncio"
         budget_warn_percent: "Faixa de aviso"
         budget_breach_percent: "Faixa de estouro"
+      goal:
+        name: "Nome"
+        kind: "Tipo"
+        target_cents: "Valor"
+        target_date: "Quando"
+        initial_saved_cents: "Já guardado"
+        monthly_target_cents: "Valor mensal"
+        bank_account: "Caixinha"
+        bank_account_id: "Caixinha"
+        initial_saved_bank_account: "Caixinha do valor guardado"
+      goal_check:
+        status: "Situação"
+        period_start: "Semana"
     errors:
       models:
         account_membership:
@@ -139,6 +155,18 @@ pt-BR:
           attributes:
             installments_count:
               below_paid: "deve ser pelo menos %{count} — parcelas já pagas não podem ser removidas."
+            goal:
+              only_on_savings: "só pode ser vinculada a compromissos de poupança."
+            bank_account:
+              wrong_account: "precisa ser desta conta."
+            credit_card:
+              wrong_account: "precisa ser desta conta."
+              not_on_savings: "não pode ser um cartão — guardar sai de uma conta."
+            transfer_to_bank_account:
+              blank: "escolha a caixinha onde guardar."
+              not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
+              same_account: "não pode ser a mesma conta de origem."
+              wrong_account: "precisa ser desta conta."
         transaction:
           instrument_required: "Escolha a conta ou o cartão do lançamento."
           attributes:
@@ -153,6 +181,18 @@ pt-BR:
               missing: "é obrigatório."
               too_large: "excede o limite de 10 MB."
               unsupported_type: "tem um formato não suportado. Envie PDF, CSV ou OFX."
+        goal:
+          attributes:
+            base:
+              too_many_active: "Você já tem 5 metas ativas. Conclua ou abandone uma para abrir espaço."
+            bank_account:
+              not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
+            initial_saved_bank_account:
+              not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
+            initial_saved_cents:
+              exceeds_target: "não pode ser maior ou igual ao valor da meta."
+            target_cents:
+              below_current_guardado: "precisa ser maior do que vocês já guardam hoje (~%{guardado}/mês)."
   app:
     nav:
       dashboard: "Painel"
@@ -160,6 +200,7 @@ pt-BR:
       incomes: "Rendas"
       cards: "Cartões"
       transactions: "Transações"
+      goals: "Metas"
       commitments: "Compromissos"
       categories: "Categorias"
       admin: "Admin"
@@ -241,6 +282,155 @@ pt-BR:
     manage: "Gerenciar"
     add_accounts: "Adicionar uma conta"
     add_cards: "Adicionar um cartão"
+    goals:
+      title: "Metas"
+      cta: "Criar uma meta →"
+  goals:
+    new:
+      meta_title: "Nova meta"
+      title: "Qual é o seu próximo grande passo?"
+      subtitle: "Conte o sonho — a gente calcula o caminho com os seus próprios números."
+      limit_reached: "Você já tem 5 metas ativas. Conclua ou abandone uma para criar outra."
+    form:
+      name: "Nome"
+      name_placeholder: "Carro, viagem, entrada do apê…"
+      value_purchase: "Quanto custa?"
+      value_savings: "Quanto você quer guardar por mês?"
+      when: "Quando?"
+      initial_saved: "Já tem algo guardado?"
+      initial_saved_hint: "O que você já separou para esta meta."
+      initial_mode_zero: "Começar do zero"
+      initial_mode_some: "Já tenho um valor guardado"
+      initial_saved_account: "Em qual caixinha está?"
+      initial_saved_account_placeholder: "Escolha a caixinha"
+      current_guardado_hint: "Hoje vocês guardam em média %{amount}/mês — a meta é o total novo."
+      current_guardado_zero: "Hoje vocês ainda não guardam um valor todo mês — vamos começar."
+      submit: "Ver meus planos"
+    kinds:
+      purchase: "Comprar algo"
+      purchase_hint: "Um carro, uma viagem, a entrada do apê."
+      savings_rate: "Guardar mais"
+      savings_rate_hint: "Separar mais dinheiro todo mês."
+    status:
+      draft: "Rascunho"
+      active: "Ativa"
+      achieved: "Concluída"
+      abandoned: "Abandonada"
+    pace:
+      on_track: "Em dia"
+      at_risk: "Atenção"
+      off_track: "Em risco"
+      insufficient_data: "Sem dados ainda"
+    draft:
+      discard: "Descartar"
+      discard_confirm: "Descartar este rascunho de meta?"
+    diagnosis:
+      summary_html: "Nos últimos 3 meses você recebeu em média %{income}, gastou %{spend} e ficou com %{capacity} por mês."
+      trim_candidates_title: "Onde dá para ajustar"
+      trim_hint: "Arraste para definir um orçamento por categoria — os planos recalculam na hora."
+      spends: "gasta ~%{amount}"
+      reset_caps: "limpar ajustes"
+    plans:
+      labels:
+        leve: "Leve"
+        recomendado: "Recomendado"
+        acelerado: "Acelerado"
+      monthly_html: "guardar <span>%{amount}</span>/mês"
+      reaches_on: "chega em %{month}"
+      margin_ahead: "antes do seu prazo"
+      margin_behind: "depois do seu prazo"
+      trim_line: "− %{amount}/mês em %{category} (hoje ~%{current})"
+      no_cuts: "Sem cortes — cabe na sua sobra."
+      note_default_leve: "O ritmo mais tranquilo, sem apertar quase nada."
+      note_default_recomendado: "O equilíbrio: chega no prazo com cortes moderados."
+      note_default_acelerado: "Para chegar antes — aperta mais, mas vale o impulso."
+      commitment_note: "Você se compromete com o valor mensal. Os cortes por categoria são o mapa, não uma punição."
+    confirm:
+      title: "Para onde vai o dinheiro?"
+      caixinha: "Guardar em"
+      caixinha_placeholder: "Escolha a caixinha"
+      caixinha_none: "Para ativar a meta você precisa de uma caixinha (conta de poupança) — é para lá que o dinheiro vai todo mês."
+      caixinha_create_cta: "Criar uma caixinha"
+      source: "Sai de"
+      source_prompt: "Escolha a conta de origem"
+      activate: "Ativar meta"
+    states:
+      estimate_badge: "estimativa inicial"
+      too_tight_title: "Essa meta não fecha ainda."
+      too_tight_why: "Para %{month} você precisaria guardar %{required}/mês — hoje dá %{capacity}."
+      offer_date: "Com %{amount}/mês você chega em %{month}"
+      offer_target: "Para %{month}, dá para mirar em %{amount}"
+      offer_target_savings: "Dá para guardar %{amount} por mês"
+      use_this_date: "Usar essa data"
+      use_this_target: "Usar esse valor"
+      offer_income: "Ou com mais %{amount}/mês de renda, fecha no seu prazo"
+      register_income: "Registrar renda"
+      limit_reached: "Você já tem 5 metas ativas. Concluir ou abandonar uma abre espaço para a próxima."
+    index:
+      meta_title: "Metas"
+      title: "Suas metas"
+      subtitle: "Sonhos com um plano — e um guardião que avisa quando o ritmo cai."
+      new: "Nova meta"
+      closed_title: "Concluídas e abandonadas"
+    empty:
+      title: "Qual é o seu próximo grande passo?"
+      subtitle: "Um carro, uma viagem, ou só guardar mais todo mês."
+      cta: "Criar uma meta"
+    choose:
+      activated: "Meta ativada! Agora é guardar. 💙"
+      errors:
+        not_draft: "Esta meta já foi ativada."
+        too_many_active: "Você já tem 5 metas ativas."
+        invalid_template: "Escolha um dos planos."
+        infeasible: "Essa meta não fecha ainda — veja as opções."
+        not_savings: "Escolha uma caixinha (conta de poupança) válida."
+        invalid_source: "Escolha de onde o dinheiro vai sair."
+        missing_caixinha: "Para ativar, escolha uma caixinha e uma conta de origem diferente."
+    contribute:
+      contributed: "Boa! Agora a previsão é %{month} 💙"
+      rejected: "Não deu — o valor precisa ser positivo e caber na sobra do mês."
+    abandon:
+      abandoned: "Meta abandonada. O que você guardou continua guardado."
+    replan:
+      replanned: "Meta reorganizada 💙 Nova parcela de %{monthly}, termina em %{month}."
+      errors:
+        unavailable: "Não deu para recalcular agora — os números mudaram. Tente de novo."
+        invalid_mode: "Escolha uma das opções."
+    destroy:
+      discarded: "Rascunho descartado."
+    show:
+      back: "Voltar"
+      achieved_title: "Meta concluída! 🎉"
+      achieved_body: "Você guardou %{amount}. Que tal a próxima?"
+      next_goal: "Criar a próxima"
+      saved_of: "de %{target}"
+      progress_line: "%{actual} de %{target}"
+      monthly_target: "%{amount}/mês"
+      expected: "esperado até agora: %{amount}"
+      starts_in: "começa em %{month}"
+      projected_line: "Nesse ritmo, você chega em %{month}"
+      parcel_paid: "Parcela deste mês guardada 💙 (%{amount} em %{date})"
+      parcel_due: "Parcela deste mês: %{amount}"
+      view_commitment: "ver compromisso"
+      speed_up_title: "Quer acelerar?"
+      speed_up_body: "Você ainda tem %{amount} sobrando este mês — dá para adiantar uma parte."
+      speed_up_hint: "Sai da mesma conta de origem e vai direto para a caixinha da meta."
+      speed_up_submit: "Guardar agora"
+      no_caixinha_nudge: "Dica: ligue uma caixinha para acompanhar de perto."
+      replan_title: "Reorganizar meta"
+      replan_intro: "A vida muda e o plano acompanha. Recalculamos com os números de hoje — sem culpa."
+      replan_extend: "Manter a parcela de %{monthly} — termina em %{month}"
+      replan_before: "antes: %{month}"
+      replan_hold: "Manter %{month} — a parcela vai para %{monthly}"
+      replan_submit: "Recalcular meta"
+      replan_note: "A caixinha, o que você já guardou e o histórico continuam os mesmos."
+      trim_map_title: "O mapa dos cortes"
+      cap_line: "%{cap} (antes ~%{baseline})"
+      contributions_title: "O que você já guardou"
+      checks_title: "Acompanhamento semanal"
+      abandon: "Abandonar"
+      abandon_confirm: "Abandonar esta meta? O que você guardou continua guardado."
+      abandoned_note: "Abandonar não apaga o que você já guardou."
   bank_accounts:
     add_title: "Adicionar conta"
     edit_title: "Editar conta"
@@ -261,6 +451,8 @@ pt-BR:
     add: "Adicionar conta"
     save: "Salvar"
     no_balance: "Saldo não informado"
+    free_balance: "%{amount} livre"
+    reserved_for_goal: "%{amount} guardado para meta"
     empty: "Nenhuma conta adicionada ainda."
     remove: "Remover conta"
     confirm_remove: "Remover esta conta?"
@@ -359,6 +551,7 @@ pt-BR:
       installment: "Parcelamento"
       fixed: "Fixo"
       subscription: "Assinatura"
+      savings: "Guardar"
     instrument:
       credit: "crédito"
       debit: "débito"
@@ -402,6 +595,9 @@ pt-BR:
         installment: "ex.: carro financiado, celular em 12×"
         fixed: "ex.: pensão, aluguel, mensalidade"
         subscription: "ex.: Netflix, Spotify"
+        savings: "ex.: guardar um valor todo mês na caixinha"
+      transfer_to: "Guardar em"
+      no_caixinha_hint: "Você ainda não tem uma caixinha (conta de poupança)."
     index:
       meta_title: "Compromissos"
       title: "Compromissos"
@@ -523,6 +719,8 @@ pt-BR:
     create:
       created: "Transferência registrada."
     saved_celebration: "%{amount} guardados! Total no mês: %{total} 💙"
+    saved_goal_boost: "Isso acelera %{goal}! Nova previsão: %{month} 💙"
+    saved_goal_boost_savings: "Isso conta para a meta %{goal} 💙"
   transactions:
     empty: "Nada pendente por aqui. Tudo em dia! 🎉"
     statuses:
@@ -981,6 +1179,18 @@ pt-BR:
         other: "%{name} de %{amount} deve cair em %{count} dias."
       budget_warn: "%{category} já está em %{spent} de %{budget} este mês — faltam %{left}."
       budget_breach: "%{category} passou do combinado: %{spent} de %{budget} este mês."
+      budget_warn_goal: "%{category} já está em %{spent} do combinado da meta %{goal_name} (%{budget}) este mês."
+      budget_breach_goal: "%{category} passou do combinado da meta %{goal_name}: %{spent} de %{budget} este mês."
+      goal_alert_pace: "Meta %{goal} precisa de atenção: faltam %{gap} para o valor deste mês."
+      goal_alert_big_purchase: "Vi uma compra grande de %{amount} este mês — de olho na meta %{goal}."
+      goal_alert_red_month: "Do jeito que está, o mês fecha no vermelho (falta %{shortfall}) e as metas pedem %{committed}. Vale reorganizar a meta %{goal}."
+      goal_alert_next_month_red: "As faturas já somam %{faturas} para o mês que vem e a projeção fecha no vermelho (falta %{shortfall}). A meta %{goal} pode não caber — dá para reorganizar antes."
+      goal_alert_budget_raised: "O orçamento de %{category} subiu para %{budget} — %{over} por mês acima do combinado da meta %{goal}. Nesse nível, a meta atrasa."
+      goal_alert_missed_month: "A meta %{goal} ficou %{gap} abaixo do combinado no mês passado — %{category} pesou %{over} a mais. No ritmo atual, a conclusão passa de %{old_month} para %{new_month}."
+      goal_alert_missed_month_essential: "%{category} pesou %{over} a mais no mês passado — imprevistos acontecem, sem culpa. A meta %{goal} ficou %{gap} abaixo do combinado e a conclusão passa de %{old_month} para %{new_month}."
+      goal_alert_missed_month_income: "A renda veio menor no mês passado e a meta %{goal} ficou %{gap} abaixo do combinado — tá tudo bem, acontece. A conclusão passa de %{old_month} para %{new_month}."
+      goal_alert_missed_month_plain: "A meta %{goal} ficou %{gap} abaixo do combinado no mês passado. No ritmo atual, a conclusão passa de %{old_month} para %{new_month}."
+      goal_achieved: "Meta %{goal} concluída! Você guardou %{amount}. 🎉"
       surplus_nudge: "Você está com %{surplus} de sobra este mês. Que tal guardar na caixinha?"
       rightsize_budget: "%{category}: você combinou %{budget}, mas costuma gastar %{typical}. Que tal ajustar?"
       weekly_summary: "Resumo da semana: você gastou %{spent} e a sobra do mês está em %{sobra}."
@@ -996,6 +1206,7 @@ pt-BR:
     alert:
       dismiss: "Dispensar"
       view_category: "Ver categoria"
+      view_goal: "Ver meta"
       rightsize_cta: "Ajustar para %{typical}"
   notification_preferences:
     show:
@@ -1007,6 +1218,10 @@ pt-BR:
       bill_reminders_hint: "Contas, faturas de cartão e recebimentos esperados chegando ao vencimento."
       budget_alerts: "Alertas de orçamento"
       budget_alerts_hint: "Quando uma categoria chega perto ou passa do orçamento do mês."
+      goal_alerts: "Avisos de metas"
+      goal_alerts_hint: "Quando uma meta sua está ficando para trás do ritmo."
+      goal_achieved: "Metas concluídas"
+      goal_achieved_hint: "Uma comemoração quando você conclui uma meta."
       surplus_nudges: "Sugestões de sobra"
       surplus_nudges_hint: "Uma sugestão honesta quando sobra dinheiro."
       weekly_summary: "Resumo semanal"
@@ -1126,8 +1341,10 @@ pt-BR:
       expiry: "Este link expira em %{duration}."
   whatsapp:
     replies:
-      posted: "✅ Lançado: %{amount} em %{instrument}."
-      posted_categorized: "✅ Lançado: %{amount} em %{instrument} · %{category}."
+      posted_card: "✅ Lançado: %{amount} no cartão %{instrument}."
+      posted_account: "✅ Lançado: %{amount} na conta %{instrument}."
+      posted_card_categorized: "✅ Lançado: %{amount} no cartão %{instrument} · %{category}."
+      posted_account_categorized: "✅ Lançado: %{amount} na conta %{instrument} · %{category}."
       posted_unassigned: "✅ Lançado: %{amount}. Escolha a conta ou o cartão no app."
       parked: "Recebi 👍 Deixei pendente no app para você revisar."
       clarify_amount: "Não consegui identificar o valor. Quanto foi?"
@@ -1167,6 +1384,48 @@ pt-BR:
       help: "Não entendi 🤔 Você pode me mandar coisas como:\n• \"mercado 84,90 no débito\"\n• \"guardei 200 na caixinha\"\n• \"paguei a parcela do carro\"\n• \"comprei um celular, 5000 em 10x\"\n• \"como tá o mês?\""
       notifications_footer: "Responda *parar* para desativar estes avisos."
       notifications_stopped: "Prontinho, parei os avisos por aqui. É só reativar em *Conta e membros → Avisos* quando quiser. 💙"
+      goal_flow:
+        limit_reached: "Vocês já têm 5 metas ativas. Concluir ou abandonar uma no app abre espaço pra próxima. 💙"
+        ask_kind: "Boa! O que você quer planejar? Responde com o número:\n%{options}"
+        ask_name: "Qual é o sonho? Me diz um nome curto — ex.: Viagem, Carro."
+        ask_amount_purchase: "Quanto custa *%{name}*?"
+        ask_amount_savings: "Hoje vocês guardam ~%{guardado}/mês. Quanto quer guardar no total por mês?"
+        ask_amount_savings_zero: "Quanto você quer guardar por mês?"
+        ask_month: "Pra quando? Pode dizer o mês — ex.: \"dezembro de 2027\" ou \"em 18 meses\"."
+        ask_initial_saved: "Já tem algo guardado pra isso? Responde um valor ou *não*."
+        reask_amount: "Não consegui ler o valor. Me diz só o número — ex.: 25000 ou 25.000,00."
+        reask_month: "Não entendi a data. Me diz o mês e o ano — ex.: \"outubro de 2027\" ou \"em 6 meses\"."
+        reask_initial_saved: "Não entendi. Responde um valor (ex.: 2000) ou *não*."
+        reask_initial_saved_high: "Esse valor já cobre a meta toda — aí não precisa de plano 😄 Me diz um valor menor ou *não*."
+        below_current_guardado: "Vocês já guardam ~%{guardado}/mês — pra ser meta, precisa ser mais que isso. Qual o novo total?"
+        offer: |-
+          💙 Fechei um plano pra *%{name}*: guardar %{monthly}/mês.
+          %{reaches_line}%{cuts_block}Quer ativar? Responde *sim* ou *não*.
+        offer_reaches: "Nesse ritmo, você chega em %{month}."
+        offer_cuts_title: "Pra caber, dá pra reorganizar assim:"
+        offer_cut_line: "− %{amount}/mês em %{category} (hoje ~%{current})"
+        offer_no_cuts: "Sem cortes — cabe na sobra de vocês."
+        offer_reprompt: "Responde *sim* pra ativar ou *não* pra descartar."
+        counter_offer_date: "Essa meta não fecha no prazo que você pediu. Com %{amount}/mês você chega em %{month} — quer seguir assim? Responde *sim* ou *não*."
+        counter_offer_savings: "Esse total não cabe ainda. Dá pra guardar %{amount} por mês — fechou? Responde *sim* ou *não*."
+        too_tight: "Essa meta não fecha ainda — os números do mês não deixam. Dá uma olhada no app pra ajustar com calma. 💙"
+        ask_caixinha_pick: "Pra qual caixinha vai o dinheiro? Responde com o número:\n%{options}"
+        ask_source_pick: "E de qual conta sai todo mês? Responde com o número:\n%{options}"
+        activated: "💙 Meta *%{name}* ativada! Guardar %{monthly}/mês a partir de %{month} — te lembro todo mês."
+        no_caixinha: "Pra ativar uma meta você precisa de uma caixinha (conta poupança) e uma conta de origem. Cria a caixinha no app e me chama de novo. 💙"
+        cancelled: "Tranquilo, cancelei. Quando quiser é só me chamar de novo. 💙"
+        discarded: "Tranquilo, descartei. Quando quiser, é só falar comigo — ou montar no app. 💙"
+        activation_failed: "Não consegui ativar agora. Tenta de novo pelo app, tá? 💙"
+      goal_replan:
+        none: "Você não tem uma meta de compra ativa pra reorganizar. Quer criar uma? É só me contar o sonho. 💙"
+        pick: "Qual meta você quer reorganizar? Responde com o número:\n%{options}"
+        offer: "💙 Meta *%{name}*: você já guardou %{saved}. Dá pra reorganizar assim:\n%{options}\nResponde o número, ou *não* pra deixar como está."
+        option_extend: "Manter %{monthly}/mês — termina em %{month}"
+        option_hold: "Manter %{month} — a parcela vai pra %{monthly}"
+        reprompt: "Responde o número de uma das opções, ou *cancelar*:\n%{options}"
+        applied: "💙 Meta *%{name}* reorganizada: %{monthly}/mês até %{month}. Sem culpa — o que importa é continuar."
+        kept: "Fechado, fica como está. 💙"
+        unavailable: "Não consegui recalcular essa meta agora — os números não fecham. Dá uma olhada na página da meta no app. 💙"
       notifications:
         bill_due:
           zero: "🔔 Sua conta *%{name}* (%{amount}) vence hoje. 💙"
@@ -1189,6 +1448,35 @@ pt-BR:
           other: "💰 Seu *%{name}* de %{amount} deve cair em %{count} dias. 💙"
         budget_warn: "👀 *%{category}* já está em %{spent} de %{budget} este mês. Faltam %{left}."
         budget_breach: "⚠️ *%{category}* passou do combinado: %{spent} de %{budget} este mês."
+        budget_warn_goal: "👀 *%{category}* já está em %{spent} do combinado da meta *%{goal_name}* este mês (%{budget}). 💙"
+        budget_breach_goal: "⚠️ *%{category}* passou do combinado da meta *%{goal_name}*: %{spent} de %{budget}. 💙"
+        goal_alert_pace: "👀 Sua meta *%{goal}*: faltam %{gap} para o valor deste mês e o mês está acabando. Uma transferência para a caixinha resolve. 💙"
+        goal_alert_big_purchase: "⚠️ Vi uma compra grande de %{amount} este mês. Sua meta *%{goal}* pode atrasar — quer ajustar no app?"
+        goal_alert_red_month: |-
+          ⚠️ Este mês está fechando no vermelho: falta %{shortfall}, e a meta *%{goal}* pede %{committed}.
+          Responda *reorganizar* para ajustar sem culpa. 💙
+        goal_alert_next_month_red: |-
+          👀 As faturas do cartão já somam %{faturas} no mês que vem e a projeção fecha no vermelho (falta %{shortfall}).
+          A meta *%{goal}* pode não caber — responda *reorganizar* para ajustar antes.
+        goal_alert_budget_raised: |-
+          👀 O orçamento de %{category} subiu para %{budget} — %{over} por mês acima do combinado da meta *%{goal}*.
+          Se for ficar assim, responda *reorganizar* para recalcular a meta.
+        goal_alert_missed_month: |-
+          👀 A meta *%{goal}* ficou %{gap} abaixo do combinado no mês passado — %{category} pesou %{over} a mais.
+          No ritmo atual, a conclusão passa de %{old_month} para %{new_month}.
+          Responda *reorganizar* para ajustar o plano.
+        goal_alert_missed_month_essential: |-
+          💙 %{category} pesou %{over} a mais no mês passado — imprevistos acontecem, sem culpa.
+          A meta *%{goal}* ficou %{gap} abaixo do combinado e a conclusão passa de %{old_month} para %{new_month}.
+          Se quiser, responda *reorganizar* que a gente recalcula junto. 💙
+        goal_alert_missed_month_income: |-
+          💙 A renda veio menor no mês passado — acontece, tá tudo bem. A meta *%{goal}* ficou %{gap} abaixo do combinado.
+          A conclusão passa de %{old_month} para %{new_month} — responda *reorganizar* se quiser ajustar o plano. 💙
+        goal_alert_missed_month_plain: |-
+          👀 A meta *%{goal}* ficou %{gap} abaixo do combinado no mês passado.
+          No ritmo atual, a conclusão passa de %{old_month} para %{new_month}.
+          Responda *reorganizar* para ajustar o plano.
+        goal_achieved: "💙 Meta *%{goal}* concluída! Você guardou %{amount}. Que tal a próxima?"
         surplus_nudge: "💙 Você fechou o mês com *%{surplus}* de sobra. Quer guardar na caixinha?"
         rightsize_budget: "💙 *%{category}*: você combinou %{budget}, mas costuma gastar %{typical}. Dá pra ajustar em Categorias."
         weekly_summary: |-

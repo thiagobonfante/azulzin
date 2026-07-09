@@ -48,6 +48,29 @@ LGPD cascade). The two external boundaries — the **WhatsApp transport** and th
 providers** — are behind adapters that are stubbed in tests. Going live means supplying real
 credentials and scanning the QR.
 
+### Conversational goal creation + pipeline fixes (goals round 3, 2026-07)
+
+- **Goal flow**: "quero juntar 20 mil pra um carro" classifies as `create_goal` and opens a
+  deterministic Q&A (state in `goal_conversations`, 24h TTL; single recomendado plan;
+  always-linked activation; zero LLM after the trigger). Details in
+  [goals.md § Creating a goal over WhatsApp](goals.md#creating-a-goal-over-whatsapp). An open
+  transaction ask always outranks the goal chat; receipts bypass it entirely.
+- **Matcher discrimination**: punctuation is scrubbed locally in the matcher and a *unique*
+  exact match (≥ 0.999) short-circuits before the tie check — "nubank thiago" resolves against
+  a sibling "Nubank (Fran)"; a bare "nubank" still disambiguates; token-inclusion hits score
+  0.95 so they never beat an exact name.
+- **Numbered replies follow prompt order**: ask options are stored as ids in prompt order and
+  reloaded with `in_order_of` — replying "2" always means the second line the user saw.
+- **Chained transfer legs**: a transfer missing one leg asks for it, then asks for the *other*
+  leg instead of posting half a transfer; a same-account pick re-asks.
+- **Confirmation copy** forks cartão vs conta (`posted_card`/`posted_account` +
+  `_categorized` variants).
+- **Receipt captions** join the vision prompt and can hint the instrument: the caption decides
+  card-vs-account only when the printed method is unknown and the caption names exactly one —
+  it never overrides a printed DÉBITO/CRÉDITO.
+- **Dashboard pending tray**: parked (`pending_review`) captures now surface on the dashboard
+  under the notifications alert, not just in the inbox.
+
 ## Go-live checklist (needs you)
 
 ### 1. Credentials & env

@@ -27,12 +27,14 @@ module Whatsapp
       instrument = assignable_instrument
       txn = upsert(status: "posted", confirmed_at: Time.current, instrument: instrument)
       # Naming the auto-assigned category in the reply is the cheap correction loop (O2):
-      # a wrong silent category becomes visible immediately, not at month-end.
+      # a wrong silent category becomes visible immediately, not at month-end. The key forks
+      # on cartão vs conta (pt-BR gendered contractions rule out a %{kind} interpolation).
+      kind = instrument.is_a?(CreditCard) ? "card" : "account"
       if instrument && txn.category
-        reply("whatsapp.replies.posted_categorized", txn,
+        reply("whatsapp.replies.posted_#{kind}_categorized", txn,
               amount: currency, instrument: instrument.display_name, category: txn.category.name)
       elsif instrument
-        reply("whatsapp.replies.posted", txn,
+        reply("whatsapp.replies.posted_#{kind}", txn,
               amount: currency, instrument: instrument.display_name)
       else
         reply("whatsapp.replies.posted_unassigned", txn, amount: currency)
@@ -41,7 +43,9 @@ module Whatsapp
     end
 
     def park
-      txn = upsert(status: "pending_review")
+      # Keep the instrument match: a below-floor receipt lands in the tray PRE-ROUTED (and a
+      # parked card row buckets billing_month by the card's closing rule, like a posted one).
+      txn = upsert(status: "pending_review", instrument: assignable_instrument)
       reply("whatsapp.replies.parked", txn)
       txn
     end

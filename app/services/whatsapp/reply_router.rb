@@ -4,6 +4,8 @@ module Whatsapp
   # P1-3); when an ask resolves into a command-owned effect the stub is superseded and the
   # command runs (commands stay the single writer). See 07 §5.
   class ReplyRouter
+    include HandlerHelpers   # account/user/currency/month_label + the transfer-leg ask helpers
+
     def initialize(open_ask, msg, text)
       @ask  = open_ask
       @msg  = msg
@@ -33,15 +35,26 @@ module Whatsapp
       return unless posted
 
       if @ask.assigned?
-        reply("whatsapp.replies.posted", amount: currency(cents), instrument: @ask.instrument.display_name)
+        key = @ask.credit_card_id ? "posted_card" : "posted_account"
+        reply("whatsapp.replies.#{key}", amount: currency(cents), instrument: @ask.instrument.display_name)
       else
         reply("whatsapp.replies.posted_unassigned", amount: currency(cents))
       end
     end
 
     def resolve_transfer_leg(column, re_ask_key)
-      bank = pick(account.bank_accounts.kept.where(id: @ask.ask["options"]).to_a) { |a| a.display_name }
-      return re_ask("whatsapp.replies.#{re_ask_key}") unless bank
+      # in_order_of preserves the PROMPT order stored in the ask (where(id:) returns PK order,
+      # so "4" used to pick whatever row happened to be fourth in the DB).
+      records = account.bank_accounts.kept.in_order_of(:id, @ask.ask["options"]).to_a
+      bank = pick(records) { |a| a.display_name }
+      other_id = column == :transfer_to_bank_account_id ? @ask.bank_account_id : @ask.transfer_to_bank_account_id
+      # Unparseable pick, or the same account as the other leg → re-ask with the same options.
+      if bank.nil? || bank.id == other_id
+        return reply("whatsapp.replies.#{re_ask_key}", options: numbered_options(records))
+      end
+      # Both legs unmatched at ask time: store this leg and chain an ask for the other one —
+      # posting now would persist a half transfer (guarded_update skips transfer_shape).
+      return chain_missing_leg(column, bank) if other_id.nil?
 
       posted = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES,
                  column => bank.id, status: "posted", confirmed_at: Time.current, ask: {}, ask_expires_at: nil,
@@ -55,6 +68,20 @@ module Whatsapp
         reply("whatsapp.replies.transfer_posted", amount: currency(@ask.amount_cents),
               from: @ask.bank_account&.display_name, to: to&.display_name)
       end
+    end
+
+    # Any future ask-resolution path that posts a transfer must repeat the both-legs check
+    # above — the model validation can't catch it (guarded_update bypasses callbacks).
+    def chain_missing_leg(column, bank)
+      other_slot = column == :transfer_to_bank_account_id ? "transfer_from" : "transfer_to"
+      accounts = transfer_leg_accounts
+      # Fresh ask_expires_at: a chained ask must not be born expired. jsonb type-cast through
+      # update_all is fine (precedent: `ask: {}` in resolve_amount).
+      chained = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES,
+                  column => bank.id, ask: { "slot" => other_slot, "options" => accounts.map(&:id) },
+                  ask_expires_at: 60.minutes.from_now, updated_by_id: @msg.user_id)
+      return unless chained
+      reply("whatsapp.replies.ask_#{other_slot}", options: numbered_options(accounts))
     end
 
     def resolve_installments_count
@@ -76,25 +103,17 @@ module Whatsapp
     end
 
     def resolve_commitment_pick
-      commitments = account.commitments.kept.where(id: @ask.ask["options"]).to_a
+      commitments = account.commitments.kept.in_order_of(:id, @ask.ask["options"]).to_a   # prompt order
       chosen = pick(commitments) { |c| c.name }
-      return re_ask("whatsapp.replies.ask_commitment_pick") unless chosen
+      unless chosen   # re-ask with the numbered options (the template interpolates %{options})
+        return re_ask("whatsapp.replies.ask_commitment_pick",
+                      options: commitments.each_with_index.map { |c, i| "#{i + 1}. #{c.name}" }.join("\n"))
+      end
       month = Date.parse(@ask.ask["month"])
       @ask.update!(status: "superseded", updated_by: user)
       txn = Commitments::MarkPaid.call(chosen, month, created_by: user)
       reply("whatsapp.replies.commitment_paid_simple", amount: currency(txn.amount_cents),
             name: chosen.name, month: month_label(month))
-    end
-
-    # Parse a leading index into the numbered list, else a fuzzy name match (≥ 0.6).
-    def pick(records)
-      return nil if records.empty?
-      if (idx = @text.to_s.strip[/\A\d+/]&.to_i) && idx.between?(1, records.size)
-        return records[idx - 1]
-      end
-      term = Whatsapp.normalize(@text)
-      best = records.max_by { |r| Whatsapp.similarity(term, Whatsapp.normalize(yield(r))) }
-      best if best && Whatsapp.similarity(term, Whatsapp.normalize(yield(best))) >= 0.6
     end
 
     def parse_count(text)
@@ -106,17 +125,9 @@ module Whatsapp
       nil
     end
 
-    def user = @msg.user
-    # "Whose stuff?" → account (spine D6), with the deploy-window nil fallback (doc 04 §3.1/§4).
-    def account
-      return @msg.account if @msg.account
-      @msg.account = user&.account
-      @msg.save! if @msg.account && @msg.persisted?
-      @msg.account
-    end
-    def currency(cents) = WhatsappReply.currency(cents, locale: user.locale)
-    def month_label(date) = I18n.with_locale(user.locale) { I18n.l(date, format: :month_year) }
+    # user/account/currency/month_label come from HandlerHelpers; reply overrides it (full key,
+    # always linked to the ask row).
     def reply(key, **args) = WhatsappReply.deliver(user: user, key: key, transaction: @ask, **args)
-    def re_ask(key) = WhatsappReply.deliver(user: user, key: key)
+    def re_ask(key, **args) = WhatsappReply.deliver(user: user, key: key, **args)
   end
 end

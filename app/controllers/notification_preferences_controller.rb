@@ -18,6 +18,7 @@ class NotificationPreferencesController < AppController
   private
     def preference_params
       params.expect(notification_preference: %i[whatsapp_consent bill_reminders budget_alerts
+                                                goal_alerts goal_achieved
                                                 surplus_nudges weekly_summary monthly_summary
                                                 bill_reminder_lead_days quiet_hours_start
                                                 quiet_hours_end budget_warn_percent

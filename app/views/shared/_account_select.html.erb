@@ -1,11 +1,20 @@
-<%# locals: form, accounts, label, placeholder %>
+<%# locals: form, accounts, label, placeholder — optional (round 3 P3, defaults keep the
+    incomes caller byte-identical): method (field name, default :bank_account_id), selected
+    (preselected id, rendered by showInitialSelection on connect), balances ({ account_id =>
+    cents-or-nil } — shows each account's balance in the option AND, because pick() copies the
+    option's [data-label] HTML, in the closed button after picking). %>
 <%# Searchable account picker with brand avatars — mirrors shared/institution_select and
     reuses its generic controller (hidden input + button + option list). %>
+<% method   = local_assigns.fetch(:method, :bank_account_id) %>
+<% selected = local_assigns[:selected] %>
+<% balances = local_assigns[:balances] %>
 <div class="form-control" data-controller="institution-select">
-  <%= form.label :bank_account_id, label, class: "mb-1 block text-sm font-medium" %>
+  <%= form.label method, label, class: "mb-1 block text-sm font-medium" %>
 
   <%# Real value, set by the picker. No <noscript> fallback — see shared/_institution_select. %>
-  <%= form.hidden_field :bank_account_id, data: { institution_select_target: "input" } %>
+  <% hidden_options = { data: { institution_select_target: "input" } } %>
+  <% hidden_options[:value] = selected unless selected.nil? %>
+  <%= form.hidden_field method, **hidden_options %>
 
   <button type="button"
           data-institution-select-target="button"
@@ -35,6 +44,9 @@
             <span data-label class="flex items-center gap-2">
               <%= institution_avatar(account.institution, size: 28) %>
               <span class="text-sm font-medium"><%= account.display_name %></span>
+              <% if balances %>
+                <span class="text-xs tabular-nums text-base-content/50"><%= (balance = balances[account.id]) ? brl(balance) : t("bank_accounts.no_balance") %></span>
+              <% end %>
             </span>
           </li>
         <% end %>

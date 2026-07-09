@@ -37,4 +37,33 @@ class Commitments::MarkPaidTest < ActiveSupport::TestCase
     txn = Commitments::MarkPaid.call(@commitment, Date.new(2026, 7, 1), amount: 101_000)
     assert_equal 101_000, txn.amount_cents
   end
+
+  # ── Savings destination (round 3 P4): goal's caixinha wins; standalone falls back to its own ──
+
+  test "a GOAL-LESS savings commitment pays as a two-leg transfer into its own caixinha, category nil" do
+    caixinha = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
+    category = @user.account.categories.create!(name: "Lazer")
+    sav = Commitment.create!(account: @user.account, bank_account: @account, name: "Guardar", kind: "savings",
+                             amount_cents: 50_000, starts_on: Date.new(2026, 1, 1),
+                             transfer_to_bank_account: caixinha, category: category)
+    txn = Commitments::MarkPaid.call(sav, Date.new(2026, 7, 1))
+    assert txn.posted?
+    assert_equal "transfer",  txn.direction
+    assert_equal @account.id, txn.bank_account_id                     # source leg
+    assert_equal caixinha.id, txn.transfer_to_bank_account_id         # destination leg
+    assert_nil txn.category_id                                        # transfers carry no category
+  end
+
+  test "a goal-backed savings commitment still pays into the GOAL's caixinha (goal precedence)" do
+    goal_caixinha  = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
+    other_caixinha = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
+    goal = @user.account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
+                                       target_date: Date.new(2027, 12, 1), status: "active",
+                                       bank_account: goal_caixinha)
+    sav = Commitment.create!(account: @user.account, bank_account: @account, name: "Carro", kind: "savings",
+                             amount_cents: 50_000, starts_on: Date.new(2026, 1, 1),
+                             goal: goal, transfer_to_bank_account: other_caixinha)
+    txn = Commitments::MarkPaid.call(sav, Date.new(2026, 7, 1))
+    assert_equal goal_caixinha.id, txn.transfer_to_bank_account_id    # goal wins over the column
+  end
 end

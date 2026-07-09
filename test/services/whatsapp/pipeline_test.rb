@@ -27,7 +27,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
   def run_pipeline(msg, ex = nil)
     stub_ex = ex || extraction
     Whatsapp::Extractor.stub(:from_text, ->(*_a, **_k) { stub_ex }) do
-      WhatsappService.stub(:send_message, ->(_p, _b) { { id: "out-#{SecureRandom.hex(3)}" } }) do
+      WhatsappService.stub(:send_message, ->(_p, b) { (@sent ||= []) << b; { id: "out-#{SecureRandom.hex(3)}" } }) do
         ProcessInboundWhatsappJob.perform_now(msg.id)
       end
     end
@@ -40,6 +40,16 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     assert_equal @card, txn.credit_card
     assert_equal 1_323, txn.amount_cents
     assert txn.confirmed_at.present?
+    assert_includes @sent.last, "no cartão #{@card.display_name}"   # confirmation names the KIND
+  end
+
+  test "confirmation copy says conta for a bank-account expense" do
+    itau = BankAccount.create!(account: @user.account, institution: Institution.find_by(code: "341"))
+    run_pipeline(inbound("gastei 20 no débito itau"),
+                 extraction(amount_cents: 2_000, payment_method: "debito", instrument_phrase: "itau"))
+    txn = @user.account.transactions.sole
+    assert_equal itau, txn.bank_account
+    assert_includes @sent.last, "na conta #{itau.display_name}"
   end
 
   test "high confidence + unmatched instrument → posted UNASSIGNED (assign in-app)" do
@@ -70,6 +80,68 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     assert ask.posted?
     assert_equal 13_790, ask.amount_cents
     assert_equal 1, @user.account.transactions.count          # no second transaction
+    assert_includes @sent.last, "no cartão #{@card.display_name}"  # amount-resolution also forks the copy
+  end
+
+  # --- Round 3 P5 regressions: numbered replies follow PROMPT order; a transfer with both
+  # legs unmatched chains a second ask instead of posting half a transfer (nil source).
+
+  test "transfer with both legs unmatched: numbered replies resolve in prompt order and chain the missing leg" do
+    inst = ->(code) { Institution.find_by(code: code) }
+    santander = BankAccount.create!(account: @user.account, institution: inst.("033"))
+    nubank_t  = BankAccount.create!(account: @user.account, institution: inst.("260"), nickname: "Nubank (Thiago)")
+    nubank_f  = BankAccount.create!(account: @user.account, institution: inst.("260"), nickname: "Nubank (Fran)")
+    bb        = BankAccount.create!(account: @user.account, institution: inst.("001"))
+    caixinha  = BankAccount.create!(account: @user.account, institution: inst.("260"), nickname: "Caixinha", kind: "savings")
+
+    run_pipeline(inbound("transferi 300 pra outra conta"),
+                 extraction(intent: "transfer", intent_confidence: 0.95, amount_raw: "300", amount_cents: 30_000,
+                            merchant: nil, payment_method: "desconhecido",
+                            instrument_phrase: "misteriosa", to_instrument_phrase: "desconhecida"))
+    ask = @user.account.transactions.where(direction: "transfer").sole
+    assert_equal "transfer_to", ask.ask["slot"]
+    # Prompt order: savings first (kind: :desc), then created_at — NOT PK order.
+    prompt_order = [ caixinha, santander, nubank_t, nubank_f, bb ].map(&:id)
+    assert_equal prompt_order, ask.ask["options"]
+
+    run_pipeline(inbound("4"))     # 4th PROMPT item = Nubank (Fran); PK order would give BB
+    ask.reload
+    assert_equal nubank_f.id, ask.transfer_to_bank_account_id
+    assert_not ask.posted?, "must never post a transfer with a nil source leg"
+    assert_equal "transfer_from", ask.ask["slot"]                  # chained ask for the other leg
+    assert_operator ask.ask_expires_at, :>, Time.current           # not born expired
+    assert_includes @sent.last, "1. #{caixinha.display_name}"      # numbered options re-sent
+
+    run_pipeline(inbound("2"))     # 2nd prompt item = Santander
+    ask.reload
+    assert ask.posted?
+    assert_equal santander.id, ask.bank_account_id
+    assert_equal nubank_f.id, ask.transfer_to_bank_account_id
+    assert_includes @sent.last, santander.display_name             # confirmation carries BOTH names
+    assert_includes @sent.last, nubank_f.display_name
+    assert_not @user.account.transactions.posted.where(direction: "transfer", bank_account_id: nil).exists?
+  end
+
+  test "a chained transfer leg re-asks when the reply picks the already-resolved leg" do
+    inst260 = Institution.find_by(code: "260")
+    a = BankAccount.create!(account: @user.account, institution: inst260, nickname: "Conta A")
+    b = BankAccount.create!(account: @user.account, institution: inst260, nickname: "Conta B")
+
+    run_pipeline(inbound("transferi 100"),
+                 extraction(intent: "transfer", intent_confidence: 0.95, amount_raw: "100", amount_cents: 10_000,
+                            merchant: nil, payment_method: "desconhecido",
+                            instrument_phrase: "misteriosa", to_instrument_phrase: "desconhecida"))
+    ask = @user.account.transactions.where(direction: "transfer").sole
+    run_pipeline(inbound("1"))     # destination = Conta A
+    run_pipeline(inbound("1"))     # source = Conta A again → invalid, re-ask (never posts same-account)
+    ask.reload
+    assert_not ask.posted?
+    assert_equal "transfer_from", ask.ask["slot"]
+    run_pipeline(inbound("2"))     # source = Conta B → posts
+    ask.reload
+    assert ask.posted?
+    assert_equal b.id, ask.bank_account_id
+    assert_equal a.id, ask.transfer_to_bank_account_id
   end
 
   test "in-app safety net: reverse and reassign" do

@@ -1,0 +1,73 @@
+<% content_for :title, @goal.name %>
+<% baseline = @goal.baseline %>
+<% income = baseline["median_income_cents"].to_i %>
+<% capacity = @build.capacity_base_cents %>
+
+<header class="mb-6 flex items-center justify-between gap-3">
+  <div>
+    <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= @goal.name %></h1>
+    <span class="badge badge-ghost badge-sm"><%= t("goals.status.draft") %></span>
+    <% if baseline["sufficiency"] == "thin" %>
+      <span class="badge badge-ghost badge-sm"><%= t("goals.states.estimate_badge") %></span>
+    <% end %>
+  </div>
+  <%= link_to t("goals.draft.discard"), goal_path(@goal), data: { turbo_method: :delete, turbo_confirm: t("goals.draft.discard_confirm") },
+        class: "btn btn-ghost btn-sm text-error" %>
+</header>
+
+<%# ── Diagnóstico + orçamento sliders ─────────────────────────────────── %>
+<section class="mb-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+  <%# Whole-real figures (round 3 P1): floor income + capacity (never overstate what the
+      household has), and DERIVE the spend from the two rounded figures so the sentence
+      stays additive (recebeu X − gastou Y = ficou Z). %>
+  <% income_whole = Money.floor_to_real(income) %>
+  <% capacity_whole = Money.floor_to_real(capacity) %>
+  <p class="text-sm text-base-content/70">
+    <%= t("goals.diagnosis.summary_html",
+          income: content_tag(:span, brl_whole(income_whole, mode: :floor), class: "font-semibold"),
+          spend: content_tag(:span, brl_whole(income_whole - capacity_whole, mode: :floor), class: "font-semibold"),
+          capacity: content_tag(:span, brl_whole(capacity_whole, mode: :floor), class: "font-semibold #{capacity >= 0 ? "text-primary" : "text-error"}")) %>
+  </p>
+  <% flexibles = (baseline["categories"] || []).select { |c| c["flexibility"] == "flexible" && c["trimmable_median_cents"].to_i.positive? }
+                   .sort_by { |c| -c["trimmable_median_cents"].to_i }.first(6) %>
+  <% if flexibles.any? %>
+    <% categories_by_id = Current.account.categories.where(id: flexibles.map { |c| c["category_id"] }).index_by(&:id) %>
+    <%= form_with url: caps_goal_path(@goal), method: :patch, class: "mt-3" do %>
+      <div class="mb-1 flex items-baseline justify-between">
+        <p class="text-xs font-medium text-base-content/50"><%= t("goals.diagnosis.trim_candidates_title") %></p>
+        <% if @goal.user_caps.present? %>
+          <%= button_tag t("goals.diagnosis.reset_caps"), name: "reset", value: "1", data: { turbo: false },
+                class: "btn btn-ghost btn-xs text-base-content/50" %>
+        <% end %>
+      </div>
+      <p class="mb-2 text-xs text-base-content/45"><%= t("goals.diagnosis.trim_hint") %></p>
+      <div class="flex flex-col gap-2">
+        <% flexibles.each do |c| %>
+          <% median = c["median_cents"].to_i %>
+          <% cap = (@goal.user_caps[c["category_id"].to_s] || median).to_i %>
+          <%# Whole-real grid (round 3 P1): ceiled min/max/value make every reachable slider
+              position a multiple of 100; the top position (ceil ≥ median) clamps to median
+              server-side and drops as a no-op ("no cut"). %>
+          <% slider_min = Money.ceil_to_real(median - c["trimmable_median_cents"].to_i) %>
+          <% slider_max = Money.ceil_to_real(median) %>
+          <% color = categories_by_id[c["category_id"]]&.display_color || Category::DEFAULT_COLOR %>
+          <div class="flex items-center gap-3 text-xs" data-controller="goal-cap">
+            <span class="w-24 shrink-0 truncate text-base-content/70"><%= c["name"] %></span>
+            <input type="range" name="caps[<%= c["category_id"] %>]" min="<%= slider_min %>" max="<%= slider_max %>"
+                   step="100" value="<%= Money.ceil_to_real(cap) %>" class="range range-xs flex-1"
+                   style="color: <%= color %>; accent-color: <%= color %>"
+                   data-goal-cap-target="slider"
+                   data-action="input->goal-cap#preview change->goal-cap#commit"
+                   aria-label="<%= c["name"] %>">
+            <span class="w-56 shrink-0 whitespace-nowrap text-right tabular-nums text-base-content/60">
+              <span class="font-semibold text-base-content/80" data-goal-cap-target="label"><%= brl_whole(cap) %></span>
+              · <%= t("goals.diagnosis.spends", amount: brl_whole(median)) %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+</section>
+
+<%= render "goals/plan_area", goal: @goal, build: @build %>

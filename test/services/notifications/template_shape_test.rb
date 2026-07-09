@@ -20,6 +20,22 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
     "income_expected"  => (0..3).map { |d| { kind: "income_expected", payload: { "name" => "Salário", "amount_cents" => 450_000, "expected_on" => "2026-07-05", "days_until" => d } } },
     "budget_warn"      => [ { kind: "budget_warn", payload: { "category" => "Restaurantes", "spent_cents" => 50_000, "budget_cents" => 60_000, "left_cents" => 10_000 } } ],
     "budget_breach"    => [ { kind: "budget_breach", payload: { "category" => "Restaurantes", "spent_cents" => 66_000, "budget_cents" => 60_000, "left_cents" => 0 } } ],
+    # Goals (.plans/goals): finding-specific alerts + the achievement, and the two goal-trim
+    # variants of the budget alerts (payload carries goal_name → template_key forks to _goal).
+    "goal_alert_pace"        => [ { kind: "goal_alert", payload: { "finding" => "pace", "goal" => "Carro", "expected_cents" => 300_000, "actual_cents" => 220_000, "gap_cents" => 80_000 } } ],
+    "goal_alert_big_purchase" => [ { kind: "goal_alert", payload: { "finding" => "big_purchase", "goal" => "Carro", "amount_cents" => 180_000, "transaction_id" => 9 } } ],
+    # Round 4 risk findings, exactly as Goals::RiskScan snapshots them ("urgent" and the raw
+    # iso "month" ride along unused; *_month keys localize through the shared transform).
+    "goal_alert_red_month"      => [ { kind: "goal_alert", payload: { "finding" => "red_month", "goal" => "Carro", "month" => "2026-07-01", "shortfall_cents" => 45_000, "committed_cents" => 300_000, "urgent" => true } } ],
+    "goal_alert_next_month_red" => [ { kind: "goal_alert", payload: { "finding" => "next_month_red", "goal" => "Carro", "month" => "2026-08-01", "shortfall_cents" => 80_000, "faturas_cents" => 234_056, "urgent" => true } } ],
+    "goal_alert_budget_raised"  => [ { kind: "goal_alert", payload: { "finding" => "budget_raised", "goal" => "Carro", "category" => "Lazer", "category_id" => 3, "budget_cents" => 60_000, "cap_cents" => 40_000, "over_cents" => 20_000 } } ],
+    "goal_alert_missed_month"   => [ { kind: "goal_alert", payload: { "finding" => "missed_month", "goal" => "Carro", "month" => "2026-06-01", "expected_cents" => 300_000, "saved_cents" => 100_000, "gap_cents" => 200_000, "old_month" => "2027-12-01", "new_month" => "2028-03-01", "category" => "Lazer", "over_cents" => 90_000, "urgent" => true } } ],
+    "goal_alert_missed_month_essential" => [ { kind: "goal_alert", payload: { "finding" => "missed_month", "variant" => "essential", "goal" => "Carro", "month" => "2026-06-01", "expected_cents" => 300_000, "saved_cents" => 100_000, "gap_cents" => 200_000, "old_month" => "2027-12-01", "new_month" => "2028-03-01", "category" => "Saúde", "over_cents" => 120_000, "urgent" => true } } ],
+    "goal_alert_missed_month_income"    => [ { kind: "goal_alert", payload: { "finding" => "missed_month", "variant" => "income", "goal" => "Carro", "month" => "2026-06-01", "expected_cents" => 300_000, "saved_cents" => 100_000, "gap_cents" => 200_000, "old_month" => "2027-12-01", "new_month" => "2028-03-01", "urgent" => true } } ],
+    "goal_alert_missed_month_plain"     => [ { kind: "goal_alert", payload: { "finding" => "missed_month", "variant" => "plain", "goal" => "Carro", "month" => "2026-06-01", "expected_cents" => 300_000, "saved_cents" => 100_000, "gap_cents" => 200_000, "old_month" => "2027-12-01", "new_month" => "2028-03-01", "urgent" => true } } ],
+    "goal_achieved"          => [ { kind: "goal_achieved", payload: { "goal" => "Carro", "amount_cents" => 6_000_000 } } ],
+    "budget_warn_goal"       => [ { kind: "budget_warn", payload: { "category" => "Restaurantes", "spent_cents" => 50_000, "budget_cents" => 46_500, "left_cents" => 0, "goal_id" => 1, "goal_name" => "Carro" } } ],
+    "budget_breach_goal"     => [ { kind: "budget_breach", payload: { "category" => "Restaurantes", "spent_cents" => 61_000, "budget_cents" => 46_500, "left_cents" => 0, "goal_id" => 1, "goal_name" => "Carro" } } ],
     "surplus_nudge"    => [ { kind: "surplus_nudge", payload: { "surplus_cents" => 40_000, "savings_account_id" => 1 }, type: :suggestion } ],
     "rightsize_budget" => [ { kind: "rightsize_budget", payload: { "category" => "Lazer", "budget_cents" => 60_000, "typical_cents" => 30_000 }, type: :suggestion } ],
     # Phase 4 digests, exactly as Summaries::Build snapshots them: the full week, a week
@@ -72,6 +88,21 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
       end
     end
 
+    # Round-4 review hardening: a malformed *_month payload value must render raw, never
+    # raise — the banner renders inline (a raise 500s the page) and Deliver renders after
+    # the WhatsApp claim is burned (a raise loses the message).
+    test "a malformed *_month payload value renders raw instead of crashing (#{locale})" do
+      notification = Notification.new(kind: "goal_alert",
+        payload: { "finding" => "missed_month", "variant" => "plain", "goal" => "Carro",
+                   "expected_cents" => 300_000, "saved_cents" => 100_000, "gap_cents" => 200_000,
+                   "old_month" => "not-a-date", "new_month" => "2028-03-01" })
+      args = I18n.with_locale(locale) do
+        Notifications.template_args(notification) { |cents| WhatsappReply.currency(cents, locale: locale, whole: true) }
+      end
+      assert_equal "not-a-date", args[:old_month]
+      assert_equal I18n.with_locale(locale) { I18n.l(Date.new(2028, 3, 1), format: :month_year) }, args[:new_month]
+    end
+
     # 08 §6: a CTA must be answerable in-channel. No inbound intent parses a budget
     # adjustment, so rightsize_budget is a statement — fact + nudge, zero questions
     # (the app tap lives on the dashboard banner instead).
@@ -94,8 +125,9 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
     notification = Notification.new(kind: kind, payload: payload)
     assert_equal template_key, Notifications.template_key(notification),
                  "the shared key resolution must map this payload to #{template_key}"
+    whole = %w[goal_alert goal_achieved].include?(kind)   # round 3 P1 fork, as Deliver runs it
     I18n.with_locale(locale) do
-      args = Notifications.template_args(notification) { |cents| WhatsappReply.currency(cents, locale: locale) }
+      args = Notifications.template_args(notification) { |cents| WhatsappReply.currency(cents, locale: locale, whole: whole) }
       I18n.t("whatsapp.replies.notifications.#{template_key}", raise: true, **args)
     end
   end

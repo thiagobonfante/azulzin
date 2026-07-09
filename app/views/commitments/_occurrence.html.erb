@@ -21,7 +21,7 @@
   <div class="min-w-0 flex-1">
     <p class="truncate text-sm">
       <%= link_to c.name, commitment_path(c), class: "hover:underline" %>
-      <% if c.installment? %><span class="text-xs text-base-content/50"><%= occurrence.installment_no %>/<%= c.installments_count %></span><% end %>
+      <% if c.parcels_count %><span class="text-xs text-base-content/50"><%= occurrence.installment_no %>/<%= c.parcels_count %></span><% end %>
       <% if c.category %>
         <span class="badge badge-ghost badge-xs ml-1 gap-1 align-middle">
           <span class="h-1.5 w-1.5 rounded-full" style="background-color: <%= c.category.display_color %>"></span>

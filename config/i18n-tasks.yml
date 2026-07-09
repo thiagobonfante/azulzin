@@ -73,3 +73,14 @@ ignore_unused:
   # Dashboard alert copy, resolved by kind through the Notifications::KINDS registry
   # (NotificationsHelper#notification_message) — no static literal for the scanner.
   - 'notifications.dashboard.*'
+  # Goals labels looked up dynamically by enum value / template / status / error:
+  #   t("goals.pace.#{status}"), t("goals.status.#{goal.status}"), t("goals.kinds.#{kind}"),
+  #   t("goals.plans.labels.#{template}"), t("goals.plans.note_default_#{template}"),
+  #   t("goals.plans.margin_#{margin}"), t("goals.choose.errors.#{result.error}").
+  - 'goals.pace.*'
+  - 'goals.status.*'
+  - 'goals.kinds.*'
+  - 'goals.plans.labels.*'
+  - 'goals.plans.note_default_*'
+  - 'goals.plans.margin_*'
+  - 'goals.choose.errors.*'

@@ -43,5 +43,29 @@ module Whatsapp
       result = Whatsapp::Matcher.match_phrase(account, phrase, kind: :account)
       result.instrument if result.matched? && result.c_match >= Transaction::MATCH_ASSIGN_MIN
     end
+
+    # Transfer-leg ask choices (savings first). The stored ask "options" ids and the numbered
+    # prompt MUST come from this same ordered array — a numeric reply resolves by prompt
+    # position (ReplyRouter reloads with in_order_of to preserve it).
+    def transfer_leg_accounts
+      account.bank_accounts.kept.includes(:institution).order(kind: :desc, created_at: :asc).to_a
+    end
+
+    def numbered_options(records)
+      records.each_with_index.map { |r, i| "#{i + 1}. #{r.display_name}" }.join("\n")
+    end
+
+    # Parse a reply picking from a numbered list: a leading index into the PROMPT-ordered
+    # records, else a fuzzy name match (≥ 0.6) on the yielded label. Reads the router's
+    # @text (ReplyRouter and GoalFlowRouter both set it).
+    def pick(records)
+      return nil if records.empty?
+      if (idx = @text.to_s.strip[/\A\d+/]&.to_i) && idx.between?(1, records.size)
+        return records[idx - 1]
+      end
+      term = Whatsapp.normalize(@text)
+      best = records.max_by { |r| Whatsapp.similarity(term, Whatsapp.normalize(yield(r))) }
+      best if best && Whatsapp.similarity(term, Whatsapp.normalize(yield(best))) >= 0.6
+    end
   end
 end

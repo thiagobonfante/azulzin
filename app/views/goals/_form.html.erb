@@ -1,0 +1,93 @@
+<%# locals: goal — Screen 1: name the dream. Purchase asks value + date (+ head start);
+    savings-rate asks only the desired monthly total, anchored on what the household saves today. %>
+<%= form_with model: goal, url: goals_path, id: "goal_form", class: "flex flex-col gap-5",
+      data: { controller: "goal-kind",
+              goal_kind_purchase_label_value: t("goals.form.value_purchase"),
+              goal_kind_savings_label_value: t("goals.form.value_savings") } do |f| %>
+  <div id="goal_form_errors">
+    <% if goal.errors.any? %>
+      <div class="alert alert-error py-2 text-sm" role="alert"><span><%= goal.errors.full_messages.to_sentence %></span></div>
+    <% end %>
+  </div>
+
+  <fieldset class="grid gap-3 sm:grid-cols-2">
+    <% %w[purchase savings_rate].each do |kind| %>
+      <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm has-checked:border-primary has-checked:ring-1 has-checked:ring-primary">
+        <%= f.radio_button :kind, kind, checked: goal.kind == kind, class: "radio radio-primary mt-1",
+              data: { goal_kind_target: "kind", action: "goal-kind#toggle" } %>
+        <span class="min-w-0">
+          <span class="flex items-center gap-2 font-semibold whitespace-nowrap">
+            <span class="text-primary"><%= goal_kind_icon_tag(kind) %></span><%= t("goals.kinds.#{kind}") %>
+          </span>
+          <span class="mt-0.5 block text-xs text-base-content/55"><%= t("goals.kinds.#{kind}_hint") %></span>
+        </span>
+      </label>
+    <% end %>
+  </fieldset>
+
+  <div class="form-control">
+    <%= f.label :name, t("goals.form.name"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.text_field :name, placeholder: t("goals.form.name_placeholder"), required: true, maxlength: 80,
+          class: "input input-bordered w-full" %>
+  </div>
+
+  <div class="form-control">
+    <label class="mb-1 block text-sm font-medium" data-goal-kind-target="valueLabel"><%= t("goals.form.value_purchase") %></label>
+    <label class="input input-bordered flex w-full items-center gap-2">
+      <span class="text-base-content/50"><%= t("money.symbol") %></span>
+      <%# Whole-real mask (round 3 P1). value overrides the default _reais prefill ("60000,00")
+          — a digits-only mask would misread it ×100 on the 422 re-render. %>
+      <%= f.text_field :target_reais, inputmode: "numeric", required: true, placeholder: "0", class: "grow",
+            value: (goal.target_cents ? number_with_delimiter(Money.ceil_to_real(goal.target_cents) / 100) : nil),
+            data: { controller: "money-mask", action: "input->money-mask#format" } %>
+    </label>
+    <p class="mt-1 text-xs text-base-content/50" hidden data-goal-kind-target="savingsOnly">
+      <%= @guardado_baseline_cents.to_i.positive? ? t("goals.form.current_guardado_hint", amount: brl_whole(@guardado_baseline_cents)) :
+                                                    t("goals.form.current_guardado_zero") %>
+    </p>
+  </div>
+
+  <div class="form-control" data-goal-kind-target="purchaseOnly">
+    <%= f.label :target_date, t("goals.form.when"), class: "mb-1 block text-sm font-medium" %>
+    <%= f.select :target_date, goal_month_options, { include_blank: false }, class: "select select-bordered w-full" %>
+  </div>
+
+  <%# "Começar do zero" vs "já tenho um valor guardado" (round 3 P3): the amount + its caixinha
+      reveal only on the second choice; toggling back to zero clears them (goal-initial). %>
+  <% has_initial = goal.initial_saved_cents.to_i.positive? || goal.initial_saved_bank_account_id.present? %>
+  <div class="form-control" data-goal-kind-target="purchaseOnly" data-controller="goal-initial">
+    <span class="mb-1 block text-sm font-medium"><%= t("goals.form.initial_saved") %></span>
+    <div class="flex flex-wrap gap-4">
+      <% { "zero" => !has_initial, "some" => has_initial }.each do |mode, checked| %>
+        <label class="flex cursor-pointer items-center gap-2 text-sm">
+          <%= radio_button_tag :initial_mode, mode, checked, class: "radio radio-primary radio-sm",
+                data: { goal_initial_target: "mode", action: "goal-initial#toggle" } %>
+          <%= t("goals.form.initial_mode_#{mode}") %>
+        </label>
+      <% end %>
+    </div>
+
+    <div data-goal-initial-target="fields" <%= "hidden" unless has_initial %> class="mt-3 flex flex-col gap-3">
+      <div class="form-control">
+        <label class="input input-bordered flex w-full items-center gap-2">
+          <span class="text-base-content/50"><%= t("money.symbol") %></span>
+          <%= f.text_field :initial_saved_reais, inputmode: "numeric", placeholder: "0", class: "grow",
+                value: (goal.initial_saved_cents.to_i.positive? ? number_with_delimiter(Money.floor_to_real(goal.initial_saved_cents) / 100) : nil),
+                data: { controller: "money-mask", action: "input->money-mask#format" } %>
+        </label>
+        <p class="mt-1 text-xs text-base-content/50"><%= t("goals.form.initial_saved_hint") %></p>
+      </div>
+      <% initial_pots = Current.account.bank_accounts.kept.savings.includes(:institution).order(:created_at) %>
+      <% if initial_pots.any? %>
+        <%= render "shared/account_select", form: f,
+              accounts: initial_pots, method: :initial_saved_bank_account_id,
+              label: t("goals.form.initial_saved_account"),
+              placeholder: t("goals.form.initial_saved_account_placeholder"),
+              balances: initial_pots.index_with(&:derived_balance_cents).transform_keys(&:id),
+              selected: goal.initial_saved_bank_account_id&.to_s %>
+      <% end %>
+    </div>
+  </div>
+
+  <%= f.submit t("goals.form.submit"), class: "btn btn-primary" %>
+<% end %>

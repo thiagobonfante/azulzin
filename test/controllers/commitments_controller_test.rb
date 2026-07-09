@@ -31,6 +31,47 @@ class CommitmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @account, c.bank_account
   end
 
+  # ── Standalone savings kind — "Guardar" (round 3 P4) ──
+
+  test "creates a goal-less savings commitment with a destination caixinha (open-ended)" do
+    caixinha = @user.account.bank_accounts.create!(institution: @inst, kind: "savings")
+    assert_difference -> { @user.account.commitments.count }, 1 do
+      post commitments_url, as: :turbo_stream, params: {
+        commitment: { name: "Guardar", kind: "savings", amount_reais: "500",
+                      transfer_to_bank_account_id: caixinha.id },
+        instrument: "bank_account-#{@account.id}" }
+    end
+    c = @user.account.commitments.savings.last
+    assert_equal caixinha, c.transfer_to_bank_account
+    assert_nil c.goal_id
+    assert_nil c.ends_on, "standalone savings is open-ended like Fixo"
+  end
+
+  test "a junk destination id (another account's caixinha) is dropped by the whitelist → 422" do
+    stray = Account.create!(name: "Other").bank_accounts.create!(institution: @inst, kind: "savings")
+    assert_no_difference -> { @user.account.commitments.count } do
+      post commitments_url, as: :turbo_stream, params: {
+        commitment: { name: "Guardar", kind: "savings", amount_reais: "500",
+                      transfer_to_bank_account_id: stray.id },
+        instrument: "bank_account-#{@account.id}" }
+    end
+    assert_response :unprocessable_entity
+  end
+
+  test "the savings group renders FIRST with the Guardar header (it used to be invisible)" do
+    caixinha = @user.account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @user.account.commitments.create!(bank_account: @account, name: "aluguel", kind: "fixed",
+                                      amount_cents: 100_000, schedule_day: 5, starts_on: Date.current)
+    @user.account.commitments.create!(bank_account: @account, name: "Guardar carro", kind: "savings",
+                                      amount_cents: 50_000, starts_on: Date.current.beginning_of_month,
+                                      transfer_to_bank_account: caixinha)
+    get commitments_url
+    assert_response :success
+    labels = css_select("details[data-commitments-filter-target='group']").map { |g| g.css("summary span").first.text.strip }
+    assert_equal [ I18n.t("commitments.kinds.savings", locale: :"pt-BR"),
+                   I18n.t("commitments.kinds.fixed", locale: :"pt-BR") ], labels
+  end
+
   test "a card installment creates an unpaid commitment via Installments::Create (no eager posted rows)" do
     assert_no_difference -> { @user.account.transactions.count } do
       post commitments_url, as: :turbo_stream, params: {

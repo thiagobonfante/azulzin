@@ -1,0 +1,40 @@
+<%# Dashboard goals widget (.plans/goals 02 §4) — compact per-active-goal rows, or a dashed CTA. %>
+<% goals = Current.account.goals.active.includes(:bank_account).order(created_at: :desc) %>
+<section class="mt-10">
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="font-display text-lg font-bold"><%= t("dashboard.goals.title") %></h2>
+    <%= link_to t("dashboard.manage"), goals_path, class: "btn btn-ghost btn-sm text-primary" %>
+  </div>
+
+  <% if goals.any? %>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <% goals.each do |goal| %>
+        <% progress = Goals::Progress.new(goal) %>
+        <% check = goal.checks.latest_first.first %>
+        <% status = check&.status || "insufficient_data" %>
+        <%= link_to goal_path(goal), class: "block rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm hover:border-primary/40" do %>
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate text-sm font-semibold"><%= goal.name %></span>
+            <% if check %>
+              <span class="badge <%= goal_pace_badge_class(status) %> badge-sm shrink-0"><%= t("goals.pace.#{status}") %></span>
+            <% end %>
+          </div>
+          <% if goal.purchase? %>
+            <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-base-200">
+              <div class="h-full rounded-full <%= goal_bar_class(status) %>" style="width: <%= goal_percent(progress.actual_cents, goal.target_cents) %>%"></div>
+            </div>
+            <p class="mt-1.5 text-right text-xs tabular-nums text-base-content/55">
+              <%= t("goals.show.progress_line", actual: brl_whole(progress.actual_cents, mode: :floor), target: brl_whole(goal.target_cents)) %>
+            </p>
+          <% else %>
+            <p class="mt-2 text-sm tabular-nums text-base-content/60"><%= t("goals.show.monthly_target", amount: brl_whole(goal.monthly_target_cents)) %></p>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <%= link_to goals_path, class: "block rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-6 text-center text-sm text-base-content/55 hover:border-primary/50 hover:text-primary" do %>
+      <%= t("dashboard.goals.cta") %>
+    <% end %>
+  <% end %>
+</section>

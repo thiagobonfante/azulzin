@@ -23,26 +23,44 @@ module Budgets
 
     def call
       actuals = Actuals.for(@account, @month)
-      @account.categories.kept.where.not(monthly_budget_cents: nil).filter_map do |category|
-        budget = category.monthly_budget_cents
-        spent  = actuals[category.id].to_i
-        if spent * 100 >= budget * @breach_percent
-          event("budget_breach", category, spent, budget)
-        elsif spent * 100 >= budget * @warn_percent
-          event("budget_warn", category, spent, budget)
+      trims   = Goals::TrimCaps.for(@account, month: @month)   # a goal trim temporarily tightens the standing budget (goals 06 §3)
+      budgeted(trims).filter_map do |category|
+        limit, goal = effective_limit(category.monthly_budget_cents, trims[category.id])
+        next unless limit&.positive?
+        spent = actuals[category.id].to_i
+        if spent * 100 >= limit * @breach_percent
+          event("budget_breach", category, spent, limit, goal)
+        elsif spent * 100 >= limit * @warn_percent
+          event("budget_warn", category, spent, limit, goal)
         end
       end
     end
 
     private
 
+    # Categories with a standing budget OR an active-goal trim cap.
+    def budgeted(trims)
+      @account.categories.kept.where("monthly_budget_cents IS NOT NULL OR id IN (?)", trims.keys.presence || [ 0 ])
+    end
+
+    # The binding limit = min(standing budget, goal trim cap) — either may be nil. The goal is
+    # returned only when its trim is the tightest limit, so the copy names the meta.
+    def effective_limit(budget, trim)
+      candidates = [ budget, trim&.dig(:cap_cents) ].compact
+      return [ nil, nil ] if candidates.empty?
+      limit = candidates.min
+      [ limit, (trim if trim && trim[:cap_cents] == limit) ]
+    end
+
     # payload snapshots name + integer cents so a later-deleted category still renders;
     # money is formatted at render time in the viewer's locale. left clamps at zero (a
-    # user may set warn above 100%, and "faltam -R$ 20" helps no one).
-    def event(kind, category, spent, budget)
-      { kind: kind, subject: category, period_key: @month,
-        payload: { category: category.name, spent_cents: spent, budget_cents: budget,
-                   left_cents: [ budget - spent, 0 ].max } }
+    # user may set warn above 100%, and "faltam -R$ 20" helps no one). When a goal trim
+    # binds, goal_id/goal_name join the payload and template_key forks to the _goal copy.
+    def event(kind, category, spent, limit, goal)
+      payload = { category: category.name, spent_cents: spent, budget_cents: limit,
+                  left_cents: [ limit - spent, 0 ].max }
+      payload.merge!(goal_id: goal[:goal_id], goal_name: goal[:goal_name]) if goal
+      { kind: kind, subject: category, period_key: @month, payload: payload }
     end
   end
 end

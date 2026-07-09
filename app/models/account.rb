@@ -10,6 +10,9 @@ class Account < ApplicationRecord
   # LGPD hard-destroy cascade MOVES HERE from User (same ordering rationale as the old
   # user.rb comment: commitments/incomes reference accounts/cards/categories with NO-ACTION
   # FKs — and incomes restrict_with_error on their account — so destroy them first).
+  has_many :goal_conversations, dependent: :destroy                # before :goals (goal_id FK)
+  has_many :goals,             dependent: :destroy                 # .plans/goals — nullifies its commitments/caixinha
+  has_many :goal_checks,       dependent: :destroy
   has_many :commitments,       dependent: :destroy
   has_many :incomes,           dependent: :destroy
   has_many :categories,        dependent: :destroy

@@ -48,6 +48,8 @@ en:
       account: "Account"
       account_membership: "Member"
       invitation: "Invitation"
+      goal: "Goal"
+      goal_check: "Check"
     attributes:
       user:
         email_address: "Email address"
@@ -91,6 +93,7 @@ en:
         total_cents: "Total"
         bank_account: "Account"
         credit_card: "Card"
+        transfer_to_bank_account: "Savings pot"
         category: "Category"
         schedule_kind: "Recurrence"
         schedule_day: "Day"
@@ -112,6 +115,19 @@ en:
         quiet_hours_end: "Quiet hours end"
         budget_warn_percent: "Warn threshold"
         budget_breach_percent: "Over-budget threshold"
+      goal:
+        name: "Name"
+        kind: "Type"
+        target_cents: "Amount"
+        target_date: "When"
+        initial_saved_cents: "Already saved"
+        monthly_target_cents: "Monthly amount"
+        bank_account: "Savings pot"
+        bank_account_id: "Savings pot"
+        initial_saved_bank_account: "Pot of the saved amount"
+      goal_check:
+        status: "Status"
+        period_start: "Week"
     errors:
       models:
         account_membership:
@@ -138,6 +154,18 @@ en:
           attributes:
             installments_count:
               below_paid: "must be at least %{count} — paid installments can't be removed."
+            goal:
+              only_on_savings: "can only be linked to savings commitments."
+            bank_account:
+              wrong_account: "must belong to this account."
+            credit_card:
+              wrong_account: "must belong to this account."
+              not_on_savings: "can't be a card — saving moves money from a bank account."
+            transfer_to_bank_account:
+              blank: "pick the savings pot to save into."
+              not_savings: "must be a savings pot (a savings account) in this account."
+              same_account: "can't be the same as the source account."
+              wrong_account: "must belong to this account."
         transaction:
           instrument_required: "Pick the account or card for this entry."
           attributes:
@@ -152,6 +180,18 @@ en:
               missing: "is required."
               too_large: "exceeds the 10 MB limit."
               unsupported_type: "has an unsupported format. Send a PDF, CSV or OFX."
+        goal:
+          attributes:
+            base:
+              too_many_active: "You already have 5 active goals. Finish or abandon one to make room."
+            bank_account:
+              not_savings: "must be a savings pot (a savings account) in this account."
+            initial_saved_bank_account:
+              not_savings: "must be a savings pot (a savings account) in this account."
+            initial_saved_cents:
+              exceeds_target: "can't be greater than or equal to the goal amount."
+            target_cents:
+              below_current_guardado: "needs to be higher than what you already save today (~%{guardado}/month)."
   app:
     nav:
       dashboard: "Dashboard"
@@ -159,6 +199,7 @@ en:
       incomes: "Income"
       cards: "Cards"
       transactions: "Transactions"
+      goals: "Goals"
       commitments: "Commitments"
       categories: "Categories"
       admin: "Admin"
@@ -240,6 +281,155 @@ en:
     manage: "Manage"
     add_accounts: "Add an account"
     add_cards: "Add a card"
+    goals:
+      title: "Goals"
+      cta: "Create a goal →"
+  goals:
+    new:
+      meta_title: "New goal"
+      title: "What's your next big step?"
+      subtitle: "Name the dream — we compute the path from your own numbers."
+      limit_reached: "You already have 5 active goals. Finish or abandon one to create another."
+    form:
+      name: "Name"
+      name_placeholder: "Car, a trip, the apartment down payment…"
+      value_purchase: "How much does it cost?"
+      value_savings: "How much do you want to save each month?"
+      when: "When?"
+      initial_saved: "Already have something saved?"
+      initial_saved_hint: "What you've already set aside for this goal."
+      initial_mode_zero: "Start from zero"
+      initial_mode_some: "I already have some saved"
+      initial_saved_account: "Which pot is it in?"
+      initial_saved_account_placeholder: "Pick the savings pot"
+      current_guardado_hint: "Today you save about %{amount}/month on average — the goal is the new total."
+      current_guardado_zero: "You aren't saving a set amount every month yet — let's start."
+      submit: "See my plans"
+    kinds:
+      purchase: "Buy something"
+      purchase_hint: "A car, a trip, the apartment down payment."
+      savings_rate: "Save more"
+      savings_rate_hint: "Set aside more money every month."
+    status:
+      draft: "Draft"
+      active: "Active"
+      achieved: "Achieved"
+      abandoned: "Abandoned"
+    pace:
+      on_track: "On track"
+      at_risk: "Needs attention"
+      off_track: "At risk"
+      insufficient_data: "No data yet"
+    draft:
+      discard: "Discard"
+      discard_confirm: "Discard this goal draft?"
+    diagnosis:
+      summary_html: "Over the last 3 months you earned %{income} on average, spent %{spend}, and had %{capacity} left per month."
+      trim_candidates_title: "Where you can adjust"
+      trim_hint: "Drag to set a budget per category — the plans recalculate instantly."
+      spends: "spends ~%{amount}"
+      reset_caps: "clear adjustments"
+    plans:
+      labels:
+        leve: "Easy"
+        recomendado: "Recommended"
+        acelerado: "Fast"
+      monthly_html: "save <span>%{amount}</span>/mo"
+      reaches_on: "reaches %{month}"
+      margin_ahead: "before your deadline"
+      margin_behind: "after your deadline"
+      trim_line: "− %{amount}/mo in %{category} (today ~%{current})"
+      no_cuts: "No cuts — it fits your surplus."
+      note_default_leve: "The calmest pace, barely tightening anything."
+      note_default_recomendado: "The balance: hits the deadline with moderate cuts."
+      note_default_acelerado: "To arrive early — tighter, but worth the push."
+      commitment_note: "You commit to the monthly amount. The category cuts are the map, not a punishment."
+    confirm:
+      title: "Where does the money go?"
+      caixinha: "Save into"
+      caixinha_placeholder: "Pick the savings pot"
+      caixinha_none: "To activate the goal you need a savings pot — that's where the money goes every month."
+      caixinha_create_cta: "Create a savings pot"
+      source: "Comes from"
+      source_prompt: "Pick the source account"
+      activate: "Activate goal"
+    states:
+      estimate_badge: "early estimate"
+      too_tight_title: "This goal doesn't close yet."
+      too_tight_why: "For %{month} you'd need to save %{required}/mo — today you can do %{capacity}."
+      offer_date: "With %{amount}/mo you reach %{month}"
+      offer_target: "For %{month}, you could aim for %{amount}"
+      offer_target_savings: "You could save %{amount} per month"
+      use_this_date: "Use this date"
+      use_this_target: "Use this amount"
+      offer_income: "Or with %{amount}/mo more income, it closes on your deadline"
+      register_income: "Add income"
+      limit_reached: "You already have 5 active goals. Finishing or abandoning one makes room for the next."
+    index:
+      meta_title: "Goals"
+      title: "Your goals"
+      subtitle: "Dreams with a plan — and a guardian that speaks up when the pace slips."
+      new: "New goal"
+      closed_title: "Achieved and abandoned"
+    empty:
+      title: "What's your next big step?"
+      subtitle: "A car, a trip, or just saving more every month."
+      cta: "Create a goal"
+    choose:
+      activated: "Goal activated! Now go save. 💙"
+      errors:
+        not_draft: "This goal is already active."
+        too_many_active: "You already have 5 active goals."
+        invalid_template: "Pick one of the plans."
+        infeasible: "This goal doesn't close yet — see the options."
+        not_savings: "Pick a valid savings pot."
+        invalid_source: "Pick where the money comes from."
+        missing_caixinha: "To activate, pick a savings pot and a different source account."
+    contribute:
+      contributed: "Nice! The new forecast is %{month} 💙"
+      rejected: "That didn't work — the amount must be positive and fit this month's leftover."
+    abandon:
+      abandoned: "Goal abandoned. What you saved stays saved."
+    replan:
+      replanned: "Goal reorganized 💙 New deposit of %{monthly}, finishing in %{month}."
+      errors:
+        unavailable: "Couldn't recompute right now — the numbers moved. Try again."
+        invalid_mode: "Pick one of the options."
+    destroy:
+      discarded: "Draft discarded."
+    show:
+      back: "Back"
+      achieved_title: "Goal achieved! 🎉"
+      achieved_body: "You saved %{amount}. How about the next one?"
+      next_goal: "Create the next"
+      saved_of: "of %{target}"
+      progress_line: "%{actual} of %{target}"
+      monthly_target: "%{amount}/mo"
+      expected: "expected so far: %{amount}"
+      starts_in: "starts in %{month}"
+      projected_line: "At this pace, you'll get there in %{month}"
+      parcel_paid: "This month's deposit is saved 💙 (%{amount} on %{date})"
+      parcel_due: "This month's deposit: %{amount}"
+      view_commitment: "view commitment"
+      speed_up_title: "Want to speed it up?"
+      speed_up_body: "You still have %{amount} to spare this month — you could put some of it ahead."
+      speed_up_hint: "It leaves your usual source account straight into the goal's pot."
+      speed_up_submit: "Save now"
+      no_caixinha_nudge: "Tip: link a savings pot to track it closely."
+      replan_title: "Reorganize goal"
+      replan_intro: "Life changes and the plan follows. We recompute on today's numbers — no guilt."
+      replan_extend: "Keep the %{monthly} deposit — finishes in %{month}"
+      replan_before: "before: %{month}"
+      replan_hold: "Keep %{month} — the deposit goes to %{monthly}"
+      replan_submit: "Recompute goal"
+      replan_note: "Your pot, what you've saved and the history all stay the same."
+      trim_map_title: "The cuts map"
+      cap_line: "%{cap} (was ~%{baseline})"
+      contributions_title: "What you've saved"
+      checks_title: "Weekly check-ins"
+      abandon: "Abandon"
+      abandon_confirm: "Abandon this goal? What you saved stays saved."
+      abandoned_note: "Abandoning never erases what you already saved."
   bank_accounts:
     add_title: "Add account"
     edit_title: "Edit account"
@@ -260,6 +450,8 @@ en:
     add: "Add account"
     save: "Save"
     no_balance: "Balance not set"
+    free_balance: "%{amount} free"
+    reserved_for_goal: "%{amount} saved for a goal"
     empty: "No accounts added yet."
     remove: "Remove account"
     confirm_remove: "Remove this account?"
@@ -358,6 +550,7 @@ en:
       installment: "Installments"
       fixed: "Fixed"
       subscription: "Subscription"
+      savings: "Savings"
     instrument:
       credit: "credit"
       debit: "debit"
@@ -401,6 +594,9 @@ en:
         installment: "e.g. financed car, phone in 12×"
         fixed: "e.g. alimony, rent, tuition"
         subscription: "e.g. Netflix, Spotify"
+        savings: "e.g. a fixed monthly transfer into savings"
+      transfer_to: "Save into"
+      no_caixinha_hint: "You don't have a savings pot yet."
     index:
       meta_title: "Commitments"
       title: "Commitments"
@@ -522,6 +718,8 @@ en:
     create:
       created: "Transfer recorded."
     saved_celebration: "%{amount} saved! Total this month: %{total} 💙"
+    saved_goal_boost: "That speeds up %{goal}! New forecast: %{month} 💙"
+    saved_goal_boost_savings: "That counts toward your goal %{goal} 💙"
   transactions:
     empty: "Nothing pending here. You're all caught up! 🎉"
     statuses:
@@ -980,6 +1178,18 @@ en:
         other: "%{name} (%{amount}) should land in %{count} days."
       budget_warn: "%{category} is already at %{spent} of %{budget} this month — %{left} to go."
       budget_breach: "%{category} went past the plan: %{spent} of %{budget} this month."
+      budget_warn_goal: "%{category} is at %{spent} of the %{goal_name} goal plan (%{budget}) this month."
+      budget_breach_goal: "%{category} went past the %{goal_name} goal plan: %{spent} of %{budget} this month."
+      goal_alert_pace: "Goal %{goal} needs attention: %{gap} to go for this month's amount."
+      goal_alert_big_purchase: "Saw a big purchase of %{amount} this month — keep an eye on the %{goal} goal."
+      goal_alert_red_month: "As things stand, this month closes in the red (%{shortfall} short) and your goals ask for %{committed}. Worth reorganizing the %{goal} goal."
+      goal_alert_next_month_red: "Card bills already add up to %{faturas} for next month and the projection closes in the red (%{shortfall} short). The %{goal} goal may not fit — you can reorganize ahead."
+      goal_alert_budget_raised: "The %{category} budget went up to %{budget} — %{over} a month above what the %{goal} goal planned. At that level, the goal slips."
+      goal_alert_missed_month: "Goal %{goal} came in %{gap} under plan last month — %{category} ran %{over} above normal. At this pace, the finish moves from %{old_month} to %{new_month}."
+      goal_alert_missed_month_essential: "%{category} ran %{over} above normal last month — unexpected things happen, no guilt. Goal %{goal} came in %{gap} under plan and the finish moves from %{old_month} to %{new_month}."
+      goal_alert_missed_month_income: "Income came in lower last month and goal %{goal} ended %{gap} under plan — it happens, it's okay. The finish moves from %{old_month} to %{new_month}."
+      goal_alert_missed_month_plain: "Goal %{goal} came in %{gap} under plan last month. At this pace, the finish moves from %{old_month} to %{new_month}."
+      goal_achieved: "Goal %{goal} achieved! You saved %{amount}. 🎉"
       surplus_nudge: "You have %{surplus} to spare this month. How about moving it to savings?"
       rightsize_budget: "%{category}: you planned %{budget} but usually spend %{typical}. Want to adjust it?"
       weekly_summary: "Weekly recap: you spent %{spent} and the month's leftover is at %{sobra}."
@@ -995,6 +1205,7 @@ en:
     alert:
       dismiss: "Dismiss"
       view_category: "View category"
+      view_goal: "View goal"
       rightsize_cta: "Adjust to %{typical}"
   notification_preferences:
     show:
@@ -1006,6 +1217,10 @@ en:
       bill_reminders_hint: "Bills, card bills and expected income coming due."
       budget_alerts: "Budget alerts"
       budget_alerts_hint: "When a category gets close to or goes over its monthly budget."
+      goal_alerts: "Goal alerts"
+      goal_alerts_hint: "When one of your goals is falling behind pace."
+      goal_achieved: "Goals achieved"
+      goal_achieved_hint: "A celebration when you complete a goal."
       surplus_nudges: "Surplus suggestions"
       surplus_nudges_hint: "One honest suggestion when there's money left over."
       weekly_summary: "Weekly summary"
@@ -1125,8 +1340,10 @@ en:
       expiry: "This link will expire in %{duration}."
   whatsapp:
     replies:
-      posted: "✅ Recorded: %{amount} on %{instrument}."
-      posted_categorized: "✅ Recorded: %{amount} on %{instrument} · %{category}."
+      posted_card: "✅ Recorded: %{amount} on the %{instrument} card."
+      posted_account: "✅ Recorded: %{amount} from the %{instrument} account."
+      posted_card_categorized: "✅ Recorded: %{amount} on the %{instrument} card · %{category}."
+      posted_account_categorized: "✅ Recorded: %{amount} from the %{instrument} account · %{category}."
       posted_unassigned: "✅ Recorded: %{amount}. Pick the account or card in the app."
       parked: "Got it 👍 I've left it pending in the app for you to review."
       clarify_amount: "I couldn't read the amount. How much was it?"
@@ -1166,6 +1383,48 @@ en:
       help: "I didn't get that 🤔 You can send me things like:\n• \"groceries 84.90 on debit\"\n• \"saved 200 to savings\"\n• \"paid the car installment\"\n• \"bought a phone, 5000 in 10x\"\n• \"how's the month?\""
       notifications_footer: "Reply *stop* to turn these notifications off."
       notifications_stopped: "Done — I've stopped the notifications here. You can turn them back on anytime in *Account & members → Alerts*. 💙"
+      goal_flow:
+        limit_reached: "You already have 5 active goals. Finishing or abandoning one in the app makes room for the next. 💙"
+        ask_kind: "Nice! What do you want to plan? Reply with the number:\n%{options}"
+        ask_name: "What's the dream? Give me a short name — e.g., Trip, Car."
+        ask_amount_purchase: "How much does *%{name}* cost?"
+        ask_amount_savings: "Today you save ~%{guardado}/month. How much do you want to save in total per month?"
+        ask_amount_savings_zero: "How much do you want to save per month?"
+        ask_month: "By when? You can say the month — e.g., \"December 2027\" or \"in 18 months\"."
+        ask_initial_saved: "Already have something saved for it? Reply with an amount or *no*."
+        reask_amount: "I couldn't read the amount. Just the number — e.g., 25000 or 25,000.00."
+        reask_month: "I didn't get the date. Tell me the month and year — e.g., \"October 2027\" or \"in 6 months\"."
+        reask_initial_saved: "I didn't get that. Reply with an amount (e.g., 2000) or *no*."
+        reask_initial_saved_high: "That already covers the whole goal — no plan needed 😄 Give me a smaller amount or *no*."
+        below_current_guardado: "You already save ~%{guardado}/month — a goal needs to beat that. What's the new total?"
+        offer: |-
+          💙 I've put a plan together for *%{name}*: save %{monthly}/month.
+          %{reaches_line}%{cuts_block}Want to activate it? Reply *yes* or *no*.
+        offer_reaches: "At that pace, you get there in %{month}."
+        offer_cuts_title: "To make it fit, you could reorganize like this:"
+        offer_cut_line: "− %{amount}/month on %{category} (today ~%{current})"
+        offer_no_cuts: "No cuts — it fits your monthly surplus."
+        offer_reprompt: "Reply *yes* to activate or *no* to discard."
+        counter_offer_date: "That goal doesn't close by the date you asked. With %{amount}/month you'd get there in %{month} — want to go with that? Reply *yes* or *no*."
+        counter_offer_savings: "That total doesn't fit yet. You could save %{amount} per month — deal? Reply *yes* or *no*."
+        too_tight: "That goal doesn't close yet — this month's numbers won't allow it. Take a look in the app to adjust it calmly. 💙"
+        ask_caixinha_pick: "Which savings pot does the money go to? Reply with the number:\n%{options}"
+        ask_source_pick: "And which account does it leave from each month? Reply with the number:\n%{options}"
+        activated: "💙 Goal *%{name}* activated! Save %{monthly}/month starting %{month} — I'll remind you every month."
+        no_caixinha: "To activate a goal you need a savings pot and a distinct source account. Create the pot in the app and ping me again. 💙"
+        cancelled: "No problem, cancelled. Just message me whenever you're ready. 💙"
+        discarded: "No problem, discarded. Whenever you want, just talk to me — or build it in the app. 💙"
+        activation_failed: "I couldn't activate it right now. Try again in the app, ok? 💙"
+      goal_replan:
+        none: "You don't have an active purchase goal to reorganize. Want to create one? Just tell me the dream. 💙"
+        pick: "Which goal do you want to reorganize? Reply with the number:\n%{options}"
+        offer: "💙 Goal *%{name}*: you've saved %{saved}. Here's how it can be reorganized:\n%{options}\nReply with the number, or *não* to leave it as is."
+        option_extend: "Keep %{monthly}/month — finishes in %{month}"
+        option_hold: "Keep %{month} — the deposit goes to %{monthly}"
+        reprompt: "Reply with the number of one of the options, or *cancelar*:\n%{options}"
+        applied: "💙 Goal *%{name}* reorganized: %{monthly}/month until %{month}. No guilt — what matters is keeping going."
+        kept: "Done, it stays as is. 💙"
+        unavailable: "I couldn't recompute this goal right now — the numbers don't close. Take a look at the goal page in the app. 💙"
       notifications:
         bill_due:
           zero: "🔔 Your *%{name}* bill (%{amount}) is due today. 💙"
@@ -1188,6 +1447,35 @@ en:
           other: "💰 Your *%{name}* of %{amount} should land in %{count} days. 💙"
         budget_warn: "👀 *%{category}* is at %{spent} of %{budget} this month. %{left} to go."
         budget_breach: "⚠️ *%{category}* went past the plan: %{spent} of %{budget} this month."
+        budget_warn_goal: "👀 *%{category}* is at %{spent} of the *%{goal_name}* goal plan this month (%{budget}). 💙"
+        budget_breach_goal: "⚠️ *%{category}* went past the *%{goal_name}* goal plan: %{spent} of %{budget}. 💙"
+        goal_alert_pace: "👀 Your *%{goal}* goal: %{gap} to go for this month's amount and the month is ending. A transfer to savings fixes it. 💙"
+        goal_alert_big_purchase: "⚠️ Saw a big purchase of %{amount} this month. Your *%{goal}* goal may slip — want to adjust in the app?"
+        goal_alert_red_month: |-
+          ⚠️ This month is heading into the red: %{shortfall} short, and the *%{goal}* goal asks for %{committed}.
+          Reply *reorganizar* to adjust it — no guilt. 💙
+        goal_alert_next_month_red: |-
+          👀 Card bills already add up to %{faturas} next month and the projection closes %{shortfall} in the red.
+          The *%{goal}* goal may not fit — reply *reorganizar* to adjust ahead.
+        goal_alert_budget_raised: |-
+          👀 The %{category} budget went up to %{budget} — %{over} a month above what the *%{goal}* goal planned.
+          If that's the new normal, reply *reorganizar* to recompute the goal.
+        goal_alert_missed_month: |-
+          👀 The *%{goal}* goal came in %{gap} under plan last month — %{category} ran %{over} above normal.
+          At this pace, the finish moves from %{old_month} to %{new_month}.
+          Reply *reorganizar* to adjust the plan.
+        goal_alert_missed_month_essential: |-
+          💙 %{category} ran %{over} above normal last month — unexpected things happen, no guilt.
+          The *%{goal}* goal came in %{gap} under plan; the finish moves from %{old_month} to %{new_month}.
+          Reply *reorganizar* and we'll recompute it together. 💙
+        goal_alert_missed_month_income: |-
+          💙 Income came in lower last month — it happens, it's okay. The *%{goal}* goal ended %{gap} under plan.
+          The finish moves from %{old_month} to %{new_month} — reply *reorganizar* to adjust the plan. 💙
+        goal_alert_missed_month_plain: |-
+          👀 The *%{goal}* goal came in %{gap} under plan last month.
+          At this pace, the finish moves from %{old_month} to %{new_month}.
+          Reply *reorganizar* to adjust the plan.
+        goal_achieved: "💙 *%{goal}* goal achieved! You saved %{amount}. How about the next one?"
         surplus_nudge: "💙 You closed the month with *%{surplus}* to spare. Want to put it in savings?"
         rightsize_budget: "💙 *%{category}*: you planned %{budget}, but usually spend %{typical}. You can adjust it in Categories."
         weekly_summary: |-

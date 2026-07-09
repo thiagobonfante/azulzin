@@ -34,8 +34,11 @@
     <div class="form-control">
       <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.to") %></label>
       <% targets = Current.account.bank_accounts.kept.where(kind: %w[savings investment]).order(:created_at) %>
+      <%# Default to the active goal's caixinha when one exists (round 3 P3) — the sobra
+          click becomes a goal boost with zero extra taps. %>
+      <% boost_goal = Current.account.goals.active.where.not(bank_account_id: nil).order(created_at: :desc).first %>
       <%= select_tag "transfer[transfer_to_bank_account_id]",
-            options_from_collection_for_select(targets, :id, :display_name, targets.first&.id),
+            options_from_collection_for_select(targets, :id, :display_name, boost_goal&.bank_account_id || targets.first&.id),
             class: "select select-bordered select-sm w-full" %>
     </div>
     <div class="form-control">

@@ -17,6 +17,10 @@ module Whatsapp
         "muda a categoria pra mercado").
       - undo_last: desfazer/cancelar o último ("apaga o último", "cancela isso").
       - query: consulta de saldo/fatura/mês ("quanto tenho na nubank?", "como tá o mês?").
+      - create_goal: criar uma meta/planejamento — um DESEJO ou plano futuro ("quero criar uma meta",
+        "queria fazer uma viagem em outubro do ano que vem", "quero guardar mais dinheiro todo mês",
+        "quero juntar 20 mil pra um carro"). NÃO confundir com transfer: "guardei 200 na caixinha"
+        é um fato já executado (transfer); "quero guardar mais por mês" é um desejo (create_goal).
       - other: qualquer outra coisa.
       Regras:
       - intent_confidence de 0 a 1 (quão certa é a classificação).
@@ -31,6 +35,11 @@ module Whatsapp
       - category: um palpite de categoria do gasto, se der (será resolvido no app). Em edit_last
         de categoria, é a categoria pedida.
       - edit_field_hint: qual campo o edit_last corrige (amount, merchant, instrument, date, category).
+      - create_goal: goal_kind = purchase (comprar algo) ou savings_rate (guardar mais por mês), se
+        der para inferir. goal_name = nome curto do sonho ("Viagem", "Carro"), se citado.
+        goal_month_phrase = as PALAVRAS da data-alvo exatamente como ditas ("outubro do ano que vem",
+        "em 6 meses") — NUNCA uma data ISO. goal_initial_saved_raw = valor já guardado para a meta,
+        como dito. Em create_goal, amount_raw = o valor da meta.
     PT
 
     SCHEMA = {
@@ -41,11 +50,12 @@ module Whatsapp
                          instrument_phrase field_confidence overall_confidence
                          to_instrument_phrase installments_count installment_total_raw
                          installment_parcel_raw commitment_phrase target_bill_raw
-                         edit_field_hint query_kind category],
+                         edit_field_hint query_kind category
+                         goal_kind goal_name goal_month_phrase goal_initial_saved_raw],
         "properties" => {
           "intent"            => { "type" => "string",
                                    "enum" => %w[expense income transfer installment_purchase pay_commitment
-                                                move_bill edit_last undo_last query other] },
+                                                move_bill edit_last undo_last query create_goal other] },
           "intent_confidence" => { "type" => "number" },
           "amount_raw"        => { "type" => %w[string null] },
           "currency"          => { "type" => "string", "enum" => %w[BRL] },
@@ -69,7 +79,11 @@ module Whatsapp
           "target_bill_raw"        => { "type" => %w[string null] },
           "edit_field_hint"        => { "type" => %w[string null], "enum" => [ "amount", "merchant", "instrument", "date", "category", nil ] },
           "query_kind"             => { "type" => %w[string null], "enum" => [ "account_balance", "card_bill", "month_summary", "savings_total", nil ] },
-          "category"               => { "type" => %w[string null] }
+          "category"               => { "type" => %w[string null] },
+          "goal_kind"              => { "type" => %w[string null], "enum" => [ "purchase", "savings_rate", nil ] },
+          "goal_name"              => { "type" => %w[string null] },
+          "goal_month_phrase"      => { "type" => %w[string null] },   # raw words, never an ISO date
+          "goal_initial_saved_raw" => { "type" => %w[string null] }
         }
       }
     }.freeze
@@ -112,7 +126,11 @@ module Whatsapp
         target_bill_raw:        parsed["target_bill_raw"].presence,
         edit_field_hint:        parsed["edit_field_hint"].presence,
         query_kind:             parsed["query_kind"].presence,
-        category:               parsed["category"].presence
+        category:               parsed["category"].presence,
+        goal_kind:              parsed["goal_kind"].presence,
+        goal_name:              parsed["goal_name"].presence,
+        goal_month_phrase:      parsed["goal_month_phrase"].presence,
+        goal_initial_saved_raw: parsed["goal_initial_saved_raw"].presence
       )
     end
 

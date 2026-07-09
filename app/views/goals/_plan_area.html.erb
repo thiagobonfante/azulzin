@@ -1,0 +1,93 @@
+<%# locals: goal, build — the plans (or counter-offers) below the Diagnóstico. Wrapped in a
+    stable id so the caps sliders can Turbo-swap ONLY this area and keep their drag state. %>
+<div id="goal_plan_area">
+<% if build.feasible? %>
+  <%# ── Screen 2 + 3: pick a plan, say where the money goes ────────────── %>
+  <% savings_accounts = Current.account.bank_accounts.kept.savings.includes(:institution).order(:created_at) %>
+  <% source_accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at) %>
+  <%= form_with url: choose_goal_path(goal), method: :patch, class: "flex flex-col gap-5" do |f| %>
+    <div class="grid gap-4 lg:grid-cols-3">
+      <% nar = goal.baseline["narratives"] %>
+      <% nar = nil unless nar && nar["fp"] == Goals.plan_fingerprint(build) %>
+      <%= render partial: "goals/plan_card", collection: build.plans, as: :plan,
+            locals: { goal: goal, narratives: nar } %>
+    </div>
+    <p class="text-sm text-base-content/60"><%= t("goals.plans.commitment_note") %></p>
+
+    <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="mb-3 font-semibold"><%= t("goals.confirm.title") %></h2>
+      <% if savings_accounts.any? %>
+        <%# Rich pickers with brand avatars + exact balances (round 3 P3) — the balance shows
+            in the option list and, once picked, in the closed button. %>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <%= render "shared/account_select", form: f,
+                accounts: savings_accounts, method: :bank_account_id,
+                label: t("goals.confirm.caixinha"), placeholder: t("goals.confirm.caixinha_placeholder"),
+                balances: savings_accounts.index_with(&:derived_balance_cents).transform_keys(&:id),
+                selected: (savings_accounts.first.id.to_s if savings_accounts.one?) %>
+          <%# The placeholder, never a preselected account — the source must be a deliberate
+              choice distinct from the caixinha (Activate blocks source == caixinha). %>
+          <%= render "shared/account_select", form: f,
+                accounts: source_accounts, method: :source_bank_account_id,
+                label: t("goals.confirm.source"), placeholder: t("goals.confirm.source_prompt"),
+                balances: source_accounts.index_with(&:derived_balance_cents).transform_keys(&:id) %>
+        </div>
+      <% else %>
+        <%# No caixinha = no activation (round 3 decision 4: a goal is always linked). %>
+        <p class="text-sm text-base-content/55"><%= t("goals.confirm.caixinha_none") %></p>
+        <%= link_to t("goals.confirm.caixinha_create_cta"), bank_accounts_path, class: "btn btn-outline btn-primary btn-sm mt-3" %>
+      <% end %>
+    </div>
+
+    <% if savings_accounts.any? %>
+      <%= submit_tag t("goals.confirm.activate"), class: "btn btn-primary", data: { turbo_confirm: nil } %>
+    <% end %>
+  <% end %>
+<% else %>
+  <%# ── Infeasible: honest counter-offers (02 §2.C) ────────────────────── %>
+  <% co = build.counter_offers %>
+  <section class="rounded-box border border-warning/40 bg-warning/5 p-5">
+    <h2 class="font-display text-lg font-bold"><%= t("goals.states.too_tight_title") %></h2>
+    <% if goal.purchase? %>
+      <p class="mt-1 text-sm text-base-content/70">
+        <%= t("goals.states.too_tight_why", month: l(goal.target_date, format: :month_year),
+              required: brl_whole(co.required_monthly_cents), capacity: brl_whole(co.achievable_monthly_cents, mode: :floor)) %>
+      </p>
+    <% end %>
+
+    <div class="mt-4 grid gap-3">
+      <% if co.feasible_date %>
+        <%= form_with url: goal_path(goal), method: :patch, class: "contents" do |f| %>
+          <%= hidden_field_tag "goal[target_date]", co.feasible_date.iso8601 %>
+          <button class="flex w-full items-center justify-between rounded-box border border-base-300/70 bg-base-100 p-4 text-left shadow-sm hover:border-primary">
+            <span class="text-sm"><%= t("goals.states.offer_date", amount: brl_whole(co.achievable_monthly_cents, mode: :floor), month: l(co.feasible_date, format: :month_year)) %></span>
+            <span class="btn btn-primary btn-xs"><%= t("goals.states.use_this_date") %></span>
+          </button>
+        <% end %>
+      <% end %>
+
+      <%# Whole-real (round 3 P1): FLOOR the feasible target (never overstate what fits) and
+          submit exactly the displayed figure as bare whole reais, so accepted == shown and a
+          tapped offer can't ceil itself back to infeasible. %>
+      <% feasible_target_whole = Money.floor_to_real(co.feasible_target_cents) %>
+      <% if feasible_target_whole.positive? %>
+        <%= form_with url: goal_path(goal), method: :patch, class: "contents" do |f| %>
+          <%= hidden_field_tag "goal[target_reais]", (feasible_target_whole / 100).to_s %>
+          <button class="flex w-full items-center justify-between rounded-box border border-base-300/70 bg-base-100 p-4 text-left shadow-sm hover:border-primary">
+            <span class="text-sm">
+              <%= goal.purchase? ? t("goals.states.offer_target", month: l(goal.target_date, format: :month_year), amount: brl_whole(co.feasible_target_cents, mode: :floor)) :
+                                   t("goals.states.offer_target_savings", amount: brl_whole(co.feasible_target_cents, mode: :floor)) %>
+            </span>
+            <span class="btn btn-primary btn-xs"><%= t("goals.states.use_this_target") %></span>
+          </button>
+        <% end %>
+      <% end %>
+
+      <%= link_to incomes_path, class: "flex w-full items-center justify-between rounded-box border border-dashed border-base-300 bg-base-100/50 p-4 hover:border-primary" do %>
+        <span class="text-sm"><%= t("goals.states.offer_income", amount: brl_whole(co.extra_income_cents, mode: :floor)) %></span>
+        <span class="btn btn-ghost btn-xs text-primary"><%= t("goals.states.register_income") %></span>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+</div>

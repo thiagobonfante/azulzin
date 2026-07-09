@@ -61,4 +61,45 @@ class Whatsapp::MediaPipelineTest < ActiveSupport::TestCase
     assert_equal 1_435, txn.amount_cents
     assert_equal "whatsapp_receipt", txn.source
   end
+
+  # --- Round 3 P5: the caption is the deterministic instrument hint for purchase receipts
+  # (origin_phrase is nil by design), whether the receipt posts or parks.
+
+  def receipt_parsed(confidence:)
+    { "is_receipt" => true, "total_raw" => "42,00", "merchant_name" => "Restaurante X",
+      "payment_method" => "desconhecido", "origin_phrase" => nil, "purchase_date" => nil,
+      "overall_confidence" => confidence, "field_confidence" => { "total" => confidence } }
+  end
+
+  def run_receipt(msg, parsed)
+    Whatsapp::ReceiptExtractor.stub(:from_message, ->(m, **_k) { Whatsapp::ReceiptExtractor.build(parsed, m.body) }) do
+      WhatsappService.stub(:send_message, ->(*_a) { { id: "o" } }) do
+        ProcessInboundWhatsappJob.perform_now(msg.id)
+      end
+    end
+  end
+
+  test "image + caption 'Cartão santander' posts assigned to the Santander card" do
+    santander = @user.account.credit_cards.create!(institution: Institution.find_by(code: "033"))
+    msg = inbound("image", "image/jpeg", "receipt.jpg")
+    msg.update!(body: "Cartão santander")
+
+    run_receipt(msg, receipt_parsed(confidence: 0.95))
+    txn = @user.account.transactions.sole
+    assert txn.posted?
+    assert_equal santander, txn.credit_card
+  end
+
+  test "a below-floor captioned receipt parks PRE-ROUTED to the card" do
+    santander = @user.account.credit_cards.create!(institution: Institution.find_by(code: "033"))
+    msg = inbound("image", "image/jpeg", "receipt.jpg")
+    msg.update!(body: "Cartão santander")
+
+    run_receipt(msg, receipt_parsed(confidence: 0.5))
+    txn = @user.account.transactions.sole
+    assert txn.pending_review?
+    assert_equal santander, txn.credit_card      # park keeps the instrument match
+    # Parked card rows now bucket by the card's closing rule (unconfigured → calendar month).
+    assert_equal txn.occurred_on.beginning_of_month, txn.billing_month
+  end
 end

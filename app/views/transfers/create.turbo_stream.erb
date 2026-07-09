@@ -11,6 +11,17 @@
       <%= render "shared/toast", variant: :success,
             message: t("transfers.saved_celebration", amount: brl(@transactions.sum(&:amount_cents)), total: brl(summary.guardado_cents)) %>
     <% end %>
+    <%# Goal boost (round 3 P3): the money landed in a goal's caixinha — confirm the
+        acceleration (purchase: fresh derived forecast) with a click-through to the goal. %>
+    <% if @boosted_goal %>
+      <% projected = (Goals::Progress.new(@boosted_goal).projected_done_on if @boosted_goal.purchase?) %>
+      <%= turbo_stream.prepend "toasts" do %>
+        <%= render "shared/toast", variant: :info, href: goal_path(@boosted_goal),
+              message: (projected ?
+                t("transfers.saved_goal_boost", goal: @boosted_goal.name, month: l(projected, format: :month_year)) :
+                t("transfers.saved_goal_boost_savings", goal: @boosted_goal.name)) %>
+      <% end %>
+    <% end %>
   <% end %>
 <% elsif params[:sources].present? %>
   <%# Modal batch failed — re-render the form in place (same id), keeping the dialog open. %>

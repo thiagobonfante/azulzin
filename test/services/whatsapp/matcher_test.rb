@@ -42,6 +42,29 @@ class Whatsapp::MatcherTest < ActiveSupport::TestCase
     assert_operator r.candidates.size, :>=, 2
   end
 
+  test "sibling accounts at the same bank: the person token discriminates" do
+    nubank = Institution.find_by(code: "260")
+    thiago = BankAccount.create!(account: @user.account, institution: nubank, nickname: "Nubank (Thiago)")
+    fran   = BankAccount.create!(account: @user.account, institution: nubank, nickname: "Nubank (Fran)")
+
+    r = Whatsapp::Matcher.match_phrase(@user.account, "nubank thiago", kind: :account)
+    assert_equal thiago, r.instrument
+    assert_equal 1.0, r.c_match
+
+    r = Whatsapp::Matcher.match_phrase(@user.account, "nubank fran", kind: :account)
+    assert_equal fran, r.instrument
+  end
+
+  test "bare brand phrase with two sibling accounts still needs_disambiguation" do
+    nubank = Institution.find_by(code: "260")
+    BankAccount.create!(account: @user.account, institution: nubank, nickname: "Nubank (Thiago)")
+    BankAccount.create!(account: @user.account, institution: nubank, nickname: "Nubank (Fran)")
+
+    r = Whatsapp::Matcher.match_phrase(@user.account, "nubank", kind: :account)
+    assert_nil r.instrument
+    assert_equal "needs_disambiguation", r.reason
+  end
+
   test "short brand aliases never match fuzzily (whole token only)" do
     # "bb" (Banco do Brasil) must not fuzzy-match an unrelated word.
     BankAccount.create!(account: @user.account, institution: Institution.find_by(code: "001"))

@@ -1,0 +1,10 @@
+<% content_for :title, t("goals.new.meta_title") %>
+
+<header class="mb-6">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t("goals.new.title") %></h1>
+  <p class="text-sm text-base-content/60"><%= t("goals.new.subtitle") %></p>
+</header>
+
+<div class="mx-auto max-w-xl rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+  <%= render "goals/form", goal: @goal %>
+</div>

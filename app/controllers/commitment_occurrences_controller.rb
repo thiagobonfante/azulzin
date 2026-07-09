@@ -14,7 +14,11 @@ class CommitmentOccurrencesController < ApplicationController
     dismiss_notification
     respond_to do |format|
       format.turbo_stream { render :pay }
-      format.html { redirect_to commitment_path(@occurrence.commitment), notice: t("commitments.occurrences.paid") }
+      # Paying from the goal show page (round 3 P3) lands back on the goal.
+      format.html do
+        goal = (@occurrence.commitment.goal if params[:from] == "goal")
+        redirect_to (goal ? goal_path(goal) : commitment_path(@occurrence.commitment)), notice: t("commitments.occurrences.paid")
+      end
     end
   end
 

@@ -29,6 +29,10 @@ production:
     class: NotificationRetentionJob
     queue: background
     schedule: every day at 4am
+  goals_apply_budget_cuts:
+    class: Goals::ApplyBudgetCutsJob
+    queue: default
+    schedule: every day at 10am # UTC => 07:00 SP, before the 11am sweeps see the written budgets
   reminders_daily_dispatch:
     class: Reminders::DailyDispatchJob
     queue: default
@@ -37,6 +41,10 @@ production:
     class: Budgets::WeeklyCheckDispatchJob
     queue: default
     schedule: every monday at 11am # UTC => 08:00 America/Sao_Paulo (D6: weekly sweep)
+  goals_weekly_check:
+    class: Goals::WeeklyCheckDispatchJob
+    queue: default
+    schedule: every monday at 11am # UTC => 08:00 America/Sao_Paulo (.plans/goals 06 §2)
   summaries_weekly:
     class: Summaries::WeeklyDispatchJob
     queue: default

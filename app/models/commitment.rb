@@ -1,7 +1,14 @@
-# A recurring obligation (R10) OR a card installment-purchase parent (R11). Three kinds:
+# A recurring obligation (R10) OR a card installment-purchase parent (R11). Four kinds:
 #   installment  — finite: a car loan (debit) or a "5000 em 10x" card purchase. count present.
 #   fixed        — a rent/school obligation with a known amount and (optional) end date.
 #   subscription — Netflix etc.; charge day often unknown (schedule_day nil ⇒ end of month).
+#   savings      — a monthly "pay yourself first" contribution (.plans/goals 07 §1). The
+#                  bank_account is the SOURCE; paying it posts a transfer into a caixinha
+#                  (not an expense), so it reduces sobra via MonthSummary#projected_guardado_cents.
+#                  Two shapes: goal-backed (destination = goal.bank_account, this row's
+#                  transfer_to_bank_account stays nil; purchase = finite parcelado with
+#                  ends_on = last parcel month, savings_rate = open-ended) and standalone
+#                  (no goal; destination = transfer_to_bank_account, open-ended like Fixo).
 # Exactly one instrument (bank XOR card, DB-enforced). Occurrences are COMPUTED, never stored;
 # a payment is an ordinary posted transaction linked by commitment_id. See 01-domain-model.md §5.
 class Commitment < ApplicationRecord
@@ -11,6 +18,8 @@ class Commitment < ApplicationRecord
   belongs_to :bank_account, optional: true
   belongs_to :credit_card,  optional: true
   belongs_to :category,     optional: true
+  belongs_to :goal,         optional: true   # set only on kind: "savings" (.plans/goals 07 §1.2)
+  belongs_to :transfer_to_bank_account, class_name: "BankAccount", optional: true   # standalone savings destination
   has_many :payments, class_name: "Transaction", foreign_key: :commitment_id
   # Detach payments on destroy in ONE update: the DB pairs installment_number with commitment_id
   # (transactions_installment_requires_commitment), so dependent: :nullify — which clears only
@@ -19,13 +28,19 @@ class Commitment < ApplicationRecord
 
   money_column :amount, :total
 
-  enum :kind, { installment: "installment", fixed: "fixed", subscription: "subscription" }, validate: true
+  enum :kind, { installment: "installment", fixed: "fixed", subscription: "subscription", savings: "savings" }, validate: true
   enum :schedule_kind, { fixed_day: "fixed_day", nth_business_day: "nth_business_day" }, validate: true
 
   validates :name, presence: true, length: { maximum: 80 }
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :starts_on, presence: true
   validate  :exactly_one_instrument
+  validate  :goal_only_on_savings   # goal_id is set only on the "pay yourself first" savings kind
+  validate  :instrument_belongs_to_account   # tenancy backstop — a service may create! via params
+  validate  :savings_is_bank_sourced         # paying savings posts a bank→caixinha transfer; a card has no leg
+  # A goal-less savings commitment must say WHERE to guardar (goal-backed rows carry it on the goal).
+  validates :transfer_to_bank_account, presence: true, if: -> { savings? && goal_id.nil? }
+  validate  :transfer_to_is_a_savings_caixinha
   validates :installments_count, numericality: { only_integer: true, greater_than: 0 }, if: :installment?
   validates :installments_count, absence: true, unless: :installment?
   validates :schedule_day, presence: true, if: :fixed?   # subscription: unknown; installment: posted parcels
@@ -67,6 +82,22 @@ class Commitment < ApplicationRecord
   # "parcela N/total" — months since starts_on + 1.
   def installment_no(month)
     (month.year * 12 + month.month) - (starts_on.year * 12 + starts_on.month) + 1
+  end
+
+  # Derived parcel total for the "N/total" display (round 3 decision 4). Installments carry it as
+  # installments_count; a goal's savings commitment carries it as the starts_on..ends_on month span
+  # (Goals::Activate sets ends_on = starts_on >> (n−1) — no schema change, the DB pairing of
+  # installments_count with kind installment stands). nil = open-ended, no parcel UX.
+  def parcels_count
+    return installments_count if installment?
+    return nil unless savings? && ends_on
+    installment_no(ends_on.beginning_of_month)
+  end
+
+  # paid_count generalized across both parcelado shapes (presumed_paid_count is 0 for savings —
+  # the commitment is created before its first occurrence).
+  def paid_parcels_count
+    (presumed_paid_count + posted_paid_count).clamp(0, parcels_count.to_i)
   end
 
   def archived? = archived_at.present?
@@ -115,5 +146,28 @@ class Commitment < ApplicationRecord
     def exactly_one_instrument
       return if bank_account_id.present? ^ credit_card_id.present?
       errors.add(:base, :one_instrument)
+    end
+
+    def goal_only_on_savings
+      errors.add(:goal, :only_on_savings) if goal_id.present? && !savings?
+    end
+
+    # A commitment's instrument must live in the same account (params-driven create! backstop).
+    def instrument_belongs_to_account
+      errors.add(:bank_account, :wrong_account) if bank_account && bank_account.account_id != account_id
+      errors.add(:credit_card,  :wrong_account) if credit_card && credit_card.account_id != account_id
+    end
+
+    def savings_is_bank_sourced
+      errors.add(:credit_card, :not_on_savings) if savings? && credit_card_id.present?
+    end
+
+    # Money correctness: guardado_cents only counts transfers INTO savings-kind accounts
+    # (MonthSummary §7.5) — a checking destination would make sobra jump at pay time.
+    def transfer_to_is_a_savings_caixinha
+      return if transfer_to_bank_account.nil?
+      errors.add(:transfer_to_bank_account, :not_savings)  unless transfer_to_bank_account.savings?
+      errors.add(:transfer_to_bank_account, :wrong_account) if transfer_to_bank_account.account_id != account_id
+      errors.add(:transfer_to_bank_account, :same_account)  if transfer_to_bank_account_id == bank_account_id
     end
 end

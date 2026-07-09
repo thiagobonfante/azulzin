@@ -13,7 +13,7 @@
   </div>
 
   <% grouped = commitments.group_by(&:kind) %>
-  <% %w[installment fixed subscription].each do |kind| %>
+  <% %w[savings installment fixed subscription].each do |kind| %>
     <% next unless (group = grouped[kind]) %>
     <details open class="group" data-commitments-filter-target="group">
       <summary class="mb-2 flex cursor-pointer list-none items-center gap-2">
