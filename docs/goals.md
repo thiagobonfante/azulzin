@@ -41,7 +41,10 @@ value objects live in `app/services/goals.rb`.
   Turbo-swaps only the plan area. A cap is a **fixed cut carried in full by every plan** — it can
   flip an infeasible goal feasible (caps go past the 40% template max) and its money is committed
   even beyond the template's own target, so dragging accelerates all three plans. The chosen plan's
-  cuts then flow to `TrimCaps` → `Budgets::Check` like any other cut.
+  cuts then flow to `TrimCaps` → `Budgets::Check` like any other cut. At the goal's `starts_on`
+  (next month after activation) the cuts are also written into the standing category budgets by the
+  daily `Goals::ApplyBudgetCutsJob` and reverted on abandon/achieve — dev has no recurring
+  scheduler, so run `Goals::ApplyBudgetCutsJob.perform_now` from the console.
 - **`Progress`** — actual (guardado since `starts_on`) vs pay-schedule-aware expected (0 before the
   household's earliest payday, then pro-rata). Pace is **always** guardado-vs-expected, never
   projected sobra (contributing early lowers sobra — flagging a saver for it is banned). Suppressed

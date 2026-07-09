@@ -75,6 +75,16 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     assert_equal before + 40_000, after.remaining_cents          # sobra rises by the unpaid remainder (07 §1.3)
   end
 
+  test "a savings commitment starting NEXT month leaves this month's sobra alone and dents next month" do
+    @account.commitments.create!(kind: "savings", bank_account: @checking, amount_cents: 100_000,
+                                 name: "Meta: Carro", starts_on: Date.new(2026, 8, 1), schedule_day: 5, schedule_kind: "fixed_day")
+    current = MonthSummary.new(@account, @month)
+    assert_equal 0, current.projected_guardado_cents   # activation month untouched (round 3 decision 3)
+    assert_equal 0, current.a_pagar_cents
+    assert_equal 0, current.remaining_cents
+    assert_equal 100_000, MonthSummary.new(@account, Date.new(2026, 8, 1)).projected_guardado_cents
+  end
+
   test "regular debit commitments still count as saídas (savings exclusion didn't break debit)" do
     @account.commitments.create!(kind: "fixed", bank_account: @checking, amount_cents: 200_000,
                                  name: "Aluguel", starts_on: @month, schedule_day: 5, schedule_kind: "fixed_day")

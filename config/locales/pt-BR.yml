@@ -334,8 +334,10 @@ pt-BR:
     confirm:
       title: "Para onde vai o dinheiro?"
       caixinha: "Guardar em"
-      caixinha_none: "Você ainda não tem uma caixinha (conta de poupança). A meta acompanha todas as suas reservas."
+      caixinha_none: "Para ativar a meta você precisa de uma caixinha (conta de poupança) — é para lá que o dinheiro vai todo mês."
+      caixinha_create_cta: "Criar uma caixinha"
       source: "Sai de"
+      source_prompt: "Escolha a conta de origem"
       activate: "Ativar meta"
     states:
       estimate_badge: "estimativa inicial"
@@ -368,6 +370,7 @@ pt-BR:
         infeasible: "Essa meta não fecha ainda — veja as opções."
         not_savings: "Escolha uma caixinha (conta de poupança) válida."
         invalid_source: "Escolha de onde o dinheiro vai sair."
+        missing_caixinha: "Para ativar, escolha uma caixinha e uma conta de origem diferente."
     abandon:
       abandoned: "Meta abandonada. O que você guardou continua guardado."
     destroy:
@@ -381,6 +384,7 @@ pt-BR:
       progress_line: "%{actual} de %{target}"
       monthly_target: "%{amount}/mês"
       expected: "esperado até agora: %{amount}"
+      starts_in: "começa em %{month}"
       add_contribution: "Guardar na caixinha"
       no_caixinha_nudge: "Dica: ligue uma caixinha para acompanhar de perto."
       trim_map_title: "O mapa dos cortes"

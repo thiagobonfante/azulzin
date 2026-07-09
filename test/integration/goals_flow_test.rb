@@ -49,15 +49,18 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!   # draft screen
     assert_response :success
     assert_select "label", text: /Recomendado/
-    # required = ceil((6_000_000 - 0) / 17), hand-verified — shown as whole reais (ceil, round 3 P1)
-    assert_match Goals.ceil_div(6_000_000, 17).then { |c| brl_whole_pt(c) }, @response.body
+    # required = ceil((6_000_000 - 0) / 16 months Aug'26→Dec'27 — plans anchor NEXT month, round 3),
+    # hand-verified — shown as whole reais (ceil, round 3 P1)
+    assert_match Goals.ceil_div(6_000_000, 16).then { |c| brl_whole_pt(c) }, @response.body
 
     assert_no_difference -> { @account.goals.count } do
       patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id }
     end
     assert_redirected_to goal_path(goal)
     assert goal.reload.active?
+    assert_equal Date.new(2026, 8, 1), goal.starts_on
     assert goal.savings_commitment, "activation should create the savings commitment"
+    assert_equal Date.new(2026, 8, 1), goal.savings_commitment.starts_on   # first occurrence next month
 
     get dashboard_path
     assert_response :success
@@ -138,6 +141,44 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
 
     patch caps_goal_path(goal), params: { reset: "1" }
     assert_empty goal.reload.user_caps
+  end
+
+  test "activation without a caixinha/source is blocked with the friendly error (round 3)" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
+    goal = @account.goals.last
+    get goal_path(goal)   # populate baseline
+    patch choose_goal_path(goal), params: { template: "recomendado" }
+    assert_redirected_to goal_path(goal)
+    assert_equal I18n.t("goals.choose.errors.missing_caixinha"), flash[:alert]
+    assert goal.reload.draft?
+    assert_nil goal.savings_commitment
+  end
+
+  test "activating writes the budget cuts at starts_on via the daily sweep; current month untouched" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00",
+                                       target_date: "2027-12-01", initial_saved_reais: "0,00" } }
+    goal = @account.goals.last
+    follow_redirect!
+    patch caps_goal_path(goal), params: { caps: { @rest.id.to_s => "15000" } }   # orçamento slider → fixed cut
+    @rest.update!(monthly_budget_cents: 60_000)                                  # standing budget above the cap
+    patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id }
+    assert goal.reload.active?
+
+    Goals::ApplyBudgetCutsJob.perform_now                     # July sweep: goal starts August → no-op
+    assert_equal 60_000, @rest.reload.monthly_budget_cents
+    assert_nil goal.reload.budgets_applied_at
+
+    travel_to Time.utc(2026, 8, 2, 12)
+    Goals::ApplyBudgetCutsJob.perform_now                     # August sweep: cap written into the orçamento
+    assert_equal 15_000, @rest.reload.monthly_budget_cents
+    assert_not_nil goal.reload.budgets_applied_at
+
+    get categories_path
+    assert_response :success
+    assert_match "150,00", @response.body                     # the categories screen shows the cut value (R$ 150,00)
+
+    patch abandon_goal_path(goal)
+    assert_equal 60_000, @rest.reload.monthly_budget_cents    # reverted on abandon
   end
 
   test "double-submitting choose activates only once" do

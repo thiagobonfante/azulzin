@@ -58,6 +58,13 @@ class Budgets::CheckTest < ActiveSupport::TestCase
     assert_equal "Carro", event[:payload][:goal_name]
   end
 
+  test "a goal starting NEXT month does not tighten this month's alerts (month-aware trims)" do
+    @rest.update!(monthly_budget_cents: 60_000)
+    goal_with_cut(cap: 40_000).update!(starts_on: Date.new(2026, 8, 1))
+    spend!(45_000)                     # over the 40k trim, but the trim isn't in force in July
+    assert_empty check
+  end
+
   test "when the standing budget is tighter, it binds and the meta is not named" do
     @rest.update!(monthly_budget_cents: 30_000)
     goal_with_cut(cap: 40_000)

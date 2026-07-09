@@ -23,7 +23,7 @@ module Budgets
 
     def call
       actuals = Actuals.for(@account, @month)
-      trims   = Goals::TrimCaps.for(@account)   # a goal trim temporarily tightens the standing budget (goals 06 §3)
+      trims   = Goals::TrimCaps.for(@account, month: @month)   # a goal trim temporarily tightens the standing budget (goals 06 §3)
       budgeted(trims).filter_map do |category|
         limit, goal = effective_limit(category.monthly_budget_cents, trims[category.id])
         next unless limit&.positive?

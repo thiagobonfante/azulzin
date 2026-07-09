@@ -27,9 +27,11 @@ module Goals
       def actual   = @progress.actual_cents
       def expected = @progress.expected_cents
 
-      # 2-week post-activation grace: no findings, so a fresh goal never fires (03 §3).
+      # 2-week post-activation grace, extended to cover the pre-start gap month (round 3 decision
+      # 3: the schedule only starts at starts_on) — no findings before max(activation+14d, start).
       def in_grace?
-        @goal.activated_at && @as_of < @goal.activated_at.in_time_zone(TZ).to_date + GRACE_DAYS
+        return false unless @goal.activated_at
+        @as_of < [ @goal.activated_at.in_time_zone(TZ).to_date + GRACE_DAYS, @goal.starts_on ].compact.max
       end
 
       # Guardado-vs-expected, never projected sobra; suppressed on a low-income month (01 §6).

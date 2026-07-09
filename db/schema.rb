@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_08_000006) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_09_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -206,6 +206,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_08_000006) do
     t.integer "ai_calls_count", default: 0, null: false
     t.bigint "bank_account_id"
     t.jsonb "baseline", default: {}, null: false
+    t.datetime "budgets_applied_at"
     t.datetime "celebrated_at"
     t.datetime "created_at", null: false
     t.bigint "created_by_id"
@@ -214,6 +215,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_08_000006) do
     t.bigint "monthly_target_cents"
     t.string "name", limit: 80, null: false
     t.jsonb "plan", default: {}, null: false
+    t.jsonb "previous_budgets", default: {}, null: false
     t.date "starts_on"
     t.string "status", default: "draft", null: false
     t.bigint "target_cents", null: false

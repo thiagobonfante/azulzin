@@ -24,10 +24,14 @@ module Goals
       return failure(:infeasible) unless build.feasible?
       plan = build.plans.find { |p| p.template == @template }
       return failure(:invalid_template) unless plan
+      # A goal is ALWAYS linked to a savings commitment (round 3 decision 4): the transfer needs
+      # both legs, so a missing caixinha, missing source, or source == caixinha blocks activation.
+      return failure(:missing_caixinha) if @bank_account_id.blank? || @source_bank_account_id.blank? ||
+                                           @source_bank_account_id.to_s == @bank_account_id.to_s
       # The instrument ids come from params and are written via update_all/create! (which skip
       # model validations), so whitelist them against THIS account here (tenancy + savings-kind).
-      return failure(:not_savings) if @bank_account_id && !valid_caixinha?
-      return failure(:invalid_source) if @source_bank_account_id && !valid_source?
+      return failure(:not_savings) unless valid_caixinha?
+      return failure(:invalid_source) unless valid_source?
 
       # with_lock serializes activations per account so the cap check + flip are one critical
       # section (guarded_update alone can't referee a count across two different drafts).
@@ -45,7 +49,7 @@ module Goals
       # can't activate twice with different plans; the second update matches zero rows.
       def guarded_activate(plan)
         Goal.where(id: @goal.id, status: "draft").update_all(
-          status: "active", activated_at: Time.current, starts_on: Recompute.current_month,
+          status: "active", activated_at: Time.current, starts_on: Recompute.start_month,
           monthly_target_cents: plan.monthly_target_cents, plan: plan.to_snapshot,
           bank_account_id: @bank_account_id, updated_at: Time.current
         ).positive?
@@ -58,20 +62,26 @@ module Goals
         @goal.account.goals.active.where.not(id: @goal.id).count >= Goal::MAX_ACTIVE
       end
 
-      # Only when the goal is linked to a caixinha AND a distinct funding source is chosen — the
-      # transfer needs both legs. Unlinked goals fall back to all-savings progress with no commitment.
+      # Caixinha + distinct source are guaranteed by the :missing_caixinha gate above — every
+      # active goal carries its commitment. (Pre-round-3 goals may still be unlinked: Progress
+      # keeps the all-savings fallback for them.)
       def create_savings_commitment(plan)
-        return unless @bank_account_id && @source_bank_account_id && @source_bank_account_id.to_s != @bank_account_id.to_s
-
         @goal.account.commitments.create!(
           kind: "savings", goal: @goal, bank_account_id: @source_bank_account_id,
           amount_cents: plan.monthly_target_cents, name: @goal.name,
-          starts_on: @goal.starts_on, ends_on: commitment_end,
+          starts_on: @goal.starts_on, ends_on: commitment_end(plan),
           schedule_day: earliest_pay_day, schedule_kind: "fixed_day"
         )
       end
 
-      def commitment_end = @goal.purchase? ? @goal.target_date.beginning_of_month : nil
+      # Purchase = a parcelado: n = ⌈remaining / parcel⌉ months, the last one at starts_on >> (n−1)
+      # — anchored on the CHOSEN plan, not target_date (leve honestly finishes later, acelerado
+      # earlier). savings_rate stays open-ended (fixo-like).
+      def commitment_end(plan)
+        return nil unless @goal.purchase?
+        n = [ Goals.ceil_div([ @goal.target_cents - @goal.initial_saved_cents, 0 ].max, plan.monthly_target_cents), 1 ].max
+        @goal.starts_on >> (n - 1)
+      end
 
       def earliest_pay_day
         @goal.account.incomes.kept.active.map { |i| i.expected_on(@goal.starts_on).day }.min || 5

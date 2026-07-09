@@ -15,8 +15,11 @@ module Goals
     end
 
     # monthly_target × full months elapsed + the pay-schedule-aware slice of the current month.
+    # 0 through the whole pre-start gap (activation month, round 3 decision 3) — the MTD pro-rata
+    # must never demand money before the schedule starts.
     def expected_cents
       return 0 unless @goal.starts_on && @goal.monthly_target_cents
+      return 0 if current_month < @goal.starts_on.beginning_of_month
       monthly = @goal.monthly_target_cents
       monthly * full_months_elapsed + expected_mtd(monthly)
     end
@@ -30,7 +33,7 @@ module Goals
       return @goal.account.transactions.none if ids.empty? || @goal.starts_on.blank?
       @goal.account.transactions.posted.kept
            .where(direction: "transfer", transfer_to_bank_account_id: ids)
-           .where(billing_month: @goal.starts_on..)
+           .where(billing_month: counting_from..)
            .order(occurred_on: :desc, id: :desc)
     end
 
@@ -48,8 +51,16 @@ module Goals
         return 0 if ids.empty? || @goal.starts_on.blank?
         @goal.account.transactions.posted.kept
              .where(direction: "transfer", transfer_to_bank_account_id: ids)
-             .where(billing_month: @goal.starts_on..)
+             .where(billing_month: counting_from..)
              .sum(:amount_cents)
+      end
+
+      # Contributions count from the ACTIVATION month's begin while expected anchors on starts_on
+      # (round 3 decision 3): an eager transfer in the gap month counts toward actual — "guardado
+      # continua guardado" — without the schedule demanding anything before it starts.
+      def counting_from
+        [ @goal.activated_at&.in_time_zone(Goals::TZ)&.to_date&.beginning_of_month,
+          @goal.starts_on ].compact.min
       end
 
       # Linked caixinha counts only its own transfers; unlinked counts every savings account (01 §1).

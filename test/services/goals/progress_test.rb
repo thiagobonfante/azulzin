@@ -105,6 +105,29 @@ class Goals::ProgressTest < ActiveSupport::TestCase
     assert Goals::Progress.new(g).pace_flag_allowed?
   end
 
+  # ── Round 3 decision 3: next-month start — the pre-start gap month ──────────────────────
+
+  test "expected is 0 for the WHOLE activation gap month, even past the payday" do
+    @account.incomes.create!(name: "Salário", amount_cents: 500_000, bank_account: @checking,
+                             schedule_day: 10, schedule_kind: "fixed_day")
+    g = goal(starts_on: Date.new(2026, 8, 1), activated_at: Time.utc(2026, 7, 15, 12))
+
+    travel_to Time.utc(2026, 7, 20, 12)          # gap month, after the payday — the old MTD bug
+    assert_equal 0, Goals::Progress.new(g).expected_cents
+
+    travel_to Time.utc(2026, 8, 15, 12)          # schedule in force: pro-rata after the payday
+    assert_operator Goals::Progress.new(g).expected_cents, :>, 0
+  end
+
+  test "an eager transfer in the gap month counts toward actual (guardado continua guardado)" do
+    travel_to Time.utc(2026, 7, 20, 12)
+    g = goal(starts_on: Date.new(2026, 8, 1), activated_at: Time.utc(2026, 7, 15, 12))
+    save_to_caixinha!(cents: 120_000, month: Date.new(2026, 7, 1))   # before starts_on, after activation-month begin
+    p = Goals::Progress.new(g)
+    assert_equal 120_000, p.actual_cents
+    assert_includes p.contributions.to_a.map(&:amount_cents), 120_000
+  end
+
   test "purchase auto-achieves when the saved amount reaches the target" do
     travel_to Time.utc(2026, 7, 20, 12)
     g = goal(target_cents: 500_000)

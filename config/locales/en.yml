@@ -333,8 +333,10 @@ en:
     confirm:
       title: "Where does the money go?"
       caixinha: "Save into"
-      caixinha_none: "You don't have a savings pot yet. The goal tracks all of your savings."
+      caixinha_none: "To activate the goal you need a savings pot — that's where the money goes every month."
+      caixinha_create_cta: "Create a savings pot"
       source: "Comes from"
+      source_prompt: "Pick the source account"
       activate: "Activate goal"
     states:
       estimate_badge: "early estimate"
@@ -367,6 +369,7 @@ en:
         infeasible: "This goal doesn't close yet — see the options."
         not_savings: "Pick a valid savings pot."
         invalid_source: "Pick where the money comes from."
+        missing_caixinha: "To activate, pick a savings pot and a different source account."
     abandon:
       abandoned: "Goal abandoned. What you saved stays saved."
     destroy:
@@ -380,6 +383,7 @@ en:
       progress_line: "%{actual} of %{target}"
       monthly_target: "%{amount}/mo"
       expected: "expected so far: %{amount}"
+      starts_in: "starts in %{month}"
       add_contribution: "Save into the pot"
       no_caixinha_nudge: "Tip: link a savings pot to track it closely."
       trim_map_title: "The cuts map"

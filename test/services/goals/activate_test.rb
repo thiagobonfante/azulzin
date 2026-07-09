@@ -36,7 +36,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     assert result.ok?
     g.reload
     assert g.active?
-    assert_equal Date.new(2026, 7, 1), g.starts_on
+    assert_equal Date.new(2026, 8, 1), g.starts_on          # NEXT month (round 3 decision 3)
     assert_operator g.monthly_target_cents, :>, 0
     assert_equal @caixinha.id, g.bank_account_id
     assert_equal "recomendado", g.plan["template"]
@@ -46,7 +46,35 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     assert_equal "savings", c.kind
     assert_equal @checking.id, c.bank_account_id            # source
     assert_equal g.monthly_target_cents, c.amount_cents
-    assert_equal Date.new(2027, 12, 1).beginning_of_month, c.ends_on
+    assert_equal Date.new(2026, 8, 1), c.starts_on          # first occurrence next month
+
+    # Parcelado (round 3 decision 4): n = ⌈remaining/parcel⌉, last parcel at starts_on >> (n−1).
+    # required = ceil(6_000_000 / 16 months Aug'26→Dec'27) = 375_000 → n = 16 → Nov 2027.
+    n = Goals.ceil_div(6_000_000, g.monthly_target_cents)
+    assert_equal g.starts_on >> (n - 1), c.ends_on
+    assert_equal Date.new(2027, 11, 1), c.ends_on
+    assert_equal n, c.parcels_count
+    assert_equal 0, c.paid_parcels_count
+  end
+
+  test "leve's commitment no longer ends before its projected done month (round 3 cutoff fix)" do
+    g = draft
+    Goals::Activate.call(g, template: "leve", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    g.reload
+    c = g.savings_commitment
+    done_on = Date.iso8601(g.plan["projected_done_on"])
+    assert_operator done_on, :>, g.target_date.beginning_of_month   # leve honestly slips past the asked date
+    assert_equal done_on, c.ends_on >> 1                            # last parcel is the month before done
+  end
+
+  test "a savings_rate goal's commitment stays open-ended (no parcels)" do
+    g = @account.goals.create!(name: "Guardar", kind: "savings_rate", target_cents: 150_000,
+                               status: "draft", baseline: draft.baseline)
+    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    assert result.ok?
+    c = g.reload.savings_commitment
+    assert_nil c.ends_on
+    assert_nil c.parcels_count
   end
 
   test "the chosen plan is recomputed from the frozen baseline, not trusted from params" do
@@ -108,12 +136,22 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     refute c.valid?
   end
 
-  test "an unlinked goal activates without a commitment (all-savings fallback)" do
+  test "activation without a caixinha or source is blocked — a goal is ALWAYS linked (round 3)" do
     g = draft
     result = Goals::Activate.call(g, template: "recomendado", bank_account_id: nil, source_bank_account_id: nil)
-    assert result.ok?
-    assert g.reload.active?
-    assert_nil g.savings_commitment
+    refute result.ok?
+    assert_equal :missing_caixinha, result.error
+    assert g.reload.draft?
+
+    assert_equal :missing_caixinha,
+                 Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: nil).error
+  end
+
+  test "source == caixinha is blocked — the transfer needs two distinct legs" do
+    g = draft
+    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @caixinha.id)
+    assert_equal :missing_caixinha, result.error
+    assert g.reload.draft?
   end
 
   test "paying the savings commitment posts a transfer into the caixinha and counts as guardado" do
@@ -121,14 +159,14 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
     c = g.savings_commitment
 
-    txn = Commitments::MarkPaid.call(c, Date.new(2026, 7, 1))
+    txn = Commitments::MarkPaid.call(c, Date.new(2026, 8, 1))   # the first occurrence (next month)
 
     assert_equal "transfer", txn.direction
     assert_equal @caixinha.id, txn.transfer_to_bank_account_id
     assert_equal @checking.id, txn.bank_account_id
     assert_nil txn.category_id
-    assert c.paid_in?(Date.new(2026, 7, 1))
-    assert_equal txn.amount_cents, MonthSummary.new(@account, Date.new(2026, 7, 1)).guardado_cents
+    assert c.paid_in?(Date.new(2026, 8, 1))
+    assert_equal txn.amount_cents, MonthSummary.new(@account, Date.new(2026, 8, 1)).guardado_cents
     assert_equal g.initial_saved_cents + txn.amount_cents, Goals::Progress.new(g).actual_cents
   end
 end

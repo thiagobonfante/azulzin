@@ -62,6 +62,17 @@ class Goals::CheckerTest < ActiveSupport::TestCase
     assert_empty Goals::Checker.call(g).findings
   end
 
+  test "the pre-start gap month never alerts — grace extends to starts_on (round 3)" do
+    travel_to Time.utc(2026, 7, 25, 12)   # past activated_at + 14d, but still before starts_on
+    cat = @account.categories.create!(name: "Compras")
+    g = active_goal(baseline: { "categories" => [ { "category_id" => cat.id, "median_cents" => 20_000 } ] })
+    g.update!(starts_on: Date.new(2026, 8, 1))
+    spend!(70_000, category: cat, on: Date.new(2026, 7, 22))   # would trip big_purchase outside grace
+    result = Goals::Checker.call(g)
+    assert_equal "on_track", result.status
+    assert_empty result.findings
+  end
+
   test "irregular-income guard: a low-income month suppresses the pace finding" do
     travel_to Time.utc(2026, 7, 31, 12)
     g = active_goal(baseline: { "median_income_cents" => 500_000 })

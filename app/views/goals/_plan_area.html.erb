@@ -28,7 +28,10 @@
           </div>
           <div class="form-control">
             <label class="mb-1 block text-sm font-medium"><%= t("goals.confirm.source") %></label>
-            <select name="source_bank_account_id" class="select select-bordered w-full">
+            <%# A prompt, never a preselected account — the source must be a deliberate choice
+                distinct from the caixinha (Activate blocks source == caixinha). %>
+            <select name="source_bank_account_id" class="select select-bordered w-full" required>
+              <option value=""><%= t("goals.confirm.source_prompt") %></option>
               <% source_accounts.each do |a| %>
                 <option value="<%= a.id %>"><%= a.display_name %></option>
               <% end %>
@@ -36,11 +39,15 @@
           </div>
         </div>
       <% else %>
+        <%# No caixinha = no activation (round 3 decision 4: a goal is always linked). %>
         <p class="text-sm text-base-content/55"><%= t("goals.confirm.caixinha_none") %></p>
+        <%= link_to t("goals.confirm.caixinha_create_cta"), bank_accounts_path, class: "btn btn-outline btn-primary btn-sm mt-3" %>
       <% end %>
     </div>
 
-    <%= submit_tag t("goals.confirm.activate"), class: "btn btn-primary", data: { turbo_confirm: nil } %>
+    <% if savings_accounts.any? %>
+      <%= submit_tag t("goals.confirm.activate"), class: "btn btn-primary", data: { turbo_confirm: nil } %>
+    <% end %>
   <% end %>
 <% else %>
   <%# ── Infeasible: honest counter-offers (02 §2.C) ────────────────────── %>

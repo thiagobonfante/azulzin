@@ -26,7 +26,7 @@
         <% parts = [ commitment_schedule_phrase(commitment).presence,
                      commitment.instrument&.display_name,
                      commitment.card? ? t("commitments.instrument.credit") : t("commitments.instrument.debit") ] %>
-        <% parts << t("commitments.row.progress", paid: commitment.paid_count, count: commitment.installments_count) if commitment.installment? %>
+        <% parts << t("commitments.row.progress", paid: commitment.paid_parcels_count, count: commitment.parcels_count) if commitment.parcels_count %>
         <% if (next_month = commitment.next_charge_month) %>
           <% parts << t("commitments.row.next_due", date: l(commitment.due_on(next_month), format: :short)) %>
         <% end %>
@@ -35,9 +35,9 @@
     </div>
     <div class="shrink-0 text-right">
       <p class="font-display text-sm font-bold tabular-nums"><%= brl(commitment.amount_cents) %></p>
-      <% if commitment.installment? %>
+      <% if commitment.parcels_count %>
         <div class="ml-auto mt-1 h-1 w-16 overflow-hidden rounded-full bg-base-200">
-          <div class="h-full rounded-full bg-primary" style="width: <%= (commitment.paid_count.fdiv(commitment.installments_count) * 100).round %>%"></div>
+          <div class="h-full rounded-full bg-primary" style="width: <%= (commitment.paid_parcels_count.fdiv(commitment.parcels_count) * 100).round %>%"></div>
         </div>
       <% end %>
     </div>

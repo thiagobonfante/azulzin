@@ -38,7 +38,12 @@
   <% unless @goal.achieved? %>
     <div class="mt-3 flex items-center gap-2">
       <span class="badge <%= goal_pace_badge_class(pace_status) %> badge-sm"><%= t("goals.pace.#{pace_status}") %></span>
-      <span class="text-xs text-base-content/50"><%= t("goals.show.expected", amount: brl_whole(@progress.expected_cents)) %></span>
+      <%# Pre-start gap month (round 3 decision 3): "começa em <mês>" instead of "esperado R$ 0". %>
+      <% if @goal.starts_on && Date.current.in_time_zone(Goals::TZ).to_date < @goal.starts_on %>
+        <span class="text-xs text-base-content/50"><%= t("goals.show.starts_in", month: l(@goal.starts_on, format: :month_year)) %></span>
+      <% else %>
+        <span class="text-xs text-base-content/50"><%= t("goals.show.expected", amount: brl_whole(@progress.expected_cents)) %></span>
+      <% end %>
     </div>
   <% end %>
 </section>

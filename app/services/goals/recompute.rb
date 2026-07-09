@@ -8,7 +8,7 @@ module Goals
         profile:                   Profile.from_snapshot(goal.baseline),
         kind:                      goal.kind,
         target_cents:              goal.target_cents,
-        starts_on:                 goal.starts_on || current_month,
+        starts_on:                 goal.starts_on || start_month,
         target_date:               goal.target_date,
         initial_saved_cents:       goal.initial_saved_cents,
         committed_elsewhere_cents: committed_elsewhere(goal),
@@ -16,8 +16,12 @@ module Goals
       )
     end
 
-    # Current-month first-of-month (SP) — the activation default when a draft has no starts_on yet.
+    # Current-month first-of-month (SP).
     def self.current_month = Date.current.in_time_zone("America/Sao_Paulo").to_date.beginning_of_month
+
+    # Where a goal's schedule anchors: NEXT month's first day (round 3 decision 3) — drafts are
+    # priced from it and Activate freezes it, so the displayed plan == the activated plan.
+    def self.start_month = current_month >> 1
 
     # Money already promised to the account's OTHER active goals (07 §1.3 capacity contention).
     def self.committed_elsewhere(goal)

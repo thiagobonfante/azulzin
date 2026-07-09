@@ -2,9 +2,11 @@
 #   installment  — finite: a car loan (debit) or a "5000 em 10x" card purchase. count present.
 #   fixed        — a rent/school obligation with a known amount and (optional) end date.
 #   subscription — Netflix etc.; charge day often unknown (schedule_day nil ⇒ end of month).
-#   savings      — a goal's "pay yourself first" monthly contribution (.plans/goals 07 §1). The
+#   savings      — a monthly "pay yourself first" contribution (.plans/goals 07 §1). The
 #                  bank_account is the SOURCE; paying it posts a transfer into the goal's caixinha
 #                  (not an expense), so it reduces sobra via MonthSummary#projected_guardado_cents.
+#                  Two modes: goal-linked purchase = finite parcelado (ends_on = last parcel month,
+#                  parcels_count derived); goal-linked savings_rate or standalone = open-ended.
 # Exactly one instrument (bank XOR card, DB-enforced). Occurrences are COMPUTED, never stored;
 # a payment is an ordinary posted transaction linked by commitment_id. See 01-domain-model.md §5.
 class Commitment < ApplicationRecord
@@ -73,6 +75,22 @@ class Commitment < ApplicationRecord
   # "parcela N/total" — months since starts_on + 1.
   def installment_no(month)
     (month.year * 12 + month.month) - (starts_on.year * 12 + starts_on.month) + 1
+  end
+
+  # Derived parcel total for the "N/total" display (round 3 decision 4). Installments carry it as
+  # installments_count; a goal's savings commitment carries it as the starts_on..ends_on month span
+  # (Goals::Activate sets ends_on = starts_on >> (n−1) — no schema change, the DB pairing of
+  # installments_count with kind installment stands). nil = open-ended, no parcel UX.
+  def parcels_count
+    return installments_count if installment?
+    return nil unless savings? && ends_on
+    installment_no(ends_on.beginning_of_month)
+  end
+
+  # paid_count generalized across both parcelado shapes (presumed_paid_count is 0 for savings —
+  # the commitment is created before its first occurrence).
+  def paid_parcels_count
+    (presumed_paid_count + posted_paid_count).clamp(0, parcels_count.to_i)
   end
 
   def archived? = archived_at.present?
