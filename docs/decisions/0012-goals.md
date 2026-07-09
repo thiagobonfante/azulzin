@@ -62,3 +62,26 @@ honest math is the product.
   auto-edit; ≤5 active goals per account bound the fan-out and keep the product focused.
 - Prod launch gating pins pt-BR; en-US keys ship complete and dark. The engine, money-trap tests,
   and tone contract are the load-bearing artifacts — see `.plans/goals/` and `docs/goals.md`.
+
+## Round 3 addendum (2026-07-09)
+
+Founder walkthrough fixes. Decisions recorded (detail in `docs/goals.md`):
+
+- **Whole-real display.** Goals UI shows whole reais only: CEIL what the user is asked to save,
+  FLOOR capacity/feasible figures and real ledger amounts — never overstate what the household
+  can do or holds. Internal math and stored plans stay exact cents; `budget_*_goal` alerts keep
+  2 decimals (sibling-alert consistency).
+- **Next-month effectivity.** `starts_on` = next month begin for drafts and activation; expected
+  pace is 0 through the gap month (eager transfers still count); checker grace covers the gap.
+- **Budget write-through + revert.** At `starts_on` a daily sweep writes plan cuts into the
+  standing category budgets (min-tighten only, creates missing budgets, snapshots previous
+  values). Abandon AND achieve revert immediately — manual edits win, other active goals' caps
+  respected. TrimCaps remains the month-aware alert floor.
+- **Always-linked commitment, as parcels.** Activation requires caixinha + distinct source (no
+  caixinha → blocked with a create-caixinha CTA). Purchase goals get a finite parcelado
+  (`ends_on = starts_on >> (n − 1)`, N/total display); savings_rate stays open-ended. Legacy
+  unlinked goals keep the Progress fallback. Hub label: "Guardar"; standalone savings
+  commitments carry their own destination caixinha.
+- **WA single-plan flow.** WhatsApp goal creation is a deterministic Q&A (one Extractor call to
+  classify + seed, zero LLM after) presenting one recomendado plan — a deliberate deviation from
+  the web's 3 personalities. WA drafts consume the AI-session quota but skip the narrator.
