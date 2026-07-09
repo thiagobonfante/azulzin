@@ -1,5 +1,6 @@
 require_relative "fake_sidecar_server"
 require_relative "canned_ai"
+require_relative "scenario"
 
 module E2E
   TOKEN = "e2e-token"
