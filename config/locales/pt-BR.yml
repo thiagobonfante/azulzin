@@ -1426,7 +1426,6 @@ pt-BR:
         applied: "💙 Meta *%{name}* reorganizada: %{monthly}/mês até %{month}. Sem culpa — o que importa é continuar."
         kept: "Fechado, fica como está. 💙"
         unavailable: "Não consegui recalcular essa meta agora — os números não fecham. Dá uma olhada na página da meta no app. 💙"
-        failed: "Não deu pra aplicar agora. Tenta de novo, ou ajusta pelo app. 💙"
       notifications:
         bill_due:
           zero: "🔔 Sua conta *%{name}* (%{amount}) vence hoje. 💙"

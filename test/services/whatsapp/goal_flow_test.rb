@@ -366,6 +366,32 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     assert GoalConversation.open_for(@user).replan_offered?
   end
 
+  test "reorganizar mid-creation with nothing to replan keeps the draft and the chat (review fix)" do
+    reach_offer
+    draft = conv.goal
+    assert draft.draft?
+    run_pipeline(inbound("reorganizar"))
+    assert_equal I18n.t("whatsapp.replies.goal_replan.none"), @sent.last
+    assert draft.reload.draft?, "half-built draft survives"
+    assert conv.reload.offered?, "creation chat survives"
+    run_pipeline(inbound("sim"))                        # and the flow continues to activation
+    assert conv.reload.closed?
+    assert draft.reload.active?
+  end
+
+  test "a replan that can no longer apply gets the unavailable copy, not a dead-end retry (review fix)" do
+    goal = replannable_goal!
+    run_pipeline(inbound("reorganizar"))
+    assert GoalConversation.open_for(@user).replan_offered?
+    @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 6_000_000,
+                                  bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                  occurred_on: Date.new(2026, 7, 15), billing_month: Date.new(2026, 7, 1),
+                                  billing_month_manual: true)   # target reached between offer and reply
+    run_pipeline(inbound("1"))
+    assert_equal I18n.t("whatsapp.replies.goal_replan.unavailable"), @sent.last
+    assert goal.reload.active?, "nothing was rewritten"
+  end
+
   private
 
   def replannable_goal!(name: "Carro", monthly: 300_000)

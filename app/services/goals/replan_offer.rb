@@ -77,11 +77,8 @@ module Goals
 
       def profile = @profile ||= Analyzer.call(@goal.account)
 
-      # The frozen plan's promise (leve honestly finishes after target_date) — the "antes: X"
-      # side of the copy.
-      def promised_done_on
-        iso = @goal.plan["projected_done_on"]
-        iso.present? ? Date.iso8601(iso) : @goal.target_date
-      end
+      # The frozen plan's promise (Goal#promised_done_on — shared with RiskScan's slip test,
+      # so the alert and the offer can never disagree) — also the "antes: X" side of the copy.
+      def promised_done_on = @goal.promised_done_on
   end
 end

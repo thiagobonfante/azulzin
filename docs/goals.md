@@ -209,9 +209,13 @@ Zero-LLM findings computed once per sweep over the live ledger (round 4):
 
 Risk findings escalate the check status (any ⇒ at least `at_risk`; missed/red ⇒ `off_track`),
 bypass the activation grace and — being predictive protection — the 14-day cooldown
-(`budget_raised` keeps it). The delta-gate is keyed on `(finding, category, month)` so each
-concrete cause alerts exactly once; the weekly WA guard and daily cap always stand. Every risk
-template ends with the way out: **responda *reorganizar***.
+(`budget_raised` keeps it). A goal **replanned in the last fortnight sits out the red
+projections** — the household just reorganized; the switch stays quiet. The delta-gate is
+keyed on `(finding, category, month)` and compares against the causes behind the member's
+**last alert** (not last week's silent check), so each concrete cause alerts exactly once —
+and a cause the cooldown suppresses still fires when the cooldown lifts. The weekly WA guard
+and daily cap always stand. Every risk template ends with the way out:
+**responda *reorganizar***.
 
 ## Reorganizar — replanning without guilt
 

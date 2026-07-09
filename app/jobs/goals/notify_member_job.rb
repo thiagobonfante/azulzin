@@ -67,17 +67,22 @@ module Goals
       end
 
       # Delta-gate (worsened status OR a new (finding, category, month) cause) + 14-day cooldown
-      # run BEFORE record! — a persistent, already-reported problem never re-fires. The lead
+      # run BEFORE record! — a persistent, already-reported problem never re-fires. Cause
+      # novelty is measured against the check behind THIS MEMBER's last alert, not last week's
+      # silent check: a new cause the cooldown suppresses stays "new" and fires once the
+      # cooldown lifts (review fix — comparing to the silent week swallowed it forever).
+      # Worsening still compares to last week, so a recovery→relapse re-alerts. The lead
       # finding — the worst NEW cause — is the one the banner/message renders; urgent leads
       # (missed_month / red_month / next_month_red) bypass the cooldown, never the delta-gate,
       # the weekly WA guard or the spine's daily cap. Idempotent per (user, goal, week).
       def alert(goal, check, week)
+        last     = last_alert(goal)
+        new_keys = check.findings.map { |f| cause_key(f) } - alerted_keys(goal, last)
         prev     = goal.checks.where(period_start: ...week).order(period_start: :desc).first
-        new_keys = check.findings.map { |f| cause_key(f) } - previous_keys(prev)
         worsened = prev.nil? || SEVERITY.fetch(check.status) > SEVERITY.fetch(prev.status)
         return if new_keys.empty? && !worsened
         lead = check.findings.find { |f| new_keys.include?(cause_key(f)) } || check.findings.first
-        return if in_cooldown?(goal) && !lead&.dig("urgent")
+        return if in_cooldown?(last) && !lead&.dig("urgent")
         notification = Notification.record!(user: @user, account: @account, kind: "goal_alert",
                                             subject: goal, period_key: week, payload: lead || {})
         return if goals_wa_sent_this_week?(week)   # ≤1 goals message/user/week — dashboard-only past that
@@ -86,7 +91,17 @@ module Goals
 
       def cause_key(finding) = finding.values_at("finding", "category_id", "month")
 
-      def previous_keys(prev) = (prev&.findings || []).map { |f| cause_key(f) }
+      def last_alert(goal)
+        Notification.where(user: @user, kind: "goal_alert", subject: goal).order(created_at: :desc).first
+      end
+
+      # The causes already communicated to this member: the findings of the check the last
+      # alert was recorded against (its period_key IS that week's period_start).
+      def alerted_keys(goal, last)
+        return [] unless last
+        baseline = goal.checks.find_by(period_start: last.period_key)
+        (baseline&.findings || []).map { |f| cause_key(f) }
+      end
 
       # Race-free under the shared "proactive_notify" concurrency group: the read-then-Deliver is
       # serialized per user, and Deliver stamps whatsapp_sent_at synchronously before the next goal.
@@ -96,8 +111,7 @@ module Goals
                     .where(whatsapp_sent_at: week.beginning_of_day..).exists?
       end
 
-      def in_cooldown?(goal)
-        last = Notification.where(user: @user, kind: "goal_alert", subject: goal).order(created_at: :desc).first
+      def in_cooldown?(last)
         last && last.created_at.to_date > @as_of - COOLDOWN_DAYS
       end
 

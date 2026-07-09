@@ -1425,7 +1425,6 @@ en:
         applied: "💙 Goal *%{name}* reorganized: %{monthly}/month until %{month}. No guilt — what matters is keeping going."
         kept: "Done, it stays as is. 💙"
         unavailable: "I couldn't recompute this goal right now — the numbers don't close. Take a look at the goal page in the app. 💙"
-        failed: "Couldn't apply it right now. Try again, or adjust it in the app. 💙"
       notifications:
         bill_due:
           zero: "🔔 Your *%{name}* bill (%{amount}) is due today. 💙"

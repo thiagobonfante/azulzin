@@ -57,14 +57,12 @@ module GoalsHelper
   def goal_reserved_cents(bank_account)
     @goal_reserved_map ||= begin
       map = Hash.new(0)
-      savings_ids = nil
       Current.account.goals.active.each do |goal|
         map[goal.initial_saved_bank_account_id] += goal.initial_saved_cents.to_i if goal.initial_saved_bank_account_id
         next if goal.starts_on.blank?   # mirrors Progress#guardado_since_start's guard
-        ids = goal.bank_account_id ? [ goal.bank_account_id ] : (savings_ids ||= Current.account.bank_accounts.kept.savings.pluck(:id))
+        ids = goal.savings_account_ids
         next if ids.empty?
-        Current.account.transactions.posted.kept
-               .where(direction: "transfer", transfer_to_bank_account_id: ids)
+        Current.account.transactions.guardado_into(ids)
                .where(billing_month: Goals::Progress.new(goal).counting_from..)
                .group(:transfer_to_bank_account_id).sum(:amount_cents)
                .each { |account_id, cents| map[account_id] += cents }

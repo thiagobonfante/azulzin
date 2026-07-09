@@ -88,6 +88,21 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
       end
     end
 
+    # Round-4 review hardening: a malformed *_month payload value must render raw, never
+    # raise — the banner renders inline (a raise 500s the page) and Deliver renders after
+    # the WhatsApp claim is burned (a raise loses the message).
+    test "a malformed *_month payload value renders raw instead of crashing (#{locale})" do
+      notification = Notification.new(kind: "goal_alert",
+        payload: { "finding" => "missed_month", "variant" => "plain", "goal" => "Carro",
+                   "expected_cents" => 300_000, "saved_cents" => 100_000, "gap_cents" => 200_000,
+                   "old_month" => "not-a-date", "new_month" => "2028-03-01" })
+      args = I18n.with_locale(locale) do
+        Notifications.template_args(notification) { |cents| WhatsappReply.currency(cents, locale: locale, whole: true) }
+      end
+      assert_equal "not-a-date", args[:old_month]
+      assert_equal I18n.with_locale(locale) { I18n.l(Date.new(2028, 3, 1), format: :month_year) }, args[:new_month]
+    end
+
     # 08 §6: a CTA must be answerable in-channel. No inbound intent parses a budget
     # adjustment, so rightsize_budget is a statement — fact + nudge, zero questions
     # (the app tap lives on the dashboard banner instead).

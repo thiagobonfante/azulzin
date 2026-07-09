@@ -47,6 +47,22 @@ class Goal < ApplicationRecord
   # .kept guards against a soft-deleted commitment being returned as the live one.
   def savings_commitment = commitments.savings.kept.active.first
 
+  # Where this goal's contributions land: the linked caixinha, else every savings account
+  # (legacy pre-round-3 goals). One definition shared by Progress / RiskScan / Replan /
+  # GoalsHelper — pair with Transaction.guardado_into (round-4 review consolidation).
+  def savings_account_ids
+    return [ bank_account_id ] if bank_account_id
+    account.bank_accounts.kept.savings.pluck(:id)
+  end
+
+  # The chosen plan's promised finish (leve honestly promises later than the asked date) —
+  # the shared anchor for the guardian's missed-month slip test AND the replan extend option;
+  # the two must never drift (an alert would point at a replan section that doesn't render).
+  def promised_done_on
+    iso = plan["projected_done_on"]
+    iso.present? ? Date.iso8601(iso) : target_date
+  end
+
   private
     def becoming_active? = active? && (new_record? || status_changed?)
 

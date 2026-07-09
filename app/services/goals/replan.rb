@@ -78,19 +78,11 @@ module Goals
       # transfers stay live in the new counting_from window (activated_at = now ⇒ this month's
       # begin) — counted once, on exactly one side of the boundary.
       def rebased_initial
-        ids = savings_account_ids
+        ids = @goal.savings_account_ids
         return @goal.initial_saved_cents.to_i if ids.empty?
         window = Progress.new(@goal).counting_from...Recompute.current_month
         @goal.initial_saved_cents.to_i +
-          @goal.account.transactions.posted.kept
-               .where(direction: "transfer", transfer_to_bank_account_id: ids)
-               .where(billing_month: window)
-               .sum(:amount_cents)
-      end
-
-      def savings_account_ids
-        return [ @goal.bank_account_id ] if @goal.bank_account_id
-        @goal.account.bank_accounts.kept.savings.pluck(:id)
+          @goal.account.transactions.guardado_into(ids).where(billing_month: window).sum(:amount_cents)
       end
 
       # The merged head start lives in the goal's caixinha (an original head start in a

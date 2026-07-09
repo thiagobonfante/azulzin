@@ -99,6 +99,17 @@ class Goals::RiskScanTest < ActiveSupport::TestCase
     assert finding["urgent"]
   end
 
+  test "a goal replanned in the last fortnight sits out the red projections (quiet switch)" do
+    replanned = active_goal(name: "Carro")
+    replanned.update!(plan: { "replanned_on" => "2026-07-05" })   # 4 days before AS_OF
+    commitment!(replanned)
+    other = active_goal(name: "Viagem", monthly: 200_000)
+    commitment!(other)
+    result = scan
+    assert_empty result[replanned.id]
+    assert_equal "Viagem", result[other.id].find { |f| f["finding"] == "red_month" }["goal"]
+  end
+
   # ---- missed_month ------------------------------------------------------------------------
 
   test "missed_month fires when last month came in under the parcel, with the derived new date" do

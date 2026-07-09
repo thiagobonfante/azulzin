@@ -24,8 +24,11 @@ module Whatsapp
       norm = Whatsapp.normalize(@text)
       return cancel! if CANCEL_RE.match?(norm)
       # The alert-advertised keyword must work even mid-creation-chat (its 24h TTL would
-      # otherwise swallow it as a slot answer): supersede this chat and start the replan.
+      # otherwise swallow it as a slot answer) — but it only supersedes this chat when there
+      # IS a goal to reorganize; with none, answer and keep the half-built draft (review fix:
+      # a first-goal creator must never lose their draft to a keyword with nothing to act on).
       if Interpreter::REPLAN_RE.match?(norm) && !@conv.status.start_with?("replan")
+        return reply("goal_replan.none") unless account.goals.active.where(kind: "purchase").exists?
         discard_draft!
         close!
         return GoalReplanHandler.new(@msg).call
@@ -388,7 +391,9 @@ module Whatsapp
         reply("goal_replan.applied", name: goal.name,
               monthly: whole_ceil(goal.monthly_target_cents), month: month_label(goal.target_date))
       else
-        reply("goal_replan.failed")
+        # The chat is already closed (double-reply protection), so "tenta de novo" would be a
+        # dead end — the unavailable copy points to the app instead (review fix).
+        reply("goal_replan.unavailable")
       end
     end
 

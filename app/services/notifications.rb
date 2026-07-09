@@ -68,14 +68,23 @@ module Notifications
       # also at render time (the dashboard uses the request locale, Deliver the recipient's).
       if key.to_s.end_with?("_cents")
         args[key.to_s.delete_suffix("_cents").to_sym] = yield(args.delete(key))
-      elsif key.to_s.end_with?("_month")
-        args[key] = I18n.l(Date.iso8601(args[key]), format: :month_year)
+      elsif key.to_s.end_with?("_month") && (date = iso_date(args[key]))
+        args[key] = I18n.l(date, format: :month_year)
       end
     end
     if (days = payload[:days_until] || payload[:days_overdue])
       args[:count] = days
     end
     args
+  end
+
+  # A malformed *_month payload value renders raw instead of raising: the dashboard banner
+  # renders inline (a raise would 500 the whole page) and Deliver renders AFTER the atomic
+  # WhatsApp claim is burned (a raise would lose the message, not retry it).
+  def self.iso_date(value)
+    Date.iso8601(value.to_s)
+  rescue Date::Error
+    nil
   end
 
   # A digest payload is structured keys (consumed by Summaries::Lines) + *_cents figures

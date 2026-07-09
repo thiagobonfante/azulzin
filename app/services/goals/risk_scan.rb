@@ -46,7 +46,7 @@ module Goals
       def scan_red(month, finding)
         committed = committed_by_goal(month)
         return if committed.empty?
-        summary = MonthSummary.new(@account, month)
+        summary = summary_for(month)
         remaining = summary.remaining_cents
         return unless remaining.negative?
         goal_id = committed.max_by { |_, cents| cents }.first
@@ -59,10 +59,19 @@ module Goals
 
       # { goal_id => this month's parcel } from the live savings commitments (legacy unlinked
       # goals have none — their red months can't be attributed to a parcel, pace still watches).
+      # A goal replanned in the last fortnight sits out (review fix): the household just
+      # reorganized — the new plan gets its quiet switch before doom is predicted again.
+      # Brand-new goals stay in (round 4 decision 6: warn before the first parcel breaks).
       def committed_by_goal(month)
         savings_commitments.each_with_object({}) do |commitment, map|
+          next if recently_replanned?(goals_by_id[commitment.goal_id])
           map[commitment.goal_id] = commitment.amount_cents if commitment.active_in?(month)
         end
+      end
+
+      def recently_replanned?(goal)
+        iso = goal&.plan&.dig("replanned_on")
+        iso.present? && Date.iso8601(iso) > @as_of - GRACE_DAYS
       end
 
       def savings_commitments
@@ -86,7 +95,7 @@ module Goals
           saved = contributions_in(goal, prev)
           next unless saved < goal.monthly_target_cents
           projected = Progress.new(goal, as_of: @as_of).projected_done_on
-          promised  = plan_done_on(goal)
+          promised  = goal.promised_done_on
           next unless projected && promised && projected > promised
           @findings[goal.id] << {
             "finding" => "missed_month", "goal" => goal.name, "month" => prev.iso8601,
@@ -97,23 +106,11 @@ module Goals
         end
       end
 
-      # Transfers into the goal's caixinha that month — the exact Progress/guardado shape.
+      # Transfers into the goal's caixinha that month — the shared contribution definition.
       def contributions_in(goal, month)
-        ids = goal.bank_account_id ? [ goal.bank_account_id ] : all_savings_ids
+        ids = goal.savings_account_ids
         return 0 if ids.empty?
-        @account.transactions.posted.kept
-                .where(direction: "transfer", transfer_to_bank_account_id: ids)
-                .where(billing_month: month)
-                .sum(:amount_cents)
-      end
-
-      def all_savings_ids = @all_savings_ids ||= @account.bank_accounts.kept.savings.pluck(:id)
-
-      # The chosen plan's promised finish (leve honestly finishes later than the asked date, so
-      # the promise — not target_date — is the baseline for "it slipped").
-      def plan_done_on(goal)
-        iso = goal.plan["projected_done_on"]
-        iso.present? ? Date.iso8601(iso) : goal.target_date
+        @account.transactions.guardado_into(ids).where(billing_month: month).sum(:amount_cents)
       end
 
       # "Where things went wrong", deterministically: lower income first (the gentlest truth),
@@ -121,7 +118,7 @@ module Goals
       # the template tone: essential category / income → gentle, flexible → matter-of-fact.
       def cause_for(goal, month)
         base_income = goal.baseline["median_income_cents"].to_i
-        if base_income.positive? && MonthSummary.new(@account, month).entradas_cents * 100 < base_income * LOW_INCOME_PCT
+        if base_income.positive? && summary_for(month).entradas_cents * 100 < base_income * LOW_INCOME_PCT
           return { "variant" => "income" }
         end
         category, over = worst_overage(goal, month)
@@ -132,7 +129,7 @@ module Goals
       end
 
       def worst_overage(goal, month)
-        actuals = Budgets::Actuals.for(@account, month)
+        actuals = actuals_for(month)
         worst = (goal.baseline["categories"] || []).filter_map { |cat|
           next unless cat["category_id"] && cat["median_cents"].to_i.positive?
           over = actuals[cat["category_id"]].to_i - cat["median_cents"].to_i
@@ -140,6 +137,13 @@ module Goals
         }.max_by(&:last)
         worst || [ nil, nil ]
       end
+
+      # One projection per month per sweep, shared by the income check and the overage map —
+      # Actuals.for takes summary: for exactly this reuse (review fix; several goals missing
+      # the same month were each building two).
+      def summary_for(month) = (@summaries ||= {})[month] ||= MonthSummary.new(@account, month)
+
+      def actuals_for(month) = (@actuals ||= {})[month] ||= Budgets::Actuals.for(@account, month, summary: summary_for(month))
 
       # ---- budget raised above an applied goal cap -------------------------------------------
 

@@ -29,10 +29,9 @@ module Goals
 
     # The posted transfers that count toward this goal, newest first — the show page's history.
     def contributions
-      ids = savings_account_ids
+      ids = @goal.savings_account_ids
       return @goal.account.transactions.none if ids.empty? || @goal.starts_on.blank?
-      @goal.account.transactions.posted.kept
-           .where(direction: "transfer", transfer_to_bank_account_id: ids)
+      @goal.account.transactions.guardado_into(ids)
            .where(billing_month: counting_from..)
            .order(occurred_on: :desc, id: :desc)
     end
@@ -66,18 +65,11 @@ module Goals
 
     private
       def guardado_since_start
-        ids = savings_account_ids
+        ids = @goal.savings_account_ids   # linked caixinha only, else every savings account (01 §1)
         return 0 if ids.empty? || @goal.starts_on.blank?
-        @goal.account.transactions.posted.kept
-             .where(direction: "transfer", transfer_to_bank_account_id: ids)
+        @goal.account.transactions.guardado_into(ids)
              .where(billing_month: counting_from..)
              .sum(:amount_cents)
-      end
-
-      # Linked caixinha counts only its own transfers; unlinked counts every savings account (01 §1).
-      def savings_account_ids
-        return [ @goal.bank_account_id ] if @goal.bank_account_id
-        @goal.account.bank_accounts.kept.savings.pluck(:id)
       end
 
       def current_month = @as_of.beginning_of_month
