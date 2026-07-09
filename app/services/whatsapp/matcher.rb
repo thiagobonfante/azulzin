@@ -51,6 +51,14 @@ module Whatsapp
     def classify(top, top_score, _margin, scored)
       return miss("no_such_instrument", c: 0.20) if top_score < 0.60
 
+      # A UNIQUE perfect hit wins outright: "nubank thiago" matches nickname "Nubank (Thiago)"
+      # exactly (1.0) while the sibling "Nubank (Fran)" only gets the shared-token 0.95 — a gap
+      # inside TIE, so without this short-circuit siblings would always disambiguate.
+      exact = scored.select { |(_, s)| s >= 0.999 }
+      if exact.size == 1
+        return Result.new(instrument: exact.first.first[:record], candidates: scored, c_match: 1.0, reason: "exact")
+      end
+
       # A near-tie among ≥2 instruments is checked FIRST — even two exact (1.0) matches must
       # disambiguate rather than silently pick one (e.g. two cards at the same bank).
       tied = scored.select { |(_, s)| (top_score - s) < TIE }.map { |(c, _)| c[:record] }
@@ -106,11 +114,18 @@ module Whatsapp
       inst = record.institution
       raw = [ record.nickname, inst.name, inst.initials, *Whatsapp.aliases_for(inst.code) ]
       raw << record.last4 if record.respond_to?(:last4) && record.last4.present?
-      raw.compact.map { |t| Whatsapp.normalize(t) }.reject(&:blank?).uniq
+      raw.compact.map { |t| scrub(t) }.reject(&:blank?).uniq
     end
 
     def normalize_phrase(phrase)
-      Whatsapp.normalize(phrase).split.reject { |tok| FILLER.include?(tok) }.join(" ")
+      scrub(phrase).split.reject { |tok| FILLER.include?(tok) }.join(" ")
+    end
+
+    # Punctuation strip LOCAL to the Matcher (nickname "Nubank (Thiago)" → "nubank thiago" so
+    # the exact full-phrase test can fire). NEVER fold this into TextMatch.normalize —
+    # transactions.merchant_norm and the merchant memory were persisted under it.
+    def scrub(str)
+      Whatsapp.normalize(str).gsub(/[^\p{Alnum}\s]/, " ").split.join(" ")
     end
 
     # Max term similarity between the phrase (and its tokens) and the instrument's terms.
@@ -120,7 +135,11 @@ module Whatsapp
     end
 
     def term_sim(phrase, tokens, term)
-      return 1.0 if phrase == term || tokens.include?(term)
+      return 1.0 if phrase == term
+      # A single shared token (e.g. the institution name) must not saturate at 1.0, or sibling
+      # accounts at the same bank become indistinguishable — the full-phrase nickname match
+      # (1.0) has to outrank it (see classify's unique-exact short-circuit).
+      return 0.95 if tokens.include?(term)
       # Short brand tokens (bb, nu, c6, mp): whole-token match only — never fuzzy.
       return 0.0 if term.length <= Whatsapp::SHORT_ALIAS_MAX
       best = tokens.map { |tok| Whatsapp.similarity(tok, term) }.max || 0.0

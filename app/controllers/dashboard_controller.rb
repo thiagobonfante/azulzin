@@ -4,6 +4,8 @@ class DashboardController < AppController
   def show
     prepare_whatsapp_activation
     @notifications = Notification.dashboard_for(Current.user, Current.account)
+    # The pending-review tray (R8), mirrored from the transactions hub — WA parks land here.
+    @pending = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
     @bank_accounts = Current.account.bank_accounts.kept.includes(:institution).order(:created_at)
     @credit_cards  = Current.account.credit_cards.kept.includes(:institution).order(:created_at)
 

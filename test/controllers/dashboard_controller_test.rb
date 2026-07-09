@@ -56,6 +56,20 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_nil @user.reload.whatsapp_verification_code
   end
 
+  test "shows the pending-review tray when pending rows exist, omits it when none" do
+    @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
+    get dashboard_url
+    assert_response :success
+    assert_select "#pending_tray", count: 0
+
+    @user.account.transactions.create!(created_by: @user, amount_cents: 1_500, occurred_on: Date.current,
+                                       status: "pending_review", direction: "expense", merchant: "padaria")
+    get dashboard_url
+    assert_response :success
+    assert_select "#pending_tray", count: 1
+    assert_select "#pending_tray span", text: /15,00/   # the pending row's amount renders in the card
+  end
+
   test "total available credit ignores cards with a bill but no limit" do
     @user.update!(name: "Ana", phone: "5511912345678", onboarded_at: Time.current)
     nubank = Institution.find_by(code: "260")

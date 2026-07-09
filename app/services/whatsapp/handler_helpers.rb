@@ -43,5 +43,16 @@ module Whatsapp
       result = Whatsapp::Matcher.match_phrase(account, phrase, kind: :account)
       result.instrument if result.matched? && result.c_match >= Transaction::MATCH_ASSIGN_MIN
     end
+
+    # Transfer-leg ask choices (savings first). The stored ask "options" ids and the numbered
+    # prompt MUST come from this same ordered array — a numeric reply resolves by prompt
+    # position (ReplyRouter reloads with in_order_of to preserve it).
+    def transfer_leg_accounts
+      account.bank_accounts.kept.includes(:institution).order(kind: :desc, created_at: :asc).to_a
+    end
+
+    def numbered_options(records)
+      records.each_with_index.map { |r, i| "#{i + 1}. #{r.display_name}" }.join("\n")
+    end
   end
 end

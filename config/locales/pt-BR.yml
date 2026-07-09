@@ -1321,8 +1321,10 @@ pt-BR:
       expiry: "Este link expira em %{duration}."
   whatsapp:
     replies:
-      posted: "✅ Lançado: %{amount} em %{instrument}."
-      posted_categorized: "✅ Lançado: %{amount} em %{instrument} · %{category}."
+      posted_card: "✅ Lançado: %{amount} no cartão %{instrument}."
+      posted_account: "✅ Lançado: %{amount} na conta %{instrument}."
+      posted_card_categorized: "✅ Lançado: %{amount} no cartão %{instrument} · %{category}."
+      posted_account_categorized: "✅ Lançado: %{amount} na conta %{instrument} · %{category}."
       posted_unassigned: "✅ Lançado: %{amount}. Escolha a conta ou o cartão no app."
       parked: "Recebi 👍 Deixei pendente no app para você revisar."
       clarify_amount: "Não consegui identificar o valor. Quanto foi?"

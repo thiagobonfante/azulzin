@@ -56,18 +56,20 @@ module Whatsapp
 
     def self.from_message(msg, client: nil)
       client ||= OpenRouterClient.new(task: :vision)
+      caption = msg.body
       messages = [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: [
           { type: "text", text: [ "Extraia os dados deste comprovante.",
+                                  ("Legenda enviada pelo usuário: #{caption}" if caption.present?),
                                   Categories.closed_set_line(msg.account || msg.user&.account) ].compact.join("\n\n") },
           { type: "image_url", image_url: { url: data_url(msg.media) } }
         ] }
       ]
-      build(client.chat(messages: messages, schema: SCHEMA).parsed || {})
+      build(client.chat(messages: messages, schema: SCHEMA).parsed || {}, caption)
     end
 
-    def self.build(parsed)
+    def self.build(parsed, caption = nil)
       return not_receipt unless parsed["is_receipt"]
       total_raw = parsed["total_raw"]
       Extraction.new(
@@ -76,9 +78,10 @@ module Whatsapp
         currency:           "BRL",
         merchant:           parsed["merchant_name"].presence,
         occurred_on:        Whatsapp::Extractor.parse_date(parsed["purchase_date"]),
-        payment_method:     parsed["payment_method"].presence || "desconhecido",
-        instrument_phrase:  parsed["origin_phrase"].presence,   # purchase receipts: nil; a
-                            # transfer receipt's ORIGIN names the user's own account
+        payment_method:     payment_method(parsed, caption),
+        # A transfer receipt's printed ORIGIN wins; purchase receipts print none, so the
+        # caption ("Cartão santander") is the deterministic instrument hint.
+        instrument_phrase:  parsed["origin_phrase"].presence || caption.presence,
         field_confidence:   { "amount" => parsed.dig("field_confidence", "total") },
         overall_confidence: effective_confidence(parsed, total_raw),
         modality:           "image",
@@ -86,6 +89,18 @@ module Whatsapp
         raw:                parsed,
         category:           parsed["category"].presence
       )
+    end
+
+    # The PRINTED method always wins; the caption only fills "desconhecido", and only when it
+    # names crédito XOR débito (decision 9: a caption never hard-overrides a printed DÉBITO).
+    def self.payment_method(parsed, caption)
+      pm = parsed["payment_method"].presence || "desconhecido"
+      return pm unless pm == "desconhecido" && caption.present?
+      credit = caption.match?(Whatsapp::Matcher::CREDIT_RE)
+      debit  = caption.match?(Whatsapp::Matcher::DEBIT_RE)
+      return "credito" if credit && !debit
+      return "debito"  if debit && !credit
+      pm
     end
 
     # Deterministic caps: a missing/unparseable total, or a future/implausible date, must not

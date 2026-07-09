@@ -1320,8 +1320,10 @@ en:
       expiry: "This link will expire in %{duration}."
   whatsapp:
     replies:
-      posted: "✅ Recorded: %{amount} on %{instrument}."
-      posted_categorized: "✅ Recorded: %{amount} on %{instrument} · %{category}."
+      posted_card: "✅ Recorded: %{amount} on the %{instrument} card."
+      posted_account: "✅ Recorded: %{amount} from the %{instrument} account."
+      posted_card_categorized: "✅ Recorded: %{amount} on the %{instrument} card · %{category}."
+      posted_account_categorized: "✅ Recorded: %{amount} from the %{instrument} account · %{category}."
       posted_unassigned: "✅ Recorded: %{amount}. Pick the account or card in the app."
       parked: "Got it 👍 I've left it pending in the app for you to review."
       clarify_amount: "I couldn't read the amount. How much was it?"

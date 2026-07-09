@@ -60,13 +60,13 @@ module Whatsapp
 
     # A stub carrying the resolved leg and the numbered options for the missing one (savings first).
     def ask_slot(slot, from: nil, to: nil)
-      accounts = account.bank_accounts.kept.includes(:institution).order(kind: :desc, created_at: :asc).to_a
+      accounts = transfer_leg_accounts
       txn = upsert_row(direction: "transfer", status: "needs_disambiguation", amount_cents: @extraction.amount_cents,
                        occurred_on: occurred, billing_month: occurred.beginning_of_month,
                        bank_account: from, transfer_to_bank_account: to,
                        ask: { "slot" => slot, "options" => accounts.map(&:id) }, ask_expires_at: 60.minutes.from_now)
       reply(slot == "transfer_to" ? "ask_transfer_to" : "ask_transfer_from", txn: txn,
-            options: accounts.each_with_index.map { |a, i| "#{i + 1}. #{a.display_name}" }.join("\n"))
+            options: numbered_options(accounts))
       txn
     end
 

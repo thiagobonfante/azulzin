@@ -12,6 +12,11 @@
 <%# ── Proactive alerts (up-tier 01 §4) ──────────────────────────────── %>
 <div class="mb-6"><%= render "notifications/alert", notifications: @notifications %></div>
 
+<%# ── Pending review tray (round 3 decision 10: actionable work above the tiles).
+    Self-hides when empty; row actions stream back via TransactionsController and
+    no-op the transactions-hub-only targets. %>
+<div class="mb-6"><%= render "transactions/pending_tray", pending: @pending %></div>
+
 <%# ── Summary tiles ─────────────────────────────────────────────────── %>
 <section class="grid gap-4 sm:grid-cols-3">
   <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
