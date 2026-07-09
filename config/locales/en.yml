@@ -1363,6 +1363,38 @@ en:
       help: "I didn't get that 🤔 You can send me things like:\n• \"groceries 84.90 on debit\"\n• \"saved 200 to savings\"\n• \"paid the car installment\"\n• \"bought a phone, 5000 in 10x\"\n• \"how's the month?\""
       notifications_footer: "Reply *stop* to turn these notifications off."
       notifications_stopped: "Done — I've stopped the notifications here. You can turn them back on anytime in *Account & members → Alerts*. 💙"
+      goal_flow:
+        limit_reached: "You already have 5 active goals. Finishing or abandoning one in the app makes room for the next. 💙"
+        ask_kind: "Nice! What do you want to plan? Reply with the number:\n%{options}"
+        ask_name: "What's the dream? Give me a short name — e.g., Trip, Car."
+        ask_amount_purchase: "How much does *%{name}* cost?"
+        ask_amount_savings: "Today you save ~%{guardado}/month. How much do you want to save in total per month?"
+        ask_amount_savings_zero: "How much do you want to save per month?"
+        ask_month: "By when? You can say the month — e.g., \"December 2027\" or \"in 18 months\"."
+        ask_initial_saved: "Already have something saved for it? Reply with an amount or *no*."
+        reask_amount: "I couldn't read the amount. Just the number — e.g., 25000 or 25,000.00."
+        reask_month: "I didn't get the date. Tell me the month and year — e.g., \"October 2027\" or \"in 6 months\"."
+        reask_initial_saved: "I didn't get that. Reply with an amount (e.g., 2000) or *no*."
+        reask_initial_saved_high: "That already covers the whole goal — no plan needed 😄 Give me a smaller amount or *no*."
+        below_current_guardado: "You already save ~%{guardado}/month — a goal needs to beat that. What's the new total?"
+        offer: |-
+          💙 I've put a plan together for *%{name}*: save %{monthly}/month.
+          %{reaches_line}%{cuts_block}Want to activate it? Reply *yes* or *no*.
+        offer_reaches: "At that pace, you get there in %{month}."
+        offer_cuts_title: "To make it fit, you could reorganize like this:"
+        offer_cut_line: "− %{amount}/month on %{category} (today ~%{current})"
+        offer_no_cuts: "No cuts — it fits your monthly surplus."
+        offer_reprompt: "Reply *yes* to activate or *no* to discard."
+        counter_offer_date: "That goal doesn't close by the date you asked. With %{amount}/month you'd get there in %{month} — want to go with that? Reply *yes* or *no*."
+        counter_offer_savings: "That total doesn't fit yet. You could save %{amount} per month — deal? Reply *yes* or *no*."
+        too_tight: "That goal doesn't close yet — this month's numbers won't allow it. Take a look in the app to adjust it calmly. 💙"
+        ask_caixinha_pick: "Which savings pot does the money go to? Reply with the number:\n%{options}"
+        ask_source_pick: "And which account does it leave from each month? Reply with the number:\n%{options}"
+        activated: "💙 Goal *%{name}* activated! Save %{monthly}/month starting %{month} — I'll remind you every month."
+        no_caixinha: "To activate a goal you need a savings pot and a distinct source account. Create the pot in the app and ping me again. 💙"
+        cancelled: "No problem, cancelled. Just message me whenever you're ready. 💙"
+        discarded: "No problem, discarded. Whenever you want, just talk to me — or build it in the app. 💙"
+        activation_failed: "I couldn't activate it right now. Try again in the app, ok? 💙"
       notifications:
         bill_due:
           zero: "🔔 Your *%{name}* bill (%{amount}) is due today. 💙"

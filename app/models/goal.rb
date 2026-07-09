@@ -22,6 +22,7 @@ class Goal < ApplicationRecord
   belongs_to :initial_saved_bank_account, class_name: "BankAccount", optional: true
   has_many :checks, class_name: "GoalCheck", dependent: :destroy
   has_many :commitments, dependent: :nullify   # the kind:"savings" contribution (07 §1.2)
+  has_many :goal_conversations, dependent: :nullify   # WA chat state survives the draft's destroy
 
   enum :kind,   { purchase: "purchase", savings_rate: "savings_rate" }, validate: true
   enum :status, { draft: "draft", active: "active", achieved: "achieved", abandoned: "abandoned" },

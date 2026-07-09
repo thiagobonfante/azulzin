@@ -61,6 +61,15 @@ normal pay path, forked in `Commitments::MarkPaid`) posts a **transfer** into th
 expense. **Sobra is invariant at pay time**: the amount moves from `projected_guardado` to `guardado`.
 Goals never move money themselves; the user pays the occurrence.
 
+## Creating a goal over WhatsApp
+
+"Quero juntar 20 mil pra uma viagem" starts a deterministic Q&A (one Extractor call classifies
+`create_goal` and seeds the slots; every reply after that is parsed in Ruby — zero LLM), presents a
+single **recomendado** plan, and activates always-linked (caixinha + distinct source required; no
+caixinha → friendly nudge to create one in the app). State lives in `goal_conversations` (24h TTL,
+one open per sender); cancel/reject/expiry destroys the draft. No `NarrativeJob` from WA — but the
+draft still counts toward the ≤5 monthly AI sessions. See `Whatsapp::GoalFlowHandler`/`GoalFlowRouter`.
+
 ## The weekly guardian & alerts
 
 `Goals::WeeklyCheckDispatchJob` (recurring.yml, Monday 11:00 UTC) fans out one

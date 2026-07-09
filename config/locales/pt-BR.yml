@@ -1364,6 +1364,38 @@ pt-BR:
       help: "Não entendi 🤔 Você pode me mandar coisas como:\n• \"mercado 84,90 no débito\"\n• \"guardei 200 na caixinha\"\n• \"paguei a parcela do carro\"\n• \"comprei um celular, 5000 em 10x\"\n• \"como tá o mês?\""
       notifications_footer: "Responda *parar* para desativar estes avisos."
       notifications_stopped: "Prontinho, parei os avisos por aqui. É só reativar em *Conta e membros → Avisos* quando quiser. 💙"
+      goal_flow:
+        limit_reached: "Vocês já têm 5 metas ativas. Concluir ou abandonar uma no app abre espaço pra próxima. 💙"
+        ask_kind: "Boa! O que você quer planejar? Responde com o número:\n%{options}"
+        ask_name: "Qual é o sonho? Me diz um nome curto — ex.: Viagem, Carro."
+        ask_amount_purchase: "Quanto custa *%{name}*?"
+        ask_amount_savings: "Hoje vocês guardam ~%{guardado}/mês. Quanto quer guardar no total por mês?"
+        ask_amount_savings_zero: "Quanto você quer guardar por mês?"
+        ask_month: "Pra quando? Pode dizer o mês — ex.: \"dezembro de 2027\" ou \"em 18 meses\"."
+        ask_initial_saved: "Já tem algo guardado pra isso? Responde um valor ou *não*."
+        reask_amount: "Não consegui ler o valor. Me diz só o número — ex.: 25000 ou 25.000,00."
+        reask_month: "Não entendi a data. Me diz o mês e o ano — ex.: \"outubro de 2027\" ou \"em 6 meses\"."
+        reask_initial_saved: "Não entendi. Responde um valor (ex.: 2000) ou *não*."
+        reask_initial_saved_high: "Esse valor já cobre a meta toda — aí não precisa de plano 😄 Me diz um valor menor ou *não*."
+        below_current_guardado: "Vocês já guardam ~%{guardado}/mês — pra ser meta, precisa ser mais que isso. Qual o novo total?"
+        offer: |-
+          💙 Fechei um plano pra *%{name}*: guardar %{monthly}/mês.
+          %{reaches_line}%{cuts_block}Quer ativar? Responde *sim* ou *não*.
+        offer_reaches: "Nesse ritmo, você chega em %{month}."
+        offer_cuts_title: "Pra caber, dá pra reorganizar assim:"
+        offer_cut_line: "− %{amount}/mês em %{category} (hoje ~%{current})"
+        offer_no_cuts: "Sem cortes — cabe na sobra de vocês."
+        offer_reprompt: "Responde *sim* pra ativar ou *não* pra descartar."
+        counter_offer_date: "Essa meta não fecha no prazo que você pediu. Com %{amount}/mês você chega em %{month} — quer seguir assim? Responde *sim* ou *não*."
+        counter_offer_savings: "Esse total não cabe ainda. Dá pra guardar %{amount} por mês — fechou? Responde *sim* ou *não*."
+        too_tight: "Essa meta não fecha ainda — os números do mês não deixam. Dá uma olhada no app pra ajustar com calma. 💙"
+        ask_caixinha_pick: "Pra qual caixinha vai o dinheiro? Responde com o número:\n%{options}"
+        ask_source_pick: "E de qual conta sai todo mês? Responde com o número:\n%{options}"
+        activated: "💙 Meta *%{name}* ativada! Guardar %{monthly}/mês a partir de %{month} — te lembro todo mês."
+        no_caixinha: "Pra ativar uma meta você precisa de uma caixinha (conta poupança) e uma conta de origem. Cria a caixinha no app e me chama de novo. 💙"
+        cancelled: "Tranquilo, cancelei. Quando quiser é só me chamar de novo. 💙"
+        discarded: "Tranquilo, descartei. Quando quiser, é só falar comigo — ou montar no app. 💙"
+        activation_failed: "Não consegui ativar agora. Tenta de novo pelo app, tá? 💙"
       notifications:
         bill_due:
           zero: "🔔 Sua conta *%{name}* (%{amount}) vence hoje. 💙"

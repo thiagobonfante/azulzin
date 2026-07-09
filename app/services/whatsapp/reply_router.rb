@@ -116,17 +116,6 @@ module Whatsapp
             name: chosen.name, month: month_label(month))
     end
 
-    # Parse a leading index into the numbered list, else a fuzzy name match (≥ 0.6).
-    def pick(records)
-      return nil if records.empty?
-      if (idx = @text.to_s.strip[/\A\d+/]&.to_i) && idx.between?(1, records.size)
-        return records[idx - 1]
-      end
-      term = Whatsapp.normalize(@text)
-      best = records.max_by { |r| Whatsapp.similarity(term, Whatsapp.normalize(yield(r))) }
-      best if best && Whatsapp.similarity(term, Whatsapp.normalize(yield(best))) >= 0.6
-    end
-
     def parse_count(text)
       words = { "duas" => 2, "dois" => 2, "tres" => 3, "quatro" => 4, "cinco" => 5, "seis" => 6,
                 "sete" => 7, "oito" => 8, "nove" => 9, "dez" => 10, "doze" => 12 }

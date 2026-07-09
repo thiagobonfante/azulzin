@@ -35,6 +35,14 @@ class ProcessInboundWhatsappJob < ApplicationJob
       return finish(msg)
     end
 
+    # A goal-creation chat in flight (round 3 P6) routes the next text/audio reply
+    # deterministically — zero LLM. The txn ask above wins on purpose (short-lived, 60 min,
+    # pre-existing); receipts (nil text) fall through to the receipt pipeline untouched.
+    if text.present? && (conv = GoalConversation.open_for(msg.user))
+      Whatsapp::GoalFlowRouter.new(conv, msg, text).call
+      return finish(msg)
+    end
+
     if (msg.type_image? || msg.type_document?) && msg.media.attached?
       # Receipts: the unchanged expense path (ReceiptExtractor → Matcher → Confidence → Decider).
       extraction = Whatsapp::ReceiptExtractor.from_message(msg)

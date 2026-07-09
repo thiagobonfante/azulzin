@@ -64,6 +64,27 @@ class Whatsapp::ExtractorTest < ActiveSupport::TestCase
     assert_equal "10 no mercado", sent[:messages].last[:content]
   end
 
+  test "strict schema: every property is listed in required (provider contract)" do
+    schema = Whatsapp::Extractor::SCHEMA[:schema]
+    assert_equal schema["properties"].keys.sort, schema["required"].sort
+    assert_includes schema.dig("properties", "intent", "enum"), "create_goal"
+  end
+
+  test "create_goal fields ride the extraction as RAW words (no ISO date, no cents)" do
+    client = client_returning({
+      "intent" => "create_goal", "intent_confidence" => 0.9, "amount_raw" => "20 mil",
+      "goal_kind" => "purchase", "goal_name" => "Viagem",
+      "goal_month_phrase" => "outubro do ano que vem", "goal_initial_saved_raw" => "5000"
+    })
+    ex = Whatsapp::Extractor.from_text(users(:confirmed), "quero juntar 20 mil pra uma viagem", client: client)
+
+    assert_equal "create_goal", ex.intent
+    assert_equal "purchase", ex.goal_kind
+    assert_equal "Viagem", ex.goal_name
+    assert_equal "outubro do ano que vem", ex.goal_month_phrase
+    assert_equal "5000", ex.goal_initial_saved_raw
+  end
+
   test "rejects a future occurred_on and keeps a nil amount nil" do
     client = client_returning({ "amount_raw" => nil, "occurred_on" => (Date.current + 5).iso8601 })
     ex = Whatsapp::Extractor.from_text(users(:confirmed), "sei la", client: client)

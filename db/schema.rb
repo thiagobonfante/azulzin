@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_09_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_09_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -198,6 +198,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000003) do
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_goal_checks_on_account_id"
     t.index ["goal_id", "period_start"], name: "index_goal_checks_on_goal_id_and_period_start", unique: true
+  end
+
+  create_table "goal_conversations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "data", default: {}, null: false
+    t.datetime "expires_at", null: false
+    t.bigint "goal_id"
+    t.string "status", default: "collecting", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["account_id"], name: "index_goal_conversations_on_account_id"
+    t.index ["goal_id"], name: "index_goal_conversations_on_goal_id"
+    t.index ["user_id"], name: "index_goal_conversations_on_user_id"
+    t.index ["user_id"], name: "index_goal_conversations_one_open_per_user", unique: true, where: "((status)::text <> 'closed'::text)"
   end
 
   create_table "goals", force: :cascade do |t|
@@ -487,6 +502,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000003) do
   add_foreign_key "document_imports", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "goal_checks", "accounts"
   add_foreign_key "goal_checks", "goals"
+  add_foreign_key "goal_conversations", "accounts"
+  add_foreign_key "goal_conversations", "goals"
+  add_foreign_key "goal_conversations", "users"
   add_foreign_key "goals", "accounts"
   add_foreign_key "goals", "bank_accounts", column: "initial_saved_bank_account_id", on_delete: :nullify
   add_foreign_key "goals", "bank_accounts", on_delete: :nullify

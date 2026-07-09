@@ -54,5 +54,18 @@ module Whatsapp
     def numbered_options(records)
       records.each_with_index.map { |r, i| "#{i + 1}. #{r.display_name}" }.join("\n")
     end
+
+    # Parse a reply picking from a numbered list: a leading index into the PROMPT-ordered
+    # records, else a fuzzy name match (≥ 0.6) on the yielded label. Reads the router's
+    # @text (ReplyRouter and GoalFlowRouter both set it).
+    def pick(records)
+      return nil if records.empty?
+      if (idx = @text.to_s.strip[/\A\d+/]&.to_i) && idx.between?(1, records.size)
+        return records[idx - 1]
+      end
+      term = Whatsapp.normalize(@text)
+      best = records.max_by { |r| Whatsapp.similarity(term, Whatsapp.normalize(yield(r))) }
+      best if best && Whatsapp.similarity(term, Whatsapp.normalize(yield(best))) >= 0.6
+    end
   end
 end

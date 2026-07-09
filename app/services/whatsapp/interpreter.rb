@@ -12,6 +12,10 @@ module Whatsapp
     MUTATING = %w[income transfer installment_purchase pay_commitment edit_last undo_last move_bill].freeze
     INTENT_FLOOR = 0.75
 
+    # Starting the goal Q&A writes no money (one "cancelar" away), so create_goal skips
+    # MUTATING — but below this floor the trigger yields to help ("guardar" is ambiguous).
+    GOAL_INTENT_FLOOR = 0.6
+
     def initialize(msg, text)
       @msg  = msg
       @text = text.to_s
@@ -43,9 +47,17 @@ module Whatsapp
       when "edit_last"            then EditLastHandler.new(@msg, extraction).call
       when "undo_last"            then UndoHandler.new(@msg).call
       when "query"                then QueryAnswerer.new(@msg, extraction).call
+      when "create_goal"          then create_goal(extraction)
       when "expense"              then expense(extraction)
       else fallback(extraction)
       end
+    end
+
+    def create_goal(extraction)
+      if extraction.intent_confidence < GOAL_INTENT_FLOOR
+        return WhatsappReply.deliver(user: @msg.user, key: "whatsapp.replies.help")
+      end
+      GoalFlowHandler.new(@msg, extraction).call
     end
 
     # Expense: the existing Decider, byte-for-byte unchanged (regression-free).

@@ -10,6 +10,8 @@ module Whatsapp
     :intent, :intent_confidence, :to_instrument_phrase, :installments_count,
     :installment_total_raw, :installment_parcel_raw, :commitment_phrase, :target_bill_raw,
     :edit_field_hint, :query_kind, :category,
+    # --- create_goal (round 3 P6) — raw words only; cents/dates computed in Ruby ---
+    :goal_kind, :goal_name, :goal_month_phrase, :goal_initial_saved_raw,
     keyword_init: true
   ) do
     def amount_present?     = amount_cents.present? && amount_cents != 0

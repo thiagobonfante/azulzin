@@ -128,6 +128,21 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
     assert_nil Transaction.open_ask_for(@user)
   end
 
+  test "create_goal dispatches to the goal flow (conversation opened, first question sent)" do
+    ex = extraction(intent: "create_goal", intent_confidence: 0.9)
+    interpret(inbound("quero criar uma meta"), ex)
+    conv = GoalConversation.open_for(@user)
+    assert conv.present?
+    assert conv.collecting?
+    assert_equal "kind", conv.data["pending_slot"]   # nothing seeded → kind asked first
+  end
+
+  test "create_goal below the 0.6 floor bails to help (no conversation hijack)" do
+    ex = extraction(intent: "create_goal", intent_confidence: 0.5)
+    interpret(inbound("quero guardar"), ex)
+    assert_nil GoalConversation.open_for(@user)
+  end
+
   test "a mutating intent below the intent floor parks instead of firing the verb" do
     ex = extraction(intent: "transfer", intent_confidence: 0.5, amount_raw: "200", amount_cents: 20_000, to_instrument_phrase: "caixinha")
     interpret(inbound("acho que passei 200"), ex)
