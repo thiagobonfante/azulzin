@@ -7,7 +7,7 @@ class CreateDocumentImports < ActiveRecord::Migration[8.1]
     create_table :document_imports do |t|
       t.references :user, null: false, foreign_key: true
       t.string     :status, null: false, default: "uploaded"
-        # uploaded | processing | extracted | failed | applied | dismissed
+      # uploaded | processing | extracted | failed | applied | dismissed
       t.string     :kind          # bank_statement | card_bill | unknown — nil until classified
       t.string     :source_format # csv | ofx | pdf — nil until detected
       t.references :institution, foreign_key: true # resolved in Ruby, never by the LLM

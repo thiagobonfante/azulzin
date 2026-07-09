@@ -103,7 +103,7 @@ module TransactionsHelper
         safe_join([
           content_tag(:span, "", class: "h-2.5 w-2.5 shrink-0 rounded-full", style: "background-color: #{seg[:color]}"),
           content_tag(:span, seg[:label], class: "text-base-content/60"),
-          content_tag(:span, brl(seg[:cents]), class: "tabular-nums text-base-content/40"),
+          content_tag(:span, brl(seg[:cents]), class: "tabular-nums text-base-content/40")
         ])
       end
     end

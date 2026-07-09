@@ -18,7 +18,7 @@ module Categories
       [ "#06B6D4", "arrow-path" ], # Assinaturas
       [ "#8B5CF6", "bag" ],        # Vestuário
       [ "#3B82F6", "plane" ],      # Viagem
-      [ "#64748B", "tag" ],        # Outros
+      [ "#64748B", "tag" ]        # Outros
     ].freeze
 
     def self.call(account, locale:)
