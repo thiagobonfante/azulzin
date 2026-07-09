@@ -18,6 +18,9 @@ module Goals
 
     COOLDOWN_DAYS = 14
     SEVERITY = { "on_track" => 0, "insufficient_data" => 0, "at_risk" => 1, "off_track" => 2 }.freeze
+    # Worst first — the banner/message renders exactly ONE finding (the lead), so merged
+    # findings are kept in this order (round 4 decision 1).
+    FINDING_PRIORITY = %w[missed_month red_month next_month_red budget_raised pace big_purchase].freeze
 
     def perform(account_id, user_id, as_of = Date.current)
       @account = Account.find(account_id)
@@ -26,13 +29,14 @@ module Goals
 
       @as_of = as_of.to_date
       week   = @as_of.beginning_of_week                # ISO Monday
+      @risk  = Goals::RiskScan.call(@account, as_of: @as_of)
 
       @account.goals.active.find_each do |goal|
         if Goals::Progress.new(goal, as_of: @as_of).achieved?
           notify_all_members_of_achievement(goal, week) if Goals::Achieve.call(goal)
           next
         end
-        check = upsert_check(goal, week, Goals::Checker.call(goal, as_of: @as_of))
+        check = upsert_check(goal, week, merged_result(goal))
         alert(goal, check, week) if check.status.in?(%w[at_risk off_track])
       end
     end
@@ -48,16 +52,41 @@ module Goals
         goal.checks.find_by!(period_start: week)
       end
 
-      # Delta-gate (worsened status OR a new finding type) + 14-day cooldown run BEFORE record! —
-      # a persistent, already-reported problem never re-fires. Idempotent per (user, goal, week).
+      # Checker findings + RiskScan findings, worst first; risk findings escalate the status —
+      # any risk ⇒ at least at_risk, a consummated miss or a red CURRENT month ⇒ off_track.
+      # Risk findings deliberately ignore the activation grace (they're predictive protection,
+      # not behavior judgment — round 4 decision 6).
+      def merged_result(goal)
+        base  = Goals::Checker.call(goal, as_of: @as_of)
+        extra = @risk[goal.id]
+        return base if extra.blank?
+        findings = (base.findings + extra).sort_by { |f| FINDING_PRIORITY.index(f["finding"]) || FINDING_PRIORITY.size }
+        off = base.status == "off_track" || findings.any? { |f| f["finding"].in?(%w[missed_month red_month]) }
+        Goals::Checker::Result.new(status: off ? "off_track" : "at_risk", findings: findings,
+                                   expected_cents: base.expected_cents, actual_cents: base.actual_cents)
+      end
+
+      # Delta-gate (worsened status OR a new (finding, category, month) cause) + 14-day cooldown
+      # run BEFORE record! — a persistent, already-reported problem never re-fires. The lead
+      # finding — the worst NEW cause — is the one the banner/message renders; urgent leads
+      # (missed_month / red_month / next_month_red) bypass the cooldown, never the delta-gate,
+      # the weekly WA guard or the spine's daily cap. Idempotent per (user, goal, week).
       def alert(goal, check, week)
-        return unless alert_worthy?(goal, check, week)
-        return if in_cooldown?(goal)
+        prev     = goal.checks.where(period_start: ...week).order(period_start: :desc).first
+        new_keys = check.findings.map { |f| cause_key(f) } - previous_keys(prev)
+        worsened = prev.nil? || SEVERITY.fetch(check.status) > SEVERITY.fetch(prev.status)
+        return if new_keys.empty? && !worsened
+        lead = check.findings.find { |f| new_keys.include?(cause_key(f)) } || check.findings.first
+        return if in_cooldown?(goal) && !lead&.dig("urgent")
         notification = Notification.record!(user: @user, account: @account, kind: "goal_alert",
-                                            subject: goal, period_key: week, payload: check.findings.first)
+                                            subject: goal, period_key: week, payload: lead || {})
         return if goals_wa_sent_this_week?(week)   # ≤1 goals message/user/week — dashboard-only past that
         Notifications::Deliver.call(notification)
       end
+
+      def cause_key(finding) = finding.values_at("finding", "category_id", "month")
+
+      def previous_keys(prev) = (prev&.findings || []).map { |f| cause_key(f) }
 
       # Race-free under the shared "proactive_notify" concurrency group: the read-then-Deliver is
       # serialized per user, and Deliver stamps whatsapp_sent_at synchronously before the next goal.
@@ -65,14 +94,6 @@ module Goals
         Notification.where(user: @user, kind: "goal_alert")
                     .where.not(whatsapp_sent_at: nil)
                     .where(whatsapp_sent_at: week.beginning_of_day..).exists?
-      end
-
-      def alert_worthy?(goal, check, week)
-        prev = goal.checks.where(period_start: ...week).order(period_start: :desc).first
-        return true if prev.nil?
-        return true if SEVERITY.fetch(check.status) > SEVERITY.fetch(prev.status)
-        new_causes = check.findings.map { |f| f["finding"] } - (prev.findings || []).map { |f| f["finding"] }
-        new_causes.any?
       end
 
       def in_cooldown?(goal)

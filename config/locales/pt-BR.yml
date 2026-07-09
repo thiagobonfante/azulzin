@@ -1171,6 +1171,13 @@ pt-BR:
       budget_breach_goal: "%{category} passou do combinado da meta %{goal_name}: %{spent} de %{budget} este mês."
       goal_alert_pace: "Meta %{goal} precisa de atenção: faltam %{gap} para o valor deste mês."
       goal_alert_big_purchase: "Vi uma compra grande de %{amount} este mês — de olho na meta %{goal}."
+      goal_alert_red_month: "Do jeito que está, o mês fecha no vermelho (falta %{shortfall}) e as metas pedem %{committed}. Vale reorganizar a meta %{goal}."
+      goal_alert_next_month_red: "As faturas já somam %{faturas} para o mês que vem e a projeção fecha no vermelho (falta %{shortfall}). A meta %{goal} pode não caber — dá para reorganizar antes."
+      goal_alert_budget_raised: "O orçamento de %{category} subiu para %{budget} — %{over} por mês acima do combinado da meta %{goal}. Nesse nível, a meta atrasa."
+      goal_alert_missed_month: "A meta %{goal} ficou %{gap} abaixo do combinado no mês passado — %{category} pesou %{over} a mais. No ritmo atual, a conclusão passa de %{old_month} para %{new_month}."
+      goal_alert_missed_month_essential: "%{category} pesou %{over} a mais no mês passado — imprevistos acontecem, sem culpa. A meta %{goal} ficou %{gap} abaixo do combinado e a conclusão passa de %{old_month} para %{new_month}."
+      goal_alert_missed_month_income: "A renda veio menor no mês passado e a meta %{goal} ficou %{gap} abaixo do combinado — tá tudo bem, acontece. A conclusão passa de %{old_month} para %{new_month}."
+      goal_alert_missed_month_plain: "A meta %{goal} ficou %{gap} abaixo do combinado no mês passado. No ritmo atual, a conclusão passa de %{old_month} para %{new_month}."
       goal_achieved: "Meta %{goal} concluída! Você guardou %{amount}. 🎉"
       surplus_nudge: "Você está com %{surplus} de sobra este mês. Que tal guardar na caixinha?"
       rightsize_budget: "%{category}: você combinou %{budget}, mas costuma gastar %{typical}. Que tal ajustar?"
@@ -1187,6 +1194,7 @@ pt-BR:
     alert:
       dismiss: "Dispensar"
       view_category: "Ver categoria"
+      view_goal: "Ver meta"
       rightsize_cta: "Ajustar para %{typical}"
   notification_preferences:
     show:
@@ -1422,6 +1430,30 @@ pt-BR:
         budget_breach_goal: "⚠️ *%{category}* passou do combinado da meta *%{goal_name}*: %{spent} de %{budget}. 💙"
         goal_alert_pace: "👀 Sua meta *%{goal}*: faltam %{gap} para o valor deste mês e o mês está acabando. Uma transferência para a caixinha resolve. 💙"
         goal_alert_big_purchase: "⚠️ Vi uma compra grande de %{amount} este mês. Sua meta *%{goal}* pode atrasar — quer ajustar no app?"
+        goal_alert_red_month: |-
+          ⚠️ Este mês está fechando no vermelho: falta %{shortfall}, e a meta *%{goal}* pede %{committed}.
+          Responda *reorganizar* para ajustar sem culpa. 💙
+        goal_alert_next_month_red: |-
+          👀 As faturas do cartão já somam %{faturas} no mês que vem e a projeção fecha no vermelho (falta %{shortfall}).
+          A meta *%{goal}* pode não caber — responda *reorganizar* para ajustar antes.
+        goal_alert_budget_raised: |-
+          👀 O orçamento de %{category} subiu para %{budget} — %{over} por mês acima do combinado da meta *%{goal}*.
+          Se for ficar assim, responda *reorganizar* para recalcular a meta.
+        goal_alert_missed_month: |-
+          👀 A meta *%{goal}* ficou %{gap} abaixo do combinado no mês passado — %{category} pesou %{over} a mais.
+          No ritmo atual, a conclusão passa de %{old_month} para %{new_month}.
+          Responda *reorganizar* para ajustar o plano.
+        goal_alert_missed_month_essential: |-
+          💙 %{category} pesou %{over} a mais no mês passado — imprevistos acontecem, sem culpa.
+          A meta *%{goal}* ficou %{gap} abaixo do combinado e a conclusão passa de %{old_month} para %{new_month}.
+          Se quiser, responda *reorganizar* que a gente recalcula junto. 💙
+        goal_alert_missed_month_income: |-
+          💙 A renda veio menor no mês passado — acontece, tá tudo bem. A meta *%{goal}* ficou %{gap} abaixo do combinado.
+          A conclusão passa de %{old_month} para %{new_month} — responda *reorganizar* se quiser ajustar o plano. 💙
+        goal_alert_missed_month_plain: |-
+          👀 A meta *%{goal}* ficou %{gap} abaixo do combinado no mês passado.
+          No ritmo atual, a conclusão passa de %{old_month} para %{new_month}.
+          Responda *reorganizar* para ajustar o plano.
         goal_achieved: "💙 Meta *%{goal}* concluída! Você guardou %{amount}. Que tal a próxima?"
         surplus_nudge: "💙 Você fechou o mês com *%{surplus}* de sobra. Quer guardar na caixinha?"
         rightsize_budget: "💙 *%{category}*: você combinou %{budget}, mas costuma gastar %{typical}. Dá pra ajustar em Categorias."

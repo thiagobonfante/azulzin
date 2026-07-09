@@ -60,14 +60,59 @@ class Goals::NotifyMemberJobTest < ActiveSupport::TestCase
   end
 
   test "delta-gate: the same finding two weeks running fires once, then stays silent" do
+    # Both sweeps inside July — crossing into August would (by design) surface the round-4
+    # missed_month finding as a NEW cause; pure same-cause silence is a same-month property.
+    goal = active_goal
+    travel_to Time.utc(2026, 7, 24, 12)
+    sweep(Date.new(2026, 7, 24))                        # week 1: off_track → 1 alert
+    assert_equal 1, Notification.where(kind: "goal_alert").count
+    travel_to Time.utc(2026, 7, 31, 12)
+    assert_no_difference -> { Notification.where(kind: "goal_alert").count } do
+      sweep(Date.new(2026, 7, 31))                      # same cause, still within cooldown → silent
+    end
+  end
+
+  test "a red-month risk finding escalates the check and leads the notification payload" do
+    travel_to Time.utc(2026, 7, 31, 12)
+    goal = active_goal
+    @account.commitments.create!(kind: "savings", goal:, bank_account: @checking,
+                                 amount_cents: 300_000, name: goal.name, starts_on: goal.starts_on,
+                                 schedule_day: 5, schedule_kind: "fixed_day")
+    sweep(Date.new(2026, 7, 31))                        # no income → July projects −300k
+    check = goal.checks.sole
+    assert_equal "off_track", check.status
+    assert_includes check.findings.map { |f| f["finding"] }, "red_month"
+    assert_equal "red_month", Notification.where(kind: "goal_alert").sole.payload["finding"]
+  end
+
+  test "an urgent missed_month bypasses the cooldown as a new cause at the month turn" do
     goal = active_goal
     travel_to Time.utc(2026, 7, 31, 12)
-    sweep(Date.new(2026, 7, 31))                        # week 1: off_track → 1 alert
+    sweep(Date.new(2026, 7, 31))                        # week 1: pace alert, cooldown armed
     assert_equal 1, Notification.where(kind: "goal_alert").count
     travel_to Time.utc(2026, 8, 7, 12)
+    sweep(Date.new(2026, 8, 7))                         # July closed 300k short → missed_month
+    notifications = Notification.where(kind: "goal_alert").newest_first
+    assert_equal 2, notifications.count
+    assert_equal "missed_month", notifications.first.payload["finding"]
+    assert notifications.first.payload["new_month"].present?, "carries the derived new finish date"
+  end
+
+  test "a non-urgent budget_raised new cause stays silent inside the cooldown" do
+    lazer = @account.categories.create!(name: "Lazer", monthly_budget_cents: 40_000)
+    goal = active_goal
+    goal.update!(plan: { "cuts" => [ { "category_id" => lazer.id, "name" => "Lazer",
+                                       "baseline_cents" => 55_000, "cap_cents" => 40_000 } ] })
+    travel_to Time.utc(2026, 7, 24, 12)
+    sweep(Date.new(2026, 7, 24))                        # pace alert arms the cooldown
+    assert_equal 1, Notification.where(kind: "goal_alert").count
+    goal.update!(budgets_applied_at: Time.current)
+    lazer.update!(monthly_budget_cents: 60_000)         # raised above the applied cap
+    travel_to Time.utc(2026, 7, 31, 12)
     assert_no_difference -> { Notification.where(kind: "goal_alert").count } do
-      sweep(Date.new(2026, 8, 7))                       # same cause, still within cooldown → silent
+      sweep(Date.new(2026, 7, 31))                      # new cause, but not urgent → cooldown holds
     end
+    assert_includes GoalCheck.order(:id).last.findings.map { |f| f["finding"] }, "budget_raised"
   end
 
   test "within the activation grace, an unfunded goal produces an on_track check and no alert" do

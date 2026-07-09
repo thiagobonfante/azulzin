@@ -1170,6 +1170,13 @@ en:
       budget_breach_goal: "%{category} went past the %{goal_name} goal plan: %{spent} of %{budget} this month."
       goal_alert_pace: "Goal %{goal} needs attention: %{gap} to go for this month's amount."
       goal_alert_big_purchase: "Saw a big purchase of %{amount} this month — keep an eye on the %{goal} goal."
+      goal_alert_red_month: "As things stand, this month closes in the red (%{shortfall} short) and your goals ask for %{committed}. Worth reorganizing the %{goal} goal."
+      goal_alert_next_month_red: "Card bills already add up to %{faturas} for next month and the projection closes in the red (%{shortfall} short). The %{goal} goal may not fit — you can reorganize ahead."
+      goal_alert_budget_raised: "The %{category} budget went up to %{budget} — %{over} a month above what the %{goal} goal planned. At that level, the goal slips."
+      goal_alert_missed_month: "Goal %{goal} came in %{gap} under plan last month — %{category} ran %{over} above normal. At this pace, the finish moves from %{old_month} to %{new_month}."
+      goal_alert_missed_month_essential: "%{category} ran %{over} above normal last month — unexpected things happen, no guilt. Goal %{goal} came in %{gap} under plan and the finish moves from %{old_month} to %{new_month}."
+      goal_alert_missed_month_income: "Income came in lower last month and goal %{goal} ended %{gap} under plan — it happens, it's okay. The finish moves from %{old_month} to %{new_month}."
+      goal_alert_missed_month_plain: "Goal %{goal} came in %{gap} under plan last month. At this pace, the finish moves from %{old_month} to %{new_month}."
       goal_achieved: "Goal %{goal} achieved! You saved %{amount}. 🎉"
       surplus_nudge: "You have %{surplus} to spare this month. How about moving it to savings?"
       rightsize_budget: "%{category}: you planned %{budget} but usually spend %{typical}. Want to adjust it?"
@@ -1186,6 +1193,7 @@ en:
     alert:
       dismiss: "Dismiss"
       view_category: "View category"
+      view_goal: "View goal"
       rightsize_cta: "Adjust to %{typical}"
   notification_preferences:
     show:
@@ -1421,6 +1429,30 @@ en:
         budget_breach_goal: "⚠️ *%{category}* went past the *%{goal_name}* goal plan: %{spent} of %{budget}. 💙"
         goal_alert_pace: "👀 Your *%{goal}* goal: %{gap} to go for this month's amount and the month is ending. A transfer to savings fixes it. 💙"
         goal_alert_big_purchase: "⚠️ Saw a big purchase of %{amount} this month. Your *%{goal}* goal may slip — want to adjust in the app?"
+        goal_alert_red_month: |-
+          ⚠️ This month is heading into the red: %{shortfall} short, and the *%{goal}* goal asks for %{committed}.
+          Reply *reorganizar* to adjust it — no guilt. 💙
+        goal_alert_next_month_red: |-
+          👀 Card bills already add up to %{faturas} next month and the projection closes %{shortfall} in the red.
+          The *%{goal}* goal may not fit — reply *reorganizar* to adjust ahead.
+        goal_alert_budget_raised: |-
+          👀 The %{category} budget went up to %{budget} — %{over} a month above what the *%{goal}* goal planned.
+          If that's the new normal, reply *reorganizar* to recompute the goal.
+        goal_alert_missed_month: |-
+          👀 The *%{goal}* goal came in %{gap} under plan last month — %{category} ran %{over} above normal.
+          At this pace, the finish moves from %{old_month} to %{new_month}.
+          Reply *reorganizar* to adjust the plan.
+        goal_alert_missed_month_essential: |-
+          💙 %{category} ran %{over} above normal last month — unexpected things happen, no guilt.
+          The *%{goal}* goal came in %{gap} under plan; the finish moves from %{old_month} to %{new_month}.
+          Reply *reorganizar* and we'll recompute it together. 💙
+        goal_alert_missed_month_income: |-
+          💙 Income came in lower last month — it happens, it's okay. The *%{goal}* goal ended %{gap} under plan.
+          The finish moves from %{old_month} to %{new_month} — reply *reorganizar* to adjust the plan. 💙
+        goal_alert_missed_month_plain: |-
+          👀 The *%{goal}* goal came in %{gap} under plan last month.
+          At this pace, the finish moves from %{old_month} to %{new_month}.
+          Reply *reorganizar* to adjust the plan.
         goal_achieved: "💙 *%{goal}* goal achieved! You saved %{amount}. How about the next one?"
         surplus_nudge: "💙 You closed the month with *%{surplus}* to spare. Want to put it in savings?"
         rightsize_budget: "💙 *%{category}*: you planned %{budget}, but usually spend %{typical}. You can adjust it in Categories."

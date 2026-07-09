@@ -35,6 +35,13 @@
           <%= link_to t(".view_category"),
                 categories_path(anchor: ("category_#{notification.subject_id}" if notification.subject_id)),
                 class: "btn btn-primary btn-xs" %>
+        <% elsif notification.kind == "goal_alert" %>
+          <%# Round 4: every goal alert deep-links to the goal — the risk findings' Reorganizar
+              section lives there (#replan), and pace/big_purchase benefit from the same jump. %>
+          <% if notification.subject.is_a?(Goal) %>
+            <%= link_to t(".view_goal"), goal_path(notification.subject, anchor: "replan"),
+                  class: "btn btn-primary btn-xs" %>
+          <% end %>
         <% elsif notification.kind == "rightsize_budget" %>
           <%# The promised ONE TAP (03 §5.2): lower the budget to the typical (median) value
               through the existing categories#update. Plain-HTML submit → the update redirect

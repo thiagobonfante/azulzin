@@ -36,10 +36,11 @@ module Notifications
   # banner and WhatsApp push must never disagree on which template a row renders). Every
   # kind maps 1:1 to its template today; the seam stays for a future kind that doesn't.
   def self.template_key(notification)
-    # goal_alert carries finding-specific copy (pace / big_purchase) selected by the payload —
-    # the "future kind that doesn't map 1:1" this seam was left for. Both renderers use this.
+    # goal_alert carries finding-specific copy (pace / big_purchase / the round-4 risk set)
+    # selected by the payload — the "future kind that doesn't map 1:1" this seam was left for.
+    # A payload "variant" appends a tone fork (missed_month's essential/income/plain empathy).
     if notification.kind == "goal_alert" && (finding = notification.payload["finding"]).present?
-      "goal_alert_#{finding}"
+      [ "goal_alert_#{finding}", notification.payload["variant"].presence ].compact.join("_")
     elsif %w[budget_warn budget_breach].include?(notification.kind) && notification.payload["goal_name"].present?
       # A goal trim (not the standing budget) is the binding limit → copy names the meta (goals 06 §3).
       "#{notification.kind}_goal"
@@ -63,8 +64,13 @@ module Notifications
     return summary_args(payload, &money) if SUMMARY_KINDS.include?(notification.kind)
     args = payload.except(:days_until, :days_overdue)
     payload.each_key do |key|
-      next unless key.to_s.end_with?("_cents")
-      args[key.to_s.delete_suffix("_cents").to_sym] = yield(args.delete(key))
+      # *_cents → money in the caller's locale; *_month (iso date) → a localized month label,
+      # also at render time (the dashboard uses the request locale, Deliver the recipient's).
+      if key.to_s.end_with?("_cents")
+        args[key.to_s.delete_suffix("_cents").to_sym] = yield(args.delete(key))
+      elsif key.to_s.end_with?("_month")
+        args[key] = I18n.l(Date.iso8601(args[key]), format: :month_year)
+      end
     end
     if (days = payload[:days_until] || payload[:days_overdue])
       args[:count] = days
