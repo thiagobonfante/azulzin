@@ -86,8 +86,17 @@ class Goals::ReplanTest < ActiveSupport::TestCase
     assert_nil Goals::ReplanOffer.for(goal)
   end
 
+  test "offer: nil while the goal is on plan — nothing slipped, nothing to reorganize" do
+    # A consistent on-plan goal: 6M at 300k from Jun = promise Feb 2028, asked date matching.
+    goal = active_goal(plan: { "projected_done_on" => "2028-02-01" })
+    goal.update!(target_date: Date.new(2028, 2, 1))
+    save!(300_000, month: Date.new(2026, 6, 1))
+    save!(300_000, month: Date.new(2026, 7, 1))          # extend derives ≤ the promise
+    assert_nil Goals::ReplanOffer.for(goal)
+  end
+
   test "offer: hold_date is hidden when infeasible or no earlier than extend" do
-    goal = active_goal(monthly: 550_000)                 # extend lands ~11 months out
+    goal = active_goal(monthly: 550_000, plan: { "projected_done_on" => "2027-06-01" })
     goal.update!(target_date: Date.new(2026, 9, 1))      # 1 month left → required ≈ 6M → infeasible
     offer = Goals::ReplanOffer.for(goal)
     assert_equal %w[extend], offer.options.map(&:mode)

@@ -85,3 +85,36 @@ Founder walkthrough fixes. Decisions recorded (detail in `docs/goals.md`):
 - **WA single-plan flow.** WhatsApp goal creation is a deterministic Q&A (one Extractor call to
   classify + seed, zero LLM after) presenting one recomendado plan — a deliberate deviation from
   the web's 3 personalities. WA drafts consume the AI-session quota but skip the narrator.
+
+## Round 4 addendum (2026-07-09) — predictive guardian + Reorganizar
+
+Founder ask: warn BEFORE goals break (household going red, next month's card faturas, budgets
+raised over the goal's caps), on both channels, with an interaction that recomputes the goal —
+and empathy when the miss had a good reason. Decisions (detail in `docs/goals.md`):
+
+- **Predictive findings ride `goal_alert`.** No new notification kind or preference:
+  `Goals::RiskScan` adds red_month / next_month_red / budget_raised / missed_month findings,
+  selected per template by the existing payload seam (plus a `variant` tone fork). Red findings
+  fire only when goal parcels sit in the red month, attach to the goal with the largest parcel
+  (one alert per red month, never one per goal), and bypass grace and the 14-day cooldown —
+  never the delta-gate (widened to finding+category+month), the weekly WA guard or the daily
+  cap. The month projection is `MonthSummary`, so next month's faturas already include posted
+  card spend billing forward.
+- **Deterministic empathy.** The missed-month cause is computed, not phrased: lower income
+  first, else the worst category overage vs the frozen baseline medians. Essential-category and
+  income causes select the gentle copy ("imprevistos acontecem, sem culpa 💙"); flexible causes
+  the matter-of-fact one. Zero LLM on the check path stands.
+- **The guardian never rewrites; Reorganizar does.** missed_month announces the DERIVED new
+  finish (frozen-plan doctrine); the formal rewrite is user-triggered only. `Goals::Replan` =
+  re-activation semantics: initial_saved rebases to pre-current-month savings (actual saved
+  provably invariant — the round-4 money trap), schedule re-anchors next month, commitment
+  archived + recreated (paid history stays, parcels restart, source/payday carried), applied
+  budget cuts revert now and re-arm for the new starts_on. Mid-month replan relieves sobra by
+  exactly the unpaid parcel. Purchase goals only in v1 (savings_rate has no date to move).
+- **Two honest options, live numbers.** estender (keep the exact parcel, finish later — the
+  default) and manter a data (parcel rises; hidden when live capacity can't fund it), both from
+  a FRESH Analyzer profile; draft-time user_caps are not carried. Modes cross the wire, numbers
+  never do.
+- **WA keyword = frozen regex.** "reorganizar" is a pre-pass like undo (the alert-advertised
+  keyword must not depend on LLM mood); the whole chat is zero-LLM and supersedes an open
+  goal-creation conversation instead of being swallowed as a slot answer.

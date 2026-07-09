@@ -172,14 +172,74 @@ sent mid-chat still posts). WA drafts consume the ≤5 monthly AI sessions but n
 `Goals::WeeklyCheckDispatchJob` (recurring.yml, Monday 11:00 UTC) fans out one
 `Goals::NotifyMemberJob(account, member, as_of)` per membership of accounts with active goals — the
 shipped dispatch→notify shape, in the mandatory shared `proactive_notify` concurrency group. Each
-job writes an idempotent `goal_checks` row (unique `[goal_id, period_start]`) that the dashboard reads
-for the pace chip. An alert-worthy check (worsened status or a new cause, past the 14-day cooldown)
-records a `goal_alert`:
+job merges the per-goal `Goals::Checker` result (pace + large-purchase) with the account-level
+`Goals::RiskScan` (round 4, below), writes an idempotent `goal_checks` row (unique
+`[goal_id, period_start]`) that the dashboard reads for the pace chip, and — on an alert-worthy
+moment — records a `goal_alert` whose payload is the worst NEW cause (priority: missed_month >
+red_month > next_month_red > budget_raised > pace > big_purchase):
 
-- **Dashboard** banner is free (via the shipped `notifications/_alert`).
+- **Dashboard** banner is free (via the shipped `notifications/_alert`), now with a "Ver meta"
+  deep-link to the goal page's `#replan` section.
 - **WhatsApp** is opt-in per member (`notification_preferences.goal_alerts`), under the household
   master consent, capped at one goals message/user/week — all through `Notifications::Deliver`.
 - **Celebration** (`goal_achieved`) is opt-OUT (default true) — celebrate loudly, correct quietly.
+
+## The predictive arm (`Goals::RiskScan`) — warn BEFORE it breaks
+
+Zero-LLM findings computed once per sweep over the live ledger (round 4):
+
+- **`red_month`** — the current month's projection (`MonthSummary#remaining_cents`, which
+  already nets unpaid parcels via `projected_guardado`) closes negative while goal parcels sit
+  in it. Fired once per account, attached to the goal with the largest parcel — never one
+  banner per goal. Silent when no goal money is in the month (that's the budget/summary kinds'
+  story, not a goals alert).
+- **`next_month_red`** — the same test on NEXT month, whose faturas already carry posted card
+  spend billing forward ("comprei no cartão, cai no mês que vem") plus card commitments and
+  expected incomes — the goal that won't fit is flagged weeks ahead.
+- **`budget_raised`** — after `ApplyBudgetCuts` wrote a goal's caps into the standing budgets,
+  a member raised one above the cap (manual edits win, and `TrimCaps` keeps pinning the spend
+  alerts — this warns that the *intent* breaks the goal's math). Names the worst offender.
+- **`missed_month`** — last month's contributions into the caixinha came in under the parcel.
+  The payload carries the **derived** new finish (`Progress#projected_done_on` — the frozen
+  plan is never auto-edited) and a deterministic cause: lower income first (< 70% of the
+  baseline median), else the worst category overage vs the frozen baseline medians (≥ R$ 50).
+  An essential-category or income cause selects the **gentle** copy variant ("imprevistos
+  acontecem, sem culpa 💙"); flexible causes get the matter-of-fact one. Fires only when the
+  finish actually slips past the chosen plan's promise.
+
+Risk findings escalate the check status (any ⇒ at least `at_risk`; missed/red ⇒ `off_track`),
+bypass the activation grace and — being predictive protection — the 14-day cooldown
+(`budget_raised` keeps it). The delta-gate is keyed on `(finding, category, month)` so each
+concrete cause alerts exactly once; the weekly WA guard and daily cap always stand. Every risk
+template ends with the way out: **responda *reorganizar***.
+
+## Reorganizar — replanning without guilt
+
+The ONLY path that rewrites an active goal's plan, always user-triggered. `Goals::ReplanOffer`
+quotes two options from a FRESH `Analyzer` profile (never the frozen baseline — reality moved,
+that's the point), purchase goals only:
+
+- **estender** (default): keep the exact parcel, finish later — new `target_date` =
+  next month + ⌈remaining/parcel⌉ (the founder's "jan/2027 → fev/2027").
+- **manter a data**: keep the date, the parcel rises to ⌈remaining/months-left⌉ — hidden when
+  live capacity can't fund it or it wouldn't beat estender.
+
+`Goals::Replan` applies as a **re-activation** in one transaction: `initial_saved` rebases to
+everything saved through last month (current-month transfers keep counting through the fresh
+window — `Progress#actual_cents` is provably invariant, the round-4 money trap), the earmark
+re-anchors on the goal's caixinha, `activated_at`/`starts_on` reset (grace + gap month restart,
+so the guardian is quiet through the switch), the old savings commitment is archived with its
+paid history (parcels restart 0/n on a fresh commitment carrying the same source account and
+payday), and applied budget cuts revert immediately — the daily job re-applies the new plan's
+cuts when the new `starts_on` arrives. Replanning mid-month archives the unpaid occurrence, so
+the sobra gets relief by exactly the old parcel, now.
+
+Surfaces: the goal page's collapsible **Reorganizar** section (`#replan`, open when the latest
+check is at_risk/off_track; radio options → `PATCH /goals/:id/replan`, mode-only params —
+numbers are re-derived server-side), and the WhatsApp keyword **reorganizar** (frozen-regex
+pre-pass, zero LLM end to end): one candidate goal goes straight to the numbered offer, several
+get a pick, "sim"/"1"/"2" applies, "não" keeps, and the keyword supersedes an open
+goal-creation chat instead of being swallowed as a slot answer.
 
 ## AI (the only two touchpoints — `docs/decisions/0012`)
 

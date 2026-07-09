@@ -38,10 +38,13 @@ module Goals
 
       # Keep the current parcel → the honest finish is start + ⌈remaining/parcel⌉ months
       # (the same shape as Progress#projected_done_on, anchored on the new schedule).
+      # Only offered when that finish actually slipped past the chosen plan's promise — an
+      # on-plan (or freshly replanned) goal has nothing to extend, so the section disappears.
       # PlanBuilder gates feasibility and supplies today's cuts; its required monthly is the
       # MINIMUM for that date (≤ the parcel by construction) — the option pins the parcel the
       # user already knows, so "manter a parcela" means exactly that.
       def extend_option
+        return nil if extend_date <= promised_done_on.beginning_of_month
         plan = feasible_plan(extend_date)
         return nil unless plan
         Option.new(mode: "extend", target_date: extend_date,

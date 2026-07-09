@@ -314,12 +314,22 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("goals.contribute.rejected"), flash[:alert]
   end
 
-  test "reorganizar: the show page offers the replan and applying extend re-anchors the schedule" do
+  test "reorganizar: on plan there is no section; behind, it appears and extend re-anchors" do
     goal = activate_goal!
     old_commitment = goal.savings_commitment
 
     get goal_path(goal)
     assert_response :success
+    assert_select "details#replan", count: 0   # fresh + on plan → nothing to reorganize
+
+    # Two schedule months pass with nothing saved → slipped. The live capacity window moves
+    # with the clock, so July/August need ledger months too (the fixture stops at June).
+    [ Date.new(2026, 7, 1), Date.new(2026, 8, 1) ].each do |m|
+      @account.transactions.create!(direction: "income", status: "posted", amount_cents: 900_000,
+                                    bank_account: @checking, occurred_on: m, billing_month: m, billing_month_manual: true)
+    end
+    travel_to Time.utc(2026, 9, 20, 12)
+    get goal_path(goal)
     assert_select "details#replan"
     assert_match I18n.t("goals.show.replan_title"), @response.body
 
@@ -328,7 +338,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to goal_path(goal)
     goal.reload
     assert_equal old_monthly, goal.monthly_target_cents   # extend keeps the parcel
-    assert_equal Date.new(2026, 8, 1), goal.starts_on
+    assert_equal Date.new(2026, 10, 1), goal.starts_on
     assert old_commitment.reload.archived?
     assert goal.savings_commitment, "the fresh commitment carries the new schedule"
     assert_not_equal old_commitment.id, goal.savings_commitment.id
@@ -336,6 +346,23 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("goals.replan.replanned",
                         monthly: brl_whole_pt(goal.monthly_target_cents),
                         month: I18n.l(goal.target_date, format: :month_year)), @response.body
+  end
+
+  test "a goal_alert banner renders the empathetic missed-month copy and deep-links to #replan" do
+    goal = activate_goal!
+    Notification.record!(user: @user, account: @account, kind: "goal_alert",
+                         subject: goal, period_key: Date.new(2026, 7, 13),
+                         payload: { "finding" => "missed_month", "variant" => "essential",
+                                    "goal" => "Carro", "month" => "2026-06-01",
+                                    "expected_cents" => 375_000, "saved_cents" => 100_000,
+                                    "gap_cents" => 275_000, "old_month" => "2027-12-01",
+                                    "new_month" => "2028-03-01", "category" => "Saúde",
+                                    "over_cents" => 120_000, "urgent" => true })
+    get dashboard_path
+    assert_response :success
+    assert_match "imprevistos acontecem, sem culpa", @response.body       # the gentle variant
+    assert_match "dezembro de 2027", @response.body                       # *_month localized at render
+    assert_select "a[href=?]", goal_path(goal, anchor: "replan"), text: I18n.t("notifications.alert.view_goal")
   end
 
   test "replan on a draft goal is refused" do
