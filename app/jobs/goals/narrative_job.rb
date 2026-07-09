@@ -11,6 +11,8 @@ module Goals
     def perform(goal_id)
       goal = Goal.find(goal_id)
       return unless goal.draft?
+      # Not analyzed yet (a legacy draft) — nothing to narrate; bail BEFORE burning quota.
+      return if goal.baseline["sufficiency"].blank?
       return if goal.ai_calls_count >= MAX_CALLS_PER_SESSION
       goal.increment!(:ai_calls_count)
 

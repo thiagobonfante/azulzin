@@ -1,6 +1,9 @@
 # A financial goal ("Meta") — account-scoped household savings target (.plans/goals). Two kinds:
 #   purchase     — buy something worth target_cents by target_date.
-#   savings_rate — save target_cents MORE per month than the baseline, open-ended.
+#   savings_rate — put away target_cents IN TOTAL each month (the form anchors on the household's
+#                  current median guardado and asks for the new total), open-ended.
+# user_caps ({ category_id => cap_cents }) are the household's draft-time orçamento slider choices;
+# PlanBuilder carries them as fixed cuts in every plan.
 # Goals READ the ledger and never write transactions; the analysis (baseline) and chosen plan are
 # frozen jsonb snapshots so a later-deleted category still renders. Lifecycle is status, not
 # deletion: draft → active → achieved | abandoned ("guardado continua guardado"). At most

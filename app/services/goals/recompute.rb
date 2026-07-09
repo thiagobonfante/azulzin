@@ -11,7 +11,8 @@ module Goals
         starts_on:                 goal.starts_on || current_month,
         target_date:               goal.target_date,
         initial_saved_cents:       goal.initial_saved_cents,
-        committed_elsewhere_cents: committed_elsewhere(goal)
+        committed_elsewhere_cents: committed_elsewhere(goal),
+        user_caps:                 goal.user_caps.to_h { |k, v| [ k.to_i, v.to_i ] }
       )
     end
 

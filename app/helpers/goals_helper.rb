@@ -1,4 +1,18 @@
 module GoalsHelper
+  # Goal-kind glyphs — Heroicons v2 outline, same inline-`currentColor` pattern as
+  # CategoriesHelper::CATEGORY_ICON_PATHS (no emoji in UI chrome).
+  GOAL_KIND_ICON_PATHS = {
+    "purchase"     => "M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5",
+    "savings_rate" => "M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+  }.freeze
+
+  def goal_kind_icon_tag(kind, css_class: "h-5 w-5")
+    path = GOAL_KIND_ICON_PATHS.fetch(kind.to_s)
+    content_tag(:svg, tag.path(d: path, "stroke-linecap": "round", "stroke-linejoin": "round"),
+                class: css_class, xmlns: "http://www.w3.org/2000/svg", fill: "none",
+                viewBox: "0 0 24 24", "stroke-width": "1.6", stroke: "currentColor", "aria-hidden": "true")
+  end
+
   # Month options for the "when" select on Screen 1 — the next 60 months (min = next month),
   # value is the first-of-month ISO date, label localized ("dezembro de 2027" / "December 2027").
   def goal_month_options

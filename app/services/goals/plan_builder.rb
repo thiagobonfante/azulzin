@@ -2,16 +2,24 @@ module Goals
   # Derives 3 fixed-personality plans (leve / recomendado / acelerado) from a frozen Profile, or
   # the three honest counter-offers when the goal doesn't close (.plans/goals 01 §5). Pure function
   # of its inputs — recomputing from the same baseline is byte-identical (choose-time tamper-proofing).
-  # All math is integer cents + BigDecimal; every plan satisfies monthly_target == capacity_base + Σcuts.
+  # All math is integer cents + BigDecimal; every plan satisfies
+  # monthly_target == min(template_target, capacity_base) + Σcuts (with no user caps this reduces
+  # to the original capacity_base + Σcuts ≥ monthly_target, cuts exactly funding the gap).
+  #
+  # user_caps ({ category_id => cap_cents }) are the household's own orçamento choices from the
+  # Diagnóstico sliders: each becomes a FIXED cut carried in full by every plan (a cap is a
+  # deliberate behavior change — its money is committed even past the template's own target, so
+  # dragging a slider accelerates all three plans), and a capped category is off the table for
+  # further template trims.
   class PlanBuilder
     def self.call(profile:, kind:, target_cents:, starts_on:, target_date: nil,
-                  initial_saved_cents: 0, committed_elsewhere_cents: 0)
+                  initial_saved_cents: 0, committed_elsewhere_cents: 0, user_caps: {})
       new(profile:, kind:, target_cents:, starts_on:, target_date:,
-          initial_saved_cents:, committed_elsewhere_cents:).call
+          initial_saved_cents:, committed_elsewhere_cents:, user_caps:).call
     end
 
     def initialize(profile:, kind:, target_cents:, starts_on:, target_date:,
-                   initial_saved_cents:, committed_elsewhere_cents:)
+                   initial_saved_cents:, committed_elsewhere_cents:, user_caps:)
       @profile = profile
       @kind = kind
       @target_cents = target_cents
@@ -19,6 +27,7 @@ module Goals
       @target_date = target_date&.beginning_of_month
       @initial_saved_cents = initial_saved_cents.to_i
       @committed_elsewhere_cents = committed_elsewhere_cents.to_i
+      @user_caps = user_caps
     end
 
     def call
@@ -37,15 +46,19 @@ module Goals
       def purchase? = @kind == "purchase"
 
       # The monthly amount the goal demands. Purchase: ⌈remaining / months⌉ (never undershoots).
-      # savings_rate: save target_cents MORE than the household already puts away.
+      # savings_rate: target_cents is the TOTAL the household wants to put away each month.
       def required
         @required ||=
           if purchase?
             Goals.ceil_div(remaining_target, [ Goals.months_between(@starts_on, @target_date), 1 ].max)
           else
-            @profile.median_guardado_cents + @target_cents
+            @target_cents
           end
       end
+
+      # savings_rate: the effort on top of what the household already puts away (≥ 0 — an
+      # already-met target plans as pure habit-keeping, no cuts).
+      def savings_extra = [ @target_cents - @profile.median_guardado_cents, 0 ].max
 
       def remaining_target = [ @target_cents - @initial_saved_cents, 0 ].max
 
@@ -58,10 +71,31 @@ module Goals
         @capacity_base ||= @profile.median_capacity_base_cents - @committed_elsewhere_cents
       end
 
-      def trimmables = @profile.per_category_caps? ? @profile.trimmable_categories : []
+      # Template trims only consider categories the user hasn't already capped themselves.
+      def trimmables
+        @trimmables ||= (@profile.per_category_caps? ? @profile.trimmable_categories : [])
+                          .reject { |c| @user_caps.key?(c.category_id) }
+      end
 
-      # The acelerado ceiling: capacity + every trimmable cut at its 40% max (floored at R$50).
-      def max_achievable = @max_achievable ||= capacity_base + max_trims(trimmables, TRIM_PCT["acelerado"])
+      # The user's own orçamento choices as fixed cuts, clamped to the category's trimmable slice
+      # (the committed portion can't be cut). Only meaningful when per-category caps apply at all.
+      def fixed_cuts = @fixed_cuts ||= build_fixed_cuts
+
+      def build_fixed_cuts
+        return [] unless @profile.per_category_caps?
+        @profile.trimmable_categories.filter_map do |c|
+          cap = @user_caps[c.category_id] or next
+          cut = (c.median_cents - cap).clamp(0, c.trimmable_median_cents)
+          next if cut <= 0
+          Cut.new(category_id: c.category_id, name: c.name, baseline_cents: c.median_cents, cap_cents: c.median_cents - cut)
+        end
+      end
+
+      def fixed_cut_cents = fixed_cuts.sum(&:cut_cents)
+
+      # The acelerado ceiling: capacity + the user's fixed cuts + every remaining trimmable at its
+      # 40% max (R$50 floor). User caps count in full — they're the household's own call.
+      def max_achievable = @max_achievable ||= capacity_base + fixed_cut_cents + max_trims(trimmables, TRIM_PCT["acelerado"])
 
       def max_trims(cats, pct)
         cats.sum { |c| viable_cut(c, pct) }
@@ -74,10 +108,23 @@ module Goals
 
       # ---- the three personalities ----------------------------------------------------------
 
-      # Leve: light touch — 15% off the top-3 trimmables, capped at required. The date may slip.
+      # Leve: a genuinely lighter pace — 85% of the required effort, so the projected date honestly
+      # slips (purchase) or the extra habit starts smaller (savings). Funded, when needed, by 15%
+      # off the top-3 trimmables. Never collapses into recomendado just because the sobra covers it.
       def leve
-        ceiling = capacity_base + max_trims(trimmables.first(LEVE_TOP_N), TRIM_PCT["leve"])
-        plan("leve", target_contribution: [ required, ceiling ].min, pct: TRIM_PCT["leve"], candidates: trimmables.first(LEVE_TOP_N))
+        ceiling = capacity_base + fixed_cut_cents + max_trims(trimmables.first(LEVE_TOP_N), TRIM_PCT["leve"])
+        plan("leve", target_contribution: [ eased_required, ceiling ].min,
+             pct: TRIM_PCT["leve"], candidates: trimmables.first(LEVE_TOP_N))
+      end
+
+      # 85% of the effort: for a purchase that's 85% of the required monthly; for savings the ease
+      # applies to the EXTRA only — leve must never plan below what the household already saves.
+      def eased_required
+        if purchase?
+          [ Goals.pct_of(required, LEVE_EASE), 1 ].max
+        else
+          @profile.median_guardado_cents + Goals.pct_of(savings_extra, LEVE_EASE)
+        end
       end
 
       # Recomendado: hold the date — trim greedily (25% max each) until the required monthly is met.
@@ -87,22 +134,20 @@ module Goals
 
       # Acelerado: beat the date — push to required × 1.25, funded by up to 40% off each trimmable.
       def acelerado
-        ceiling = capacity_base + max_trims(trimmables, TRIM_PCT["acelerado"])
-        target = [ Goals.pct_of(required, ACCELERADO_STRETCH), ceiling ].min
+        target = [ Goals.pct_of(required, ACCELERADO_STRETCH), max_achievable ].min
         plan("acelerado", target_contribution: target, pct: TRIM_PCT["acelerado"], candidates: trimmables)
       end
 
-      # When capacity alone covers the target the plan commits exactly the target (no cuts); when it
-      # falls short, cuts fund the gap and the contribution is capacity + Σcuts (≤ target if trims run
-      # out). Either way: Σcuts == max(0, monthly_target − capacity_base), cents-exact (01 §8 trap #3).
+      # Each plan commits the sobra slice it needs (never more than capacity), every user cap in
+      # full, and — only for the part still missing — template cuts, the last one partial so the
+      # total lands cents-exact (01 §8 trap #3). Cap money the template didn't need is committed
+      # anyway: a user cap is a deliberate behavior change, so dragging a slider accelerates every
+      # plan. Invariant: monthly_target == min(template_target, capacity_base) + Σcuts.
       def plan(template, target_contribution:, pct:, candidates:)
-        gap = target_contribution - capacity_base
-        if gap <= 0
-          build_plan(template, target_contribution, [])
-        else
-          cuts = build_cuts(candidates, gap, pct)
-          build_plan(template, capacity_base + cuts.sum(&:cut_cents), cuts)
-        end
+        gap = target_contribution - capacity_base - fixed_cut_cents
+        cuts = gap.positive? ? build_cuts(candidates, gap, pct) : []
+        from_capacity = [ target_contribution, capacity_base ].min
+        build_plan(template, from_capacity + fixed_cut_cents + cuts.sum(&:cut_cents), fixed_cuts + cuts)
       end
 
       def build_plan(template, contribution, cuts)
@@ -146,14 +191,14 @@ module Goals
         @starts_on >> Goals.ceil_div(remaining_target, max_achievable)
       end
 
-      # For the asked date (purchase) the target you could actually hit; for savings_rate, the extra
-      # per month you could realistically commit.
+      # For the asked date (purchase) the target you could actually hit; for savings_rate, the
+      # monthly total the household could realistically put away.
       def feasible_target
         if purchase?
           reachable = @initial_saved_cents + max_achievable * [ Goals.months_between(@starts_on, @target_date), 1 ].max
           [ reachable, @initial_saved_cents ].max   # negative capacity can't erode the head start
         else
-          [ max_achievable - @profile.median_guardado_cents, 0 ].max
+          [ max_achievable, 0 ].max
         end
       end
   end

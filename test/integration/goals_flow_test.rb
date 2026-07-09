@@ -103,6 +103,43 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to goals_path
   end
 
+  test "create analyzes the baseline in-request — the narrative job can never race an empty snapshot" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
+    assert_equal "ok", @account.goals.last.baseline["sufficiency"]
+  end
+
+  test "a savings goal at or below today's guardado is refused with a clear error" do
+    WINDOW.each do |m|
+      @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 150_000,
+                                    bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                    occurred_on: m, billing_month: m, billing_month_manual: true)
+    end
+    assert_no_difference -> { @account.goals.count } do
+      post goals_path, params: { goal: { name: "Guardar", kind: "savings_rate", target_reais: "1.000,00" } }
+    end
+    assert_response :unprocessable_entity
+    assert_match I18n.t("activerecord.attributes.goal.target_cents"), @response.body
+  end
+
+  test "dragging an orçamento slider stores the cap and recomputes the plans with the fixed cut" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
+    goal = @account.goals.last
+    follow_redirect!
+    assert_select "input[type=range][name=?]", "caps[#{@rest.id}]"
+
+    patch caps_goal_path(goal), params: { caps: { @rest.id.to_s => "15000", "999999" => "100" } },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_response :success
+    assert_match "goal_plan_area", @response.body
+    assert_equal({ @rest.id.to_s => 15_000 }, goal.reload.user_caps)   # junk category id dropped
+
+    build = Goals::Recompute.call(goal)
+    assert build.plans.all? { |p| p.cuts.any? { |c| c.category_id == @rest.id && c.cap_cents == 15_000 } }
+
+    patch caps_goal_path(goal), params: { reset: "1" }
+    assert_empty goal.reload.user_caps
+  end
+
   test "double-submitting choose activates only once" do
     post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
     goal = @account.goals.last

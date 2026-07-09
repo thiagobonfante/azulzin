@@ -10,7 +10,9 @@ only when behavior threatens the plan. Deterministic engine, AI only for phrasin
 
 - **purchase** — buy something worth `target_cents` by `target_date`. Required monthly =
   `⌈(target − initial_saved) / months⌉` (ceil, never undershoots).
-- **savings_rate** — save `target_cents` MORE per month than the baseline, open-ended.
+- **savings_rate** — put away `target_cents` **in total** each month, open-ended. The form shows
+  the household's current median guardado and asks for the new total (a total at or below today's
+  guardado is refused at create); plans bridge only the extra.
 
 At most **5 active goals per account** (bounds the weekly fan-out).
 
@@ -25,11 +27,21 @@ value objects live in `app/services/goals.rb`.
   + guardado, so existing savers aren't understated), and a data-sufficiency verdict
   (`:ok`/`:thin`/`:insufficient`; >40% uncategorized → total-cap-only). Frozen verbatim into
   `goals.baseline`.
-- **`PlanBuilder`** — 3 fixed personalities (leve / recomendado / acelerado) with cents-exact
-  greedy trims, or — when `required > capacity + max trims` — three honest counter-offers
-  (feasible date at capacity / feasible amount for the date / extra income needed). Capacity
-  contention: a new goal's base subtracts other active goals' monthly targets. Pure function of the
-  frozen baseline, so **choose recomputes byte-identically** and never trusts a params number.
+- **`PlanBuilder`** — 3 fixed personalities with cents-exact greedy trims, or — when
+  `required > capacity + max trims` — three honest counter-offers (feasible date at capacity /
+  feasible amount for the date / extra income needed). **Leve aims at 85% of the required effort**
+  (`LEVE_EASE`; for savings the ease applies to the extra only), so it never collapses into
+  recomendado when the sobra alone covers the goal — the projected date honestly slips instead.
+  Capacity contention: a new goal's base subtracts other active goals' monthly targets. Pure
+  function of the frozen baseline, so **choose recomputes byte-identically** and never trusts a
+  params number.
+- **User caps (orçamento sliders)** — on the draft Diagnóstico each flexible category gets a range
+  slider (painted with the category color, bounded to its trimmable slice). Releasing a slider
+  PATCHes `goals#caps` (stored in `goals.user_caps`, whitelisted + clamped server-side) and
+  Turbo-swaps only the plan area. A cap is a **fixed cut carried in full by every plan** — it can
+  flip an infeasible goal feasible (caps go past the 40% template max) and its money is committed
+  even beyond the template's own target, so dragging accelerates all three plans. The chosen plan's
+  cuts then flow to `TrimCaps` → `Budgets::Check` like any other cut.
 - **`Progress`** — actual (guardado since `starts_on`) vs pay-schedule-aware expected (0 before the
   household's earliest payday, then pro-rata). Pace is **always** guardado-vs-expected, never
   projected sobra (contributing early lowers sobra — flagging a saver for it is banned). Suppressed
@@ -62,7 +74,9 @@ records a `goal_alert`:
 
 ## AI (the only two touchpoints — `docs/decisions/0012`)
 
-Both at creation, both async, both with template fallbacks:
+Both at creation, both async, both with template fallbacks. The controller analyzes the baseline
+**in-request at create** — the narrative job fires milliseconds later on the async adapter and must
+never race an empty snapshot (the job also skips un-analyzed drafts without burning quota):
 
 - **`Narrator` + `NarrativeJob`** — one call phrases all 3 coach notes; a digit-mismatch guard
   rejects any invented money figure (template notes stand). ≤3 calls/session, ≤5 sessions/account/

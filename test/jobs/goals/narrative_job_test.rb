@@ -33,6 +33,17 @@ class Goals::NarrativeJobTest < ActiveSupport::TestCase
     assert_equal 3, goal.reload.ai_calls_count
   end
 
+  test "a not-yet-analyzed draft is skipped BEFORE burning quota (create-time race regression)" do
+    goal = @account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
+                                  target_date: Date.new(2027, 12, 1), status: "draft")
+    called = false
+    Goals::Narrator.stub(:call, ->(*) { called = true; nil }) do
+      Goals::NarrativeJob.perform_now(goal.id)
+    end
+    refute called, "Narrator must not run against an empty baseline"
+    assert_equal 0, goal.reload.ai_calls_count
+  end
+
   test "caches the returned narratives onto the baseline" do
     goal = draft
     notes = { "leve" => "a", "recomendado" => "b", "acelerado" => "c" }

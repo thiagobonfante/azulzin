@@ -109,6 +109,7 @@ Rails.application.routes.draw do
     resources :goals, only: %i[index new create show update destroy] do
       member do
         patch :choose    # template=leve|recomendado|acelerado (+ bank_account_id, source_bank_account_id)
+        patch :caps      # Diagnóstico orçamento sliders — caps={category_id: cents}, draft only
         patch :abandon
       end
     end

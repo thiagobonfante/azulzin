@@ -180,6 +180,8 @@ en:
               not_savings: "must be a savings pot (a savings account) in this account."
             initial_saved_cents:
               exceeds_target: "can't be greater than or equal to the goal amount."
+            target_cents:
+              below_current_guardado: "needs to be higher than what you already save today (~%{guardado}/month)."
   app:
     nav:
       dashboard: "Dashboard"
@@ -282,16 +284,18 @@ en:
       name: "Name"
       name_placeholder: "Car, a trip, the apartment down payment…"
       value_purchase: "How much does it cost?"
-      value_savings: "How much more to save each month?"
+      value_savings: "How much do you want to save each month?"
       when: "When?"
       initial_saved: "Already have something saved?"
       initial_saved_hint: "Optional. What you've already set aside for this goal."
+      current_guardado_hint: "Today you save about %{amount}/month on average — the goal is the new total."
+      current_guardado_zero: "You aren't saving a set amount every month yet — let's start."
       submit: "See my plans"
     kinds:
       purchase: "Buy something"
       purchase_hint: "A car, a trip, the apartment down payment."
-      savings_rate: "Save more each month"
-      savings_rate_hint: "Build the habit of setting money aside every month."
+      savings_rate: "Save more"
+      savings_rate_hint: "Set aside more money every month."
     status:
       draft: "Draft"
       active: "Active"
@@ -308,6 +312,9 @@ en:
     diagnosis:
       summary_html: "Over the last 3 months you earned %{income} on average, spent %{spend}, and had %{capacity} left per month."
       trim_candidates_title: "Where you can adjust"
+      trim_hint: "Drag to set a budget per category — the plans recalculate instantly."
+      spends: "spends ~%{amount}"
+      reset_caps: "clear adjustments"
     plans:
       labels:
         leve: "Easy"
@@ -335,7 +342,7 @@ en:
       too_tight_why: "For %{month} you'd need to save %{required}/mo — today you can do %{capacity}."
       offer_date: "With %{amount}/mo you reach %{month}"
       offer_target: "For %{month}, you could aim for %{amount}"
-      offer_target_savings: "You could save %{amount} more per month"
+      offer_target_savings: "You could save %{amount} per month"
       use_this_date: "Use this date"
       use_this_target: "Use this amount"
       offer_income: "Or with %{amount}/mo more income, it closes on your deadline"

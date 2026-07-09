@@ -87,13 +87,32 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
     assert_equal Date.new(2026, 7, 1) >> Goals.ceil_div(2_500_000, 110_000), co.feasible_date
   end
 
-  test "savings_rate required is baseline guardado plus the extra; capacity funds it without cuts" do
+  test "savings_rate required IS the desired monthly total; leve eases only the extra" do
     r = Goals::PlanBuilder.call(profile: profile(capacity: 320_000, guardado: 100_000),
-                                kind: "savings_rate", target_cents: 50_000, starts_on: Date.new(2026, 7, 1))
+                                kind: "savings_rate", target_cents: 150_000, starts_on: Date.new(2026, 7, 1))
     assert r.feasible?
-    assert_equal 150_000, r.required_monthly_cents                # 100_000 baseline + 50_000 extra
-    assert_equal [ 150_000, 150_000 ], r.plans.first(2).map(&:monthly_target_cents)
+    assert_equal 150_000, r.required_monthly_cents                # the total asked, not guardado + extra
+    leve, rec = r.plans.first(2)
+    assert_equal 100_000 + Goals.pct_of(50_000, Goals::LEVE_EASE), leve.monthly_target_cents  # never below today's pace
+    assert_equal 150_000, rec.monthly_target_cents
     assert r.plans.all? { |p| p.projected_done_on.nil? }         # open-ended
+  end
+
+  test "savings_rate counter-offer is the achievable monthly TOTAL" do
+    r = Goals::PlanBuilder.call(profile: profile(capacity: 100_000, guardado: 80_000),
+                                kind: "savings_rate", target_cents: 300_000, starts_on: Date.new(2026, 7, 1))
+    refute r.feasible?
+    assert_equal 100_000, r.counter_offers.feasible_target_cents   # capacity, no trims
+  end
+
+  test "leve eases to 85% of required even when the sobra covers everything — never a recomendado clone" do
+    r = build(profile(capacity: 500_000, trimmables: { "Restaurantes" => 90_000 }))
+    leve = r.plans.find { |p| p.template == "leve" }
+    rec  = r.plans.find { |p| p.template == "recomendado" }
+    assert_equal Goals.pct_of(r.required_monthly_cents, Goals::LEVE_EASE), leve.monthly_target_cents
+    assert_equal r.required_monthly_cents, rec.monthly_target_cents
+    assert_operator leve.projected_done_on, :>, rec.projected_done_on   # the date honestly slips
+    assert_empty leve.cuts
   end
 
   test "choose-time recompute from the frozen baseline is byte-identical" do
@@ -127,5 +146,62 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
                                 starts_on: Date.new(2026, 7, 1), committed_elsewhere_cents: 200_000)
     assert_equal(-50_000, r.capacity_base_cents)          # 150_000 − 200_000, unclamped
     refute r.feasible?
+  end
+
+  # ---- user caps (orçamento sliders) --------------------------------------------------------
+
+  test "a user cap is a fixed cut carried by EVERY plan and off the table for template trims" do
+    p = profile(capacity: 300_000, trimmables: { "Restaurantes" => 90_000, "Lazer" => 60_000 })
+    r = build(p, user_caps: { 1 => 50_000 })              # Restaurantes capped 90_000 → 50_000
+    assert r.feasible?
+    r.plans.each do |pl|
+      resto = pl.cuts.find { |c| c.category_id == 1 }
+      assert_equal 40_000, resto.cut_cents, pl.template   # the exact user cut, template-independent
+      assert_equal 50_000, resto.cap_cents, pl.template
+      assert_equal 1, pl.cuts.count { |c| c.category_id == 1 }, pl.template   # never trimmed twice
+    end
+  end
+
+  test "user caps accelerate every plan and keep the cents-exact invariant (hand-verified)" do
+    # required 352_942 · capacity 340_000 · user cut 40_000 (Restaurantes 90_000 → 50_000)
+    p = profile(capacity: 340_000, trimmables: { "Restaurantes" => 90_000, "Lazer" => 60_000 })
+    r = build(p, user_caps: { 1 => 50_000 })
+    leve, rec, acel = r.plans
+    assert_equal Goals.pct_of(352_942, Goals::LEVE_EASE) + 40_000, leve.monthly_target_cents  # eased + cap money
+    assert_equal 380_000, rec.monthly_target_cents            # capacity covers required; cap surplus accelerates
+    assert_equal 404_000, acel.monthly_target_cents           # stretch capped at capacity + cap + 40% of Lazer
+    r.plans.each do |pl|
+      # generalized invariant: monthly == min(template need, capacity) + Σcuts — cents exact
+      assert_equal pl.monthly_target_cents - pl.total_cut_cents,
+                   [ pl.monthly_target_cents - pl.total_cut_cents, r.capacity_base_cents ].min, pl.template
+      assert_equal 40_000, pl.cuts.find { |c| c.category_id == 1 }.cut_cents, pl.template
+    end
+  end
+
+  test "a user cap can flip an infeasible goal to feasible (caps go beyond the 40% template max)" do
+    # required 625_000; capacity 500_000 + 40% of 200_000 = 580_000 → infeasible without the cap
+    without = Goals::PlanBuilder.call(profile: profile(capacity: 500_000, trimmables: { "Restaurantes" => 200_000 }),
+                                      kind: "purchase", target_cents: 2_500_000,
+                                      starts_on: Date.new(2026, 7, 1), target_date: Date.new(2026, 11, 1))
+    refute without.feasible?
+    with = Goals::PlanBuilder.call(profile: profile(capacity: 500_000, trimmables: { "Restaurantes" => 200_000 }),
+                                   kind: "purchase", target_cents: 2_500_000,
+                                   starts_on: Date.new(2026, 7, 1), target_date: Date.new(2026, 11, 1),
+                                   user_caps: { 1 => 60_000 })   # cut 140_000 — the user's own call
+    assert with.feasible?
+  end
+
+  test "user cap cut is clamped to the trimmable slice and a no-op cap is dropped" do
+    cats = [ Goals::CategoryStat.new(category_id: 1, name: "Mercado", median_cents: 100_000,
+                                     trimmable_median_cents: 30_000, months_present: 3, flexibility: "flexible") ]
+    p = Goals::Profile.new(sufficiency: :ok, categories: cats, median_income_cents: 920_000,
+                           median_capacity_base_cents: 340_000, median_guardado_cents: 0,
+                           income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
+                           window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ])
+    r = build(p, user_caps: { 1 => 10_000 })              # asks to cut 90_000 — only 30_000 is trimmable
+    cut = r.plans.first.cuts.find { |c| c.category_id == 1 }
+    assert_equal 30_000, cut.cut_cents                    # clamped to the commitment-less slice
+    noop = build(p, user_caps: { 1 => 100_000 })          # cap == median → nothing to cut
+    assert(noop.plans.all? { |pl| pl.cuts.none? { |c| c.category_id == 1 } })
   end
 end

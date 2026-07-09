@@ -26,6 +26,7 @@ module Goals
   # Per-template max trim fraction of a trimmable category's median (01 §5).
   TRIM_PCT = { "leve" => BigDecimal("0.15"), "recomendado" => BigDecimal("0.25"), "acelerado" => BigDecimal("0.40") }.freeze
   ACCELERADO_STRETCH = BigDecimal("1.25")   # acelerado targets up to required × 1.25
+  LEVE_EASE = BigDecimal("0.85")   # leve aims at 85% of the required effort — a genuinely lighter pace
   LEVE_TOP_N = 3    # leve only trims the top-N trimmable categories, 15% each
 
   # Tier-1 flexibility name map (01 §1) covering the seeded defaults in BOTH locales, keyed by

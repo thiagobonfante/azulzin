@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_08_000005) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_08_000006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -220,6 +220,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_08_000005) do
     t.date "target_date"
     t.datetime "updated_at", null: false
     t.bigint "updated_by_id"
+    t.jsonb "user_caps", default: {}, null: false
     t.index ["account_id", "status"], name: "index_goals_on_account_id_and_status"
     t.index ["account_id"], name: "index_goals_on_account_id"
     t.index ["bank_account_id"], name: "index_goals_on_bank_account_id"

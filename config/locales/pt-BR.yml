@@ -181,6 +181,8 @@ pt-BR:
               not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
             initial_saved_cents:
               exceeds_target: "não pode ser maior ou igual ao valor da meta."
+            target_cents:
+              below_current_guardado: "precisa ser maior do que vocês já guardam hoje (~%{guardado}/mês)."
   app:
     nav:
       dashboard: "Painel"
@@ -283,16 +285,18 @@ pt-BR:
       name: "Nome"
       name_placeholder: "Carro, viagem, entrada do apê…"
       value_purchase: "Quanto custa?"
-      value_savings: "Quanto guardar a mais por mês?"
+      value_savings: "Quanto você quer guardar por mês?"
       when: "Quando?"
       initial_saved: "Já tem algo guardado?"
       initial_saved_hint: "Opcional. O que você já separou para esta meta."
+      current_guardado_hint: "Hoje vocês guardam em média %{amount}/mês — a meta é o total novo."
+      current_guardado_zero: "Hoje vocês ainda não guardam um valor todo mês — vamos começar."
       submit: "Ver meus planos"
     kinds:
       purchase: "Comprar algo"
       purchase_hint: "Um carro, uma viagem, a entrada do apê."
-      savings_rate: "Guardar mais por mês"
-      savings_rate_hint: "Criar o hábito de separar um valor todo mês."
+      savings_rate: "Guardar mais"
+      savings_rate_hint: "Separar mais dinheiro todo mês."
     status:
       draft: "Rascunho"
       active: "Ativa"
@@ -309,6 +313,9 @@ pt-BR:
     diagnosis:
       summary_html: "Nos últimos 3 meses você recebeu em média %{income}, gastou %{spend} e ficou com %{capacity} por mês."
       trim_candidates_title: "Onde dá para ajustar"
+      trim_hint: "Arraste para definir um orçamento por categoria — os planos recalculam na hora."
+      spends: "gasta ~%{amount}"
+      reset_caps: "limpar ajustes"
     plans:
       labels:
         leve: "Leve"
@@ -336,7 +343,7 @@ pt-BR:
       too_tight_why: "Para %{month} você precisaria guardar %{required}/mês — hoje dá %{capacity}."
       offer_date: "Com %{amount}/mês você chega em %{month}"
       offer_target: "Para %{month}, dá para mirar em %{amount}"
-      offer_target_savings: "Dá para guardar %{amount} a mais por mês"
+      offer_target_savings: "Dá para guardar %{amount} por mês"
       use_this_date: "Usar essa data"
       use_this_target: "Usar esse valor"
       offer_income: "Ou com mais %{amount}/mês de renda, fecha no seu prazo"

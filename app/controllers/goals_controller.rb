@@ -3,7 +3,7 @@
 # freshly-added income re-scores the plans), and hand choose to Goals::Activate (tamper-proof —
 # it recomputes from the frozen baseline and never trusts a plan number from params).
 class GoalsController < AppController
-  before_action :set_goal, only: %i[show update destroy choose abandon]
+  before_action :set_goal, only: %i[show update destroy choose abandon caps]
 
   def index
     @active = Current.account.goals.active.includes(:bank_account).order(created_at: :desc)
@@ -13,11 +13,19 @@ class GoalsController < AppController
   def new
     redirect_to goals_path, alert: t(".limit_reached") and return if at_active_cap?
     @goal = Current.account.goals.new(kind: "purchase")
+    @guardado_baseline_cents = Goals::Analyzer.call(Current.account).median_guardado_cents
   end
 
+  # The baseline is analyzed IN-REQUEST here (not lazily on first view) so the NarrativeJob —
+  # which fires milliseconds later on the async adapter — never races an empty snapshot.
   def create
     @goal = Current.account.goals.new(create_params.merge(status: "draft"))
-    if @goal.save
+    @goal.baseline = Goals::Analyzer.call(Current.account).to_snapshot
+    @guardado_baseline_cents = @goal.baseline["median_guardado_cents"].to_i
+    if @goal.valid? && savings_target_not_above_guardado?
+      @goal.errors.add(:target_cents, :below_current_guardado, guardado: helpers.brl(@guardado_baseline_cents))
+      render :new, status: :unprocessable_entity
+    elsif @goal.save
       Goals::ClassifyJob.perform_later(Current.account.id)             # exempt from the session quota
       Goals::NarrativeJob.perform_later(@goal.id) if ai_sessions_available?
       redirect_to goal_path(@goal)
@@ -60,6 +68,18 @@ class GoalsController < AppController
     end
   end
 
+  # Diagnóstico orçamento sliders (draft only): store the caps, recompute, and Turbo-swap just the
+  # plan area — the sliders themselves stay live in the DOM so a drag never loses its position.
+  def caps
+    redirect_to goal_path(@goal), status: :see_other and return unless @goal.draft?
+    @goal.update!(user_caps: sanitized_caps)
+    @build = Goals::Recompute.call(@goal)
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to goal_path(@goal), status: :see_other }
+    end
+  end
+
   def abandon
     Goals::Abandon.call(@goal)
     redirect_to goals_path, notice: t(".abandoned"), status: :see_other
@@ -94,5 +114,26 @@ class GoalsController < AppController
 
     def update_params
       params.expect(goal: %i[target_reais target_date monthly_target_reais])
+    end
+
+    # A "guardar mais" total at or below what the household already puts away plans nothing.
+    def savings_target_not_above_guardado?
+      @goal.savings_rate? && @goal.target_cents.to_i <= @guardado_baseline_cents
+    end
+
+    # Slider caps come as { category_id => cents }. Only the frozen baseline's flexible categories
+    # are read (anything else in params is simply never looked at), values are clamped to
+    # [median − trimmable, median], and no-op caps (== median) are dropped. `reset` clears everything.
+    def sanitized_caps
+      return {} if params[:reset].present?
+      flexibles = (@goal.baseline["categories"] || [])
+                    .select { |c| c["flexibility"] == "flexible" && c["trimmable_median_cents"].to_i.positive? }
+      flexibles.each_with_object({}) do |cat, caps|
+        cid = cat["category_id"].to_s
+        cents = Integer(params.dig(:caps, cid).to_s, exception: false) or next
+        median = cat["median_cents"].to_i
+        cap = cents.clamp(median - cat["trimmable_median_cents"].to_i, median)
+        caps[cid] = cap if cap < median
+      end
     end
 end
