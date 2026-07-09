@@ -93,6 +93,7 @@ en:
         total_cents: "Total"
         bank_account: "Account"
         credit_card: "Card"
+        transfer_to_bank_account: "Savings pot"
         category: "Category"
         schedule_kind: "Recurrence"
         schedule_day: "Day"
@@ -158,6 +159,12 @@ en:
             bank_account:
               wrong_account: "must belong to this account."
             credit_card:
+              wrong_account: "must belong to this account."
+              not_on_savings: "can't be a card — saving moves money from a bank account."
+            transfer_to_bank_account:
+              blank: "pick the savings pot to save into."
+              not_savings: "must be a savings pot (a savings account) in this account."
+              same_account: "can't be the same as the source account."
               wrong_account: "must belong to this account."
         transaction:
           instrument_required: "Pick the account or card for this entry."
@@ -531,6 +538,7 @@ en:
       installment: "Installments"
       fixed: "Fixed"
       subscription: "Subscription"
+      savings: "Savings"
     instrument:
       credit: "credit"
       debit: "debit"
@@ -574,6 +582,9 @@ en:
         installment: "e.g. financed car, phone in 12×"
         fixed: "e.g. alimony, rent, tuition"
         subscription: "e.g. Netflix, Spotify"
+        savings: "e.g. a fixed monthly transfer into savings"
+      transfer_to: "Save into"
+      no_caixinha_hint: "You don't have a savings pot yet."
     index:
       meta_title: "Commitments"
       title: "Commitments"

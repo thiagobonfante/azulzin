@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_09_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_09_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -124,6 +124,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000002) do
     t.string "source_message_id"
     t.date "starts_on", null: false
     t.bigint "total_cents"
+    t.bigint "transfer_to_bank_account_id"
     t.datetime "updated_at", null: false
     t.bigint "updated_by_id"
     t.index ["account_id", "kind"], name: "index_commitments_on_account_id_and_kind"
@@ -135,6 +136,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000002) do
     t.index ["goal_id"], name: "index_commitments_on_goal_id"
     t.index ["goal_id"], name: "index_commitments_one_active_per_goal", unique: true, where: "((goal_id IS NOT NULL) AND (archived_at IS NULL) AND (deleted_at IS NULL))"
     t.index ["source_message_id"], name: "index_commitments_on_source_message_id", unique: true, where: "(source_message_id IS NOT NULL)"
+    t.index ["transfer_to_bank_account_id"], name: "index_commitments_on_transfer_to_bank_account_id"
     t.check_constraint "(kind::text = 'installment'::text) = (installments_count IS NOT NULL)", name: "commitments_installment_count_paired"
     t.check_constraint "num_nonnulls(bank_account_id, credit_card_id) = 1", name: "commitments_exactly_one_instrument"
   end
@@ -467,6 +469,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000002) do
   add_foreign_key "categories", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "commitments", "accounts"
   add_foreign_key "commitments", "bank_accounts"
+  add_foreign_key "commitments", "bank_accounts", column: "transfer_to_bank_account_id"
   add_foreign_key "commitments", "categories"
   add_foreign_key "commitments", "credit_cards"
   add_foreign_key "commitments", "goals", on_delete: :nullify

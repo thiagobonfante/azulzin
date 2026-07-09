@@ -19,6 +19,7 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
 
   def savings_commitment(cents)
     @account.commitments.create!(kind: "savings", bank_account: @checking, amount_cents: cents,
+                                 transfer_to_bank_account: @caixinha,   # goal-less shape (round 3 P4)
                                  name: "Meta: Carro", starts_on: @month, schedule_day: 5, schedule_kind: "fixed_day")
   end
 
@@ -77,12 +78,25 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
 
   test "a savings commitment starting NEXT month leaves this month's sobra alone and dents next month" do
     @account.commitments.create!(kind: "savings", bank_account: @checking, amount_cents: 100_000,
+                                 transfer_to_bank_account: @caixinha,
                                  name: "Meta: Carro", starts_on: Date.new(2026, 8, 1), schedule_day: 5, schedule_kind: "fixed_day")
     current = MonthSummary.new(@account, @month)
     assert_equal 0, current.projected_guardado_cents   # activation month untouched (round 3 decision 3)
     assert_equal 0, current.a_pagar_cents
     assert_equal 0, current.remaining_cents
     assert_equal 100_000, MonthSummary.new(@account, Date.new(2026, 8, 1)).projected_guardado_cents
+  end
+
+  test "a GOAL-LESS savings commitment paid via MarkPaid keeps sobra invariant (round 3 P4)" do
+    sav = savings_commitment(100_000)   # no goal — destination lives on the commitment
+    before = MonthSummary.new(@account, @month).remaining_cents
+
+    Commitments::MarkPaid.call(sav, @month)
+
+    after = MonthSummary.new(@account, @month)
+    assert_equal 100_000, after.guardado_cents             # landed in the caixinha (savings kind)
+    assert_equal 0,       after.projected_guardado_cents
+    assert_equal before,  after.remaining_cents            # INVARIANT holds without a goal
   end
 
   test "regular debit commitments still count as saídas (savings exclusion didn't break debit)" do

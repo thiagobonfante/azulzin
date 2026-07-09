@@ -94,6 +94,7 @@ pt-BR:
         total_cents: "Total"
         bank_account: "Conta"
         credit_card: "Cartão"
+        transfer_to_bank_account: "Caixinha"
         category: "Categoria"
         schedule_kind: "Recorrência"
         schedule_day: "Dia"
@@ -159,6 +160,12 @@ pt-BR:
             bank_account:
               wrong_account: "precisa ser desta conta."
             credit_card:
+              wrong_account: "precisa ser desta conta."
+              not_on_savings: "não pode ser um cartão — guardar sai de uma conta."
+            transfer_to_bank_account:
+              blank: "escolha a caixinha onde guardar."
+              not_savings: "precisa ser uma caixinha (conta de poupança) desta conta."
+              same_account: "não pode ser a mesma conta de origem."
               wrong_account: "precisa ser desta conta."
         transaction:
           instrument_required: "Escolha a conta ou o cartão do lançamento."
@@ -532,6 +539,7 @@ pt-BR:
       installment: "Parcelamento"
       fixed: "Fixo"
       subscription: "Assinatura"
+      savings: "Guardar"
     instrument:
       credit: "crédito"
       debit: "débito"
@@ -575,6 +583,9 @@ pt-BR:
         installment: "ex.: carro financiado, celular em 12×"
         fixed: "ex.: pensão, aluguel, mensalidade"
         subscription: "ex.: Netflix, Spotify"
+        savings: "ex.: guardar um valor todo mês na caixinha"
+      transfer_to: "Guardar em"
+      no_caixinha_hint: "Você ainda não tem uma caixinha (conta de poupança)."
     index:
       meta_title: "Compromissos"
       title: "Compromissos"
