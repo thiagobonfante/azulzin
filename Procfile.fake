@@ -1,0 +1,7 @@
+# Like Procfile.dev, but the sidecar is the FAKE one (whatsapp-sidecar/fake.js): a browser-based
+# WhatsApp simulator on :3001 — no QR, no Chromium, no real number. Open http://localhost:3001.
+# Rails is unchanged and thinks it is talking to a live, connected sidecar.
+# Run with:  bin/dev-fake   (or: foreman start -f Procfile.fake)
+web: WHATSAPP_SERVICE_TOKEN=${WHATSAPP_SERVICE_TOKEN:-dev-whatsapp-token} bin/rails server
+css: bin/rails tailwindcss:watch
+sidecar: cd whatsapp-sidecar && PORT=3001 RAILS_WEBHOOK_URL=http://localhost:3000/api/whatsapp/webhook RAILS_API_TOKEN=${WHATSAPP_SERVICE_TOKEN:-dev-whatsapp-token} node fake.js

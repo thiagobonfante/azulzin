@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Dev stack with the FAKE WhatsApp sidecar (browser simulator on :3001) instead of the real
+# wwebjs one. See Procfile.fake. Everything else identical to bin/dev.
+if ! gem list foreman -i --silent; then echo "Installing foreman..."; gem install foreman; fi
+export PORT="${PORT:-3000}"
+exec foreman start -f Procfile.fake "$@"
