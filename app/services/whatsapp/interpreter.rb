@@ -8,6 +8,10 @@ module Whatsapp
     # Undo must never depend on LLM mood — a frozen regex catches it for free.
     UNDO_RE = /\A(apaga|cancela|desfaz|desfazer|remove|tira|exclui)( (o|a|esse|essa|isso|ultim\w+|lancamento|gasto|compra))*\z|errei|foi engano/
 
+    # "Reorganizar" — the reply hook the goal risk alerts advertise (round 4). Same doctrine
+    # as undo: a frozen regex, zero LLM, so the advertised keyword can never be misrouted.
+    REPLAN_RE = /\A(reorganizar?|replanejar?|reorganize|recalcular?)( (a )?meta)?\z/
+
     # Mutating non-expense intents don't execute their verb below this intent-classification floor.
     MUTATING = %w[income transfer installment_purchase pay_commitment edit_last undo_last move_bill].freeze
     INTENT_FLOOR = 0.75
@@ -26,6 +30,7 @@ module Whatsapp
       # extraction — consent off + one confirmation, then the pipeline stops here.
       return Notifications::StopCommand.call(@msg) if Notifications::StopCommand.detect(@text) # 0 LLM calls
       return UndoHandler.new(@msg).call if UNDO_RE.match?(Whatsapp.normalize(@text)) # 0 LLM calls
+      return GoalReplanHandler.new(@msg).call if REPLAN_RE.match?(Whatsapp.normalize(@text)) # 0 LLM calls
 
       extraction = Whatsapp::Extractor.from_text(@msg.user, @text, modality: @msg.type_audio? ? "audio" : "text")
       return low_confidence_fallback(extraction) if gated?(extraction)

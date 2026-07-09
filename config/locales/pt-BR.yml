@@ -1416,6 +1416,17 @@ pt-BR:
         cancelled: "Tranquilo, cancelei. Quando quiser é só me chamar de novo. 💙"
         discarded: "Tranquilo, descartei. Quando quiser, é só falar comigo — ou montar no app. 💙"
         activation_failed: "Não consegui ativar agora. Tenta de novo pelo app, tá? 💙"
+      goal_replan:
+        none: "Você não tem uma meta de compra ativa pra reorganizar. Quer criar uma? É só me contar o sonho. 💙"
+        pick: "Qual meta você quer reorganizar? Responde com o número:\n%{options}"
+        offer: "💙 Meta *%{name}*: você já guardou %{saved}. Dá pra reorganizar assim:\n%{options}\nResponde o número, ou *não* pra deixar como está."
+        option_extend: "Manter %{monthly}/mês — termina em %{month}"
+        option_hold: "Manter %{month} — a parcela vai pra %{monthly}"
+        reprompt: "Responde o número de uma das opções, ou *cancelar*:\n%{options}"
+        applied: "💙 Meta *%{name}* reorganizada: %{monthly}/mês até %{month}. Sem culpa — o que importa é continuar."
+        kept: "Fechado, fica como está. 💙"
+        unavailable: "Não consegui recalcular essa meta agora — os números não fecham. Dá uma olhada na página da meta no app. 💙"
+        failed: "Não deu pra aplicar agora. Tenta de novo, ou ajusta pelo app. 💙"
       notifications:
         bill_due:
           zero: "🔔 Sua conta *%{name}* (%{amount}) vence hoje. 💙"

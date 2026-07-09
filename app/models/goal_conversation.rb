@@ -13,11 +13,14 @@ class GoalConversation < ApplicationRecord
   belongs_to :goal, optional: true
 
   enum :status, {
-    collecting:       "collecting",
-    offered:          "offered",
-    picking_caixinha: "picking_caixinha",
-    picking_source:   "picking_source",
-    closed:           "closed"
+    collecting:         "collecting",
+    offered:            "offered",
+    picking_caixinha:   "picking_caixinha",
+    picking_source:     "picking_source",
+    # Reorganizar (round 4): the replan chat rides the same one-open-per-user state row.
+    replan_picking_goal: "replan_picking_goal",
+    replan_offered:      "replan_offered",
+    closed:             "closed"
   }, default: "collecting", validate: true
 
   # The single open goal chat for a sender (mirrors Transaction.open_ask_for).

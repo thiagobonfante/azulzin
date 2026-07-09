@@ -1415,6 +1415,17 @@ en:
         cancelled: "No problem, cancelled. Just message me whenever you're ready. 💙"
         discarded: "No problem, discarded. Whenever you want, just talk to me — or build it in the app. 💙"
         activation_failed: "I couldn't activate it right now. Try again in the app, ok? 💙"
+      goal_replan:
+        none: "You don't have an active purchase goal to reorganize. Want to create one? Just tell me the dream. 💙"
+        pick: "Which goal do you want to reorganize? Reply with the number:\n%{options}"
+        offer: "💙 Goal *%{name}*: you've saved %{saved}. Here's how it can be reorganized:\n%{options}\nReply with the number, or *não* to leave it as is."
+        option_extend: "Keep %{monthly}/month — finishes in %{month}"
+        option_hold: "Keep %{month} — the deposit goes to %{monthly}"
+        reprompt: "Reply with the number of one of the options, or *cancelar*:\n%{options}"
+        applied: "💙 Goal *%{name}* reorganized: %{monthly}/month until %{month}. No guilt — what matters is keeping going."
+        kept: "Done, it stays as is. 💙"
+        unavailable: "I couldn't recompute this goal right now — the numbers don't close. Take a look at the goal page in the app. 💙"
+        failed: "Couldn't apply it right now. Try again, or adjust it in the app. 💙"
       notifications:
         bill_due:
           zero: "🔔 Your *%{name}* bill (%{amount}) is due today. 💙"

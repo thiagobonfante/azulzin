@@ -14,20 +14,24 @@ module Whatsapp
 
     def call
       return reply("goal_flow.limit_reached") if account.goals.active.count >= Goal::MAX_ACTIVE
-      close_stale!
+      self.class.close_open!(user)
       conv = account.goal_conversations.create!(user: user, status: "collecting",
                data: seed_data, expires_at: GoalConversation::TTL.from_now)
       GoalFlowRouter.new(conv, @msg, "").ask_next
     end
 
-    private
-
-    def close_stale!
+    # The lazy janitor, shared with GoalReplanHandler (the one-open-per-user index means any
+    # new conversation must close whatever is open first): stale or superseded open chats —
+    # and their invisible draft Goals, which would leak the monthly AI-session quota — are
+    # destroyed before a new conversation starts.
+    def self.close_open!(user)
       GoalConversation.where(user: user).where.not(status: "closed").find_each do |conv|
         conv.goal.destroy! if conv.goal&.draft?
         conv.update!(status: "closed")
       end
     end
+
+    private
 
     # Deterministic Ruby parsing of the trigger's raw fields — the LLM never emits ISO dates
     # or cents (Money.to_cents / GoalMonthPhrase do the arithmetic). Only positive/valid

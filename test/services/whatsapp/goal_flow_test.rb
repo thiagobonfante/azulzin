@@ -303,7 +303,81 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     assert_nil conv.data["target_cents"], "goal conversation untouched"
   end
 
+  # ---- reorganizar (round 4) — every turn runs with the Extractor stub RAISING: zero LLM --
+
+  test "reorganizar with one goal: offer → '1' applies extend, commitment swapped, chat closed" do
+    goal = replannable_goal!
+    old_commitment = goal.savings_commitment
+
+    run_pipeline(inbound("reorganizar"))
+    assert_match "Carro", @sent.last
+    assert_match "1.", @sent.last                       # numbered options in the offer
+    assert GoalConversation.open_for(@user).replan_offered?
+
+    run_pipeline(inbound("1"))
+    assert_match "reorganizada", @sent.last
+    goal.reload
+    assert_equal 300_000, goal.monthly_target_cents     # extend keeps the parcel
+    assert_equal Date.new(2026, 8, 1), goal.starts_on   # re-anchored next month
+    assert old_commitment.reload.archived?
+    assert goal.savings_commitment
+    assert_nil GoalConversation.open_for(@user)
+  end
+
+  test "reorganizar with no active purchase goal: friendly nudge, no conversation" do
+    run_pipeline(inbound("reorganizar"))
+    assert_equal I18n.t("whatsapp.replies.goal_replan.none"), @sent.last
+    assert_nil GoalConversation.open_for(@user)
+  end
+
+  test "reorganizar with two goals: numbered pick, then 'sim' applies the first option" do
+    replannable_goal!(name: "Carro")
+    viagem = replannable_goal!(name: "Viagem", monthly: 100_000)
+
+    run_pipeline(inbound("reorganizar meta"))
+    assert_match "1. Carro", @sent.last
+    assert_match "2. Viagem", @sent.last
+
+    run_pipeline(inbound("2"))
+    assert GoalConversation.open_for(@user).replan_offered?
+    assert_match "Viagem", @sent.last
+
+    run_pipeline(inbound("sim"))                        # first option = extend
+    assert_equal 100_000, viagem.reload.monthly_target_cents
+    assert_equal Date.new(2026, 8, 1), viagem.starts_on
+  end
+
+  test "reorganizar offer answered 'não' keeps the plan untouched and closes the chat" do
+    goal = replannable_goal!
+    before = goal.attributes.slice("monthly_target_cents", "target_date", "starts_on")
+    run_pipeline(inbound("reorganizar"))
+    run_pipeline(inbound("não"))
+    assert_equal I18n.t("whatsapp.replies.goal_replan.kept"), @sent.last
+    assert_equal before, goal.reload.attributes.slice("monthly_target_cents", "target_date", "starts_on")
+    assert_nil GoalConversation.open_for(@user)
+  end
+
+  test "reorganizar supersedes an open goal-creation chat (one open per user)" do
+    replannable_goal!
+    stale = @account.goal_conversations.create!(user: @user, status: "collecting",
+      data: { "kind" => "purchase", "pending_slot" => "name" }, expires_at: 1.day.from_now)
+    run_pipeline(inbound("reorganizar"))
+    assert stale.reload.closed?
+    assert GoalConversation.open_for(@user).replan_offered?
+  end
+
   private
+
+  def replannable_goal!(name: "Carro", monthly: 300_000)
+    goal = @account.goals.create!(name:, kind: "purchase", target_cents: 6_000_000,
+      target_date: Date.new(2027, 12, 1), status: "active", monthly_target_cents: monthly,
+      starts_on: Date.new(2026, 6, 1), activated_at: Time.utc(2026, 5, 20),
+      bank_account: @caixinha, baseline: {}, plan: { "projected_done_on" => "2028-02-01" })
+    @account.commitments.create!(kind: "savings", goal:, bank_account: @checking,
+      amount_cents: monthly, name:, starts_on: goal.starts_on,
+      schedule_day: 5, schedule_kind: "fixed_day")
+    goal
+  end
 
   # Trigger + slot answers up to the feasible offer (single caixinha/source unless changed).
   def reach_offer

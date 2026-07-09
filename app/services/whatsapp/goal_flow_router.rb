@@ -21,12 +21,22 @@ module Whatsapp
     end
 
     def call
-      return cancel! if CANCEL_RE.match?(Whatsapp.normalize(@text))
+      norm = Whatsapp.normalize(@text)
+      return cancel! if CANCEL_RE.match?(norm)
+      # The alert-advertised keyword must work even mid-creation-chat (its 24h TTL would
+      # otherwise swallow it as a slot answer): supersede this chat and start the replan.
+      if Interpreter::REPLAN_RE.match?(norm) && !@conv.status.start_with?("replan")
+        discard_draft!
+        close!
+        return GoalReplanHandler.new(@msg).call
+      end
       case @conv.status
-      when "collecting"       then resolve_slot
-      when "offered"          then resolve_offer_reply
-      when "picking_caixinha" then resolve_caixinha_pick
-      when "picking_source"   then resolve_source_pick
+      when "collecting"          then resolve_slot
+      when "offered"             then resolve_offer_reply
+      when "picking_caixinha"    then resolve_caixinha_pick
+      when "picking_source"      then resolve_source_pick
+      when "replan_picking_goal" then resolve_replan_goal_pick
+      when "replan_offered"      then resolve_replan_reply
       end
     end
 
@@ -39,6 +49,21 @@ module Whatsapp
       @conv.update!(data: @conv.data.merge("pending_slot" => slot),
                     expires_at: GoalConversation::TTL.from_now)
       ask(slot)
+    end
+
+    # Public: GoalReplanHandler jumps straight here when the account has one candidate (round
+    # 4). The option NUMBERS are display-only — applying re-derives inside Goals::Replan.
+    def present_replan_offer(goal)
+      offer = Goals::ReplanOffer.for(goal)
+      if offer.nil?
+        close!
+        return reply("goal_replan.unavailable")
+      end
+      lines = replan_option_lines(offer)
+      @conv.update!(status: "replan_offered", goal: goal,
+                    data: @conv.data.merge("modes" => offer.options.map(&:mode), "option_lines" => lines),
+                    expires_at: GoalConversation::TTL.from_now)
+      reply("goal_replan.offer", name: goal.name, saved: whole_floor(offer.saved_cents), options: lines)
     end
 
     private
@@ -331,6 +356,52 @@ module Whatsapp
       discard_draft!
       close!
       reply("goal_flow.no_caixinha")
+    end
+
+    # ---- reorganizar (round 4) ---------------------------------------------------------------
+
+    def resolve_replan_goal_pick
+      options = account.goals.active.in_order_of(:id, @conv.data["options"]).to_a
+      chosen = pick(options) { |g| g.name }
+      return re_ask("goal_replan.pick", options: numbered_names(options)) unless chosen
+      present_replan_offer(chosen)
+    end
+
+    # "1"/"2" picks an option ("sim" takes the first — it's the recommended one), "não" keeps
+    # the plan as is. The guarded close makes a double reply apply exactly once.
+    def resolve_replan_reply
+      norm = Whatsapp.normalize(@text)
+      if NO_RE.match?(norm)
+        close!
+        return reply("goal_replan.kept")
+      end
+      modes = Array(@conv.data["modes"])
+      idx   = @text.strip[/\A\d+/]&.to_i
+      mode  = (modes[idx - 1] if idx&.between?(1, modes.size))
+      mode ||= modes.first if YES_RE.match?(norm)
+      return re_ask("goal_replan.reprompt", options: @conv.data["option_lines"].to_s) unless mode
+      goal = @conv.goal
+      return unless @conv.guarded_transition("replan_offered", status: "closed")
+      result = Goals::Replan.call(goal, mode: mode)
+      if result.ok?
+        goal.reload
+        reply("goal_replan.applied", name: goal.name,
+              monthly: whole_ceil(goal.monthly_target_cents), month: month_label(goal.target_date))
+      else
+        reply("goal_replan.failed")
+      end
+    end
+
+    def replan_option_lines(offer)
+      offer.options.each_with_index.map { |option, index|
+        key = option.mode == "extend" ? "goal_replan.option_extend" : "goal_replan.option_hold"
+        "#{index + 1}. " + t_locale(key, monthly: whole_ceil(option.plan.monthly_target_cents),
+                                    month: month_label(option.target_date))
+      }.join("\n")
+    end
+
+    def numbered_names(records)
+      records.each_with_index.map { |r, i| "#{i + 1}. #{r.name}" }.join("\n")
     end
 
     # ---- cancel / shared ---------------------------------------------------------------------
