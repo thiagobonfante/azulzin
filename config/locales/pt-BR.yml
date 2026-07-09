@@ -391,6 +391,11 @@ pt-BR:
       rejected: "Não deu — o valor precisa ser positivo e caber na sobra do mês."
     abandon:
       abandoned: "Meta abandonada. O que você guardou continua guardado."
+    replan:
+      replanned: "Meta reorganizada 💙 Nova parcela de %{monthly}, termina em %{month}."
+      errors:
+        unavailable: "Não deu para recalcular agora — os números mudaram. Tente de novo."
+        invalid_mode: "Escolha uma das opções."
     destroy:
       discarded: "Rascunho descartado."
     show:
@@ -412,6 +417,13 @@ pt-BR:
       speed_up_hint: "Sai da mesma conta de origem e vai direto para a caixinha da meta."
       speed_up_submit: "Guardar agora"
       no_caixinha_nudge: "Dica: ligue uma caixinha para acompanhar de perto."
+      replan_title: "Reorganizar meta"
+      replan_intro: "A vida muda e o plano acompanha. Recalculamos com os números de hoje — sem culpa."
+      replan_extend: "Manter a parcela de %{monthly} — termina em %{month}"
+      replan_before: "antes: %{month}"
+      replan_hold: "Manter %{month} — a parcela vai para %{monthly}"
+      replan_submit: "Recalcular meta"
+      replan_note: "A caixinha, o que você já guardou e o histórico continuam os mesmos."
       trim_map_title: "O mapa dos cortes"
       cap_line: "%{cap} (antes ~%{baseline})"
       contributions_title: "O que você já guardou"

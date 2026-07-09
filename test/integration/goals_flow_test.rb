@@ -314,6 +314,39 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("goals.contribute.rejected"), flash[:alert]
   end
 
+  test "reorganizar: the show page offers the replan and applying extend re-anchors the schedule" do
+    goal = activate_goal!
+    old_commitment = goal.savings_commitment
+
+    get goal_path(goal)
+    assert_response :success
+    assert_select "details#replan"
+    assert_match I18n.t("goals.show.replan_title"), @response.body
+
+    old_monthly = goal.monthly_target_cents
+    patch replan_goal_path(goal), params: { mode: "extend" }
+    assert_redirected_to goal_path(goal)
+    goal.reload
+    assert_equal old_monthly, goal.monthly_target_cents   # extend keeps the parcel
+    assert_equal Date.new(2026, 8, 1), goal.starts_on
+    assert old_commitment.reload.archived?
+    assert goal.savings_commitment, "the fresh commitment carries the new schedule"
+    assert_not_equal old_commitment.id, goal.savings_commitment.id
+    follow_redirect!
+    assert_match I18n.t("goals.replan.replanned",
+                        monthly: brl_whole_pt(goal.monthly_target_cents),
+                        month: I18n.l(goal.target_date, format: :month_year)), @response.body
+  end
+
+  test "replan on a draft goal is refused" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
+                                       target_date: "2027-12-01" } }
+    goal = @account.goals.last
+    patch replan_goal_path(goal), params: { mode: "extend" }
+    assert_equal I18n.t("goals.replan.errors.unavailable"), flash[:alert]
+    assert goal.reload.draft?
+  end
+
   private
     def activate_goal!
       post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00",

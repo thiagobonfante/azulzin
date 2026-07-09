@@ -3,7 +3,7 @@
 # freshly-added income re-scores the plans), and hand choose to Goals::Activate (tamper-proof —
 # it recomputes from the frozen baseline and never trusts a plan number from params).
 class GoalsController < AppController
-  before_action :set_goal, only: %i[show update destroy choose abandon caps contribute]
+  before_action :set_goal, only: %i[show update destroy choose abandon caps contribute replan]
 
   def index
     @active = Current.account.goals.active.includes(:bank_account).order(created_at: :desc)
@@ -43,7 +43,21 @@ class GoalsController < AppController
       Goals::Achieve.call(@goal) if Goals::Progress.new(@goal).achieved?   # auto-conclude on render
       @progress = Goals::Progress.new(@goal)
       @speed_up = Goals::SpeedUpOffer.for(@goal)
+      @replan_offer = Goals::ReplanOffer.for(@goal)   # nil unless active purchase with a way out
       render :show
+    end
+  end
+
+  # Reorganizar (round 4): rewrite the plan on today's numbers — the option is re-derived
+  # inside Goals::Replan (never a number from params; only the mode word crosses the wire).
+  def replan
+    result = Goals::Replan.call(@goal, mode: params[:mode])
+    if result.ok?
+      redirect_to goal_path(@goal), notice: t(".replanned",
+        monthly: helpers.brl_whole(@goal.monthly_target_cents),
+        month: l(@goal.target_date, format: :month_year))
+    else
+      redirect_to goal_path(@goal, anchor: "replan"), alert: t(".errors.#{result.error}")
     end
   end
 

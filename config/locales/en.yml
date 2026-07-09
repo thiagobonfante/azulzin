@@ -390,6 +390,11 @@ en:
       rejected: "That didn't work — the amount must be positive and fit this month's leftover."
     abandon:
       abandoned: "Goal abandoned. What you saved stays saved."
+    replan:
+      replanned: "Goal reorganized 💙 New deposit of %{monthly}, finishing in %{month}."
+      errors:
+        unavailable: "Couldn't recompute right now — the numbers moved. Try again."
+        invalid_mode: "Pick one of the options."
     destroy:
       discarded: "Draft discarded."
     show:
@@ -411,6 +416,13 @@ en:
       speed_up_hint: "It leaves your usual source account straight into the goal's pot."
       speed_up_submit: "Save now"
       no_caixinha_nudge: "Tip: link a savings pot to track it closely."
+      replan_title: "Reorganize goal"
+      replan_intro: "Life changes and the plan follows. We recompute on today's numbers — no guilt."
+      replan_extend: "Keep the %{monthly} deposit — finishes in %{month}"
+      replan_before: "before: %{month}"
+      replan_hold: "Keep %{month} — the deposit goes to %{monthly}"
+      replan_submit: "Recompute goal"
+      replan_note: "Your pot, what you've saved and the history all stay the same."
       trim_map_title: "The cuts map"
       cap_line: "%{cap} (was ~%{baseline})"
       contributions_title: "What you've saved"
