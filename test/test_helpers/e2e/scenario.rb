@@ -85,14 +85,19 @@ module E2E
       self
     end
 
+    def add_caixinha!
+      @instruments[:caixinha] ||= account.bank_accounts.create!(
+        institution: institution("260"), nickname: "Caixinha", kind: "savings", created_by: owner)
+      self
+    end
+
     # solo_basic + caixinha + 3 trailing full months + current month, calibrated
     # (see .plans/e2e/02 §3): Mercado 88,3% warn · Restaurantes 108% breach ·
     # Transporte exactly 80% · Lazer 79,997% (no warn) · Vestuário median R$ 420,00 ·
     # guardado R$ 300,00/month. Self-checks at build time.
     def history_calibrated(**)
       solo_basic
-      @instruments[:caixinha] = account.bank_accounts.create!(
-        institution: institution("260"), nickname: "Caixinha", kind: "savings", created_by: owner)
+      add_caixinha!
 
       { "Mercado" => 150_000, "Restaurantes" => 60_000, "Transporte" => 45_000,
         "Lazer" => 35_000 }.each { |name, cents| category(name).update!(monthly_budget_cents: cents) }
@@ -152,8 +157,7 @@ module E2E
     # tomorrow · Freela income expected today+1. Two months of paid history behind them.
     def reminders_due(**)
       solo_basic
-      @instruments[:caixinha] = account.bank_accounts.create!(
-        institution: institution("260"), nickname: "Caixinha", kind: "savings", created_by: owner)
+      add_caixinha!
       start = this_month << 2
       day = ->(date) { date.day }
 

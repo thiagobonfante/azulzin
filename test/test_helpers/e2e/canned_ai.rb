@@ -33,6 +33,15 @@ module E2E
            field_confidence: { "amount" => 0.95 }, overall_confidence: confidence)
     end
 
+    def create_goal(confidence: 0.9)
+      base(intent: "create_goal", intent_confidence: confidence, payment_method: "desconhecido")
+    end
+
+    def pay_commitment(phrase:, confidence: 0.9)
+      base(intent: "pay_commitment", intent_confidence: confidence,
+           commitment_phrase: phrase, payment_method: "desconhecido")
+    end
+
     def query(kind, confidence: 0.9, instrument: nil)
       base(intent: "query", intent_confidence: confidence, query_kind: kind,
            instrument_phrase: instrument, payment_method: "desconhecido")

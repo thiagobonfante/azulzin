@@ -68,8 +68,8 @@ module E2E
 
     def brl(cents) = ApplicationController.helpers.brl(cents)
 
-    def assert_brl(cents, text)
-      assert_includes text, brl(cents)
+    def assert_brl(cents, text, message = nil)
+      assert_includes text, brl(cents), message
     end
 
     # -- AI canning (the only stubbed boundary in E2E) --------------------------------------
