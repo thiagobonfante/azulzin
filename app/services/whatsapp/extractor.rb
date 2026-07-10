@@ -26,6 +26,9 @@ module Whatsapp
       - intent_confidence de 0 a 1 (quão certa é a classificação).
       - Devolva valores EXATAMENTE como ditos (ex.: "13,23", "1.234,56"), sem converter para centavos.
         Um número sem centavos é um valor válido em reais ("gastei 32" → amount_raw "32").
+        Valor falado por extenso (comum em áudio transcrito) vira dígitos: "oitenta e quatro e
+        noventa" → "84,90", "dez reais" → "10", "mil e duzentos" → "1200" — mas NUNCA faça
+        contas nem converta para centavos.
       - instrument_phrase = conta/cartão citado (expense/income) ou a ORIGEM da transferência.
       - to_instrument_phrase = DESTINO da transferência ("pra caixinha", "pra poupança").
       - installments_count = número de parcelas ("em 10x" → 10). installment_total_raw / installment_parcel_raw conforme dito.

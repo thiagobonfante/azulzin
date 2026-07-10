@@ -24,7 +24,7 @@ module Whatsapp
       bytes    = media.download
       filename = media.filename.to_s.presence || "audio.ogg"
       content_type = media.content_type.presence || "audio/ogg"
-      parse(post_multipart(bytes, filename, content_type, language))
+      parse(post_multipart(bytes, filename, content_type, language, settings["prompt"].presence))
     rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET => e
       # Transport failures become OUR Error so the job's STT retry→degrade path owns them —
       # a raw timeout would ride the job's generic Net retry_on and dead-end silently
@@ -32,7 +32,7 @@ module Whatsapp
       raise Error, "transport: #{e.class}: #{e.message}"
     end
 
-    def post_multipart(bytes, filename, content_type, language)
+    def post_multipart(bytes, filename, content_type, language, prompt = nil)
       uri  = URI(ENDPOINT)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
@@ -41,13 +41,17 @@ module Whatsapp
 
       req = Net::HTTP::Post.new(uri)
       req["Authorization"] = "Bearer #{api_key}"
-      req.set_form([
+      form = [
         [ "file", StringIO.new(bytes), { filename: filename, content_type: content_type } ],
         [ "model", model ],
         [ "language", language ],
         [ "response_format", "json" ],
         [ "temperature", "0" ]
-      ], "multipart/form-data")
+      ]
+      # Whisper treats `prompt` as preceding-transcript context: biases pt-BR finance
+      # vocabulary and digit-formatted money (config/openrouter.yml → transcription.prompt).
+      form << [ "prompt", prompt ] if prompt
+      req.set_form(form, "multipart/form-data")
       http.request(req)
     end
 

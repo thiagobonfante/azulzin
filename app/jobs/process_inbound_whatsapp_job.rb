@@ -7,19 +7,34 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
   limits_concurrency to: 1, key: ->(message_id) { WhatsappMessage.where(id: message_id).pick(:user_id) }
 
-  retry_on OpenRouterClient::RateLimited, wait: :polynomially_longer, attempts: 3
-  retry_on Net::OpenTimeout, Net::ReadTimeout, wait: 5.seconds, attempts: 3
+  # Every AI-boundary failure retries (transient), then degrades the same way instead of
+  # dead-ending (was: only STT degraded; a vision/extraction failure left the message stuck
+  # at "processing" with no reply — silence is the one outcome that burns trust). The
+  # generic Error handler is declared BEFORE RateLimited so the more specific one (declared
+  # later, matched first by rescue_from) keeps its polynomial backoff.
+  retry_on OpenRouterClient::Error, wait: 5.seconds, attempts: 3 do |job, error|
+    fail_and_tell(job.arguments.first, "ai_failed: #{error.message}", "whatsapp.replies.processing_failed")
+  end
+  retry_on OpenRouterClient::RateLimited, wait: :polynomially_longer, attempts: 3 do |job, error|
+    fail_and_tell(job.arguments.first, "ai_rate_limited: #{error.message}", "whatsapp.replies.processing_failed")
+  end
+  retry_on Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET, wait: 5.seconds, attempts: 3 do |job, error|
+    fail_and_tell(job.arguments.first, "ai_transport: #{error.message}", "whatsapp.replies.processing_failed")
+  end
   discard_on ActiveJob::DeserializationError
 
-  # STT down/refusing: retry (a Groq 5xx is usually transient), then degrade instead of
-  # dead-ending (was: stuck at "processing", no reply) — tell the user, mark the message
-  # failed, never enter the money path.
+  # STT down/refusing: same degrade, with the audio-specific copy — never enter the money path.
   retry_on Whatsapp::SttClient::Error, wait: 5.seconds, attempts: 3 do |job, error|
-    msg = WhatsappMessage.find_by(id: job.arguments.first)
-    next unless msg&.user
-    WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.stt_failed")
-    msg.update!(status: "failed", error: "stt_failed: #{error.message.to_s.first(200)}",
-                processed_at: Time.current)
+    fail_and_tell(job.arguments.first, "stt_failed: #{error.message}", "whatsapp.replies.stt_failed")
+  end
+
+  # Mark failed FIRST (a down sidecar must never re-strand the message at "processing"),
+  # then tell the user in their language.
+  def self.fail_and_tell(message_id, detail, key)
+    msg = WhatsappMessage.find_by(id: message_id)
+    return unless msg&.user
+    msg.update!(status: "failed", error: detail.to_s.first(200), processed_at: Time.current)
+    WhatsappReply.deliver(user: msg.user, key: key)
   end
 
   # Bound AI spend from a chatty or malicious sender. A legit user never sends this many
@@ -37,7 +52,20 @@ class ProcessInboundWhatsappJob < ApplicationJob
       return msg.update!(status: "failed", error: "rate_limited", processed_at: Time.current)
     end
 
+    # Sidecar stored the message but couldn't deliver its media (download/attach failure,
+    # already logged at the edge): nothing to read — ask for a resend instead of piping an
+    # empty body into the AI (was: the generic help menu, a non-sequitur after sending media).
+    if msg.message_type != "text" && !msg.media.attached?
+      return self.class.fail_and_tell(msg.id, "media_missing", "whatsapp.replies.media_failed")
+    end
+
     text = resolve_text(msg)                # audio → transcript (stored); image → nil; else body
+
+    # Whisper on silence/background noise returns an empty transcript: skip the LLM and
+    # reuse the STT-failure copy (was: a wasted extraction call ending in "Não entendi").
+    if msg.type_audio? && text.blank?
+      return self.class.fail_and_tell(msg.id, "stt_empty", "whatsapp.replies.stt_failed")
+    end
 
     # A reply routed to the user's single open ask (e.g. the "quanto foi?" answer) never
     # starts a new pipeline. Per-user serialization guarantees the ask already exists.
@@ -55,12 +83,16 @@ class ProcessInboundWhatsappJob < ApplicationJob
     end
 
     if (msg.type_image? || msg.type_document?) && msg.media.attached?
-      # Receipts: the unchanged expense path (ReceiptExtractor → Matcher → Confidence → Decider).
+      # Receipts: the expense path (ReceiptExtractor → Matcher → Confidence → Decider).
       extraction = Whatsapp::ReceiptExtractor.from_message(msg)
-      match      = Whatsapp::Matcher.new(msg.account || msg.user.account, extraction).call
-      confidence = Whatsapp::Confidence.new(extraction)
-      txn = Whatsapp::Decider.new(msg, extraction, match, confidence).call
-      attach_receipt(txn, msg)
+      if extraction.not_receipt?
+        not_receipt(msg)
+      else
+        match      = Whatsapp::Matcher.new(msg.account || msg.user.account, extraction).call
+        confidence = Whatsapp::Confidence.new(extraction)
+        txn = Whatsapp::Decider.new(msg, extraction, match, confidence).call
+        attach_receipt(txn, msg)
+      end
     else
       # Text / audio: the intent layer (07 §2) — extracts + classifies + dispatches.
       Whatsapp::Interpreter.new(msg, text).call
@@ -79,14 +111,25 @@ class ProcessInboundWhatsappJob < ApplicationJob
   end
 
   def transcribe(msg)
-    return msg.body unless msg.media.attached?
-    transcript = Whatsapp::SttClient.transcribe(msg.media)
+    transcript = Whatsapp::SttClient.transcribe(msg.media)   # media presence guarded in perform
     msg.update!(transcription: transcript)
     transcript
   end
 
   def over_rate_limit?(user)
     user.whatsapp_messages.inbound.where(created_at: 1.minute.ago..).count > MAX_INBOUND_PER_MINUTE
+  end
+
+  # Vision found no completed payment in the image. A caption still rides the full text
+  # pipeline (a captioned photo of "mercado 84,90" captures fine); without one, say so —
+  # never the old "quanto foi?" amount-ask, which parked a junk row AND trapped the user's
+  # NEXT message as its answer.
+  def not_receipt(msg)
+    if msg.body.present?
+      Whatsapp::Interpreter.new(msg, msg.body).call
+    else
+      WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.not_receipt")
+    end
   end
 
   # up-tier F5 (06 §2a): copy the receipt onto the transaction by referencing the SAME blob

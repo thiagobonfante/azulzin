@@ -214,6 +214,109 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     assert_wa_reply s.jid, equals: I18n.t("whatsapp.replies.stt_failed", locale: :"pt-BR")
   end
 
+  # WA-CAP-30 — a vision/extraction AI failure (OpenRouter 5xx) retries, then degrades
+  # exactly like STT (T3 §A2's fix, generalized): friendly reply, message failed, no
+  # transaction — never a silent "processing" dead-end.
+  test "vision failure: bounded retry, then friendly reply + failed message, no transaction" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))
+    media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "receipt.jpg" }
+
+    msg = nil
+    attempts = 0
+    Whatsapp::ReceiptExtractor.stub(:from_message, ->(*) { attempts += 1; raise OpenRouterClient::Error, "OpenRouter 502" }) do
+      msg = wa_inject(s.jid, "", type: "image", media: media)
+      drain_jobs!
+    end
+
+    assert_equal 3, attempts, "retries the transient case before degrading"
+    msg.reload
+    assert_equal "failed", msg.status
+    assert_match(/\Aai_failed/, msg.error)
+    assert_empty s.account.transactions, "no half-written transaction"
+    assert_wa_reply s.jid, equals: I18n.t("whatsapp.replies.processing_failed", locale: :"pt-BR")
+  end
+
+  # WA-CAP-31 — the sidecar stored the message but its media download failed (media absent
+  # from the envelope): ask for a resend, no AI call, no transaction (was: the generic help
+  # menu, a non-sequitur after sending media).
+  test "image without media: asks for a resend, no AI call, no transaction" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+
+    # No AI stub on purpose: if the pipeline weren't short-circuited it would hit OpenRouter.
+    msg = wa_inject(s.jid, "", type: "image")
+    drain_jobs!
+
+    msg.reload
+    assert_equal "failed", msg.status
+    assert_equal "media_missing", msg.error
+    assert_empty s.account.transactions
+    assert_wa_reply s.jid, equals: I18n.t("whatsapp.replies.media_failed", locale: :"pt-BR")
+  end
+
+  # WA-CAP-32 — Whisper on silence/background noise returns an empty transcript: skip the
+  # LLM, reuse the STT-failure copy, mark failed (was: a wasted extraction call ending in
+  # the "Não entendi" help menu).
+  test "audio with an empty transcript: friendly reply + failed message, no LLM, no transaction" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    media = { data: Base64.strict_encode64("fake-ogg-bytes"), mimetype: "audio/ogg", filename: "v.ogg" }
+
+    msg = nil
+    with_canned_ai(transcript: "") do   # no extraction canned: reaching the LLM would raise
+      msg = wa_inject(s.jid, "", type: "ptt", media: media)
+      drain_jobs!
+    end
+
+    msg.reload
+    assert_equal "failed", msg.status
+    assert_equal "stt_empty", msg.error
+    assert_equal "", msg.transcription, "the (empty) transcript is still stored for ops"
+    assert_empty s.account.transactions
+    assert_wa_reply s.jid, equals: I18n.t("whatsapp.replies.stt_failed", locale: :"pt-BR")
+  end
+
+  # WA-CAP-33 — an image with no completed payment in it (meme, product photo) gets the
+  # honest not_receipt reply and creates NOTHING — no "quanto foi?" open-ask trapping the
+  # user's next message as its answer (the old behavior, deliberately flipped).
+  test "non-receipt image without caption: honest reply, no transaction, no open ask" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))
+    media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "meme.jpg" }
+
+    msg = nil
+    with_canned_ai(receipt: Whatsapp::ReceiptExtractor.not_receipt) do
+      msg = wa_inject(s.jid, "", type: "image", media: media)
+      drain_jobs!
+    end
+
+    assert_equal "processed", msg.reload.status
+    assert_empty s.account.transactions, "no junk needs_clarification row"
+    assert_nil Transaction.open_ask_for(s.owner), "no open ask trapping the next message"
+    assert_wa_reply s.jid, equals: I18n.t("whatsapp.replies.not_receipt", locale: :"pt-BR")
+  end
+
+  # WA-CAP-34 — vision reads nothing but the CAPTION carries the expense: the caption rides
+  # the full text pipeline instead of dying in a "quanto foi?" (the data was right there).
+  test "non-receipt image with an expense caption: the caption posts through the text pipeline" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))
+    media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "blurry.jpg" }
+
+    with_canned_ai(receipt: Whatsapp::ReceiptExtractor.not_receipt,
+                   extraction: E2E::CannedAI.expense(cents: 8_490, merchant: "mercado",
+                                                     method: "debito", instrument: "itau")) do
+      wa_inject(s.jid, "mercado 84,90 no débito", type: "image", media: media)
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert txn.posted?
+    assert_equal 8_490, txn.amount_cents
+    assert_equal s.itau, txn.bank_account
+    body = assert_wa_reply(s.jid, includes: [ "Lançado", "na conta #{s.itau.display_name}" ])
+    assert_brl 8_490, body
+  end
+
   # WA-CAP-25 — over the per-minute cap the message is stored but skipped (no AI, no reply)
   test "rate cap: the 21st message in a minute is stored as rate_limited, not processed" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!

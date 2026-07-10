@@ -96,6 +96,44 @@ class Whatsapp::ReceiptExtractorTest < ActiveSupport::TestCase
     ex = Whatsapp::ReceiptExtractor.build("is_receipt" => false)
     assert_not ex.amount_present?
     assert_equal 0.0, ex.overall_confidence
+    assert ex.not_receipt?
+  end
+
+  def pdf_msg
+    user = users(:confirmed)
+    msg = WhatsappMessage.create!(user: user, account: user.account, direction: "inbound",
+                                  message_type: "document", wa_message_id: "wa-pdf-#{SecureRandom.hex(4)}",
+                                  chat_id: "x", status: "received")
+    msg.media.attach(io: StringIO.new("%PDF-fake"), filename: "comprovante.pdf",
+                     content_type: "application/pdf")
+    msg
+  end
+
+  test "a PDF document is rasterized to PNG (page 1) before the vision call" do
+    parsed = { "is_receipt" => true, "total_raw" => "10,00", "payment_method" => "pix",
+               "origin_phrase" => nil, "overall_confidence" => 0.9, "field_confidence" => { "total" => 0.9 } }
+    captured = nil
+    client = Object.new
+    client.define_singleton_method(:chat) do |messages:, schema:|
+      captured = messages
+      Struct.new(:parsed).new(parsed)
+    end
+
+    ex = nil
+    Imports::PdfRasterizer.stub(:call, ->(_bytes, max_pages:) { [ "png-bytes" ] }) do
+      ex = Whatsapp::ReceiptExtractor.from_message(pdf_msg, client: client)
+    end
+
+    assert_equal 1_000, ex.amount_cents
+    url = captured.last[:content].last[:image_url][:url]
+    assert url.start_with?("data:image/png;base64,"), "PDF must reach vision as a PNG, never as raw application/pdf"
+  end
+
+  test "an unreadable PDF (corrupt / no Ghostscript) degrades to not_receipt instead of raising" do
+    Imports::PdfRasterizer.stub(:call, ->(*) { raise Imports::ParseError, "pdf rasterization failed" }) do
+      ex = Whatsapp::ReceiptExtractor.from_message(pdf_msg, client: Object.new)
+      assert ex.not_receipt?
+    end
   end
 
   test "a future purchase date caps confidence below the auto-post floor" do

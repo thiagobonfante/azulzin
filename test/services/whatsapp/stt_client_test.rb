@@ -19,4 +19,17 @@ class Whatsapp::SttClientTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "sends the configured finance-vocabulary prompt to Groq" do
+    media = FakeMedia.new("v.ogg", "audio/ogg")
+    fake_resp = Struct.new(:code, :body).new("200", { text: "gastei 84,90" }.to_json)
+    captured = :not_called
+    Whatsapp::SttClient.stub(:api_key, "test-key") do
+      Whatsapp::SttClient.stub(:post_multipart, ->(_b, _f, _ct, _lang, prompt) { captured = prompt; fake_resp }) do
+        assert_equal "gastei 84,90", Whatsapp::SttClient.transcribe(media)
+      end
+    end
+    assert_equal Rails.application.config.x.openrouter["transcription"]["prompt"], captured
+    assert captured.present?, "the vocab-bias prompt must be configured and sent"
+  end
 end

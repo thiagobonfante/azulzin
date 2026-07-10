@@ -16,6 +16,9 @@ vision:
 transcription:
   model: "whisper-large-v3-turbo"   # Groq
   language: "pt"
+  # Whisper `prompt` = preceding-transcript context: biases finance vocabulary and
+  # digit-formatted money ("84,90" — which Money.to_cents parses downstream).
+  prompt: "Gastei R$ 84,90 no débito no mercado. Fiz um Pix de R$ 1.234,56 pra Nubank. Paguei o boleto do Itaú e parcelei em 10x no crédito. Guardei R$ 200 na caixinha da poupança."
 
 # Document import (.plans/auto): statements/faturas are long — hence the larger token ceiling
 # than the short WhatsApp extraction/vision tasks above.

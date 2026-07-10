@@ -5,9 +5,10 @@ module Whatsapp
   # confidence so a shaky read parks instead of posting silently. See .plans/whats §4.4.
   class ReceiptExtractor
     SYSTEM_PROMPT = <<~PT.freeze
-      Você lê um comprovante financeiro brasileiro na imagem — comprovante de compra (cupom
-      fiscal, NFC-e, comprovante de cartão/maquininha) OU comprovante de transferência/Pix
-      de banco/app — e extrai os dados do pagamento.
+      Você lê a evidência de um pagamento brasileiro na imagem — comprovante de compra (cupom
+      fiscal, NFC-e, comprovante de cartão/maquininha), comprovante de transferência/Pix de
+      banco/app, OU um print/screenshot que confirme uma compra ou pagamento (notificação do
+      banco, tela do app, e-mail de confirmação) — e extrai os dados do pagamento.
       Regras:
       - total_raw = o VALOR TOTAL PAGO, exatamente como impresso (ex.: "1.234,56"). Nunca o
         subtotal nem um item isolado. Não converta para centavos.
@@ -19,7 +20,8 @@ module Whatsapp
         tipo impresso (Pix → pix).
       - origin_phrase = null em comprovantes de compra.
       - purchase_date em ISO (YYYY-MM-DD) só se estiver no comprovante; senão null.
-      - is_receipt = false se a imagem não for um comprovante (de compra ou transferência).
+      - is_receipt = false se a imagem não mostrar um pagamento REALIZADO. Um boleto ainda
+        não pago, um orçamento, um carrinho ou uma tela de produto NÃO são pagamentos.
       - category: um palpite de categoria do gasto, se der (será resolvido no app).
       - Preencha field_confidence e overall_confidence com honestidade. Não invente.
     PT
@@ -55,6 +57,7 @@ module Whatsapp
     }.freeze
 
     def self.from_message(msg, client: nil)
+      url = data_url(msg.media)   # raises Imports::ParseError on an unreadable PDF
       client ||= OpenRouterClient.new(task: :vision)
       caption = msg.body
       messages = [
@@ -63,10 +66,14 @@ module Whatsapp
           { type: "text", text: [ "Extraia os dados deste comprovante.",
                                   ("Legenda enviada pelo usuário: #{caption}" if caption.present?),
                                   Categories.closed_set_line(msg.account || msg.user&.account) ].compact.join("\n\n") },
-          { type: "image_url", image_url: { url: data_url(msg.media) } }
+          { type: "image_url", image_url: { url: url } }
         ] }
       ]
       build(client.chat(messages: messages, schema: SCHEMA).parsed || {}, caption)
+    rescue Imports::ParseError
+      # Corrupt PDF / no Ghostscript: nothing readable — same outcome as a non-receipt
+      # image (caption fallback or the not_receipt reply), never a dead job.
+      not_receipt
     end
 
     def self.build(parsed, caption = nil)
@@ -120,8 +127,16 @@ module Whatsapp
                      source: "whatsapp_receipt", raw: { "is_receipt" => false })
     end
 
+    # Vision models take images, not PDFs — a WhatsApp document receipt (Pix comprovante
+    # exported as PDF) is rasterized to PNG first, reusing the import pipeline's renderer.
+    # Page 1 only: comprovantes are single-page.
     def self.data_url(media)
-      "data:#{media.content_type};base64,#{Base64.strict_encode64(media.download)}"
+      if media.content_type.to_s.start_with?("application/pdf")
+        png = Imports::PdfRasterizer.call(media.download, max_pages: 1).first
+        "data:image/png;base64,#{Base64.strict_encode64(png)}"
+      else
+        "data:#{media.content_type};base64,#{Base64.strict_encode64(media.download)}"
+      end
     end
   end
 end

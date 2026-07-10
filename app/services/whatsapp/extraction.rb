@@ -16,6 +16,8 @@ module Whatsapp
   ) do
     def amount_present?     = amount_cents.present? && amount_cents != 0
     def instrument_named?   = instrument_phrase.present?
+    # Vision said the image shows no completed payment (ReceiptExtractor.not_receipt).
+    def not_receipt?        = raw.is_a?(Hash) && raw["is_receipt"] == false
     def field_confidence    = self[:field_confidence] || {}
     def overall_confidence  = self[:overall_confidence] || 0.0
 
