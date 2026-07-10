@@ -41,6 +41,11 @@ class GoalsController < AppController
       render :draft
     else
       Goals::Achieve.call(@goal) if Goals::Progress.new(@goal).achieved?   # auto-conclude on render
+      # One-shot celebration (ADR 0012): the first achieved render fires the party and stamps
+      # celebrated_at — guarded flip, same idiom as Achieve, so it never re-fires.
+      @celebrate = @goal.achieved? &&
+                   Goal.where(id: @goal.id, celebrated_at: nil)
+                       .update_all(celebrated_at: Time.current, updated_at: Time.current).positive?
       @progress = Goals::Progress.new(@goal)
       @speed_up = Goals::SpeedUpOffer.for(@goal)
       @replan_offer = Goals::ReplanOffer.for(@goal)   # nil unless active purchase with a way out

@@ -11,7 +11,7 @@
   <%= link_to t("goals.show.back"), goals_path, class: "btn btn-ghost btn-sm" %>
 </header>
 
-<% if @goal.achieved? %>
+<% if @celebrate %>
   <section class="mb-6 rounded-box border border-primary/40 bg-primary/5 p-6 text-center">
     <p class="text-4xl">🎉</p>
     <h2 class="mt-2 font-display text-xl font-extrabold text-primary"><%= t("goals.show.achieved_title") %></h2>
