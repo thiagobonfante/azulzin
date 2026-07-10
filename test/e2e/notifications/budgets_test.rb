@@ -35,6 +35,21 @@ class E2E::NotificationBudgetsTest < E2E::PipelineCase
     assert Notification.exists?(user: s.owner, kind: "budget_breach", subject: s.category("Restaurantes"))
   end
 
+  # NT-B-05 — a goal trim binds tighter than the standing budget: the _goal copy names the
+  # meta and the effective limit is min(standing, trim). Spec 04 §NT-B-05.
+  test "goal trim binds tighter than the standing budget: budget_warn_goal names the meta" do
+    travel_to MONDAY
+    s = push_ready(E2E::Scenario.build(:goal_cuts))
+
+    dispatch_budgets!
+
+    assert_wa_reply s.jid,
+      equals: "👀 *Restaurantes* já está em R$ 340,00 do combinado da meta *Carro* este mês (R$ 400,00). 💙"
+    n = Notification.where(user: s.owner, kind: "budget_warn", subject: s.category("Restaurantes")).sole
+    assert_equal 40_000, n.payload["budget_cents"], "effective_limit = min(60_000 standing, 40_000 trim)"
+    assert_equal "Carro", n.payload["goal_name"]
+  end
+
   # NT-B-06 — surplus nudge only in the last week, only in the blue, exact sobra
   test "surplus nudge: last week of the month banks the exact sobra" do
     travel_to Time.utc(2026, 5, 25, 15, 0)   # last Monday of May

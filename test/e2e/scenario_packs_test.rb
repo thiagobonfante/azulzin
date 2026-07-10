@@ -34,6 +34,23 @@ class E2E::ScenarioPacksTest < E2E::PipelineCase
     end
   end
 
+  # NT-B-05 prerequisite: the goal_cuts pack's trim binds tighter than the standing budget.
+  test "goal_cuts: a goal trim caps a category below its standing budget (min binds)" do
+    s = E2E::Scenario.build(:goal_cuts)
+    rest = s.category("Restaurantes")
+    assert_equal 60_000, rest.reload.monthly_budget_cents, "member raised the standing budget back"
+
+    trims = Goals::TrimCaps.for(s.account, month: Date.current.beginning_of_month)
+    assert_equal 40_000, trims[rest.id][:cap_cents]
+    assert_equal s.goal.name, trims[rest.id][:goal_name]
+
+    event = Budgets::Check.call(s.account, month: Date.current, warn_percent: 80, breach_percent: 100).sole
+    assert_equal "budget_warn", event[:kind], "34_000 is 85% of the 40_000 trim, silent against 60_000"
+    assert_equal 40_000, event[:payload][:budget_cents], "effective_limit = min(60_000, 40_000)"
+    assert_equal 34_000, event[:payload][:spent_cents]
+    assert_equal s.goal.name, event[:payload][:goal_name]
+  end
+
   test "cards_billing straddles the closing date" do
     s = E2E::Scenario.build(:cards_billing)
     on_close  = s.account.transactions.find_by!(merchant: "Na Data de Corte")

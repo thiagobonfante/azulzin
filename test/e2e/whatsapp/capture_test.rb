@@ -139,7 +139,35 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     assert_equal 5_490, s.account.transactions.sole.amount_cents
   end
 
-  # WA-CAP-23/24 — receipts create the row and share the SAME blob (survives WA media purge)
+  # WA-CAP-23 — a receipt whose amount MATCHES an already-posted card charge. Spec 03 expects
+  # the receipt to attach to the EXISTING row with no duplicate. That reconciliation is NOT
+  # implemented: the receipt pipeline dedups only on source_message_id, so the receipt posts a
+  # SECOND row. This pins the CURRENT behavior and flags the gap (duplicate-expense-from-receipt,
+  # 07-coverage-audit.md). Flip the assertions the day receipt↔transaction dedup ships.
+  test "image receipt matching an existing card charge posts a NEW row (dedup NOT implemented)" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    existing = s.expense(merchant: "Mercado Nota", category: "Outros", instrument: s.nubank_card,
+                         cents: 8_750, on: Date.current)
+    assert_equal 1, s.account.transactions.count
+
+    bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))
+    media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "receipt.jpg" }
+    receipt = E2E::CannedAI.expense(cents: 8_750, merchant: "Mercado Nota", method: "credito",
+                                    instrument: "nubank", modality: "image")
+    with_canned_ai(receipt: receipt) do
+      wa_inject(s.jid, "", type: "image", media: media)
+      drain_jobs!
+    end
+
+    assert_equal 2, s.account.transactions.count,
+                 "KNOWN GAP: no receipt↔transaction dedup — a matching receipt duplicates the charge"
+    assert_not existing.reload.receipt.attached?, "the receipt did NOT reconcile onto the existing row"
+    posted = s.account.transactions.where.not(id: existing.id).sole
+    assert posted.receipt.attached?, "it landed on a brand-new row instead"
+  end
+
+  # WA-CAP-24 — a receipt matching NOTHING creates the row and shares the SAME blob (survives
+  # the WA media purge)
   test "image receipt: transaction created with the receipt attached to the same blob" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!
     bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))

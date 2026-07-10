@@ -238,6 +238,32 @@ module E2E
       goal
     end
 
+    # solo_basic + caixinha + income history + an ACTIVE purchase goal whose frozen plan trims
+    # Restaurantes to R$ 400,00 — below the member's R$ 600,00 standing budget. ApplyBudgetCuts
+    # writes the trim into the category (goals 06 §3); the member then bumps the budget back to
+    # 600 mid-goal, so the goal cap (400) stays the tighter binding limit. Current-month
+    # Restaurantes spend R$ 340,00 warns against the 400 cap yet is silent against 600 → the
+    # budget_warn_goal path (effective_limit = min(standing, trim)). Self-checked in
+    # scenario_packs_test (NT-B-05).
+    def goal_cuts(**)
+      solo_basic
+      add_caixinha!
+      ensure_income_history!
+      rest  = category("Restaurantes")
+      rest.update!(monthly_budget_cents: 60_000)
+      start = this_month << 1
+      @goal = account.goals.create!(
+        kind: "purchase", name: "Carro", target_cents: 2_000_000, target_date: this_month >> 10,
+        status: "active", monthly_target_cents: 150_000, starts_on: start,
+        activated_at: start.in_time_zone, bank_account: caixinha, created_by: owner, baseline: {},
+        plan: { "cuts" => [ { "category_id" => rest.id, "cap_cents" => 40_000 } ] })
+      Goals::ApplyBudgetCuts.call(@goal)                   # 60_000 → 40_000, previous snapshotted
+      rest.reload.update!(monthly_budget_cents: 60_000)    # member raises it back; the goal cap still pins alerts
+      expense(merchant: "Restaurante Meta E2E", category: "Restaurantes", instrument: itau,
+              cents: 34_000, on: today)
+      self
+    end
+
     # Three trailing months of received salary — the Analyzer baseline the goal math needs.
     # Guarded so packs/tests can layer goals without double-receiving a month.
     def ensure_income_history!

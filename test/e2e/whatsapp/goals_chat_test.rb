@@ -106,7 +106,62 @@ class E2E::WhatsappGoalsChatTest < E2E::PipelineCase
     assert_equal 5, s.account.goals.count
   end
 
+  # WA-GOAL-05 — "reorganizar" through the real webhook: a slipped purchase goal → the
+  # deterministic REPLAN_RE pre-pass (0 LLM) → numbered offer → pick → Goals::Replan applies.
+  # The money-trap invariant: Progress#actual_cents is unchanged across the rewrite (last
+  # month's savings fold into initial, this month's stay live — counted once). Spec 03 §4.
+  test "reorganizar: slipped goal → numbered offer → pick applies replan, actual_cents invariant" do
+    s = slipped_goal_scenario
+    goal = s.goal
+    old_commitment = goal.savings_commitment
+    saved_before = Goals::Progress.new(goal).actual_cents
+    assert_equal 150_000, saved_before, "pack calibration: R$ 1.500,00 saved into the caixinha"
+
+    wa_inject(s.jid, "reorganizar"); drain_jobs!
+    assert_wa_reply s.jid, equals:
+      "💙 Meta *Carro*: você já guardou R$ 1.500. Dá pra reorganizar assim:\n" \
+      "1. Manter R$ 3.000/mês — termina em fevereiro de 2028\n" \
+      "Responde o número, ou *não* pra deixar como está."
+    assert GoalConversation.open_for(s.owner).replan_offered?, "single goal jumps straight to the offer"
+
+    wa_inject(s.jid, "1"); drain_jobs!
+    assert_wa_reply s.jid, equals:
+      "💙 Meta *Carro* reorganizada: R$ 3.000/mês até fevereiro de 2028. Sem culpa — o que importa é continuar."
+
+    goal.reload
+    assert_equal 300_000, goal.monthly_target_cents, "extend keeps the parcel"
+    assert old_commitment.reload.archived?, "the old savings commitment is archived"
+    new_commitment = goal.savings_commitment
+    assert new_commitment, "a fresh savings commitment replaces it"
+    assert_not_equal old_commitment.id, new_commitment.id
+    assert_equal Goals::Progress.new(goal).actual_cents, saved_before,
+                 "money-trap: actual_cents is INVARIANT across the rewrite"
+    assert_nil GoalConversation.open_for(s.owner), "the chat closes on apply"
+  end
+
   private
+
+  # A genuinely slipped purchase goal (goal_active can't slip — its deadline is a year out):
+  # target R$ 60.000, promised Dec/2026, but only R$ 1.500,00 saved → the honest finish slips
+  # far past the promise, so ReplanOffer surfaces an extend option. Built like the service twin
+  # but with REAL transfers so actual_cents is a live, asserted number.
+  def slipped_goal_scenario
+    s = E2E::Scenario.build(:solo_basic) { |sc| sc.add_caixinha!; sc.ensure_income_history! }.wa_verified!
+    start = Date.current.beginning_of_month << 2
+    goal = s.account.goals.create!(
+      name: "Carro", kind: "purchase", target_cents: 6_000_000,
+      target_date: Date.current.beginning_of_month >> 7, status: "active",
+      monthly_target_cents: 300_000, starts_on: start, activated_at: start.in_time_zone,
+      bank_account: s.caixinha, created_by: s.owner, baseline: {},
+      plan: { "projected_done_on" => (Date.current.beginning_of_month >> 7).iso8601 })
+    s.account.commitments.create!(kind: "savings", goal: goal, bank_account: s.itau,
+      amount_cents: 300_000, name: "Carro", starts_on: start, schedule_day: 5,
+      schedule_kind: "fixed_day", created_by: s.owner)
+    s.stash(90_000, on: (Date.current.beginning_of_month << 1) + 4)   # last month → folds into initial
+    s.stash(60_000, on: Date.current.beginning_of_month + 4)          # this month → stays live
+    s.instance_variable_set(:@goal, goal)
+    s
+  end
 
   def start_goal_chat(s, text)
     with_canned_ai(extraction: E2E::CannedAI.create_goal) do

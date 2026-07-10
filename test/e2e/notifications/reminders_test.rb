@@ -108,16 +108,20 @@ class E2E::NotificationRemindersTest < E2E::PipelineCase
                  "the same day's re-dispatch is a no-op (period_key dedup + claim)"
   end
 
-  # NT-X-01 flavored for reminders: the pack yields 4 events, the cap delivers 3
+  # NT-X-01 flavored for reminders: the pack yields exactly 4 events, the cap delivers 3.
+  # "The cap throttles push, never truth" — every event still lands a dashboard row.
   test "the daily cap holds inside one sweep: 4 events, 3 pushes, 4 dashboard rows" do
     s = push_ready(E2E::Scenario.build(:reminders_due))
 
     dispatch_reminders!
 
     assert_equal 3, fake_sidecar.messages_to(s.jid).size, "DAILY_WA_CAP inside a single sweep"
-    assert_operator Notification.where(user: s.owner).count, :>=, 4,
-                    "every event still gets its dashboard row"
-    assert_equal 3, Notification.where(user: s.owner).where.not(whatsapp_sent_at: nil).count
+    assert_equal 4, Notification.where(user: s.owner).count,
+                 "all 4 events (Condomínio/Luz/card-closing/Freela) get a dashboard row; only Água is silent"
+    assert_equal 3, Notification.where(user: s.owner).where.not(whatsapp_sent_at: nil).count,
+                 "exactly 3 carry whatsapp_sent_at — the 4th is dashboard-only"
+    assert_equal 1, Notification.where(user: s.owner, whatsapp_sent_at: nil).count,
+                 "the capped event's row exists but never sent"
   end
 
   private

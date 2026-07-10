@@ -70,6 +70,62 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
                  "the gate re-arms once the cause is genuinely new (round-4 fix)"
   end
 
+  # NT-GL-05 — the cooldown gates a WORSENING non-urgent lead. An at_risk pace alert last Monday,
+  # then the pace slips to off_track this Monday (expected rises through the month while actual
+  # holds: ratio ~88% at day 18 → ~79% at day 25). The worsening beats the DELTA-GATE, but the
+  # 14-day cooldown still suppresses it — the shipped contract is that ONLY urgent leads
+  # (missed_month/red_month/next_month_red) bypass the cooldown, pinned in
+  # notify_member_job_test.rb ("a non-urgent budget_raised new cause stays silent inside the
+  # cooldown"). No new push, no new goal_alert row until the cooldown lifts (NT-GL-06 day-15).
+  #
+  # NOTE (vetoable): spec 04 §NT-GL-05 predicts the worsening FIRES inside the cooldown; the
+  # shipped, unit-tested anti-nag design is the opposite. Pinning real behavior, discrepancy
+  # recorded in 07-coverage-audit.md.
+  test "a worsening pace inside the cooldown stays silent (only urgent leads bypass it)" do
+    travel_to MONDAY
+    s = push_ready(E2E::Scenario.build(:goal_active, paid: [ 1, 1, 0.2 ]))
+
+    dispatch_goals!
+    assert_equal "at_risk", GoalCheck.where(goal: s.goal).order(:id).last.status
+    assert_equal 1, fake_sidecar.messages_to(s.jid).size, "week 1: the at_risk alert"
+    assert_equal 1, Notification.where(user: s.owner, kind: "goal_alert").count
+
+    travel_to NEXT_MONDAY   # 7 days later — inside the cooldown; expected has risen past actual
+    dispatch_goals!
+
+    assert_equal "off_track", GoalCheck.where(goal: s.goal).order(:id).last.status,
+                 "the severity genuinely worsened this week"
+    assert_equal 1, fake_sidecar.messages_to(s.jid).size,
+                 "the cooldown gates the worsening non-urgent lead — no second push"
+    assert_equal 1, Notification.where(user: s.owner, kind: "goal_alert").count,
+                 "and no new goal_alert row (the cooldown returns before record!)"
+  end
+
+  # NT-GL-07 — an urgent missed_month finding bypasses the 14-day cooldown (never the delta-gate:
+  # it's a genuinely new cause). Week 1 (Mon May 25) a pace alert arms the cooldown; week 2
+  # (Mon Jun 1, 7 days later, still inside the cooldown) May has closed under its parcel → the
+  # missed_month empathy push breaks through. Golden pinned. Spec 04 §NT-GL-07.
+  test "missed_month is urgent and bypasses the cooldown; empathy golden" do
+    travel_to Time.utc(2026, 5, 25, 15, 0)   # Monday, last week of May
+    s = missed_month_scenario
+
+    dispatch_goals!
+    assert_equal 1, fake_sidecar.messages_to(s.jid).size, "week 1: a pace alert arms the cooldown"
+
+    travel_to Time.utc(2026, 6, 1, 15, 0)    # Monday, 7 days later — inside the 14-day cooldown
+    dispatch_goals!
+
+    msgs = fake_sidecar.messages_to(s.jid)
+    assert_equal 2, msgs.size, "the urgent missed_month breaks through the cooldown"
+    assert_equal msgs.last.body,
+      "👀 A meta *Carro* ficou R$ 2.500 abaixo do combinado no mês passado.\n" \
+      "No ritmo atual, a conclusão passa de novembro de 2027 para dezembro de 2027.\n" \
+      "Responda *reorganizar* para ajustar o plano."
+    n = Notification.where(user: s.owner, kind: "goal_alert").newest_first.first
+    assert_equal "missed_month", n.payload["finding"]
+    assert n.whatsapp_sent_at.present?, "it delivered (bypassed the cooldown, respected the delta-gate)"
+  end
+
   # NT-GL-09 — ≤1 goals WhatsApp message per user per week
   test "weekly WA guard: two slipping goals, one push, both dashboard rows" do
     travel_to MONDAY
@@ -137,6 +193,33 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
                                        wa_intro_sent_at: Time.current)
     wa_connect!
     s
+  end
+
+  # A slipped purchase goal (target R$ 60.000, promised nov/2027) with a real savings commitment:
+  # March + April parcels paid in full, May paid partial → at Jun 1 May has closed under the
+  # parcel and the honest finish slips past the promise, firing missed_month. goal_active can't
+  # slip (its parcel over-covers its backdated window), so this is built inline like WA-GOAL-05.
+  def missed_month_scenario
+    s = push_ready(E2E::Scenario.build(:solo_basic) { |sc| sc.add_caixinha!; sc.ensure_income_history! })
+    start = Date.new(2026, 3, 1)
+    goal = s.account.goals.create!(
+      name: "Carro", kind: "purchase", target_cents: 6_000_000, target_date: Date.new(2027, 12, 1),
+      status: "active", monthly_target_cents: 300_000, starts_on: start, activated_at: start.in_time_zone,
+      bank_account: s.caixinha, created_by: s.owner,
+      baseline: { "median_income_cents" => 0, "categories" => [] },
+      plan: { "projected_done_on" => "2027-11-01" })
+    commitment = s.account.commitments.create!(kind: "savings", goal: goal, bank_account: s.itau,
+      amount_cents: 300_000, name: "Carro", starts_on: start, schedule_day: 5,
+      schedule_kind: "fixed_day", created_by: s.owner)
+    [ Date.new(2026, 3, 1), Date.new(2026, 4, 1) ].each { |m| pay_savings(s, commitment, m, 300_000) }
+    pay_savings(s, commitment, Date.new(2026, 5, 1), 50_000)   # May under the parcel → the miss
+    s.instance_variable_set(:@goal, goal)
+    s
+  end
+
+  def pay_savings(s, commitment, month, amount)
+    Commitments::MarkPaid.call(commitment, month, amount: amount, created_by: s.owner)
+               .update_columns(occurred_on: month + 4, created_at: (month + 4).in_time_zone)
   end
 
   def dispatch_goals!
