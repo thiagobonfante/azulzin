@@ -1,0 +1,61 @@
+name: E2E contract lane
+
+# Nightly smokes against the REAL node fake sidecar (whatsapp-sidecar/fake.js) — the
+# tripwire that keeps the in-process Ruby FakeSidecarServer contract-honest.
+# See .plans/e2e/03 §6 and test/system/journeys/contract_sidecar_test.rb.
+on:
+  schedule:
+    - cron: "20 6 * * *"   # 03:20 São Paulo, after the world quiets down
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips libpq-dev
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install sidecar dependencies
+        working-directory: whatsapp-sidecar
+        run: npm ci
+
+      - name: Run contract smokes (serial)
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          E2E_SIDECAR: node
+          PARALLEL_WORKERS: "1"
+        run: bin/rails db:test:prepare test test/system/journeys/contract_sidecar_test.rb
+
+      - name: Keep screenshots from failed tests
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: contract-screenshots
+          path: ${{ github.workspace }}/tmp/screenshots
+          if-no-files-found: ignore
