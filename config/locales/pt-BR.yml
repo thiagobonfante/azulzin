@@ -945,6 +945,7 @@ pt-BR:
       applied: "Criado — tudo certo"
     found:
       summary: "%{parts} encontrados"
+      none: "Documento lido, mas não encontramos contas ou compromissos para criar."
       accounts:
         one: "%{count} conta"
         other: "%{count} contas"
@@ -968,6 +969,7 @@ pt-BR:
       too_large: "Arquivo muito grande — o limite é 10 MB."
       parse_failed: "Não conseguimos ler este documento. Tente outro arquivo ou adicione manualmente."
       llm_failed: "Algo deu errado na leitura. Tente de novo em instantes."
+      rate_limited: "Limite diário de leituras atingido. Tente novamente amanhã."
       duplicate_file: "Você já enviou este arquivo."
       daily_cap: "Limite de 10 arquivos por dia atingido. Tente amanhã."
     create:

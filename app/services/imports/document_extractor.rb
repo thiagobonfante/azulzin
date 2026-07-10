@@ -106,21 +106,33 @@ module Imports
 
     # Vision fallback (§5): scanned pages rendered to PNG → the same SCHEMA via the multimodal
     # import_vision task. Flags the extraction `vision: true` so every proposal gets the OCR cap.
+    # Long scans are page-batched like the text path (§4) — all pages in one call blew the output
+    # cap and truncated rows silently.
     def call_vision(images, client: nil)
-      raise ParseError, "no pages to rasterize" if Array(images).empty?
+      images = Array(images)
+      raise ParseError, "no pages to rasterize" if images.empty?
 
       client ||= OpenRouterClient.new(task: :import_vision)
-      parsed = chat_vision(client, Array(images))
+      parsed  = images.size <= SINGLE_CALL_MAX_PAGES ? chat_vision(client, images) : vision_batched(images, client)
       raise ParseError, "empty vision extraction" if parsed.blank?
 
       build(parsed).merge("vision" => true)
     end
 
-    def chat_vision(client, images)
-      content = [ { "type" => "text", "text" => "Extraia os dados deste documento financeiro." } ]
+    def vision_batched(images, client)
+      meta = chat_vision(client, images.first(1), extra: META_ONLY)
+      rows = images.each_slice(PAGES_PER_BATCH).flat_map do |batch|
+        Array(chat_vision(client, batch, extra: ROWS_ONLY)["rows"])
+      end
+      meta.merge("rows" => rows)
+    end
+
+    def chat_vision(client, images, extra: nil)
+      text = [ extra, "Extraia os dados deste documento financeiro." ].compact.join("\n\n")
+      content = [ { "type" => "text", "text" => text } ]
       images.each { |png| content << { "type" => "image_url", "image_url" => { "url" => data_url(png) } } }
       messages = [ { role: "system", content: SYSTEM_PROMPT }, { role: "user", content: content } ]
-      client.chat(messages: messages, schema: SCHEMA).parsed || {}
+      parsed_or_raise(client.chat(messages: messages, schema: SCHEMA))
     end
 
     def data_url(png)
@@ -131,11 +143,14 @@ module Imports
       chat(client, pages.join("\n\n"))
     end
 
+    META_ONLY = "Extraia apenas doc_kind, identidade, período e card; rows deve ser [].".freeze
+    ROWS_ONLY = "Extraia apenas rows (metadados null).".freeze
+
     # Metadata call (page 1) + row calls (2-page batches), merged in Ruby (§4).
     def extract_batched(pages, client)
-      meta = chat(client, pages.first, extra: "Extraia apenas doc_kind, identidade, período e card; rows deve ser [].")
+      meta = chat(client, pages.first, extra: META_ONLY)
       rows = pages.each_slice(PAGES_PER_BATCH).flat_map do |batch|
-        Array(chat(client, batch.join("\n\n"), extra: "Extraia apenas rows (metadados null).")["rows"])
+        Array(chat(client, batch.join("\n\n"), extra: ROWS_ONLY)["rows"])
       end
       meta.merge("rows" => rows)
     end
@@ -143,7 +158,14 @@ module Imports
     def chat(client, text, extra: nil)
       content = extra ? "#{extra}\n\n#{text}" : text
       messages = [ { role: "system", content: SYSTEM_PROMPT }, { role: "user", content: content } ]
-      client.chat(messages: messages, schema: SCHEMA).parsed || {}
+      parsed_or_raise(client.chat(messages: messages, schema: SCHEMA))
+    end
+
+    # A nil parse means the completion wasn't valid JSON (output-cap truncation is the usual
+    # culprit). Silently treating it as {} dropped whole page-batches of rows — fail loudly so
+    # the job retries/reports instead.
+    def parsed_or_raise(result)
+      result.parsed or raise ParseError, "unparseable llm extraction"
     end
 
     # ── Ruby post-processing (all money/dates here, never the LLM) ────────────
@@ -249,7 +271,9 @@ module Imports
       return nil unless parts
 
       day, month = parts
-      ref = period_end || Date.new(Time.current.year, 12, 31)
+      # No printed period → anchor on today: onboarding rows are always in the past, and a
+      # Dec-31 anchor put January-processed December docs a year in the future.
+      ref = period_end || Date.current
       candidate = safe_date(ref.year, month, day)
       return nil unless candidate
 

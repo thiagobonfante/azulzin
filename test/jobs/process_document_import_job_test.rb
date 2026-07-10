@@ -69,13 +69,15 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
     assert_equal "260", import.institution.code
   end
 
-  test "CSV extracts but proposes no bank_account (no account identity)" do
+  test "CSV without account identity still proposes an unchecked account + its commitments" do
     import = upload("sample.csv", "text/csv")
     stub_classifier { ProcessDocumentImportJob.perform_now(import.id) }
     import.reload
     assert_equal "extracted", import.status
     assert_equal "csv", import.source_format
-    assert_empty import.proposals
+    account = import.proposals.find { it["kind"] == "bank_account" }
+    assert_operator account["confidence"], :<, Imports::Confidence::REVIEW_FLOOR
+    assert import.proposals.any? { it["kind"] == "commitment" }
   end
 
   test "terminal imports are not reprocessed (idempotent, no duplicate proposals)" do
@@ -91,6 +93,40 @@ class ProcessDocumentImportJobTest < ActiveJob::TestCase
   test "a parse failure marks failed/parse_failed" do
     import = upload_bytes("Foo,Bar\n1,2\n", "junk.csv", "text/csv")
     ProcessDocumentImportJob.perform_now(import.id)
+    assert_equal "failed", import.reload.status
+    assert_equal "parse_failed", import.error_code
+  end
+
+  # ── hardening: a failure must never strand the import at "processing" ──────
+  test "a transient AI error re-enqueues the retry and keeps the import processing" do
+    import = upload_bytes(file_fixture("imports/statement.pdf").binread, "f.pdf", "application/pdf")
+    Imports::DocumentExtractor.stub(:call, ->(*_a, **_k) { raise OpenRouterClient::Error, "502" }) do
+      assert_enqueued_with(job: ProcessDocumentImportJob) { ProcessDocumentImportJob.perform_now(import.id) }
+    end
+    assert_equal "processing", import.reload.status
+  end
+
+  test "AI retry exhaustion fails the import llm_failed (was: spinner forever)" do
+    import = upload_bytes(file_fixture("imports/statement.pdf").binread, "f.pdf", "application/pdf")
+    Imports::DocumentExtractor.stub(:call, ->(*_a, **_k) { raise OpenRouterClient::RateLimited, "429" }) do
+      perform_enqueued_jobs { ProcessDocumentImportJob.perform_later(import.id) }
+    end
+    assert_equal "failed", import.reload.status
+    assert_equal "llm_failed", import.error_code
+  end
+
+  test "fail_import never regresses a terminal import" do
+    import = upload("nubank.ofx", "application/x-ofx")
+    import.update!(status: "extracted")
+    ProcessDocumentImportJob.fail_import(import.id, "llm_failed", StandardError.new("x"))
+    assert_equal "extracted", import.reload.status
+  end
+
+  test "an unexpected crash fails the import visibly and re-raises for the error tracker" do
+    import = upload("sample.csv", "text/csv")
+    Imports::CsvParser.stub(:call, ->(*_a) { raise "boom" }) do
+      assert_raises(RuntimeError) { ProcessDocumentImportJob.perform_now(import.id) }
+    end
     assert_equal "failed", import.reload.status
     assert_equal "parse_failed", import.error_code
   end

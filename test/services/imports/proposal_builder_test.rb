@@ -71,13 +71,44 @@ class Imports::ProposalBuilderTest < ActiveSupport::TestCase
     assert_equal first, import.reload.proposals.map { it["pid"] }
   end
 
-  test "a CSV with no account header yields no proposals (no instrument to attach to)" do
+  # Was: no proposals at all — which silently threw away every commitment in the file. Now the
+  # identity-less account proposes at 0.6 (below the review floor → unchecked, user confirms).
+  test "a CSV with no account header proposes an unchecked identity-less account plus its commitments" do
     csv = @user.account.document_imports.new(checksum: SecureRandom.hex, source_format: "csv")
     csv.file.attach(io: File.open(file_fixture("imports/sample.csv")), filename: "s.csv", content_type: "text/csv")
     csv.extraction = Imports::CsvParser.call(file_fixture("imports/sample.csv").read)
     csv.save!
     build!(csv)
-    assert_empty csv.reload.proposals
+
+    proposals = csv.reload.proposals
+    account = proposals.find { it["kind"] == "bank_account" }
+    assert_equal 0.6, account["confidence"]
+    assert_operator account["confidence"], :<, Imports::Confidence::REVIEW_FLOOR
+    assert_nil account.dig("payload", "account_number")
+
+    commitment = proposals.find { it["kind"] == "commitment" }
+    assert commitment, "dependents must not vanish with the missing identity"
+    assert_equal account["pid"], commitment.dig("payload", "instrument_ref", "pid")
+  end
+
+  test "a fatura with no printed last4 still proposes the card (0.6) and keeps its commitments" do
+    no_last4 = FATURA_RESPONSE.merge("card" => FATURA_RESPONSE["card"].merge("sections" => []))
+    import = build!(pdf_import(Imports::DocumentExtractor.build(no_last4)))
+
+    card = import.proposals.find { it["kind"] == "credit_card" }
+    assert_equal 0.6, card["confidence"] # below the review floor — arrives unchecked
+    assert_nil card.dig("payload", "last4")
+
+    installment = import.proposals.find { it["kind"] == "commitment" }
+    assert installment, "the fatura's installments must not vanish with the missing last4"
+    assert_equal card["pid"], installment.dig("payload", "instrument_ref", "pid")
+  end
+
+  test "a low-confidence text read caps every proposal below the pre-check floor" do
+    shaky = Imports::DocumentExtractor.build(FATURA_RESPONSE.merge("overall_confidence" => 0.5))
+    import = build!(pdf_import(shaky))
+    assert import.proposals.any?
+    import.proposals.each { assert_operator it["confidence"], :<=, Imports::Confidence::VISION_CAP }
   end
 
   test "a fatura yields ONE credit_card proposal (six plastics collapse to one card)" do

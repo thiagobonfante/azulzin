@@ -50,25 +50,35 @@ module Imports
       }
     }.freeze
 
+    # A whole extrato's labels in one response can blow the output cap and truncate the JSON —
+    # which used to silently classify EVERY row one_off. Batch the rows instead.
+    BATCH_SIZE = 80
+
     # rows: the §8 normalized rows (post-exclusion). Returns the LLM row objects, id-indexed by the
-    # caller. Rows the LLM drops default to one_off/0 downstream. `account` adds the closed-set
-    # category line so category_guess answers inside the user's own taxonomy.
+    # caller (ids are global across batches). Rows the LLM drops default to one_off/0 downstream.
+    # `account` adds the closed-set category line so category_guess answers inside the user's own
+    # taxonomy.
     def call(rows, account: nil, client: nil)
       return [] if rows.empty?
 
       client ||= OpenRouterClient.new(task: :import_extraction)
-      user_content = [ compact(rows).to_json,
-                       Categories.closed_set_line(account, field: "category_guess") ].compact.join("\n\n")
-      messages = [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user",   content: user_content }
-      ]
-      Array((client.chat(messages: messages, schema: SCHEMA).parsed || {})["rows"])
+      category_line = Categories.closed_set_line(account, field: "category_guess")
+      rows.each_slice(BATCH_SIZE).with_index.flat_map do |batch, index|
+        user_content = [ compact(batch, offset: index * BATCH_SIZE).to_json, category_line ].compact.join("\n\n")
+        messages = [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user",   content: user_content }
+        ]
+        parsed = client.chat(messages: messages, schema: SCHEMA).parsed
+        raise Imports::ParseError, "unparseable classification" if parsed.nil?
+
+        Array(parsed["rows"])
+      end
     end
 
-    def compact(rows)
+    def compact(rows, offset: 0)
       rows.each_with_index.map do |row, id|
-        { "id" => id, "date" => row["date"], "description" => row["description"],
+        { "id" => offset + id, "date" => row["date"], "description" => row["description"],
           "amount" => signed_decimal(row), "signals" => Array(row["signals"]) }
       end
     end

@@ -61,6 +61,39 @@ class Imports::DocumentExtractorTest < ActiveSupport::TestCase
     assert_equal 1 + (6.0 / Imports::DocumentExtractor::PAGES_PER_BATCH).ceil, client.calls
   end
 
+  test "an unparseable (truncated) response raises ParseError instead of dropping rows silently" do
+    assert_raises(Imports::ParseError) do
+      Imports::DocumentExtractor.call({ "pages" => [ "x" ] }, client: FakeClient.new(nil))
+    end
+  end
+
+  test "an unparseable row batch in a long document raises instead of losing two pages" do
+    pages  = Array.new(6) { "page text" }
+    client = FakeClient.new(FATURA_RESPONSE, nil) # meta OK, first row batch truncated
+    assert_raises(Imports::ParseError) do
+      Imports::DocumentExtractor.call({ "pages" => pages }, client: client)
+    end
+  end
+
+  test "long scans vision-batch: 1 metadata call + N row calls, rows merged" do
+    meta   = FATURA_RESPONSE.merge("rows" => [])
+    rows   = { "rows" => FATURA_RESPONSE["rows"] }
+    client = FakeClient.new(meta, rows, rows, rows)
+    extraction = Imports::DocumentExtractor.call_vision(Array.new(6) { "png" }, client: client)
+    assert_equal 4, client.calls # 1 meta + 3 batches of 2 pages
+    assert_equal 6, extraction["rows"].size
+    assert extraction["vision"]
+  end
+
+  test "txn year inference without a printed period anchors on today, not Dec 31" do
+    travel_to Date.new(2027, 1, 10) do
+      no_period = FATURA_RESPONSE.merge("period_start_raw" => nil, "period_end_raw" => nil, "card" => nil)
+      extraction = Imports::DocumentExtractor.call({ "pages" => [ "x" ] }, client: FakeClient.new(no_period))
+      compra = extraction["rows"].find { it["description"] == "COMPRA EUA" } # "20/06"
+      assert_equal "2026-06-20", compra["date"] # walked back — not the future 2027-06-20
+    end
+  end
+
   test "call_vision sends image_url data-URLs and flags the extraction vision" do
     seen = nil
     client = Object.new

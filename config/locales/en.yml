@@ -944,6 +944,7 @@ en:
       applied: "Created — all set"
     found:
       summary: "%{parts} found"
+      none: "Document read, but we didn't find accounts or commitments to create."
       accounts:
         one: "%{count} account"
         other: "%{count} accounts"
@@ -967,6 +968,7 @@ en:
       too_large: "File too large — the limit is 10 MB."
       parse_failed: "We couldn't read this document. Try another file or add it manually."
       llm_failed: "Something went wrong reading it. Try again in a moment."
+      rate_limited: "Daily reading limit reached. Try again tomorrow."
       duplicate_file: "You already uploaded this file."
       daily_cap: "Daily limit of 10 files reached. Try again tomorrow."
     create:

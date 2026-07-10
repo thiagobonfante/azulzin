@@ -17,7 +17,7 @@
       <span class="loading loading-spinner loading-xs align-middle"></span>
       <span class="align-middle"><%= t("document_imports.status.processing") %></span>
     <% when "extracted" %>
-      <%= import_found_summary(import) %>
+      <%= import_found_summary(import) || t("document_imports.found.none") %>
     <% when "applied" %>
       <span class="text-success">✓ <%= t("document_imports.status.applied") %></span>
     <% when "failed" %>

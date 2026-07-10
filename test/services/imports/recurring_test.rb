@@ -19,6 +19,28 @@ class Imports::RecurringTest < ActiveSupport::TestCase
 
   setup { @user = users(:confirmed) }
 
+  # ── classifier transport hardening ──────────────────────────────────────────
+  test "long row lists batch per 80 with globally-stable ids" do
+    rows = Array.new(81) { |i| { "date" => nil, "description" => "R#{i}", "amount_cents" => 100, "direction" => "out", "signals" => [] } }
+    sent = []
+    fake = Object.new
+    fake.define_singleton_method(:chat) do |messages:, schema:|
+      sent << JSON.parse(messages.last[:content])
+      ImportExtractionFixtures::FakeResult.new({ "rows" => [] })
+    end
+    Imports::RecurringClassifier.call(rows, client: fake)
+    assert_equal 2, sent.size
+    assert_equal 80, sent.first.size
+    assert_equal [ 80 ], sent.last.map { it["id"] } # ids continue across batches
+  end
+
+  test "an unparseable classification raises instead of silently labeling everything one_off" do
+    rows = [ { "description" => "X", "amount_cents" => 100, "direction" => "out", "signals" => [] } ]
+    assert_raises(Imports::ParseError) do
+      Imports::RecurringClassifier.call(rows, client: FakeClient.new(nil))
+    end
+  end
+
   test "builds income + fixed + installment + subscription proposals, excludes sweep interest" do
     import = build_with(statement_extraction, LABELS)
     kinds = import.proposals.map { it["kind"] }

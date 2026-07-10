@@ -16,17 +16,21 @@ module Imports
     end
 
     def csv_like?(bytes)
-      lines = Imports.decode(bytes.to_s[0, 4096]).lines.first(5).map(&:strip).reject(&:empty?)
+      lines = Imports.decode(bytes.to_s[0, 4096]).lines.first(10).map(&:strip).reject(&:empty?)
       return false if lines.empty?
+
+      # A known header row anywhere near the top counts — bank CSVs (Bradesco, Caixa) prepend
+      # title/account preamble lines; CsvParser skips them the same way.
+      return true if lines.any? do |line|
+        (line.include?(";") || line.include?(",")) && Imports.strip_accents(line.downcase).match?(KNOWN_HEADER)
+      end
 
       header = lines.first
       sep    = header.count(";") > header.count(",") ? ";" : ","
       cols   = header.split(sep).size
       return false if cols < 2
 
-      known      = Imports.strip_accents(header.downcase).match?(KNOWN_HEADER)
-      consistent = lines.count { it.split(sep).size == cols } >= (lines.size * 0.8)
-      known || consistent
+      lines.first(5).count { it.split(sep).size == cols } >= ([ lines.size, 5 ].min * 0.8)
     end
   end
 end

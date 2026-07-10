@@ -9,9 +9,34 @@ class ProcessDocumentImportJob < ApplicationJob
   # behind their open ask). Keyed on account (D2): the daily cap is per family.
   limits_concurrency to: 2, key: ->(import_id) { DocumentImport.where(id: import_id).pick(:account_id) }
 
-  retry_on OpenRouterClient::RateLimited, wait: :polynomially_longer, attempts: 3
-  retry_on Net::OpenTimeout, Net::ReadTimeout, wait: 5.seconds, attempts: 3
-  discard_on ActiveJob::DeserializationError
+  # Every AI/transport failure retries (transient), then FAILS the import instead of dead-ending
+  # — retry exhaustion without a handler left the import stuck at "processing" with a spinner
+  # forever (the same silence ProcessInboundWhatsappJob's fail_and_tell killed). The generic
+  # Error handler is declared BEFORE RateLimited so the more specific one (declared later,
+  # matched first by rescue_from) keeps its polynomial backoff.
+  retry_on OpenRouterClient::Error, wait: 5.seconds, attempts: 3 do |job, error|
+    fail_import(job.arguments.first, "llm_failed", error)
+  end
+  retry_on OpenRouterClient::RateLimited, wait: :polynomially_longer, attempts: 3 do |job, error|
+    fail_import(job.arguments.first, "llm_failed", error)
+  end
+  retry_on Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET, SocketError,
+           OpenSSL::SSL::SSLError, EOFError, wait: 5.seconds, attempts: 3 do |job, error|
+    fail_import(job.arguments.first, "llm_failed", error)
+  end
+  discard_on ActiveJob::DeserializationError, ActiveRecord::RecordNotFound
+
+  TRANSIENT = [ OpenRouterClient::Error, Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET,
+                SocketError, OpenSSL::SSL::SSLError, EOFError ].freeze
+
+  # Mark failed on retry exhaustion — a terminal status is the one thing that stops the spinner.
+  def self.fail_import(import_id, error_code, error)
+    import = DocumentImport.find_by(id: import_id)
+    return if import.nil? || import.terminal?
+
+    Rails.logger.error("Import #{import_id} failed: #{error.class}: #{error.message}")
+    import.update!(status: "failed", error_code: error_code)
+  end
 
   def perform(import_id)
     import = DocumentImport.find(import_id)
@@ -30,9 +55,13 @@ class ProcessDocumentImportJob < ApplicationJob
   rescue Imports::PasswordProtected then fail!(import, "password_protected")
   rescue Imports::TooLarge          then fail!(import, "too_large")
   rescue Imports::ParseError        then fail!(import, "parse_failed")
-  rescue OpenRouterClient::RateLimited, Net::OpenTimeout, Net::ReadTimeout
-    raise # let retry_on resume; status stays "processing"
-  rescue OpenRouterClient::Error then fail!(import, "llm_failed")
+  rescue *TRANSIENT
+    raise # let retry_on resume; its exhaustion block fails the import
+  rescue StandardError => e
+    # Anything unexpected (storage, encoding, a parser bug) must never strand the import at
+    # "processing" — fail it visibly and keep the exception for the error tracker.
+    fail!(import, "parse_failed") if import
+    raise e
   end
 
   private

@@ -42,6 +42,33 @@ class Imports::ParsersTest < ActiveSupport::TestCase
     assert_includes row["description"], "•••"
   end
 
+  test "detects CSV whose header sits behind preamble lines (Bradesco-style)" do
+    bytes = "Extrato Mensal;;;\nData;Lançamento;Crédito (R$);Débito (R$)\n01/06/2026;X;;10,00\n"
+    assert_equal "csv", Imports::FormatDetector.call(bytes, filename: "extrato.csv")
+  end
+
+  test "preamble + split credit/debit columns parse with forced directions" do
+    csv = <<~CSV
+      Extrato de: Conta Corrente;;;;;
+      Data;Lançamento;Dcto.;Crédito (R$);Débito (R$);Saldo (R$)
+      01/06/2026;PAGTO ELETRON COPEL;123;;317,41;1.000,00
+      03/06/2026;TED RECEBIDA;456;4.802,58;0,00;5.802,58
+    CSV
+    rows = Imports::CsvParser.call(csv)["rows"]
+    copel = rows.find { it["description"].include?("COPEL") }
+    assert_equal 31741, copel["amount_cents"]
+    assert_equal "out", copel["direction"]
+    ted = rows.find { it["description"].include?("TED") } # "0,00" débito placeholder ≠ a debit
+    assert_equal 480258, ted["amount_cents"]
+    assert_equal "in", ted["direction"]
+  end
+
+  test "a malformed CSV raises ParseError (visible failure, never a stuck import)" do
+    assert_raises(Imports::ParseError) do
+      Imports::CsvParser.call("Data,Valor,Descrição\n01/06/2026,-10.00,\"unclosed\n")
+    end
+  end
+
   test "unparseable date keeps the row and flags date_unparsed" do
     csv = "Data,Valor,Descrição\nnot-a-date,-10.00,X\n"
     row = Imports::CsvParser.call(csv)["rows"].first

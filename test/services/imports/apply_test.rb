@@ -57,6 +57,20 @@ class Imports::ApplyTest < ActiveSupport::TestCase
     assert_equal "applied", @import.reload.proposals.first["state"]
   end
 
+  test "a pid shared across imports (multi-month uploads) creates one record, not two" do
+    first, second = full_extracted_import, full_extracted_import
+    accepted = { first.id => %w[acct-pid-1 cmt-pid-1], second.id => %w[acct-pid-1 cmt-pid-1] }
+    result = nil
+    assert_difference -> { @user.account.commitments.count } => 1, -> { @user.account.bank_accounts.count } => 1 do
+      result = Imports::Apply.call(account: @user.account, accepted: accepted)
+    end
+    assert_equal 1, result.created["commitment"]
+    assert_equal 2, result.skipped # second import's copies bound to the first's records
+    second_copy = second.reload.proposals.find { it["pid"] == "cmt-pid-1" }
+    assert_equal "applied", second_copy["state"]
+    assert_equal @user.account.commitments.last.to_global_id.to_s, second_copy["record"]
+  end
+
   test "unchecked proposals stay proposed and the import stays extracted" do
     Imports::Apply.call(account: @user.account, accepted: { @import.id => [] })
     assert_equal "extracted", @import.reload.status

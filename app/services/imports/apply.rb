@@ -47,7 +47,12 @@ module Imports
     end
 
     def apply_proposal(proposal, import)
-      if proposal["state"] == "applied" && locate(proposal["record"])
+      # The same content-derived pid can ride several imports (multi-month uploads, the CSV/OFX
+      # twins) and build_accepted accepts it on each — the first apply wins and later copies bind
+      # to the same record instead of creating a duplicate. @refs covers instruments AND
+      # dependents: mark_applied fills it this run, preload_refs seeds it from previous runs.
+      if (record = @refs[proposal["pid"]])
+        mark_applied(proposal, record)
         @result.skipped += 1
         return
       end

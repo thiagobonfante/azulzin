@@ -25,8 +25,11 @@ module Imports
       instruments = build_instrument_proposals(parsed, kind, institution)
       recurring   = build_recurring_proposals(parsed, kind, institution, instruments.first, client, import.account)
       proposals   = instruments + recurring
-      # A vision (OCR) extraction is never trusted enough to pre-check — cap every proposal.
-      proposals.each { it["confidence"] = [ it["confidence"], Confidence::VISION_CAP ].min } if parsed["vision"]
+      # A vision (OCR) extraction — or a text read the extractor itself scored below the review
+      # floor (garbled layer) — is never trusted enough to pre-check: cap every proposal.
+      if parsed["vision"] || (parsed.key?("confidence") && parsed["confidence"].to_f < Confidence::REVIEW_FLOOR)
+        proposals.each { it["confidence"] = [ it["confidence"], Confidence::VISION_CAP ].min }
+      end
       import.proposals = proposals
       import.status = "extracted"
       import.save!
@@ -92,17 +95,13 @@ module Imports
     end
 
     # ── instruments ───────────────────────────────────────────────────────────
+    # ALWAYS build the instrument — many real PDFs never print the account number or the card's
+    # last4, and skipping the instrument used to silently kill every dependent proposal too (the
+    # whole document yielded nothing). Identity-less instruments propose at 0.6: below the review
+    # floor, so they arrive unchecked and the user confirms/fixes them on the review page.
     def build_instrument_proposals(parsed, kind, institution)
       meta = parsed["meta"] || {}
-      if kind == "card_bill"
-        return [] if meta.dig("card", "last4").to_s.strip.empty?
-
-        [ credit_card_proposal(meta, institution) ]
-      else
-        return [] if meta.dig("acct", "acct_id").to_s.strip.empty?
-
-        [ bank_account_proposal(meta, institution) ]
-      end
+      kind == "card_bill" ? [ credit_card_proposal(meta, institution) ] : [ bank_account_proposal(meta, institution) ]
     end
 
     def bank_account_proposal(meta, institution)
@@ -113,7 +112,7 @@ module Imports
         "pid"        => pid("bank_account", identity),
         "kind"       => "bank_account",
         "state"      => "proposed",
-        "confidence" => 0.9,
+        "confidence" => acct["acct_id"].to_s.strip.empty? ? 0.6 : 0.9,
         "payload" => {
           "institution_code" => institution&.code, "kind" => account_kind(acct["acct_type"]),
           "nickname" => nil, "agency" => acct["branch_id"], "account_number" => acct["acct_id"],
@@ -131,7 +130,7 @@ module Imports
         "pid"        => pid("credit_card", identity),
         "kind"       => "credit_card",
         "state"      => "proposed",
-        "confidence" => card["bill_due_day"] ? 0.9 : 0.6,
+        "confidence" => card["last4"].present? && card["bill_due_day"] ? 0.9 : 0.6,
         "payload" => {
           "institution_code" => institution&.code, "last4" => card["last4"], "nickname" => nil,
           "bill_due_day" => card["bill_due_day"], "closing_offset_days" => card["closing_offset_days"],
