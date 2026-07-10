@@ -79,6 +79,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **Locale is per-request only.** Set it with `around_action` + `I18n.with_locale` — a bare `I18n.locale =` leaks across requests on Puma. Resolve in order: `params` → `session` → `current_user.locale` → `Accept-Language`, always whitelisted, defaulting to `pt-BR`.
 - **Emails render in the recipient's language.** Mailers set the locale from the stored `user.locale` *inside* the mailer (via `around_action`), not from the caller's ambient locale.
 - **Keep locale files in sync.** Adding a key to one locale means adding it to the other; `i18n-tasks` (missing/unused-key lint) gates CI.
+- **⚠️ TEMPORARY launch pin (since 2026-07):** production currently pins `pt-BR` in code — `ApplicationController#resolve_locale` and `ApplicationMailer#set_locale` hardcode `I18n.default_locale`, so en-US is unreachable in every env. The bilingual rules above remain the contract (keep shipping keys in both locales); do NOT "fix" the pin in passing. Lifting it is a product decision and must restore the full resolve chain AND build the en-US E2E golden matrix + mailer-locale tests (follow-up recorded in `.plans/e2e/05-web-journeys.md` §8).
 - Details: [docs/i18n.md](docs/i18n.md) · decision: [ADR 0006](docs/decisions/0006-internationalization.md).
 
 ### E2E tests — user journeys are pinned end to end
