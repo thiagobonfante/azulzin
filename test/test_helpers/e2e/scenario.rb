@@ -114,6 +114,7 @@ module E2E
       end
 
       receive_income(this_month)
+      @income_history_seeded = true   # keeps add_active_goal! from double-receiving
       [ # Current-month calibration — FIXED amounts, bank account only:
         [ "Supermercado E2E", "Mercado",      78_400 ],   # ┐
         [ "Hortifruti E2E",   "Mercado",      34_600 ],   # ├ 132_500 = 88,3% of 150_000 → WARN
@@ -191,6 +192,60 @@ module E2E
     end
 
     def bill(name) = @bills.fetch(name)
+
+    # solo_basic + caixinha + one ACTIVE purchase goal activated 2 months ago through the
+    # REAL Goals::Activate (then backdated, DemoSeed-style). `paid` gives the fraction of
+    # each month's parcel saved, oldest→current — [1, 1, 1] on-track, [1, 1, 0.8] ≈93%
+    # at-risk, [1, 0.5, 0] =50% off-track. Payday is the salary's day 5, so by mid-month
+    # expected = 3 × monthly.
+    def goal_active(paid: [ 1, 1, 1 ], **)
+      solo_basic
+      add_caixinha!
+      @goal = add_active_goal!(name: "Carro", paid: paid)
+      self
+    end
+
+    attr_reader :goal
+
+    # into: each goal needs its OWN caixinha — goals sharing one count each other's
+    # transfers as their own progress.
+    def add_active_goal!(name:, paid: [ 1, 1, 1 ], target_cents: 2_000_000, into: caixinha)
+      ensure_income_history!
+      goal = account.goals.new(kind: "purchase", name: name, target_cents: target_cents,
+                               initial_saved_cents: 0, target_date: this_month >> 12,
+                               status: "draft", created_by: owner)
+      goal.baseline = Goals::Analyzer.call(account).to_snapshot
+      goal.save!
+      result = Goals::Activate.call(goal, template: "recomendado",
+                                    bank_account_id: into.id, source_bank_account_id: itau.id)
+      raise "goal_active pack: activation failed (#{result.inspect})" unless goal.reload.active?
+
+      start = this_month << 2
+      commitment = account.commitments.where(kind: "savings", goal: goal).sole
+      goal.update_columns(starts_on: start, activated_at: start.in_time_zone,
+                          created_at: start.in_time_zone)
+      commitment.update_columns(starts_on: start, created_at: start.in_time_zone)
+
+      monthly = goal.monthly_target_cents
+      [ start, start >> 1, this_month ].each_with_index do |month, i|
+        ratio = paid.fetch(i)
+        next if ratio.zero?
+        # A partial month PAYS the occurrence with a smaller amount (MarkPaid amount:) —
+        # a raw extra transfer would leave the occurrence unpaid and RiskScan would read
+        # the month as red from the still-projected commitment.
+        pay(commitment, month, amount: (ratio == 1 ? nil : (monthly * ratio).round))
+      end
+      goal
+    end
+
+    # Three trailing months of received salary — the Analyzer baseline the goal math needs.
+    # Guarded so packs/tests can layer goals without double-receiving a month.
+    def ensure_income_history!
+      return if @income_history_seeded
+      past_months.each { |m| receive_income(m) }
+      receive_income(this_month)
+      @income_history_seeded = true
+    end
 
     # ── building blocks (also for per-test tweaks) ───────────────────────────────────────
 
