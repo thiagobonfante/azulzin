@@ -95,6 +95,20 @@ class JourneysContractSidecarTest < E2E::BrowserCase
     ENV["WHATSAPP_SERVICE_TOKEN"] = previous
   end
 
+  # CT-06 — the verification handshake end-to-end through the node fake (mirrors WA-ID-01): an
+  # unverified number texts its AZUL code → verified, and the golden reply lands as an out bubble.
+  test "the verification handshake completes through the node fake" do
+    s = E2E::Scenario.build(:solo_basic)
+    code = s.owner.whatsapp_verification_code!
+
+    node_inject(jid: s.jid, body: "meu código é #{code}")
+
+    assert s.owner.reload.phone_verified?, "the code text verifies the number"
+    out = node_state.select { |e| e["dir"] == "out" && e["jid"] == s.jid }
+    assert out.any? { |e| e["body"] == I18n.t("whatsapp.replies.verified", locale: :"pt-BR") },
+           "the verified reply must land as an out bubble, got: #{out.inspect}"
+  end
+
   private
 
   mattr_accessor :node_port

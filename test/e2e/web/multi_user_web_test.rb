@@ -79,6 +79,71 @@ class E2E::MultiUserWebTest < E2E::PipelineCase
     assert_equal old_display, txn.reload.created_by.display_name, "attribution display name intact"
   end
 
+  # MU-02 — accepting while signed in with a DATA-bearing account is refused at accept time
+  # (:account_in_use), per the decided posture — the invitee's account is not silently destroyed.
+  test "accepting with a data-bearing account is refused, not folded" do
+    s = E2E::Scenario.build(:solo_basic)
+    holder = E2E::Scenario.build(:solo_basic)   # has a bank account → data-bearing
+    invite = Invitation.issue!(account: s.account, email: holder.owner.email_address, invited_by: s.owner)
+
+    sign_in_as holder.owner
+    post confirm_invitation_path(invite.token)
+    assert_redirected_to dashboard_path
+    assert_equal I18n.t("invitations.errors.account_in_use"), flash[:alert]
+    assert_not s.account.reload.memberships.exists?(user: holder.owner), "not joined"
+    assert_equal holder.account.id, holder.owner.reload.account.id, "their own account is untouched"
+  end
+
+  # MU-04 — an expired token gives the generic invalid message (no enumeration) and GET never
+  # mutates.
+  test "an expired invite token is generically invalid and mutates nothing" do
+    s = E2E::Scenario.build(:solo_basic)
+    invitee = fresh_user
+    invite = Invitation.issue!(account: s.account, email: invitee.email_address, invited_by: s.owner)
+    invite.update_columns(expires_at: 1.day.ago)
+
+    sign_in_as invitee
+    get accept_invitation_path(invite.token)
+    assert_redirected_to new_session_path
+    assert_equal I18n.t("invitation_acceptances.show.invalid"), flash[:alert]
+    assert_equal 1, s.account.reload.members_count, "the GET never mutated membership"
+  end
+
+  # MU-06 — a non-owner self-leave keeps their session (lands on a fresh account); an owner
+  # cannot leave (must transfer first).
+  test "non-owner self-leave keeps the session; owner self-leave is refused" do
+    s = E2E::Scenario.build(:couple)
+    member = s.partner
+
+    sign_in_as member
+    delete account_member_path(member.account_membership)
+    assert_redirected_to dashboard_path
+    assert_not_equal s.account.id, member.reload.account.id, "self-leaver lands on a fresh account"
+
+    sign_out
+    sign_in_as s.owner
+    delete account_member_path(s.owner.account_membership)
+    assert_redirected_to account_path
+    assert_equal I18n.t("members.destroy.owner_cannot_leave"), flash[:alert]
+  end
+
+  # MU-07 — ownership transfer demotes the old owner and keeps exactly one owner; a non-owner
+  # hitting an owner-only route is refused.
+  test "transfer ownership demotes the old owner; a non-owner is refused owner routes" do
+    s = E2E::Scenario.build(:couple)
+    member_membership = s.partner.account_membership
+
+    sign_in_as s.owner
+    patch promote_account_member_path(member_membership)
+    assert_redirected_to account_path
+    assert s.partner.account_membership.reload.owner?, "the member is now the owner"
+    assert_not s.owner.account_membership.reload.owner?, "the old owner is demoted"
+    assert_equal 1, s.account.memberships.where(role: "owner").count, "exactly one owner (index holds)"
+
+    patch promote_account_member_path(member_membership)   # old owner (now a member) tries again
+    assert_equal I18n.t("accounts.not_owner"), flash[:alert]
+  end
+
   private
 
   # A confirmed user with an empty solo account — a valid invitee (solo_and_empty? holds).
