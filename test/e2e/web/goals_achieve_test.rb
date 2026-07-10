@@ -30,5 +30,7 @@ class E2E::WebGoalsAchieveTest < E2E::PipelineCase
     assert_equal first_stamp, goal.reload.celebrated_at, "celebrated_at fires exactly once"
     assert_not_includes response.body, I18n.t("goals.show.achieved_title", locale: :"pt-BR"),
                         "the second render must not re-celebrate"
+    assert_includes response.body, I18n.t("goals.show.next_goal", locale: :"pt-BR"),
+                    "later visits keep the quiet achieved strip with the next-goal CTA"
   end
 end
