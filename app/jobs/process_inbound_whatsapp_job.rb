@@ -26,7 +26,16 @@ class ProcessInboundWhatsappJob < ApplicationJob
       return msg.update!(status: "failed", error: "rate_limited", processed_at: Time.current)
     end
 
-    text = resolve_text(msg)                # audio → transcript (stored); image → nil; else body
+    begin
+      text = resolve_text(msg)              # audio → transcript (stored); image → nil; else body
+    rescue Whatsapp::SttClient::Error => e
+      # STT down/refusing degrades instead of dead-ending (was: stuck at "processing", no
+      # reply). Tell the user, mark the message failed, never enter the money path.
+      # Transport blips (Net timeouts) still ride the retry_on above before landing here.
+      WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.stt_failed")
+      return msg.update!(status: "failed", error: "stt_failed: #{e.message.to_s.first(200)}",
+                         processed_at: Time.current)
+    end
 
     # A reply routed to the user's single open ask (e.g. the "quanto foi?" answer) never
     # starts a new pipeline. Per-user serialization guarantees the ask already exists.

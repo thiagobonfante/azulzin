@@ -1349,6 +1349,7 @@ en:
       receipt_matched_account: "📎 That expense was already recorded: %{amount} from the %{instrument} account. I attached the receipt."
       parked: "Got it 👍 I've left it pending in the app for you to review."
       clarify_amount: "I couldn't read the amount. How much was it?"
+      stt_failed: "I couldn't make out your audio 😕 Could you send it again?"
       media_too_large: "That file is too large for me to read. Could you resend a smaller photo or PDF?"
       unknown_sender: "This number isn't registered with azulzin."
       verified: "WhatsApp activated! ✅ Just send me your expenses here."
