@@ -139,6 +139,28 @@ class E2E::WhatsappGoalsChatTest < E2E::PipelineCase
     assert_nil GoalConversation.open_for(s.owner), "the chat closes on apply"
   end
 
+  # WA-GOAL-07 — a non-owner member creates a goal via WhatsApp: the goal is scoped to the
+  # SHARED account and attributed to that member (not the owner). Spec 03 §4.
+  test "a member (not owner) creates a goal: account-scoped, attribution = the member" do
+    s = E2E::Scenario.build(:couple) { |sc| sc.add_caixinha!; sc.ensure_income_history! }
+    member = s.partner
+    jid = s.jid(member)
+
+    with_canned_ai(extraction: E2E::CannedAI.create_goal) do
+      wa_inject(jid, "quero criar uma meta"); drain_jobs!
+    end
+    [ "1", "Viagem", "10.000", "dezembro", "0" ].each { |t| wa_inject(jid, t); drain_jobs! }
+
+    goal = s.account.goals.sole
+    assert_equal s.account.id, goal.account_id, "the goal lives on the shared family account"
+    assert_equal member.id, goal.created_by_id, "attribution is the member, not the owner"
+
+    wa_inject(jid, "sim"); drain_jobs!
+    assert goal.reload.active?, "the member activates on the shared caixinha"
+    assert_equal goal, s.account.commitments.where(kind: "savings").sole.goal,
+                 "the pay-yourself-first commitment links the shared-account goal"
+  end
+
   private
 
   # A genuinely slipped purchase goal (goal_active can't slip — its deadline is a year out):

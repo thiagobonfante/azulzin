@@ -89,6 +89,30 @@ class E2E::NotificationRemindersTest < E2E::PipelineCase
     end
   end
 
+  # NT-R-06 — the lead window is [today, today + bill_reminder_lead_days], at both pref extremes.
+  # lead 0 → only today's bill; lead 7 → up to a week out, but not day 8. Spec 04 §NT-R (NT-R-06).
+  test "bill_reminder_lead_days shifts the bill_due window exactly at 0 and 7" do
+    s = push_ready(E2E::Scenario.build(:solo_basic))
+    s.owner.notification_prefs.update!(bill_reminder_lead_days: 0)
+    fixed_bill(s, "Hoje",   40_000, due: Date.current)
+    fixed_bill(s, "Amanhã", 50_000, due: Date.current + 1)
+
+    dispatch_reminders!
+    names = Notification.where(user: s.owner, kind: "bill_due").pluck(Arel.sql("payload->>'name'"))
+    assert_equal %w[Hoje], names, "lead 0: only today's bill is in the window"
+    fake_sidecar.reset!
+
+    s2 = push_ready(E2E::Scenario.build(:solo_basic))
+    s2.owner.notification_prefs.update!(bill_reminder_lead_days: 7)
+    fixed_bill(s2, "Em7Dias", 60_000, due: Date.current + 7)
+    fixed_bill(s2, "Em8Dias", 70_000, due: Date.current + 8)
+
+    Reminders::DailyDispatchJob.perform_now
+    drain_jobs!
+    names2 = Notification.where(user: s2.owner, kind: "bill_due").pluck(Arel.sql("payload->>'name'"))
+    assert_equal %w[Em7Dias], names2, "lead 7: day 7 fires, day 8 is outside the window"
+  end
+
   # NT-R-07 — a payment before dispatch silences the reminder; re-dispatch dedups
   test "a bill paid via WhatsApp is not reminded, and a re-dispatch sends nothing new" do
     s = push_ready(E2E::Scenario.build(:reminders_due))

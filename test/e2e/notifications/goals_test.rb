@@ -126,6 +126,78 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
     assert n.whatsapp_sent_at.present?, "it delivered (bypassed the cooldown, respected the delta-gate)"
   end
 
+  # NT-GL-03 — a big commitment-less purchase (≥ 20% of the monthly target) within the 7-day
+  # lookback fires a big_purchase goal_alert; the same purchase 8 days ago is silent. Spec 04 §NT-GL-03.
+  test "big_purchase fires within 7 days" do
+    travel_to MONDAY
+    s = push_ready(E2E::Scenario.build(:goal_active, paid: [ 1, 1, 1 ]))   # on-track: no pace noise
+    floor = Goals.pct_of(s.goal.monthly_target_cents, Goals::BIG_PURCHASE_TARGET_FRACTION)
+    s.expense(merchant: "Geladeira", category: "Outros", instrument: s.itau,
+              cents: floor * 2, on: Date.current)
+
+    dispatch_goals!
+
+    n = Notification.where(user: s.owner, kind: "goal_alert").sole
+    assert_equal "big_purchase", n.payload["finding"]
+    assert_wa_reply s.jid, includes: [ "Carro" ]
+  end
+
+  test "big_purchase 8 days ago is outside the lookback and silent" do
+    travel_to MONDAY
+    s = push_ready(E2E::Scenario.build(:goal_active, paid: [ 1, 1, 1 ]))
+    floor = Goals.pct_of(s.goal.monthly_target_cents, Goals::BIG_PURCHASE_TARGET_FRACTION)
+    s.expense(merchant: "Geladeira", category: "Outros", instrument: s.itau,
+              cents: floor * 2, on: Date.current - 8)
+
+    dispatch_goals!
+
+    assert_no_wa_reply s.jid
+    assert_not Notification.exists?(user: s.owner, kind: "goal_alert")
+  end
+
+  # NT-GL-08 — when several predictive findings coexist, FINDING_PRIORITY sends only the WORST
+  # as the lead (red_month over budget_raised over big_purchase); the check records them all.
+  # Spec 04 §NT-GL-08.
+  test "coexisting predictive findings: only the worst leads the single push" do
+    travel_to MONDAY
+    s = push_ready(E2E::Scenario.build(:goal_active, paid: [ 1, 1, 1 ]))
+    # red_month: a spend that pushes this month's projection into the red (goal parcel sits in it).
+    s.expense(merchant: "Emergência", category: "Moradia", instrument: s.itau, cents: 600_000, on: Date.current)
+    # budget_raised: the goal's applied cap on Lazer, raised above it.
+    lazer = s.category("Lazer")
+    lazer.update!(monthly_budget_cents: 60_000)
+    s.goal.update!(plan: s.goal.plan.merge("cuts" => [ { "category_id" => lazer.id, "cap_cents" => 40_000 } ]),
+                   budgets_applied_at: Time.current)
+
+    dispatch_goals!
+
+    assert_equal 1, fake_sidecar.messages_to(s.jid).size, "one push — the worst lead only"
+    n = Notification.where(user: s.owner, kind: "goal_alert").sole
+    assert_equal "red_month", n.payload["finding"], "red_month outranks budget_raised/big_purchase"
+    assert_equal fake_sidecar.messages_to(s.jid).last.body,
+      "⚠️ Este mês está fechando no vermelho: falta R$ 2.819, e a meta *Carro* pede R$ 1.819.\n" \
+      "Responda *reorganizar* para ajustar sem culpa. 💙"
+    check_findings = GoalCheck.where(goal: s.goal).order(:id).last.findings.map { |f| f["finding"] }
+    assert_includes check_findings, "budget_raised", "the check still records the quieter findings"
+  end
+
+  # NT-GL-13 — a goal replanned within the last fortnight sits out the red-month risk: the fresh
+  # plan gets its quiet switch before doom is predicted again. Spec 04 §NT-GL-13.
+  test "recently_replanned? suppresses the red-month risk inside the fortnight" do
+    travel_to MONDAY
+    s = red_month_setup
+    s.goal.update!(plan: s.goal.plan.merge("replanned_on" => (Date.current - 10).iso8601))
+    dispatch_goals!
+    assert_not Notification.exists?(user: s.owner, kind: "goal_alert"),
+               "10 days < GRACE_DAYS: recently_replanned? removes the goal from the red scan"
+
+    # Contrast: replanned 15 days ago (outside the fortnight) → red_month fires again.
+    s2 = red_month_setup
+    s2.goal.update!(plan: s2.goal.plan.merge("replanned_on" => (Date.current - 15).iso8601))
+    dispatch_goals!
+    assert_equal "red_month", Notification.where(user: s2.owner, kind: "goal_alert").sole.payload["finding"]
+  end
+
   # NT-GL-09 — ≤1 goals WhatsApp message per user per week
   test "weekly WA guard: two slipping goals, one push, both dashboard rows" do
     travel_to MONDAY
@@ -220,6 +292,15 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
   def pay_savings(s, commitment, month, amount)
     Commitments::MarkPaid.call(commitment, month, amount: amount, created_by: s.owner)
                .update_columns(occurred_on: month + 4, created_at: (month + 4).in_time_zone)
+  end
+
+  # A goal whose current month projects red, with pace silenced by a zeroed income so the ONLY
+  # possible finding is the red_month risk — isolates recently_replanned?'s effect (NT-GL-13).
+  def red_month_setup
+    s = push_ready(E2E::Scenario.build(:goal_active, paid: [ 1, 1, 0 ]))   # this month's parcel unpaid
+    s.account.transactions.where(direction: "income",
+      billing_month: Date.current.beginning_of_month).update_all(amount_cents: 0)
+    s
   end
 
   def dispatch_goals!

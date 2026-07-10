@@ -119,6 +119,34 @@ class E2E::NotificationGatesTest < E2E::PipelineCase
     assert_equal 1, fake_sidecar.messages_to(s.jid).size
   end
 
+  # NT-G-09 — a row already claimed (whatsapp_sent_at set BEFORE the call) never sends again:
+  # the atomic claim predicate matches zero rows. Distinct from NT-G-08 (record! dedup) — here
+  # the claim exists BEFORE Deliver runs (a prior sweep already sent it). Spec 04 §2.
+  test "a pre-claimed row is never re-sent" do
+    s = ready("bill_due")
+    n = record!(s, "bill_due")
+    n.update!(whatsapp_sent_at: 2.hours.ago)   # a prior sweep already delivered this row
+
+    assert_not Notifications::Deliver.call(n), "the claim predicate (whatsapp_sent_at: nil) matches nothing"
+    assert_no_wa_reply(s.jid)
+    assert_equal 0, WhatsappMessage.outbound.count, "no second outbound send"
+  end
+
+  # NT-X-04 — retention purges rows with an old period_key (the DATE column the dashboard
+  # surface query scans) and keeps recent ones; dedup is safe because scanners only look at
+  # current periods. Spec 04 §NT-X-04.
+  test "the retention job purges old notifications and keeps recent ones" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!(consent: true)
+    old_row    = Notification.record!(user: s.owner, account: s.account, kind: "bill_due",
+                   period_key: Date.current - 90, payload: { name: "Velha", amount_cents: 1_000 })
+    recent_row = Notification.record!(user: s.owner, account: s.account, kind: "bill_due",
+                   period_key: Date.current - 10, payload: { name: "Nova", amount_cents: 2_000 })
+
+    assert_equal 1, NotificationRetentionJob.perform_now, "one row past the 45-day window"
+    assert_not Notification.exists?(old_row.id), "the 90-day-old row is purged"
+    assert Notification.exists?(recent_row.id), "the 10-day-old row survives"
+  end
+
   # NT-G-10 — the one-time opt-out courtesy
   test "only the first-ever delivered push carries the responda parar footer" do
     s = ready("bill_due", intro_sent: false)

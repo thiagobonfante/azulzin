@@ -187,6 +187,26 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     assert_equal msg.reload.media.blob.id, txn.receipt.blob.id, "receipt must reference the SAME blob"
   end
 
+  # WA-CAP-22 — an STT failure (canned raise) must never leave a half-written transaction.
+  # SttClient::Error is not in the job's retry_on, so it surfaces; the audio row survives, no
+  # transcript is stored, and nothing is posted (the money path is never entered). Spec 03 §2.
+  test "STT failure: audio stored, no transcript, no transaction, failure surfaces" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    media = { data: Base64.strict_encode64("fake-ogg-bytes"), mimetype: "audio/ogg", filename: "v.ogg" }
+
+    msg = nil
+    Whatsapp::SttClient.stub(:transcribe, ->(*) { raise Whatsapp::SttClient::Error, "Groq STT 500" }) do
+      msg = wa_inject(s.jid, "", type: "ptt", media: media)
+      assert_raises(Whatsapp::SttClient::Error) { drain_jobs! }
+    end
+
+    assert_equal "audio", msg.message_type
+    assert_nil msg.reload.transcription, "no transcript stored on failure"
+    assert_empty s.account.transactions, "no half-written transaction"
+    assert_no_wa_reply s.jid
+    assert WhatsappMessage.exists?(msg.id), "the inbound message row survives the failure"
+  end
+
   # WA-CAP-25 — over the per-minute cap the message is stored but skipped (no AI, no reply)
   test "rate cap: the 21st message in a minute is stored as rate_limited, not processed" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!
