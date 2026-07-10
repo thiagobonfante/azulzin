@@ -41,6 +41,10 @@ class JourneysGoalsTest < E2E::BrowserCase
     within picker do
       find("[data-institution-select-target='button']").click
       find("li[data-institution-select-target='option']", text: account_label).click
+      # Wait for the picker to commit: the button display copies the picked label AND the hidden
+      # field is set. Asserting the display (a retrying matcher) closes the panel-race before the
+      # next action — the classic system-test flake.
+      assert_selector "[data-institution-select-target='button']", text: account_label
     end
   end
 end

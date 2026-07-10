@@ -37,6 +37,9 @@ class JourneysOnboardingTest < E2E::BrowserCase
     end
     find("li[data-institution-select-target='option']", text: "Nubank").click
     within "#income_form" do
+      # Wait for the picker to commit before submitting — else the income posts without a
+      # bank_account_id and validation-fails intermittently (system-test race).
+      assert_selector "[data-institution-select-target='button']", text: "Nubank"
       click_button I18n.t("incomes.add")
     end
     assert_selector "#incomes_list", text: "Salário"
