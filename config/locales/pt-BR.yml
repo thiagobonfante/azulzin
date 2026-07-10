@@ -1346,6 +1346,8 @@ pt-BR:
       posted_card_categorized: "✅ Lançado: %{amount} no cartão %{instrument} · %{category}."
       posted_account_categorized: "✅ Lançado: %{amount} na conta %{instrument} · %{category}."
       posted_unassigned: "✅ Lançado: %{amount}. Escolha a conta ou o cartão no app."
+      receipt_matched_card: "📎 Esse gasto já estava lançado: %{amount} no cartão %{instrument}. Anexei o comprovante."
+      receipt_matched_account: "📎 Esse gasto já estava lançado: %{amount} na conta %{instrument}. Anexei o comprovante."
       parked: "Recebi 👍 Deixei pendente no app para você revisar."
       clarify_amount: "Não consegui identificar o valor. Quanto foi?"
       media_too_large: "Esse arquivo é muito grande para eu ler. Pode reenviar uma foto ou PDF menor?"

@@ -139,12 +139,11 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     assert_equal 5_490, s.account.transactions.sole.amount_cents
   end
 
-  # WA-CAP-23 — a receipt whose amount MATCHES an already-posted card charge. Spec 03 expects
-  # the receipt to attach to the EXISTING row with no duplicate. That reconciliation is NOT
-  # implemented: the receipt pipeline dedups only on source_message_id, so the receipt posts a
-  # SECOND row. This pins the CURRENT behavior and flags the gap (duplicate-expense-from-receipt,
-  # 07-coverage-audit.md). Flip the assertions the day receipt↔transaction dedup ships.
-  test "image receipt matching an existing card charge posts a NEW row (dedup NOT implemented)" do
+  # WA-CAP-23 — a receipt whose amount MATCHES an already-posted card charge attaches to the
+  # EXISTING row (Decider#reconcile_receipt: exact amount + same card + ±3 days): no duplicate,
+  # the blob lands on the matched transaction, and the reply says "already recorded", not
+  # "posted". Spec 03 §2; the duplicate-expense-from-receipt bug fixed in e2e-t3 §A1.
+  test "image receipt matching an existing card charge attaches to it — no duplicate row" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!
     existing = s.expense(merchant: "Mercado Nota", category: "Outros", instrument: s.nubank_card,
                          cents: 8_750, on: Date.current)
@@ -154,16 +153,19 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "receipt.jpg" }
     receipt = E2E::CannedAI.expense(cents: 8_750, merchant: "Mercado Nota", method: "credito",
                                     instrument: "nubank", modality: "image")
+    msg = nil
     with_canned_ai(receipt: receipt) do
-      wa_inject(s.jid, "", type: "image", media: media)
+      msg = wa_inject(s.jid, "", type: "image", media: media)
       drain_jobs!
     end
 
-    assert_equal 2, s.account.transactions.count,
-                 "KNOWN GAP: no receipt↔transaction dedup — a matching receipt duplicates the charge"
-    assert_not existing.reload.receipt.attached?, "the receipt did NOT reconcile onto the existing row"
-    posted = s.account.transactions.where.not(id: existing.id).sole
-    assert posted.receipt.attached?, "it landed on a brand-new row instead"
+    assert_equal 1, s.account.transactions.count, "no duplicate row from a matching receipt"
+    assert existing.reload.receipt.attached?, "the receipt reconciled onto the existing row"
+    assert_equal msg.reload.media.blob.id, existing.receipt.blob.id, "same blob, no byte copy"
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.receipt_matched_card",
+                                          amount: brl(8_750),
+                                          instrument: s.nubank_card.display_name,
+                                          locale: :"pt-BR"))
   end
 
   # WA-CAP-24 — a receipt matching NOTHING creates the row and shares the SAME blob (survives

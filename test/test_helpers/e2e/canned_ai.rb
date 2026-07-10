@@ -64,11 +64,14 @@ module E2E
 
     def base(**fields)
       cents = fields[:amount_cents]
+      # Production parity: image-modality extractions only ever come from ReceiptExtractor,
+      # which stamps source "whatsapp_receipt" (the Decider's reconciliation discriminator).
+      source = fields[:modality].to_s == "image" ? "whatsapp_receipt" : "whatsapp_text"
       defaults = {
         amount_raw: cents ? format("%d,%02d", cents / 100, cents % 100) : nil,
         currency: "BRL", occurred_on: nil, instrument_phrase: nil,
         field_confidence: {}, overall_confidence: fields[:intent_confidence] || 0.9,
-        modality: "text", source: "whatsapp_text", raw: {}
+        modality: "text", source: source, raw: {}
       }
       Whatsapp::Extraction.new(**defaults.merge(fields))
     end
