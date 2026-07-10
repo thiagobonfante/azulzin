@@ -11,6 +11,17 @@ class ProcessInboundWhatsappJob < ApplicationJob
   retry_on Net::OpenTimeout, Net::ReadTimeout, wait: 5.seconds, attempts: 3
   discard_on ActiveJob::DeserializationError
 
+  # STT down/refusing: retry (a Groq 5xx is usually transient), then degrade instead of
+  # dead-ending (was: stuck at "processing", no reply) — tell the user, mark the message
+  # failed, never enter the money path.
+  retry_on Whatsapp::SttClient::Error, wait: 5.seconds, attempts: 3 do |job, error|
+    msg = WhatsappMessage.find_by(id: job.arguments.first)
+    next unless msg&.user
+    WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.stt_failed")
+    msg.update!(status: "failed", error: "stt_failed: #{error.message.to_s.first(200)}",
+                processed_at: Time.current)
+  end
+
   # Bound AI spend from a chatty or malicious sender. A legit user never sends this many
   # expenses a minute; over the cap we skip the AI call (the message is still stored).
   MAX_INBOUND_PER_MINUTE = 20
@@ -26,16 +37,7 @@ class ProcessInboundWhatsappJob < ApplicationJob
       return msg.update!(status: "failed", error: "rate_limited", processed_at: Time.current)
     end
 
-    begin
-      text = resolve_text(msg)              # audio → transcript (stored); image → nil; else body
-    rescue Whatsapp::SttClient::Error => e
-      # STT down/refusing degrades instead of dead-ending (was: stuck at "processing", no
-      # reply). Tell the user, mark the message failed, never enter the money path.
-      # Transport blips (Net timeouts) still ride the retry_on above before landing here.
-      WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.stt_failed")
-      return msg.update!(status: "failed", error: "stt_failed: #{e.message.to_s.first(200)}",
-                         processed_at: Time.current)
-    end
+    text = resolve_text(msg)                # audio → transcript (stored); image → nil; else body
 
     # A reply routed to the user's single open ask (e.g. the "quanto foi?" answer) never
     # starts a new pipeline. Per-user serialization guarantees the ask already exists.

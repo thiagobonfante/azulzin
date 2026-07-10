@@ -189,19 +189,22 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     assert_equal msg.reload.media.blob.id, txn.receipt.blob.id, "receipt must reference the SAME blob"
   end
 
-  # WA-CAP-22 — an STT failure degrades gracefully (fixed in e2e-t3 §A2; was: stuck at
-  # "processing" with no reply): friendly reply, message marked failed, the audio row
-  # survives, no transcript, and the money path is never entered. Spec 03 §2.
-  test "STT failure: friendly reply, message marked failed, no transcript, no transaction" do
+  # WA-CAP-22 — an STT failure retries (transient Groq 5xx), then degrades gracefully
+  # (fixed in e2e-t3 §A2; was: stuck at "processing" with no reply): friendly reply,
+  # message marked failed, the audio row survives, no transcript, and the money path is
+  # never entered. Spec 03 §2.
+  test "STT failure: bounded retry, then friendly reply + failed message, no transaction" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!
     media = { data: Base64.strict_encode64("fake-ogg-bytes"), mimetype: "audio/ogg", filename: "v.ogg" }
 
     msg = nil
-    Whatsapp::SttClient.stub(:transcribe, ->(*) { raise Whatsapp::SttClient::Error, "Groq STT 500" }) do
+    attempts = 0
+    Whatsapp::SttClient.stub(:transcribe, ->(*) { attempts += 1; raise Whatsapp::SttClient::Error, "Groq STT 500" }) do
       msg = wa_inject(s.jid, "", type: "ptt", media: media)
       drain_jobs!
     end
 
+    assert_equal 3, attempts, "retries the transient case before degrading"
     assert_equal "audio", msg.message_type
     msg.reload
     assert_equal "failed", msg.status
