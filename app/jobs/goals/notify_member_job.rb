@@ -71,10 +71,14 @@ module Goals
       # novelty is measured against the check behind THIS MEMBER's last alert, not last week's
       # silent check: a new cause the cooldown suppresses stays "new" and fires once the
       # cooldown lifts (review fix — comparing to the silent week swallowed it forever).
-      # Worsening still compares to last week, so a recovery→relapse re-alerts. The lead
-      # finding — the worst NEW cause — is the one the banner/message renders; urgent leads
-      # (missed_month / red_month / next_month_red) bypass the cooldown, never the delta-gate,
-      # the weekly WA guard or the spine's daily cap. Idempotent per (user, goal, week).
+      # Worsening still compares to last week, so a recovery→relapse re-alerts — but only
+      # once the cooldown lifts: inside the 14-day window ONLY urgent leads break the quiet.
+      # Deliberate anti-nag: Progress#expected_mtd rises with the calendar, so a stalled goal
+      # "worsens" at_risk→off_track mechanically on identical saving; firing on that would
+      # nag the user for the month advancing. The lead finding — the worst NEW cause — is
+      # the one the banner/message renders; urgent leads (missed_month / red_month /
+      # next_month_red) bypass the cooldown, never the delta-gate, the weekly WA guard or
+      # the spine's daily cap. Idempotent per (user, goal, week).
       def alert(goal, check, week)
         last     = last_alert(goal)
         new_keys = check.findings.map { |f| cause_key(f) } - alerted_keys(goal, last)

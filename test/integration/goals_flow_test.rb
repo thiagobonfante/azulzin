@@ -64,6 +64,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_equal Date.new(2026, 8, 1), goal.starts_on
     assert goal.savings_commitment, "activation should create the savings commitment"
     assert_equal Date.new(2026, 8, 1), goal.savings_commitment.starts_on   # first occurrence next month
+    assert_equal @user.id, goal.savings_commitment.created_by_id, "the commitment carries the activator's attribution"
 
     get dashboard_path
     assert_response :success

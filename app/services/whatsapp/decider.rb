@@ -8,6 +8,7 @@ module Whatsapp
   # The transaction is idempotent on source_message_id. See .plans/whats §4.7 / §5.
   class Decider
     ASK_TTL = 60.minutes
+    RECEIPT_MATCH_DAYS = 3
 
     def initialize(msg, extraction, match, confidence)
       @msg = msg
@@ -25,6 +26,12 @@ module Whatsapp
 
     def post
       instrument = assignable_instrument
+      if (existing = reconcile_receipt(instrument))
+        kind = existing.credit_card ? "card" : "account"
+        reply("whatsapp.replies.receipt_matched_#{kind}", existing,
+              amount: currency, instrument: instrument.display_name)
+        return existing
+      end
       txn = upsert(status: "posted", confirmed_at: Time.current, instrument: instrument)
       # Naming the auto-assigned category in the reply is the cheap correction loop (O2):
       # a wrong silent category becomes visible immediately, not at month-end. The key forks
@@ -122,6 +129,27 @@ module Whatsapp
     def amount_close?(a, b)
       tol = [ (b.to_i * 0.2).round, 500 ].max
       (a.to_i - b.to_i).abs <= tol
+    end
+
+    # Receipt↔transaction reconciliation (the receipt sibling of link_card_commitment):
+    # a receipt matching an already-posted charge attaches to that row instead of posting a
+    # duplicate. Conservative on purpose — exact amount + same matched instrument + a few
+    # days + receipt-less rows only — so a false merge stays unlikely.
+    def reconcile_receipt(instrument)
+      return nil unless @extraction.source == "whatsapp_receipt" && instrument
+      on = @extraction.occurred_on || today
+      scope = instrument.transactions.kept.where(
+        account: account, status: "posted", direction: "expense",
+        amount_cents: @extraction.amount_cents,
+        occurred_on: (on - RECEIPT_MATCH_DAYS)..(on + RECEIPT_MATCH_DAYS))
+      # A row already carrying THIS message's blob wins first: keeps a job re-run a no-op
+      # even if a crash landed between the receipt attach and the processed mark.
+      if @msg.media.attached?
+        rerun = scope.joins(:receipt_attachment)
+                     .find_by(active_storage_attachments: { blob_id: @msg.media.blob.id })
+        return rerun if rerun
+      end
+      scope.where.missing(:receipt_attachment).order(occurred_on: :desc, id: :desc).first
     end
 
     def assign_instrument(txn, instrument)

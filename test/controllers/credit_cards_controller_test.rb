@@ -45,6 +45,28 @@ class CreditCardsControllerTest < ActionDispatch::IntegrationTest
     assert card.virtual?
   end
 
+  # WEB-CARD-03 (.plans/e2e-t3 §C): invalid identity/billing inputs are rejected, never persisted.
+  test "create rejects a last4 that is not exactly four digits" do
+    assert_no_difference -> { @user.account.credit_cards.count } do
+      post credit_cards_url, as: :turbo_stream,
+           params: { credit_card: { institution_id: @itau.id, last4: "12345" } }
+    end
+    assert_response :unprocessable_entity
+  end
+
+  test "update rejects bill_due_day outside 1..31 and closing_offset_days outside 0..28" do
+    card = @user.account.credit_cards.create!(institution: @itau)
+    [ { bill_due_day: 0 }, { bill_due_day: 32 },
+      { bill_due_day: 10, closing_offset_days: 29 },
+      { bill_due_day: 10, closing_offset_days: -1 } ].each do |invalid|
+      patch credit_card_url(card), params: { credit_card: invalid }
+      assert_response :unprocessable_entity
+    end
+    card.reload
+    assert_nil card.bill_due_day, "no invalid vencimento persisted"
+    assert_equal 7, card.closing_offset_days, "the NOT NULL DEFAULT 7 offset is untouched"
+  end
+
   test "destroy soft-deletes the card (leaves the kept list, row survives)" do
     card = @user.account.credit_cards.create!(institution: @itau)
     assert_difference -> { @user.account.credit_cards.kept.count }, -1 do

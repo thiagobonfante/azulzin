@@ -43,6 +43,24 @@ class BankAccountsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 500_000, acct.derived_balance_cents
   end
 
+  # WEB-BANK-03 (.plans/e2e-t3 §C): the controller destroy path honors the kept-income block,
+  # and the delete works once the income is removed (the model half lives in soft_deletable_test).
+  test "destroy refuses while a kept income deposits here, succeeds after the income is removed" do
+    acct = @user.account.bank_accounts.create!(institution: @nubank)
+    income = @user.account.incomes.create!(bank_account: acct, name: "salário", amount_cents: 100,
+                                           schedule_kind: "fixed_day", schedule_day: 5)
+
+    delete bank_account_url(acct)
+    assert_response :see_other
+    assert flash[:alert].present?, "the refusal reaches the user as an alert"
+    assert_not acct.reload.soft_deleted?
+
+    income.soft_delete!(by: @user)
+    delete bank_account_url(acct)
+    assert_response :see_other
+    assert acct.reload.soft_deleted?, "with the income gone the delete goes through"
+  end
+
   # ── Round 3 decision 7: livre / guardado-para-meta split ───────────────────────────────
 
   test "a caixinha backing an active goal shows the livre/reservado split, mirroring Progress" do

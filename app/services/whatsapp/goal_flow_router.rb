@@ -343,7 +343,8 @@ module Whatsapp
       # Activate twice (Activate's own draft guard is the second lock).
       return unless @conv.guarded_transition(%w[offered picking_caixinha picking_source], status: "closed")
       result = Goals::Activate.call(goal, template: "recomendado",
-                                    bank_account_id: caixinha_id, source_bank_account_id: source_id)
+                                    bank_account_id: caixinha_id, source_bank_account_id: source_id,
+                                    created_by: @msg.user)
       if result.ok?
         goal.reload
         reply("goal_flow.activated", name: goal.name, monthly: whole_ceil(goal.monthly_target_cents),

@@ -79,4 +79,17 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **Locale is per-request only.** Set it with `around_action` + `I18n.with_locale` — a bare `I18n.locale =` leaks across requests on Puma. Resolve in order: `params` → `session` → `current_user.locale` → `Accept-Language`, always whitelisted, defaulting to `pt-BR`.
 - **Emails render in the recipient's language.** Mailers set the locale from the stored `user.locale` *inside* the mailer (via `around_action`), not from the caller's ambient locale.
 - **Keep locale files in sync.** Adding a key to one locale means adding it to the other; `i18n-tasks` (missing/unused-key lint) gates CI.
+- **⚠️ TEMPORARY launch pin (since 2026-07):** production currently pins `pt-BR` in code — `ApplicationController#resolve_locale` and `ApplicationMailer#set_locale` hardcode `I18n.default_locale`, so en-US is unreachable in every env. The bilingual rules above remain the contract (keep shipping keys in both locales); do NOT "fix" the pin in passing. Lifting it is a product decision and must restore the full resolve chain AND build the en-US E2E golden matrix + mailer-locale tests (follow-up recorded in `.plans/e2e/05-web-journeys.md` §8).
 - Details: [docs/i18n.md](docs/i18n.md) · decision: [ADR 0006](docs/decisions/0006-internationalization.md).
+
+### E2E tests — user journeys are pinned end to end
+
+**Any change to a money path, a WhatsApp reply, a notification, or a user-facing journey ships with (or updates) an E2E scenario.** The suite lives in `test/e2e/` + `test/system/journeys/`; the full manual is [docs/e2e-testing.md](docs/e2e-testing.md) — read it before writing an E2E test.
+
+- **Pick the cheapest lane that proves the behavior.** Lane P (`E2E::PipelineCase`): real webhook → jobs → fake-sidecar HTTP + signed-cookie web requests — the default. Lane B (`E2E::BrowserCase` / `test/system/journeys/`): only for behavior that needs a real browser (Turbo Streams UX, stimulus pickers). Lane C (node `fake.js` contract parity): don't add to it unless the sidecar envelope itself changes; run with `E2E_SIDECAR=node`.
+- **Seed with scenario packs, never ad-hoc fixtures:** `E2E::Scenario.build(:solo_basic | :couple | :full_house | :goal_active | :goal_cuts …)` — calibrated frozen cents with build-time self-checks. New recurring shape → add a pack + self-check, don't inline it twice.
+- **Stub ONLY the AI boundary** (`with_canned_ai` → real `Whatsapp::Extraction` structs). Everything else — HTTP, jobs, DB, money math — runs real. `travel_to` always (anchor `E2E.anchor`); assert exact centavos, never ranges.
+- **Golden bodies:** user-visible WhatsApp/notification copy is pinned as the full pt-BR body (`assert_wa_reply equals: I18n.t(...)` or heredoc). Changing reply copy = re-render and re-pin the golden, deliberately.
+- **Browser-lane discipline (anti-flake):** after any Turbo form submit, wait on a UI change (flash/path/selector) **before** touching the DB; after driving a stimulus picker, assert its button display updated before the next action.
+- **Spec vs code disagreement:** never assert behavior that doesn't exist. Pin the REAL behavior with a comment naming the gap, and flag it in [.plans/e2e/07-coverage-audit.md](.plans/e2e/07-coverage-audit.md) for a product decision.
+- **Scenario IDs** (`WA-CAP-nn`, `NT-GL-nn`, `WEB-…`, `MU-…`) come from the catalogs in `.plans/e2e/03–05`; keep the ID comment on every test so coverage stays auditable.

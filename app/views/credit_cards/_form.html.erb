@@ -56,9 +56,12 @@
     </div>
     <div class="text-xs text-base-content/50 sm:col-span-2">
       <p><%= t("credit_cards.billing_explainer", offset: offset) %></p>
+      <%# After a failed save the in-memory billing values can be out of range (e.g. day 0),
+          and the closing-date math would raise — skip the hint until the record is valid. %>
+      <% show_hint = credit_card.billing_configured? && credit_card.errors.blank? %>
       <p data-billing-hint-target="hint"
-         class="mt-1 font-medium text-primary <%= "hidden" unless credit_card.billing_configured? %>">
-        <%= t("credit_cards.best_purchase_day", day: (credit_card.closing_date(Date.current.beginning_of_month) + 1).day) if credit_card.billing_configured? %>
+         class="mt-1 font-medium text-primary <%= "hidden" unless show_hint %>">
+        <%= t("credit_cards.best_purchase_day", day: (credit_card.closing_date(Date.current.beginning_of_month) + 1).day) if show_hint %>
       </p>
       <% if credit_card.persisted? %>
         <p class="mt-1"><%= t("credit_cards.billing_hint") %></p>

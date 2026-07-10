@@ -11,6 +11,17 @@ class ProcessInboundWhatsappJob < ApplicationJob
   retry_on Net::OpenTimeout, Net::ReadTimeout, wait: 5.seconds, attempts: 3
   discard_on ActiveJob::DeserializationError
 
+  # STT down/refusing: retry (a Groq 5xx is usually transient), then degrade instead of
+  # dead-ending (was: stuck at "processing", no reply) — tell the user, mark the message
+  # failed, never enter the money path.
+  retry_on Whatsapp::SttClient::Error, wait: 5.seconds, attempts: 3 do |job, error|
+    msg = WhatsappMessage.find_by(id: job.arguments.first)
+    next unless msg&.user
+    WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.stt_failed")
+    msg.update!(status: "failed", error: "stt_failed: #{error.message.to_s.first(200)}",
+                processed_at: Time.current)
+  end
+
   # Bound AI spend from a chatty or malicious sender. A legit user never sends this many
   # expenses a minute; over the cap we skip the AI call (the message is still stored).
   MAX_INBOUND_PER_MINUTE = 20

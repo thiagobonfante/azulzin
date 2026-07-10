@@ -143,6 +143,40 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
     assert_nil GoalConversation.open_for(@user)
   end
 
+  test "joga pra próxima fatura moves the last card row one fatura over and sticks" do
+    row = @user.account.transactions.create!(whatsapp_message: inbound("mercado 84,90 no crédito"),
+                                     created_by: @user, amount_cents: 8_490, occurred_on: Date.current,
+                                     status: "posted", direction: "expense", credit_card: @card,
+                                     merchant: "mercado", source: "whatsapp_text")
+    original = row.billing_month
+    interpret(inbound("joga pra próxima fatura"), extraction(intent: "move_bill", target_bill_raw: "próxima fatura"))
+    assert_equal original >> 1, row.reload.billing_month
+    assert row.billing_month_manual?
+    row.update!(merchant: "mercadinho")   # an unrelated edit must not recompute it back (R2 sticky)
+    assert_equal original >> 1, row.reload.billing_month
+  end
+
+  test "move_bill with no month words still moves — defaults to the next fatura" do
+    row = @user.account.transactions.create!(whatsapp_message: inbound("padaria 20 no crédito"),
+                                     created_by: @user, amount_cents: 2_000, occurred_on: Date.current,
+                                     status: "posted", direction: "expense", credit_card: @card,
+                                     merchant: "padaria", source: "whatsapp_text")
+    original = row.billing_month
+    interpret(inbound("joga pra outra fatura"), extraction(intent: "move_bill"))
+    assert_equal original >> 1, row.reload.billing_month
+  end
+
+  test "move_bill on a debit row refuses and changes nothing" do
+    row = @user.account.transactions.create!(whatsapp_message: inbound("padaria 20 no débito"),
+                                     created_by: @user, amount_cents: 2_000, occurred_on: Date.current,
+                                     status: "posted", direction: "expense", bank_account: @checking,
+                                     merchant: "padaria", source: "whatsapp_text")
+    original = row.billing_month
+    interpret(inbound("joga pra próxima fatura"), extraction(intent: "move_bill", target_bill_raw: "próxima"))
+    assert_equal original, row.reload.billing_month
+    assert_not row.billing_month_manual?
+  end
+
   test "a mutating intent below the intent floor parks instead of firing the verb" do
     ex = extraction(intent: "transfer", intent_confidence: 0.5, amount_raw: "200", amount_cents: 20_000, to_instrument_phrase: "caixinha")
     interpret(inbound("acho que passei 200"), ex)

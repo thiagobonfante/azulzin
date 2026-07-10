@@ -25,6 +25,11 @@ module Whatsapp
       filename = media.filename.to_s.presence || "audio.ogg"
       content_type = media.content_type.presence || "audio/ogg"
       parse(post_multipart(bytes, filename, content_type, language))
+    rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET => e
+      # Transport failures become OUR Error so the job's STT retry→degrade path owns them —
+      # a raw timeout would ride the job's generic Net retry_on and dead-end silently
+      # (stuck "processing", no reply) once those attempts exhaust.
+      raise Error, "transport: #{e.class}: #{e.message}"
     end
 
     def post_multipart(bytes, filename, content_type, language)

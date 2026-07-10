@@ -467,6 +467,14 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # WEB-TX-08 residue (.plans/e2e-t3 §C): the receipt proxy sits behind authentication.
+  test "a signed-out request cannot fetch the receipt (redirected to sign-in)" do
+    txn = posted_with_receipt
+    sign_out
+    get receipt_transaction_url(txn)
+    assert_redirected_to new_session_url
+  end
+
   test "a transaction without a receipt 404s on the receipt path" do
     txn = @user.account.transactions.create!(amount_cents: 500, occurred_on: Date.current,
                                              status: "posted", bank_account: @account)
