@@ -157,8 +157,11 @@ class E2E::WhatsappGoalsChatTest < E2E::PipelineCase
 
     wa_inject(jid, "sim"); drain_jobs!
     assert goal.reload.active?, "the member activates on the shared caixinha"
-    assert_equal goal, s.account.commitments.where(kind: "savings").sole.goal,
+    commitment = s.account.commitments.where(kind: "savings").sole
+    assert_equal goal, commitment.goal,
                  "the pay-yourself-first commitment links the shared-account goal"
+    assert_equal member.id, commitment.created_by_id,
+                 "the savings commitment carries the activating member's attribution"
   end
 
   private

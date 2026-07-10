@@ -8,15 +8,18 @@ module Goals
       def ok? = ok
     end
 
-    def self.call(goal, template:, bank_account_id: nil, source_bank_account_id: nil)
-      new(goal, template:, bank_account_id:, source_bank_account_id:).call
+    def self.call(goal, template:, bank_account_id: nil, source_bank_account_id: nil, created_by: nil)
+      new(goal, template:, bank_account_id:, source_bank_account_id:, created_by:).call
     end
 
-    def initialize(goal, template:, bank_account_id:, source_bank_account_id:)
+    def initialize(goal, template:, bank_account_id:, source_bank_account_id:, created_by: nil)
       @goal = goal
       @template = template
       @bank_account_id = bank_account_id.presence
       @source_bank_account_id = source_bank_account_id.presence
+      # Attribution for the savings commitment: the activator when given, else the goal's
+      # creator — never nil (was: nil for every activated goal, WA and web).
+      @created_by = created_by || goal.created_by
     end
 
     def call
@@ -68,7 +71,7 @@ module Goals
       def create_savings_commitment(plan)
         @goal.account.commitments.create!(
           kind: "savings", goal: @goal, bank_account_id: @source_bank_account_id,
-          amount_cents: plan.monthly_target_cents, name: @goal.name,
+          amount_cents: plan.monthly_target_cents, name: @goal.name, created_by: @created_by,
           starts_on: @goal.starts_on, ends_on: commitment_end(plan),
           schedule_day: earliest_pay_day, schedule_kind: "fixed_day"
         )

@@ -100,7 +100,8 @@ class GoalsController < AppController
     analyze! if @goal.baseline["median_capacity_base_cents"].blank?
     result = Goals::Activate.call(@goal, template: params[:template],
                                   bank_account_id: params[:bank_account_id],
-                                  source_bank_account_id: params[:source_bank_account_id])
+                                  source_bank_account_id: params[:source_bank_account_id],
+                                  created_by: Current.user)
     if result.ok?
       redirect_to goal_path(@goal), notice: t(".activated")
     else
