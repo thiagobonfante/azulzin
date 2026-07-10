@@ -57,6 +57,11 @@ module E2E
       base(intent: "undo_last", intent_confidence: confidence, payment_method: "desconhecido")
     end
 
+    def move_bill(target: nil, confidence: 0.9)
+      base(intent: "move_bill", intent_confidence: confidence, target_bill_raw: target,
+           payment_method: "desconhecido")
+    end
+
     def base(**fields)
       cents = fields[:amount_cents]
       defaults = {

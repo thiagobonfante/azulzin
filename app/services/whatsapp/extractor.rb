@@ -30,6 +30,8 @@ module Whatsapp
       - to_instrument_phrase = DESTINO da transferência ("pra caixinha", "pra poupança").
       - installments_count = número de parcelas ("em 10x" → 10). installment_total_raw / installment_parcel_raw conforme dito.
       - commitment_phrase = o compromisso citado ("o carro", "a pensão", "netflix").
+      - target_bill_raw = em move_bill, as PALAVRAS da fatura-alvo exatamente como ditas
+        ("próxima fatura", "fatura de setembro") — NUNCA uma data ISO.
       - occurred_on: data ISO só se explícita; caso contrário null.
       - payment_method: debito, credito, pix, dinheiro, boleto ou desconhecido.
       - category: um palpite de categoria do gasto, se der (será resolvido no app). Em edit_last

@@ -245,6 +245,29 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
     assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.nothing_to_undo", locale: :"pt-BR"))
   end
 
+  # WA-CAP-29 (coverage audit): move_bill wired — was classified but never executed
+  test "joga pra próxima fatura moves the captured purchase one fatura over" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    post_wa_expense(s, cents: 8_490, merchant: "mercado", instrument: "nubank", method: "credito")
+
+    txn = s.account.transactions.sole
+    assert_equal s.nubank_card, txn.credit_card
+    original = txn.billing_month
+
+    with_canned_ai(extraction: E2E::CannedAI.move_bill(target: "próxima fatura")) do
+      wa_inject(s.jid, "joga pra próxima fatura")
+      drain_jobs!
+    end
+
+    txn.reload
+    assert_equal original >> 1, txn.billing_month
+    assert txn.billing_month_manual?
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.bill_moved",
+                                          merchant: "mercado", amount: brl(8_490),
+                                          month: I18n.l(original >> 1, format: :month_year, locale: :"pt-BR"),
+                                          locale: :"pt-BR"))
+  end
+
   private
 
   def post_wa_expense(s, cents:, merchant:, instrument: nil, method: "desconhecido")

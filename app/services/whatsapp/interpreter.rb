@@ -49,6 +49,7 @@ module Whatsapp
       when "transfer"             then TransferDecider.new(@msg, extraction).call
       when "installment_purchase" then InstallmentDecider.new(@msg, extraction).call
       when "pay_commitment"       then PayCommitmentDecider.new(@msg, extraction).call
+      when "move_bill"            then MoveBillHandler.new(@msg, extraction).call
       when "edit_last"            then EditLastHandler.new(@msg, extraction).call
       when "undo_last"            then UndoHandler.new(@msg).call
       when "query"                then QueryAnswerer.new(@msg, extraction).call
