@@ -4,7 +4,8 @@
 //   • Reports itself permanently "connected" on /health + /session/* → the admin panel shows
 //     green and WhatsappServiceHealthCheckJob is happy. This is your fake "server number".
 //   • Catches Rails' outbound replies (POST /messages) and shows them as chat bubbles.
-//   • Lets you send from ANY fake user number to Rails' webhook (text + image/audio).
+//   • Lets you send from ANY fake user number to Rails' webhook (text + image/audio/pdf,
+//     with optional caption — image + text goes out as one message, like real WhatsApp).
 //
 // Run it INSTEAD of `npm start`:  node fake.js   (same port 3001, same shared token).
 // Then open http://localhost:3001 in a browser and chat.  Reuses src/config.js verbatim.
@@ -70,8 +71,13 @@ app.post('/_inject', async (req, res) => {
   if (!jid) return res.status(400).json({ error: 'jid required' });
   const data = { from: jid, message_id_serialized: `fake_in_${Date.now()}_${++seq}`, type, body: body || '' };
   if (media) data.media = media; // { data: <base64, no prefix>, mimetype, filename }
-  const ev = { dir: 'in', jid, body: body || `[${type}]`, ts: Date.now() };
-  if (media && /ptt|audio|voice/.test(type)) ev.audio = `data:${media.mimetype};base64,${media.data}`; // playable in the UI
+  const ev = { dir: 'in', jid, body: body || '', ts: Date.now() };
+  if (media) { // decorate the UI event so the bubble shows the media itself (caption in body)
+    const uri = `data:${media.mimetype};base64,${media.data}`;
+    if (/ptt|audio|voice/.test(type)) ev.audio = uri;
+    else if (type === 'image') ev.image = uri;
+    else ev.doc = media.filename || 'documento';
+  }
   push(ev);
   try {
     await postWebhook('message_received', data);
@@ -122,6 +128,9 @@ const PAGE = /* html */ `<!doctype html><html lang="pt-BR"><head><meta charset="
   .in{align-self:flex-end;background:#005c4b} .out{align-self:flex-start;background:#202c33}
   .b time{display:block;font-size:10px;color:#ffffff88;margin-top:3px}
   .b audio{display:block;height:34px;max-width:240px}
+  .b img{display:block;max-width:240px;border-radius:8px;margin-bottom:4px}
+  .b .doc{display:flex;align-items:center;gap:6px;background:#ffffff14;border-radius:8px;padding:8px 10px;margin-bottom:4px}
+  #fn{font-size:11px;color:#00a884;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   form{display:flex;gap:8px;padding:12px;background:#202c33}
   input[type=text]{flex:1;padding:10px;border:0;border-radius:20px;background:#2a3942;color:#e9edef}
   button.send{padding:0 18px;border:0;border-radius:20px;background:#00a884;color:#fff;cursor:pointer}
@@ -140,7 +149,7 @@ const PAGE = /* html */ `<!doctype html><html lang="pt-BR"><head><meta charset="
   <header id="title">—</header>
   <div id="log"></div>
   <form onsubmit="send(event)">
-    <label class="clip">📎<input type="file" id="file" accept="image/*,audio/*"></label>
+    <label class="clip">📎<input type="file" id="file" accept="image/*,audio/*,application/pdf" onchange="pickFile()"><span id="fn"></span></label>
     <button type="button" class="mic" id="mic" onclick="toggleRec()" title="Gravar áudio (como no WhatsApp)">🎤</button>
     <input type="text" id="msg" placeholder="Mensagem (ex: gastei 42 no mercado no débito)" autocomplete="off">
     <button class="send" type="submit">Enviar</button>
@@ -159,7 +168,12 @@ const PAGE = /* html */ `<!doctype html><html lang="pt-BR"><head><meta charset="
   function renderLog(){ const log=el('log'); log.innerHTML='';
     all.filter(e=>e.jid===active).forEach(e=>{ const d=document.createElement('div');
       d.className='b '+e.dir;
-      d.innerHTML=(e.audio?'<audio controls src="'+e.audio+'"></audio>':esc(e.body))+'<time>'+new Date(e.ts).toLocaleTimeString()+'</time>';
+      let h='';
+      if(e.audio) h+='<audio controls src="'+e.audio+'"></audio>';
+      if(e.image) h+='<img src="'+e.image+'">';
+      if(e.doc) h+='<div class="doc">📄 '+esc(e.doc)+'</div>';
+      if(e.body) h+=esc(e.body);
+      d.innerHTML=h+'<time>'+new Date(e.ts).toLocaleTimeString()+'</time>';
       log.appendChild(d); });
     log.scrollTop=log.scrollHeight; }
   function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
@@ -167,10 +181,12 @@ const PAGE = /* html */ `<!doctype html><html lang="pt-BR"><head><meta charset="
     if(!nums.find(n=>n.jid===jid)) nums.push({jid,name:'Novo número'}); active=jid; el('newjid').value=''; renderNums(); renderLog(); }
   const b64=(blob)=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(blob)});
   const inject=(payload)=>fetch('/_inject',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  function pickFile(){ const f=el('file').files[0]; el('fn').textContent=f?f.name:''; }
   async function send(ev){ ev.preventDefault(); const body=el('msg').value; const f=el('file').files[0];
+    if(!body && !f) return;
     let payload={ jid:active, body };
-    if(f){ payload.type=f.type.startsWith('audio')?'audio':'image';
-      payload.media={ data:await b64(f), mimetype:f.type, filename:f.name }; el('file').value=''; }
+    if(f){ payload.type=f.type.startsWith('audio')?'audio':f.type==='application/pdf'?'document':'image';
+      payload.media={ data:await b64(f), mimetype:f.type, filename:f.name }; el('file').value=''; el('fn').textContent=''; }
     el('msg').value=''; inject(payload); }
   // Record a voice note like WhatsApp and send it as a 'ptt'. MediaRecorder captures cleanly on
   // the audio thread (the old ScriptProcessorNode ran on the main thread and dropped buffers,
