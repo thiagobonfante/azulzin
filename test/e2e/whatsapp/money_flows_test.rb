@@ -19,6 +19,50 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
     assert_brl 500_000, assert_wa_reply(s.jid)
   end
 
+  # WA-CAP-07b — income always lands in a bank account (2026-07-11): sole checking self-picks
+  test "income with no account named and a sole checking account → posts assigned" do
+    s = E2E::Scenario.build(:solo_basic).add_caixinha!.wa_verified!
+
+    with_canned_ai(extraction: E2E::CannedAI.income(cents: 120_000, merchant: "freela")) do
+      wa_inject(s.jid, "caiu 1200 de um freela")
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert txn.posted?
+    assert_equal s.itau, txn.bank_account, "sole checking account self-picks (caixinha excluded)"
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.income_posted", amount: brl(120_000),
+                                          instrument: s.itau.display_name, locale: :"pt-BR"))
+  end
+
+  # WA-CAP-07c — several checking accounts → numbered pick with income wording
+  test "income with two checking accounts → numbered account ask, answer posts" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    second = s.account.bank_accounts.create!(
+      institution: Institution.find_by!(code: "260"), nickname: "Nubank Conta", created_by: s.owner)
+
+    with_canned_ai(extraction: E2E::CannedAI.income(cents: 120_000, merchant: "freela")) do
+      wa_inject(s.jid, "caiu 1200 de um freela")
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert_equal "needs_clarification", txn.status
+    options = "1. #{s.itau.display_name}\n2. #{second.display_name}"
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_income_account_pick",
+                                          amount: brl(120_000), options: options, locale: :"pt-BR"))
+
+    wa_inject(s.jid, "2")
+    drain_jobs!
+
+    txn.reload
+    assert txn.posted?
+    assert_equal "income", txn.direction
+    assert_equal second, txn.bank_account
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.income_posted", amount: brl(120_000),
+                                          instrument: second.display_name, locale: :"pt-BR"))
+  end
+
   # WA-CAP-08
   test "transfer to the caixinha: one posted row, both legs, savings reply" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!.add_caixinha!
@@ -113,6 +157,68 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
     assert_equal s.itau, c.bank_account
     assert_nil c.credit_card
     assert_equal 28_000, c.amount_cents
+  end
+
+  # WA-CAP-10b — "1000 parcelado" (2026-07-11): no card named + no count → card pick chains
+  # into the count ask; the answers create the plan on the picked card.
+  test "parcelado with no card and no count → card ask, then count ask, then the plan" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    second = s.account.credit_cards.create!(
+      institution: Institution.find_by!(code: "341"), nickname: "Cartão Itaú",
+      bill_due_day: 15, closing_offset_days: 7, credit_limit_cents: 100_000, created_by: s.owner)
+
+    with_canned_ai(extraction: E2E::CannedAI.installment(total_cents: 100_000, count: nil,
+                                                         merchant: nil, instrument: nil)) do
+      wa_inject(s.jid, "1000 parcelado")
+      drain_jobs!
+    end
+    options = "1. #{s.nubank_card.display_name}\n2. #{second.display_name}"
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_card_pick",
+                                          amount: brl(100_000), options: options, locale: :"pt-BR"))
+
+    wa_inject(s.jid, "2")
+    drain_jobs!
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_installments_count", locale: :"pt-BR"))
+
+    wa_inject(s.jid, "10")
+    drain_jobs!
+
+    c = s.account.commitments.sole
+    assert_equal second, c.credit_card
+    assert_equal 100_000, c.total_cents
+    assert_equal 10, c.installments_count
+    assert_equal 10_000, c.amount_cents
+  end
+
+  # WA-CAP-10c — a sole card self-picks for an instrument-less parcelado
+  test "parcelado with no card named and a single card → plan on that card, no ask" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+
+    with_canned_ai(extraction: E2E::CannedAI.installment(total_cents: 50_000, count: 5,
+                                                         merchant: nil, instrument: nil)) do
+      wa_inject(s.jid, "500 em 5x parcelado")
+      drain_jobs!
+    end
+
+    c = s.account.commitments.sole
+    assert_equal s.nubank_card, c.credit_card
+    assert_equal 5, c.installments_count
+  end
+
+  # WA-CAP-10d — count outside 1–24 parks for review instead of fanning out
+  test "parcelado em 30x → parked stub, no commitment" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+
+    with_canned_ai(extraction: E2E::CannedAI.installment(total_cents: 100_000, count: 30,
+                                                         merchant: "Geladeira", instrument: "nubank")) do
+      wa_inject(s.jid, "geladeira 1000 em 30x no nubank")
+      drain_jobs!
+    end
+
+    assert_equal 0, s.account.commitments.count
+    txn = s.account.transactions.sole
+    assert_equal "pending_review", txn.status
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.parked", locale: :"pt-BR"))
   end
 
   # WA-CAP-12

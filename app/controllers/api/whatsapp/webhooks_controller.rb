@@ -69,6 +69,7 @@ module Api
       # pending codes are outstanding more often (each new member holds one). So cap code-shaped
       # guesses per JID before the scan, and turn the silent double-bind into a localized reply.
       CODE_ATTEMPT_CAP = 10   # per JID per day; codes are 32^4 ≈ 1.05M → brute force is hopeless (§8.1)
+      CODE_RE = /AZUL-[A-Z0-9]{4}/i
 
       def handle_unverified_sender(jid, data)
         return if code_attempt_over_cap?(jid, data["body"])   # §8.1 — over the cap: ignore silently
@@ -80,8 +81,22 @@ module Api
             # §8.2: this phone is already bound to another user — one phone = one user, absolute.
             send_wa_reply(jid, u.locale, "whatsapp.replies.phone_already_linked")
           end
+        elsif CODE_RE.match?(data["body"].to_s)
+          reply_invalid_code(jid)
         else
           UnknownSenderReply.throttle(jid)
+        end
+      end
+
+      # Wrong code under the cap: someone mid-handshake deserves feedback, not the 6h throttled
+      # silence (the daily cap above still swallows brute force). Sender digits matching a
+      # registered phone → "código inválido" in their locale; unknown number → sign-up nudge.
+      def reply_invalid_code(jid)
+        owner = User.where(phone: User.wa_id_candidates(jid)).order(:id).first
+        if owner
+          send_wa_reply(jid, owner.locale, "whatsapp.replies.invalid_code")
+        else
+          send_wa_reply(jid, I18n.default_locale, "whatsapp.replies.register_first")
         end
       end
 
@@ -89,7 +104,7 @@ module Api
       # falls through to the unknown-sender throttle). Read-modify-write is fine for a heuristic;
       # under the test null_store it is a no-op (never caps), correct in prod (memory/redis).
       def code_attempt_over_cap?(jid, body)
-        return false unless /AZUL-[A-Z0-9]{4}/i.match?(body.to_s)
+        return false unless CODE_RE.match?(body.to_s)
         key   = "wa:code_attempts:#{jid.to_s.gsub(/\D/, '')}:#{Date.current}"
         count = (Rails.cache.read(key) || 0) + 1
         Rails.cache.write(key, count, expires_in: 1.day)

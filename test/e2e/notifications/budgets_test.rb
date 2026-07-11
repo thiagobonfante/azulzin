@@ -59,7 +59,22 @@ class E2E::NotificationBudgetsTest < E2E::PipelineCase
     dispatch_budgets!
 
     assert_wa_reply s.jid,
-      equals: "💙 Você fechou o mês com *R$ 2.087,21* de sobra. Quer guardar na caixinha?"
+      equals: "💙 Você fechou o mês com *R$ 2.087,21* de sobra. Quer guardar esse dindin?"
+  end
+
+  # 2026-07-11: no poupança but an investment account → the nudge names it instead
+  test "surplus nudge names the investment account when there's no poupança" do
+    travel_to Time.utc(2026, 5, 25, 15, 0)
+    s = push_ready(E2E::Scenario.build(:history_calibrated))
+    clear_band_budgets(s)
+    s.account.bank_accounts.kept.savings.update_all(kind: "investment")
+
+    dispatch_budgets!
+
+    assert_wa_reply s.jid,
+      # sobra is R$ 300,00 higher than the base golden: the flipped account's transfers no
+      # longer count as guardado (guardado is savings-kind only), so they ride the sobra.
+      equals: "💙 Você fechou o mês com *R$ 2.387,21* de sobra. Quer mandar pra sua conta investimento?"
   end
 
   test "surplus nudge stays silent mid-month" do

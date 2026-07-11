@@ -17,6 +17,14 @@ module Whatsapp
       account ||= income&.bank_account
       return park unless Whatsapp::Confidence.new(@extraction).above_floor?
 
+      # Income always lands in a bank account: a sole checking account self-picks;
+      # several get a numbered pick (same UX as the expense instrument ask).
+      if account.nil?
+        candidates = account_candidates
+        return ask_account_pick(candidates) if candidates.size > 1
+        account = candidates.first
+      end
+
       txn = upsert_row(
         direction: "income", status: "posted", confirmed_at: Time.current,
         amount_cents: @extraction.amount_cents, merchant: @extraction.merchant,
@@ -46,6 +54,22 @@ module Whatsapp
       return nil if term.blank?
       best = account.incomes.kept.active.max_by { |i| Whatsapp.similarity(term, Whatsapp.normalize(i.name)) }
       best if best && Whatsapp.similarity(term, Whatsapp.normalize(best.name)) >= 0.6
+    end
+
+    def account_candidates
+      account.bank_accounts.kept.where.not(kind: "savings").order(:created_at).to_a
+    end
+
+    def ask_account_pick(candidates)
+      txn = upsert_row(direction: "income", status: "needs_clarification",
+                       amount_cents: @extraction.amount_cents, merchant: @extraction.merchant,
+                       occurred_on: occurred, billing_month: occurred.beginning_of_month,
+                       ask: { "slot" => "instrument_pick", "kind" => "account",
+                              "options" => candidates.map(&:id) },
+                       ask_expires_at: 60.minutes.from_now)
+      reply("ask_income_account_pick", txn: txn, amount: currency(txn.amount_cents),
+            options: numbered_options(candidates))
+      txn
     end
 
     def ask_amount

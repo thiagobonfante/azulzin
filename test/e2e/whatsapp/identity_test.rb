@@ -59,11 +59,37 @@ class E2E::WhatsappIdentityTest < E2E::PipelineCase
       10.times { |i| wa_inject(s.jid, "AZUL-XXX#{i}") }
       wa_inject(s.jid, code)
       assert_not s.owner.reload.phone_verified?, "over the cap even the right code is ignored"
+      assert_equal 10, fake_sidecar.messages_to(s.jid).size,
+                   "each under-cap wrong guess replies invalid_code; over the cap: silence"
 
       travel 1.day
       wa_inject(s.jid, code)
       assert s.owner.reload.phone_verified?, "the cap re-arms the next day"
     end
+  end
+
+  # WA-ID-12 — wrong code from a registered phone gets feedback, not the 6h silence (2026-07-11).
+  test "wrong code from a registered phone replies invalid_code, nothing persisted" do
+    s = E2E::Scenario.build(:solo_basic)
+    s.owner.whatsapp_verification_code!
+
+    assert_no_difference -> { WhatsappMessage.count } do
+      wa_inject(s.jid, "meu codigo é AZUL-ZZZZ")
+    end
+
+    assert_not s.owner.reload.phone_verified?
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.invalid_code", locale: :"pt-BR"))
+    assert_empty enqueued_jobs
+  end
+
+  # WA-ID-13 — code attempt from a phone no user registered → sign-up nudge (2026-07-11).
+  test "code attempt from an unregistered phone replies register_first" do
+    jid = "5511800000002@c.us"
+
+    wa_inject(jid, "AZUL-ZZZZ")
+
+    assert_wa_reply(jid, equals: I18n.t("whatsapp.replies.register_first", locale: :"pt-BR"))
+    assert_empty enqueued_jobs
   end
 
   # WA-ID-05 — the throttle also lives in Rails.cache.

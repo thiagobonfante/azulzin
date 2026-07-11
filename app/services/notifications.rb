@@ -44,6 +44,9 @@ module Notifications
     elsif %w[budget_warn budget_breach].include?(notification.kind) && notification.payload["goal_name"].present?
       # A goal trim (not the standing budget) is the binding limit → copy names the meta (goals 06 §3).
       "#{notification.kind}_goal"
+    elsif notification.kind == "surplus_nudge" && notification.payload["destination_kind"] == "investment"
+      # No poupança, but an investment account → the nudge names it instead of "dindin".
+      "surplus_nudge_investment"
     else
       notification.kind
     end

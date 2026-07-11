@@ -30,13 +30,16 @@ module Budgets
     def summary = @summary ||= MonthSummary.new(@account, @month)
 
     # 03 §5.1 — a real sobra and somewhere to put it: same predicate + deep-link the hero's
-    # "guardar na caixinha" CTA already uses (first kept savings account).
+    # "guardar" CTA already uses (first kept savings account, else the investment account —
+    # destination_kind forks the copy: "guardar esse dindin" vs "conta investimento").
     def surplus_event
       return unless summary.remaining_cents >= SURPLUS_FLOOR_CENTS
-      savings = @account.bank_accounts.kept.savings.first
-      return unless savings
+      destination = @account.bank_accounts.kept.savings.first ||
+                    @account.bank_accounts.kept.investment.first
+      return unless destination
       { kind: "surplus_nudge", subject: nil, period_key: @month,
-        payload: { surplus_cents: summary.remaining_cents, savings_account_id: savings.id } }
+        payload: { surplus_cents: summary.remaining_cents, savings_account_id: destination.id,
+                   destination_kind: destination.kind } }
     end
 
     # 03 §5.2 — the ONE budget lying hardest: full 3-month history, budget ≥ 1.5× median,

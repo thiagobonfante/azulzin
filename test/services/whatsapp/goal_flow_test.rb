@@ -243,7 +243,7 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     run_pipeline(inbound("sim"))
     assert_equal 0, @account.goals.count
     assert conv.closed?
-    assert_includes @sent.last, "caixinha"
+    assert_includes @sent.last, "poupança"
   end
 
   test "no distinct source (caixinha is the only account): same block" do
@@ -253,7 +253,7 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     run_pipeline(inbound("sim"))
     assert_equal 0, @account.goals.count
     assert conv.closed?
-    assert_includes @sent.last, "caixinha"
+    assert_includes @sent.last, "poupança"
   end
 
   test "2 caixinhas and 3 sources: numbered picks in prompt order, then activation" do

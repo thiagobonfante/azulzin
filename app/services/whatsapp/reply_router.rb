@@ -19,6 +19,8 @@ module Whatsapp
       when "transfer_from"      then resolve_transfer_leg(:bank_account_id, "ask_transfer_from")
       when "installments_count" then resolve_installments_count
       when "commitment_pick"    then resolve_commitment_pick
+      when "instrument_pick"    then resolve_instrument_pick
+      when "installment_card_pick" then resolve_installment_card_pick
       else re_ask("whatsapp.replies.clarify_amount")
       end
     end
@@ -84,22 +86,84 @@ module Whatsapp
       reply("whatsapp.replies.ask_#{other_slot}", options: numbered_options(accounts))
     end
 
+    # Numbered card/account pick for a method-narrowed expense (decider ask_instrument_pick).
+    # Card picks recompute billing_month by the card's closing rule — the ask row was upserted
+    # instrument-less, so it carries the calendar-month bucket.
+    def resolve_instrument_pick
+      card_kind = @ask.ask["kind"] == "card"
+      income = @ask.direction == "income"
+      scope = card_kind ? account.credit_cards : account.bank_accounts
+      records = scope.kept.in_order_of(:id, @ask.ask["options"]).to_a
+      chosen = pick(records) { |r| r.display_name }
+      unless chosen
+        key = income ? "ask_income_account_pick" : "ask_#{@ask.ask['kind']}_pick"
+        return reply("whatsapp.replies.#{key}",
+                     amount: currency(@ask.amount_cents), options: numbered_options(records))
+      end
+
+      updates = { status: "posted", confirmed_at: Time.current, ask: {}, ask_expires_at: nil,
+                  updated_by_id: @msg.user_id }
+      updates[card_kind ? :credit_card_id : :bank_account_id] = chosen.id
+      updates[:billing_month] = chosen.billing_month_for(@ask.occurred_on) if card_kind
+      posted = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES, **updates)
+      return unless posted
+
+      if income
+        reply("whatsapp.replies.income_posted", amount: currency(@ask.amount_cents),
+              instrument: chosen.display_name)
+      elsif @ask.category
+        reply("whatsapp.replies.posted_#{card_kind ? 'card' : 'account'}_categorized",
+              amount: currency(@ask.amount_cents), instrument: chosen.display_name,
+              category: @ask.category.name)
+      else
+        reply("whatsapp.replies.posted_#{card_kind ? 'card' : 'account'}",
+              amount: currency(@ask.amount_cents), instrument: chosen.display_name)
+      end
+    end
+
     def resolve_installments_count
       count = parse_count(@text)
-      return re_ask("whatsapp.replies.ask_installments_count") unless count&.between?(2, 48)
-      data = @ask.extraction
-      card = Whatsapp::Matcher.match_phrase(account, data["instrument_phrase"]).instrument
+      return re_ask("whatsapp.replies.ask_installments_count") unless count&.between?(1, 24)
+      # A card picked in a chained installment_card_pick lives on the stub; the phrase
+      # match is the fallback for the direct count-ask path.
+      card = @ask.credit_card ||
+             Whatsapp::Matcher.match_phrase(account, @ask.extraction["instrument_phrase"]).instrument
       return re_ask("whatsapp.replies.ask_installments_count") unless card.is_a?(CreditCard)
+      create_installments(card, count)
+    end
 
+    # Card pick for a "parcelado" with no card named (installment_decider ask_card_pick);
+    # chains into the count ask when the count is missing too (fresh TTL, like chain_missing_leg).
+    def resolve_installment_card_pick
+      records = account.credit_cards.kept.in_order_of(:id, @ask.ask["options"]).to_a
+      chosen = pick(records) { |r| r.display_name }
+      unless chosen
+        return reply("whatsapp.replies.ask_card_pick", amount: currency(@ask.amount_cents),
+                     options: numbered_options(records))
+      end
+      count = @ask.extraction["installments_count"].to_i
+      return create_installments(chosen, count) if count.between?(1, 24)
+
+      chained = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES,
+                  credit_card_id: chosen.id, ask: { "slot" => "installments_count" },
+                  ask_expires_at: 60.minutes.from_now, updated_by_id: @msg.user_id)
+      return unless chained
+      reply("whatsapp.replies.ask_installments_count")
+    end
+
+    def create_installments(card, count)
+      data = @ask.extraction
       total = Money.to_cents(data["installment_total_raw"]) ||
               (Money.to_cents(data["installment_parcel_raw"]).to_i * count).nonzero? ||
               @ask.amount_cents
       @ask.update!(status: "superseded", updated_by: user)
       commitment = Installments::Create.call(account: account, created_by: user, card: card, total_cents: total, count: count,
         occurred_on: @ask.occurred_on, merchant: @ask.merchant, source_message_id: nil)
-      first = commitment.payments.posted.kept.minimum(:billing_month)
+      # starts_on is the first fatura (parcels are computed occurrences — there are no posted
+      # payment rows to scan; the old payments.minimum(:billing_month) was always nil and
+      # crashed month_label on every count-ask resolution).
       reply("whatsapp.replies.installments_posted", count: count, parcel: currency(commitment.amount_cents),
-            instrument: card.display_name, month: month_label(first))
+            instrument: card.display_name, month: month_label(commitment.starts_on))
     end
 
     def resolve_commitment_pick

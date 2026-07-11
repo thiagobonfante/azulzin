@@ -23,7 +23,7 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
     assert_equal gap_cents, n.payload["gap_cents"], "the gap is the month's unpaid slice, exact"
     assert_wa_reply s.jid, equals:
       "👀 Sua meta *Carro*: faltam #{gap} para o valor deste mês e o mês está acabando. " \
-      "Uma transferência para a caixinha resolve. 💙"
+      "Uma transferência para a poupança resolve. 💙"
   end
 
   # NT-GL-02

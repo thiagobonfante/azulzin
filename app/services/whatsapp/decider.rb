@@ -32,6 +32,13 @@ module Whatsapp
               amount: currency, instrument: instrument.display_name)
         return existing
       end
+      # A known payment method narrows the instrument set (credito → cards, debito/pix →
+      # accounts): a sole candidate assigns silently; several get ONE numbered ask instead
+      # of an unassigned row in the review inbox. Unknown method keeps the unassigned post.
+      if instrument.nil? && (candidates = method_candidates).any?
+        return ask_instrument_pick(candidates) if candidates.size > 1
+        instrument = candidates.first
+      end
       txn = upsert(status: "posted", confirmed_at: Time.current, instrument: instrument)
       # Naming the auto-assigned category in the reply is the cheap correction loop (O2):
       # a wrong silent category becomes visible immediately, not at month-end. The key forks
@@ -71,6 +78,40 @@ module Whatsapp
     def assignable_instrument
       return nil unless @match.matched? && @match.c_match >= Transaction::MATCH_ASSIGN_MIN
       @match.instrument
+    end
+
+    def method_candidates
+      case @extraction.payment_method
+      when "credito"       then cards
+      when "debito", "pix" then checking_accounts
+      else phrase_candidates
+      end
+    end
+
+    # "no cartão" without crédito/débito: the model honestly leaves payment_method
+    # desconhecido, but the phrase still narrows — in this app "cartão" IS a credit-card
+    # row (débito rides the bank account), and a bare "conta" means a checking account.
+    def phrase_candidates
+      phrase = Whatsapp.normalize(@extraction.instrument_phrase.to_s)
+      return cards             if phrase.include?("cartao")
+      return checking_accounts if phrase.include?("conta")
+      []
+    end
+
+    def cards             = account.credit_cards.kept.order(:created_at).to_a
+    def checking_accounts = account.bank_accounts.kept.where.not(kind: "savings").order(:created_at).to_a
+
+    # Same open-ask machinery as ask_amount; the answer routes zero-LLM through ReplyRouter
+    # (a leading index or a fuzzy name against the stored prompt-ordered options).
+    def ask_instrument_pick(candidates)
+      kind = candidates.first.is_a?(CreditCard) ? "card" : "account"
+      txn = upsert(status: "needs_clarification",
+                   ask: { "slot" => "instrument_pick", "kind" => kind,
+                          "options" => candidates.map(&:id) },
+                   ask_expires_at: ASK_TTL.from_now)
+      options = candidates.each_with_index.map { |c, i| "#{i + 1}. #{c.display_name}" }.join("\n")
+      reply("whatsapp.replies.ask_#{kind}_pick", txn, amount: currency, options: options)
+      txn
     end
 
     def currency = WhatsappReply.currency(@extraction.amount_cents, locale: @msg.user.locale)

@@ -23,11 +23,22 @@ module Whatsapp
     # (text 1.0 > OCR 0.95 > ASR 0.90).
     def capture_score
       return 0 unless @extraction.amount_present?
-      amount_conf = @extraction.field_confidence["amount"] || @extraction.overall_confidence
-      base = [ amount_conf.to_f, @extraction.overall_confidence.to_f ].min
+      amount_conf = (@extraction.field_confidence["amount"] || @extraction.overall_confidence).to_f
+      base = [ amount_conf, @extraction.overall_confidence.to_f ].min
+      # The overall ceiling exists because LLMs invent values; a VERBATIM amount can't be
+      # invented. Terse "33 cartao" honestly reads low overall (no merchant, no date) while
+      # the amount is string-certain — trust the amount field alone in that case.
+      base = amount_conf if verbatim_amount?
       (base * @extraction.modality_factor * 100).round.clamp(0, 100)
     end
 
     def above_floor? = capture_score >= self.class.floor
+
+    # amount_raw appears digit-bounded in the message text ("33" never matches inside "133").
+    def verbatim_amount?
+      raw  = @extraction.amount_raw.to_s
+      text = @extraction.raw.is_a?(Hash) ? @extraction.raw["transcript"].to_s : ""
+      raw.present? && text.match?(/(?<!\d)#{Regexp.escape(raw)}(?!\d)/)
+    end
   end
 end

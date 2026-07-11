@@ -47,6 +47,109 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
                                           amount: brl(5_000), locale: :"pt-BR"))
   end
 
+  # WA-CAP-02b — method-narrowed pick (2026-07-11): credit + several cards → ONE numbered ask,
+  # the zero-LLM answer posts on the picked card with its closing-rule billing_month.
+  test "credit with two cards → numbered card ask, answer posts on the picked card" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    second = s.account.credit_cards.create!(
+      institution: Institution.find_by!(code: "341"), nickname: "Cartão Itaú",
+      bill_due_day: 15, closing_offset_days: 7, credit_limit_cents: 100_000, created_by: s.owner)
+
+    with_canned_ai(extraction: E2E::CannedAI.expense(cents: 6_000, merchant: "posto",
+                                                     method: "credito")) do
+      wa_inject(s.jid, "gastei 60 no cartão")
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert_equal "needs_clarification", txn.status
+    options = "1. #{s.nubank_card.display_name}\n2. #{second.display_name}"
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_card_pick",
+                                          amount: brl(6_000), options: options, locale: :"pt-BR"))
+
+    wa_inject(s.jid, "2")
+    drain_jobs!
+
+    txn.reload
+    assert txn.posted?
+    assert_equal second, txn.credit_card
+    assert_equal second.billing_month_for(txn.occurred_on), txn.billing_month
+    assert_wa_reply(s.jid, includes: [ "Lançado", second.display_name ])
+  end
+
+  # WA-CAP-02e — "no cartão" with método desconhecido: the phrase alone narrows to cards
+  # (in this app a cartão expense IS a credit-card row; débito rides the bank account).
+  test "generic cartão phrase with unknown method → card ask" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    second = s.account.credit_cards.create!(
+      institution: Institution.find_by!(code: "341"), nickname: "Cartão Itaú",
+      bill_due_day: 15, closing_offset_days: 7, credit_limit_cents: 100_000, created_by: s.owner)
+
+    with_canned_ai(extraction: E2E::CannedAI.expense(cents: 6_000, merchant: "posto",
+                                                     method: "desconhecido", instrument: "cartão")) do
+      wa_inject(s.jid, "gastei 60 no cartão")
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert_equal "needs_clarification", txn.status
+    options = "1. #{s.nubank_card.display_name}\n2. #{second.display_name}"
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_card_pick",
+                                          amount: brl(6_000), options: options, locale: :"pt-BR"))
+  end
+
+  # WA-CAP-02c — credit with a sole card assigns silently, closing rule applied
+  test "credit with a single card → posts assigned to it, no ask" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+
+    with_canned_ai(extraction: E2E::CannedAI.expense(cents: 6_000, merchant: "posto",
+                                                     method: "credito")) do
+      wa_inject(s.jid, "gastei 60 no cartão")
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert txn.posted?
+    assert_equal s.nubank_card, txn.credit_card
+    assert_equal s.nubank_card.billing_month_for(txn.occurred_on), txn.billing_month
+    assert_wa_reply(s.jid, includes: [ "Lançado", s.nubank_card.display_name ])
+  end
+
+  # WA-CAP-02d — debit narrows to checking accounts only (the caixinha is never a candidate)
+  test "debit with a single checking account → posts assigned, savings excluded" do
+    s = E2E::Scenario.build(:solo_basic).add_caixinha!.wa_verified!
+
+    with_canned_ai(extraction: E2E::CannedAI.expense(cents: 3_000, merchant: "padaria",
+                                                     method: "debito")) do
+      wa_inject(s.jid, "padaria 30 no débito")
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert txn.posted?
+    assert_equal s.itau, txn.bank_account
+  end
+
+  # WA-CAP-03b — verbatim amount lifts the overall ceiling (2026-07-11): a terse "33 cartao"
+  # reads low OVERALL (no merchant/date) but the amount is string-certain → post, not park.
+  test "terse message with verbatim amount → posts despite low overall confidence" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    extraction = E2E::CannedAI.expense(cents: 3_300, merchant: nil, method: "desconhecido",
+                                       instrument: "cartao", confidence: 0.7, amount_confidence: 1.0)
+    extraction.amount_raw = "33"
+    extraction.raw = { "transcript" => "33 cartao" }
+
+    with_canned_ai(extraction: extraction) do
+      wa_inject(s.jid, "33 cartao")
+      drain_jobs!
+    end
+
+    txn = s.account.transactions.sole
+    assert txn.posted?, "verbatim amount must not park on a low overall score"
+    assert_equal 3_300, txn.amount_cents
+    assert_equal s.nubank_card, txn.credit_card, "cartão phrase narrows to the sole card"
+  end
+
   # WA-CAP-03
   test "confidence below the floor → parked in the review tray, never posted" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!

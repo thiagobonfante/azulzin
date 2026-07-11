@@ -17,8 +17,16 @@ module Whatsapp
       instrument = Whatsapp::Matcher.new(account, @extraction).call.instrument
       total      = derive_total_cents(count)
 
-      return ask_installments_count if count < 2 && confident? && instrument
-      return park_stub unless confident? && count.between?(2, 48) && instrument && total&.positive?
+      # "parcelado" with no instrument named is ALWAYS a card purchase: a sole card
+      # self-picks; several get a numbered pick (chaining into the count ask if that is
+      # missing too). Count range is 1–24 — anything else parks for review.
+      if instrument.nil? && confident? && total&.positive?
+        cards = account.credit_cards.kept.order(:created_at).to_a
+        return ask_card_pick(cards) if cards.size > 1
+        instrument = cards.first
+      end
+      return ask_installments_count if count < 1 && confident? && instrument
+      return park_stub unless confident? && count.between?(1, 24) && instrument && total&.positive?
 
       if instrument.is_a?(CreditCard)
         commitment = Installments::Create.call(account: account, created_by: @msg.user,
@@ -70,6 +78,19 @@ module Whatsapp
     # parcel transactions get provenance stamped at MarkPaid time from commitment.source.
     def resolve_category
       Categories.auto_assign(account: account, merchant: @extraction.merchant, label: @extraction.category).first
+    end
+
+    # Several cards, none named → numbered pick on the stub (same UX as the expense pick).
+    # ReplyRouter#resolve_installment_card_pick chains into the count ask when needed.
+    def ask_card_pick(cards)
+      txn = upsert_row(status: "needs_clarification", direction: "expense",
+                       amount_cents: @extraction.amount_cents || 0, merchant: @extraction.merchant,
+                       occurred_on: occurred, billing_month: occurred.beginning_of_month,
+                       extraction: @extraction.to_h.compact,
+                       ask: { "slot" => "installment_card_pick", "options" => cards.map(&:id) },
+                       ask_expires_at: 60.minutes.from_now)
+      reply("ask_card_pick", txn: txn, amount: currency(txn.amount_cents), options: numbered_options(cards))
+      txn
     end
 
     # Parse missing count → one ask on a pending stub carrying the rest inside extraction jsonb.

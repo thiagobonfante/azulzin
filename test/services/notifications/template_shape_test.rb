@@ -36,7 +36,8 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
     "goal_achieved"          => [ { kind: "goal_achieved", payload: { "goal" => "Carro", "amount_cents" => 6_000_000 } } ],
     "budget_warn_goal"       => [ { kind: "budget_warn", payload: { "category" => "Restaurantes", "spent_cents" => 50_000, "budget_cents" => 46_500, "left_cents" => 0, "goal_id" => 1, "goal_name" => "Carro" } } ],
     "budget_breach_goal"     => [ { kind: "budget_breach", payload: { "category" => "Restaurantes", "spent_cents" => 61_000, "budget_cents" => 46_500, "left_cents" => 0, "goal_id" => 1, "goal_name" => "Carro" } } ],
-    "surplus_nudge"    => [ { kind: "surplus_nudge", payload: { "surplus_cents" => 40_000, "savings_account_id" => 1 }, type: :suggestion } ],
+    "surplus_nudge"    => [ { kind: "surplus_nudge", payload: { "surplus_cents" => 40_000, "savings_account_id" => 1, "destination_kind" => "savings" }, type: :suggestion } ],
+    "surplus_nudge_investment" => [ { kind: "surplus_nudge", payload: { "surplus_cents" => 40_000, "savings_account_id" => 1, "destination_kind" => "investment" }, type: :suggestion } ],
     "rightsize_budget" => [ { kind: "rightsize_budget", payload: { "category" => "Lazer", "budget_cents" => 60_000, "typical_cents" => 30_000 }, type: :suggestion } ],
     # Phase 4 digests, exactly as Summaries::Build snapshots them: the full week, a week
     # with no upcoming bills, and the zero-spend week that exists only for its look-ahead

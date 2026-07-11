@@ -1192,7 +1192,8 @@ en:
       goal_alert_missed_month_income: "Income came in lower last month and goal %{goal} ended %{gap} under plan — it happens, it's okay. The finish moves from %{old_month} to %{new_month}."
       goal_alert_missed_month_plain: "Goal %{goal} came in %{gap} under plan last month. At this pace, the finish moves from %{old_month} to %{new_month}."
       goal_achieved: "Goal %{goal} achieved! You saved %{amount}. 🎉"
-      surplus_nudge: "You have %{surplus} to spare this month. How about moving it to savings?"
+      surplus_nudge: "You have %{surplus} to spare this month. Want to stash that cash?"
+      surplus_nudge_investment: "You have %{surplus} to spare this month. Want to move it to your investment account?"
       rightsize_budget: "%{category}: you planned %{budget} but usually spend %{typical}. Want to adjust it?"
       weekly_summary: "Weekly recap: you spent %{spent} and the month's leftover is at %{sobra}."
       weekly_summary_no_spend: "Weekly recap: the month's leftover is at %{sobra}."
@@ -1359,6 +1360,8 @@ en:
       unknown_sender: "This number isn't registered with azulzin."
       verified: "WhatsApp activated! ✅ Just send me your expenses here."
       phone_already_linked: "This number is already linked to another azulzin account. A number can only belong to one person."
+      invalid_code: "Invalid code. Check the code in the app and try again."
+      register_first: "This number isn't registered with azulzin. Sign up in the app first. 💙"
       income_posted: "💙 Received: %{amount} in %{instrument}."
       income_posted_linked: "💙 Received: %{amount} in %{instrument}."
       income_posted_unassigned: "💙 Received: %{amount}. Pick the account in the app."
@@ -1366,6 +1369,9 @@ en:
       transfer_saved: "💙 Saved: %{amount} to %{instrument}. Nice!"
       ask_transfer_to: "To which account? Reply with the number:\n%{options}"
       ask_transfer_from: "From which account? Reply with the number:\n%{options}"
+      ask_card_pick: "Got %{amount} 👍 Which card? Reply with the number:\n%{options}"
+      ask_account_pick: "Got %{amount} 👍 Which account did it come from? Reply with the number:\n%{options}"
+      ask_income_account_pick: "Got %{amount} 👍 Which account did it land in? Reply with the number:\n%{options}"
       installments_posted: "✅ Installments: %{count}x of %{parcel} on %{instrument}. First installment on the %{month} bill."
       installments_posted_categorized: "✅ Installments: %{count}x of %{parcel} on %{instrument} · %{category}. First installment on the %{month} bill."
       installment_commitment_created: "✅ Noted: %{count}x of %{parcel} (%{name}), monthly on %{instrument}. I'll remind you to mark it paid."
@@ -1487,7 +1493,8 @@ en:
           At this pace, the finish moves from %{old_month} to %{new_month}.
           Reply *reorganizar* to adjust the plan.
         goal_achieved: "💙 *%{goal}* goal achieved! You saved %{amount}. How about the next one?"
-        surplus_nudge: "💙 You closed the month with *%{surplus}* to spare. Want to put it in savings?"
+        surplus_nudge: "💙 You closed the month with *%{surplus}* to spare. Want to stash that cash?"
+        surplus_nudge_investment: "💙 You closed the month with *%{surplus}* to spare. Want to move it to your investment account?"
         rightsize_budget: "💙 *%{category}*: you planned %{budget}, but usually spend %{typical}. You can adjust it in Categories."
         weekly_summary: |-
           📊 *Your week in review*

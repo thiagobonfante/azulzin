@@ -29,6 +29,9 @@ module Whatsapp
         Valor falado por extenso (comum em áudio transcrito) vira dígitos: "oitenta e quatro e
         noventa" → "84,90", "dez reais" → "10", "mil e duzentos" → "1200" — mas NUNCA faça
         contas nem converta para centavos.
+      - merchant = o estabelecimento citado ("mercado", "farmácia São João"); se a mensagem nomeia
+        só O QUE foi comprado ("refri 13,90", "pão 5,50"), use o item comprado como merchant.
+        Só retorne merchant null quando a mensagem não nomeia nem loja nem item.
       - instrument_phrase = conta/cartão citado (expense/income) ou a ORIGEM da transferência.
       - to_instrument_phrase = DESTINO da transferência ("pra caixinha", "pra poupança").
       - installments_count = número de parcelas ("em 10x" → 10). installment_total_raw / installment_parcel_raw conforme dito.
