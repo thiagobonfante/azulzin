@@ -45,3 +45,4 @@
 
 # Personal, machine-specific Claude notes (e.g. the home-server ops pointer on wilfred).
 /CLAUDE.local.md
+.playwright-cli/
