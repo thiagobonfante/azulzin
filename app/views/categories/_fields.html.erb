@@ -10,7 +10,10 @@
     <label class="input input-bordered input-sm flex w-40 items-center gap-2">
       <span class="text-base-content/50"><%= t("money.symbol") %></span>
       <%= f.text_field :monthly_budget_reais, inputmode: "decimal", placeholder: "0,00", class: "grow",
-            data: (category.persisted? ? { budget_suggest_target: "input", action: "input->budget-suggest#hideHint" } : {}) %>
+            data: { controller: "money-mask", money_mask_cents_value: true,
+                    action: "input->money-mask#format" }.merge(
+              category.persisted? ? { budget_suggest_target: "input",
+                                      action: "input->money-mask#format input->budget-suggest#hideHint" } : {}) %>
     </label>
     <% if category.persisted? %>
       <span class="tooltip tooltip-bottom" data-tip="<%= t("categories.budget_suggest_help") %>">

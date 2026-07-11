@@ -23,7 +23,8 @@
           <label class="input input-bordered input-sm flex w-32 shrink-0 items-center gap-1">
             <span class="text-base-content/50"><%= t("money.symbol") %></span>
             <%= text_field_tag "sources[#{account.id}]", nil, inputmode: "decimal", placeholder: "0,00",
-                  class: "min-w-0 grow", aria: { label: account.display_name } %>
+                  class: "min-w-0 grow", aria: { label: account.display_name },
+                  data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
           </label>
         </div>
       <% end %>

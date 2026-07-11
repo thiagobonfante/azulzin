@@ -94,6 +94,29 @@ class TransactionsHubTest < ApplicationSystemTestCase
     assert_equal 109_200, @user.account.transactions.order(:id).last.amount_cents
   end
 
+  test "the save-money modal sources carry the centavos mask and post the exact cents" do
+    savings = @user.account.bank_accounts.create!(institution: @account.institution, nickname: "Reserva", kind: "savings")
+    # Positive sobra in the current month so the hero renders the save CTA.
+    @user.account.transactions.create!(bank_account: @account, direction: "income", status: "posted",
+                                       amount_cents: 500_000, occurred_on: Date.current,
+                                       billing_month: Date.current.beginning_of_month, merchant: "Salário")
+
+    visit transactions_path
+    find("button[data-action*='sobra-cta#open']").click
+
+    within "#save_money_form" do
+      source = find("input[name='sources[#{@account.id}]']")
+      source.send_keys "10000"
+      assert_equal "100,00", source.value   # digits are centavos, same as every money input
+      click_button I18n.t("transactions.hero.save_modal.submit")
+    end
+
+    assert_text "R$ 100,00"
+    transfer = @user.account.transactions.where(direction: "transfer").order(:id).last
+    assert_equal 10_000, transfer.amount_cents
+    assert_equal savings.id, transfer.transfer_to_bank_account_id
+  end
+
   test "the confirm modal Cancel button aborts the delete — row and record stay put" do
     txn = @user.account.transactions.create!(bank_account: @account, category: @user.account.categories.first,
                                      direction: "expense", status: "posted", amount_cents: 3_100,
