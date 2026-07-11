@@ -279,6 +279,159 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
     assert_equal seguro, paid.commitment if first_option == seguro.name
   end
 
+  # WA-CAP-15b — a bare "paguei a parcela" (2026-07-11): no identity words → numbered pick
+  # over the installments, never commitment_not_found while candidates exist.
+  test "generic paguei a parcela offers the installment pick instead of not-found" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    start = Date.current.beginning_of_month << 1
+    %w[Sofá Notebook].each_with_index do |name, i|
+      s.account.commitments.create!(
+        kind: "installment", name: name, bank_account: s.itau,
+        amount_cents: 28_000 + i, total_cents: (28_000 + i) * 6, installments_count: 6,
+        schedule_kind: "fixed_day", schedule_day: 15 + i, starts_on: start, created_by: s.owner)
+    end
+
+    with_canned_ai(extraction: E2E::CannedAI.pay_commitment(phrase: "a parcela",
+                                                            transcript: "paguei a parcela")) do
+      wa_inject(s.jid, "paguei a parcela")
+      drain_jobs!
+    end
+    options_reply = assert_wa_reply(s.jid)
+    assert_match(/1\. .*\n2\. /, options_reply, "must offer a numbered pick")
+    second_option = options_reply[/2\. (.+)/, 1]
+
+    wa_inject(s.jid, "2")
+    drain_jobs!
+
+    paid = s.account.transactions.where.not(commitment_id: nil).sole
+    assert_equal second_option, paid.commitment.name
+    assert_equal Date.current.beginning_of_month, paid.billing_month
+  end
+
+  # WA-CAP-15c — explicit future month → value confirmation; *sim* pays the expected parcel
+  test "future-month parcel asks value confirmation, sim pays the expected amount" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    sofa = s.account.commitments.create!(
+      kind: "installment", name: "Sofá", bank_account: s.itau,
+      amount_cents: 28_000, total_cents: 168_000, installments_count: 6,
+      schedule_kind: "fixed_day", schedule_day: 15,
+      starts_on: Date.current.beginning_of_month << 1, created_by: s.owner)
+    next_month = Date.current.beginning_of_month >> 1
+
+    with_canned_ai(extraction: E2E::CannedAI.pay_commitment(phrase: "sofá", target_bill_raw: "mês que vem")) do
+      wa_inject(s.jid, "paguei a parcela do sofá do mês que vem")
+      drain_jobs!
+    end
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_pay_confirm", name: "Sofá",
+      month: I18n.l(next_month, format: :month_year), amount: brl(28_000), locale: :"pt-BR"))
+
+    wa_inject(s.jid, "sim")
+    drain_jobs!
+
+    paid = s.account.transactions.where(commitment: sofa).sole
+    assert_equal 28_000, paid.amount_cents
+    assert_equal next_month, paid.billing_month
+  end
+
+  # WA-CAP-15d — a plausible custom value (±20% for a next-month parcel) posts as given
+  test "future-month confirmation accepts a custom value within the threshold" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    sofa = s.account.commitments.create!(
+      kind: "installment", name: "Sofá", bank_account: s.itau,
+      amount_cents: 28_000, total_cents: 168_000, installments_count: 6,
+      schedule_kind: "fixed_day", schedule_day: 15,
+      starts_on: Date.current.beginning_of_month << 1, created_by: s.owner)
+
+    with_canned_ai(extraction: E2E::CannedAI.pay_commitment(phrase: "sofá", target_bill_raw: "mês que vem")) do
+      wa_inject(s.jid, "paguei a parcela do sofá do mês que vem")
+      drain_jobs!
+    end
+    wa_inject(s.jid, "250")   # 10,7% off the R$ 280,00 parcel → plausible discount
+    drain_jobs!
+
+    paid = s.account.transactions.where(commitment: sofa).sole
+    assert_equal 25_000, paid.amount_cents
+  end
+
+  # WA-CAP-15e — "última parcela": targets the plan's final month (±50% threshold);
+  # an implausible value doubts once, *confirmo* then pays the doubted value.
+  test "última parcela targets the final month; implausible value doubts, confirmo pays it" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    sofa = s.account.commitments.create!(
+      kind: "installment", name: "Sofá", bank_account: s.itau,
+      amount_cents: 28_000, total_cents: 168_000, installments_count: 6,
+      schedule_kind: "fixed_day", schedule_day: 15,
+      starts_on: Date.current.beginning_of_month << 1, created_by: s.owner)
+    last_month = sofa.last_month.beginning_of_month
+
+    with_canned_ai(extraction: E2E::CannedAI.pay_commitment(phrase: "última parcela do sofá",
+                                                            transcript: "paguei a última parcela do sofá")) do
+      wa_inject(s.jid, "paguei a última parcela do sofá")
+      drain_jobs!
+    end
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_pay_confirm", name: "Sofá",
+      month: I18n.l(last_month, format: :month_year), amount: brl(28_000), locale: :"pt-BR"))
+
+    wa_inject(s.jid, "10")   # R$ 10,00 vs R$ 280,00 — far beyond even the 50% band
+    drain_jobs!
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.pay_confirm_doubt", value: brl(1_000),
+      month: I18n.l(last_month, format: :month_year), expected: brl(28_000), locale: :"pt-BR"))
+
+    wa_inject(s.jid, "confirmo")
+    drain_jobs!
+
+    paid = s.account.transactions.where(commitment: sofa).sole
+    assert_equal 1_000, paid.amount_cents
+    assert_equal last_month, paid.billing_month
+  end
+
+  # WA-CAP-15f — paying the final open parcel celebrates the payoff (2026-07-11)
+  test "paying the last parcel replies quitado, not 'faltam 0'" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    sofa = s.account.commitments.create!(
+      kind: "installment", name: "Sofá", bank_account: s.itau,
+      amount_cents: 28_000, total_cents: 56_000, installments_count: 2,
+      schedule_kind: "fixed_day", schedule_day: 15,
+      starts_on: Date.current.beginning_of_month << 1, created_by: s.owner)
+    Commitments::MarkPaid.call(sofa, sofa.starts_on, created_by: s.owner)   # parcel 1 already paid
+
+    with_canned_ai(extraction: E2E::CannedAI.pay_commitment(phrase: "sofá")) do
+      wa_inject(s.jid, "paguei a parcela do sofá")
+      drain_jobs!
+    end
+
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.commitment_completed", name: "Sofá",
+      amount: brl(28_000), month: I18n.l(Date.current.beginning_of_month, format: :month_year),
+      count: 2, locale: :"pt-BR"))
+  end
+
+  # WA-CAP-15g — the celebration also fires through the future-month confirmation path
+  test "confirming the última parcela celebrates the payoff" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    sofa = s.account.commitments.create!(
+      kind: "installment", name: "Sofá", bank_account: s.itau,
+      amount_cents: 28_000, total_cents: 56_000, installments_count: 2,
+      schedule_kind: "fixed_day", schedule_day: 15,
+      starts_on: Date.current.beginning_of_month, created_by: s.owner)
+    Commitments::MarkPaid.call(sofa, sofa.starts_on, created_by: s.owner)   # parcel 1 already paid
+    last_month = sofa.last_month.beginning_of_month
+
+    with_canned_ai(extraction: E2E::CannedAI.pay_commitment(phrase: "última parcela do sofá",
+                                                            transcript: "paguei a última parcela do sofá")) do
+      wa_inject(s.jid, "paguei a última parcela do sofá")
+      drain_jobs!
+    end
+    wa_inject(s.jid, "230")   # within the ±20% next-month band
+    drain_jobs!
+
+    # ONE message: the celebration with the savings note as its footer line.
+    assert_wa_reply(s.jid, equals: [
+      I18n.t("whatsapp.replies.commitment_completed", name: "Sofá", amount: brl(23_000),
+             month: I18n.l(last_month, format: :month_year), count: 2, locale: :"pt-BR"),
+      I18n.t("whatsapp.replies.advance_saving_note", saved: brl(5_000), locale: :"pt-BR")
+    ].join("\n"))
+  end
+
   # WA-CAP-16
   test "edit amount: na verdade foi 54,90 corrects the SAME row" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!

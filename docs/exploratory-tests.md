@@ -291,7 +291,7 @@ Pins: `app/services/whatsapp/interpreter.rb:35-37,69-74`, `app/services/whatsapp
 Seed: `dev:seed_demo` · AI: live-AI
 
 **Steps:**
-1. From Marina, three separate messages: `farmácia 1.234,56 no débito no itaú` / `farmácia 1234,56 no débito no itaú` / `farmácia R$ 15 no débito no itaú`.
+1. From Marina, three separate messages: `farmácia 1.234,56 no débito no itaú` / `farmácia 1234,56 no débito no itaú` / `farmácia R$ 15 no débito no itaú`. Note (2026-07-11): messages 1 and 2 resolve to the SAME cents+merchant, so the second triggers the duplicate ask (WA-CAP-35) — reply `sim` to post it and continue the matrix.
 
 **Expect:** Rows with exactly 123456 / 123456 / 1500 centavos (LLM returns `amount_raw` verbatim; Ruby `Money.to_cents` converts). Replies quote localized R$ 1.234,56 / R$ 1.234,56 / R$ 15,00.
 
@@ -403,14 +403,19 @@ Demo seed already carries multiple commitments (Notebook installment on Itaú ca
 2. When the numbered ask arrives, reply: `2`.
 3. Then the direct form: `paguei a parcela do sofá`.
 
-**Expect:** Ambiguous: "Qual deles? Responde com o número:\n1. …" — the pick posts a payment linked to the chosen occurrence, reply "✅ <nome> paga: R$ … (<mês>)." Direct form skips the ask (commitment_paid/commitment_paid_simple).
+**Expect:** Ambiguous: "Qual deles? Responde com o número:\n1. …" — a bare/generic phrase ("a parcela", "a conta") always reaches the pick, never commitment_not_found while active commitments exist; "parcela" narrows the pool to installments (WA-CAP-15b, fixed 2026-07-11). The pick posts a payment linked to the chosen occurrence, reply "✅ <nome> paga: R$ … (<mês>)." Direct form skips the ask (commitment_paid/commitment_paid_simple).
 
 **Variants:**
+- Explicit month (`paguei a parcela do sofá de agosto`, WA-CAP-15c/d): the stated month is targeted, not the current one. A FUTURE month first confirms the value — "*Sofá* de agosto de 2026: a parcela é R$ 280,00. Confirma esse valor? Pode responder *sim* ou mandar o valor pago." — `sim`/`confirmo` pays the parcel value; a number pays that value when plausible (±20% for a ≤1-month-out parcel, ±50% farther — early-payoff discounts), otherwise pay_confirm_doubt asks once ("responde *confirmo* — ou manda o valor certo"), and `confirmo` then pays the doubted value.
+- `paguei a última parcela do sofá` (WA-CAP-15e): targets the plan's final month via the same confirmation flow.
+- Payoff celebration (WA-CAP-15f/g, 2026-07-11): when the payment closes the LAST open parcel — every parcel accounted for, not just the positionally-last month — the reply is "🎉 *Sofá* quitado! Última parcela paga: R$ … (<mês>). Foram N parcelas. 💙" instead of "Faltam 0 de N". Paying the final month while an earlier parcel is still open does NOT celebrate.
+- Advance-payment discount (2026-07-11): confirming a future parcel BELOW its expected value appends a footer line to the SAME message — "👏 Mandou bem! Pagando adiantado você economizou R$ <expected − paid>." Paying exactly the parcel value (`sim`) gets no note.
+- "Faltam N de M" counts parcels actually UNPAID (`count − paid_count`, presumed + posted), never the positional parcel number — an advanced última reads "Faltam 34 de 36", not "Faltam 0 de 36" (fixed 2026-07-11).
 - Already paid this month → "<nome> já está paga em <mês> 👍 Nada a fazer."
-- Card subscription (Netflix on card) → commitment_on_bill "entra direto na fatura… não precisa marcar. 😉"
-- No match → commitment_not_found.
+- Card subscription (Netflix on card) → commitment_on_bill "entra direto na fatura… não precisa marcar. 😉" — also guarded on the numbered-pick path now (picking a card commitment never creates a payment row; latent bug fixed 2026-07-11).
+- No match (a NAMED commitment that doesn't exist) → commitment_not_found.
 
-Pins: `app/services/whatsapp/pay_commitment_decider.rb:1`, `app/services/whatsapp/reply_router.rb:105-117`, `config/locales/pt-BR.yml:1374-1379`
+Pins: `app/services/whatsapp/pay_commitment_decider.rb:1`, `app/services/whatsapp/reply_router.rb:120-200`, `config/locales/pt-BR.yml:1374-1381`
 
 ### WA-CAP-16 — Correction: "na verdade foi 54,90" edits the last WA row in place
 
@@ -510,11 +515,11 @@ You need a receipt photo whose printed TOTAL you know exactly (e.g. a real cupom
 2. In the same chat attach the receipt photo (📎) WITH caption `itaú` (a purchase receipt prints no origin, so the caption is the deterministic instrument hint).
 3. Open the transaction in the web hub and confirm the attached receipt.
 
-**Expect:** NO new row — reply "📎 Esse gasto já estava lançado: R$ 84,90 na conta Itaú (Marina). Anexei o comprovante."; the existing row now has the receipt blob. Reconcile requires exact amount + same instrument + ±3 days + a receipt-less row.
+**Expect:** NO new row — reply "📎 Esse gasto já estava lançado: R$ 84,90 na conta Itaú (Marina). Anexei o comprovante."; the existing row now has the receipt blob. Reconcile matches exact amount + ±3 days + a receipt-less row, runs BEFORE the confidence gate (a timid vision read of a receipt that matches a posted row still reconciles, never parks a duplicate — widened 2026-07-11, WA-CAP-23b).
 
 **Variants:**
-- No caption / no instrument match → reconcile is skipped entirely (instrument nil) and a DUPLICATE unassigned row posts — real pinned behavior, deliberately conservative; verify and note whether it feels acceptable.
-- Same receipt sent twice as two separate messages → the first row now HAS a receipt, so the second posts a duplicate (scope excludes rows with receipts). Exploratory: flag for a product decision if it stings.
+- No caption / no instrument match (a plain recibo names no bank): reconcile searches ACCOUNT-WIDE and merges when the match is unique — e.g. a recibo for the exact value of a parcel payment posted this week attaches to that payment (WA-CAP-23b). With TWO equally-matching rows it refuses and parks — merging would be a guess (WA-CAP-23c).
+- Same receipt sent twice as two separate messages (WA-CAP-36, 2026-07-11): the first send reconciled/posted, so the row carries a receipt and can't merge again — the second now ASKS "🤔 Opa, já tem um lançamento igual hoje: R$ … — <label>. É um gasto novo? …" — *sim* posts it anyway, *não* discards. Same guard for TEXT: an identical amount+merchant capture on the same day asks first (WA-CAP-35/35b).
 
 Pins: `app/services/whatsapp/decider.rb:138-153`, `app/jobs/process_inbound_whatsapp_job.rb:85-95,138-143`, `config/locales/pt-BR.yml:1351-1352`
 
@@ -550,7 +555,7 @@ Pins: `app/jobs/process_inbound_whatsapp_job.rb:127-133`, `config/locales/pt-BR.
 
 Seed: `dev:seed_demo` · AI: live-AI (vision; Ghostscript required locally for Imports::PdfRasterizer)
 
-The simulator's file picker only accepts image/audio — inject the PDF via curl. Use a real Pix comprovante exported as PDF.
+The simulator's file picker accepts PDFs directly (📎 → pick the file; it goes out as a `document`). The curl injection below remains as the scriptable alternative. Use a real Pix comprovante exported as PDF.
 
 **Steps:**
 1. Encode: `base64 -i comprovante.pdf | tr -d '\n' > /tmp/b64.txt`
@@ -625,11 +630,11 @@ Seed: `dev:seed_demo` · AI: live-AI — WARNING: the first 20 messages each fir
 **Steps:**
 1. Run:
 ```
-for i in $(seq 1 21); do curl -s localhost:3001/_inject -H 'Content-Type: application/json' -d "{\"jid\":\"5511987654321@c.us\",\"body\":\"cafe 5 #$i\"}" >/dev/null; done
+for i in $(seq 1 21); do curl -s localhost:3001/_inject -H 'Content-Type: application/json' -d "{\"jid\":\"5511987654321@c.us\",\"body\":\"cafe $i,50 na loja $i\"}" >/dev/null; done
 ```
 2. Count replies in the chat and check the last message's status via runner.
 
-**Expect:** 20 messages processed (each replied); the 21st is stored but marked failed/rate_limited with NO reply and NO AI call — this SILENCE is the pinned real behavior (the catalog's 'golden rate-cap reply' was superseded; E2E asserts exactly 20 replies). Exploratory judgment call: does silent drop feel right at the 21st message?
+**Expect:** 20 messages processed (each replied); the 21st is stored but marked failed/rate_limited with NO reply and NO AI call — this SILENCE is the pinned real behavior (the catalog's 'golden rate-cap reply' was superseded; E2E asserts exactly 20 replies). Exploratory judgment call: does silent drop feel right at the 21st message? Bodies must VARY (amount or merchant): identical bodies trip the duplicate-confirmation ask (WA-CAP-35) at message 2, which is its own correct behavior but not what this scenario measures.
 
 **Variants:**
 - Wait 61s and send message 22 → processed normally (window is rolling 1 minute).

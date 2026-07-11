@@ -37,9 +37,10 @@ module E2E
       base(intent: "create_goal", intent_confidence: confidence, payment_method: "desconhecido")
     end
 
-    def pay_commitment(phrase:, confidence: 0.9)
+    def pay_commitment(phrase:, confidence: 0.9, target_bill_raw: nil, transcript: nil)
       base(intent: "pay_commitment", intent_confidence: confidence,
-           commitment_phrase: phrase, payment_method: "desconhecido")
+           commitment_phrase: phrase, payment_method: "desconhecido",
+           target_bill_raw: target_bill_raw, raw: { "transcript" => transcript }.compact)
     end
 
     def query(kind, confidence: 0.9, instrument: nil)

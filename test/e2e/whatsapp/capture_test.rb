@@ -271,6 +271,121 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
                                           locale: :"pt-BR"))
   end
 
+  # WA-CAP-23b — a recibo names no bank and vision reads it timidly, but it exactly matches
+  # ONE recent posted row (a parcel payment): reconcile runs account-wide, BEFORE the floor
+  # gate — no parked duplicate (2026-07-11; the exploratory Sofá-recibo case).
+  test "instrument-less low-confidence receipt reconciles onto the unique matching payment" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    sofa = s.account.commitments.create!(
+      kind: "installment", name: "Sofá", bank_account: s.itau,
+      amount_cents: 28_000, total_cents: 168_000, installments_count: 6,
+      schedule_kind: "fixed_day", schedule_day: 15,
+      starts_on: Date.current.beginning_of_month, created_by: s.owner)
+    payment = Commitments::MarkPaid.call(sofa, sofa.last_month, amount: 23_000, created_by: s.owner)
+    rows_before = s.account.transactions.count
+
+    bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))
+    media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "recibo.jpg" }
+    receipt = E2E::CannedAI.expense(cents: 23_000, merchant: "Sofá e Cia LTDA", method: "desconhecido",
+                                    confidence: 0.5, amount_confidence: 0.5, modality: "image")
+    with_canned_ai(receipt: receipt) do
+      wa_inject(s.jid, "", type: "image", media: media)
+      drain_jobs!
+    end
+
+    assert_equal rows_before, s.account.transactions.count, "no duplicate/parked row"
+    assert payment.reload.receipt.attached?, "the recibo landed on the parcel payment"
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.receipt_matched_account",
+                                          amount: brl(23_000),
+                                          instrument: s.itau.display_name, locale: :"pt-BR"))
+  end
+
+  # WA-CAP-35 — same thing, same day (2026-07-11): an identical text capture asks before
+  # silently duplicating; *sim* posts it anyway.
+  test "identical expense on the same day asks duplicate confirmation, sim posts" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    extraction = E2E::CannedAI.expense(cents: 500, merchant: "Café da Praça", method: "debito")
+    with_canned_ai(extraction: extraction) do
+      wa_inject(s.jid, "café 5")
+      drain_jobs!
+    end
+    assert_equal 1, s.account.transactions.where(status: "posted").count
+
+    with_canned_ai(extraction: extraction) do
+      wa_inject(s.jid, "café 5")
+      drain_jobs!
+    end
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_duplicate", amount: brl(500),
+                                          label: "Café da Praça", locale: :"pt-BR"))
+
+    wa_inject(s.jid, "sim")
+    drain_jobs!
+    assert_equal 2, s.account.transactions.where(status: "posted").count
+  end
+
+  # WA-CAP-35b — *não* discards the held duplicate
+  test "duplicate confirmation não discards the stub" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    extraction = E2E::CannedAI.expense(cents: 500, merchant: "Café da Praça", method: "debito")
+    with_canned_ai(extraction: extraction) do
+      wa_inject(s.jid, "café 5")
+      drain_jobs!
+      wa_inject(s.jid, "café 5")
+      drain_jobs!
+    end
+
+    wa_inject(s.jid, "não")
+    drain_jobs!
+
+    assert_equal 1, s.account.transactions.where(status: "posted").count
+    assert_equal "superseded", s.account.transactions.order(:id).last.status
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.duplicate_discarded", locale: :"pt-BR"))
+  end
+
+  # WA-CAP-36 — a RE-SENT receipt (its row already carries an attachment, so reconcile
+  # can't merge) asks instead of stacking a duplicate row.
+  test "re-sent receipt asks duplicate confirmation instead of duplicating" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    existing = s.expense(merchant: "Supermercado Bom Preço", category: "Mercado",
+                         instrument: s.itau, cents: 8_490, on: Date.current)
+    bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))
+    existing.receipt.attach(io: StringIO.new(bytes), filename: "r.jpg", content_type: "image/jpeg")
+
+    media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "r2.jpg" }
+    receipt = E2E::CannedAI.expense(cents: 8_490, merchant: "Supermercado Bom Preço",
+                                    method: "desconhecido", modality: "image")
+    with_canned_ai(receipt: receipt) do
+      wa_inject(s.jid, "", type: "image", media: media)
+      drain_jobs!
+    end
+
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.ask_duplicate", amount: brl(8_490),
+                                          label: "Supermercado Bom Preço", locale: :"pt-BR"))
+    assert_equal 1, s.account.transactions.where(status: "posted").count
+  end
+
+  # WA-CAP-23c — with NO instrument hint and TWO equally-matching rows, merging would be a
+  # guess: reconcile refuses and the receipt parks (conservative pin).
+  test "instrument-less receipt with an ambiguous match parks instead of guessing" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    2.times { |i| s.expense(merchant: "Loja #{i}", category: "Outros", instrument: s.itau,
+                            cents: 23_000, on: Date.current) }
+    rows_before = s.account.transactions.count
+
+    bytes = File.binread(Rails.root.join("test/fixtures/files/receipt.jpg"))
+    media = { data: Base64.strict_encode64(bytes), mimetype: "image/jpeg", filename: "recibo.jpg" }
+    receipt = E2E::CannedAI.expense(cents: 23_000, merchant: "Loja", method: "desconhecido",
+                                    confidence: 0.5, amount_confidence: 0.5, modality: "image")
+    with_canned_ai(receipt: receipt) do
+      wa_inject(s.jid, "", type: "image", media: media)
+      drain_jobs!
+    end
+
+    assert_equal rows_before + 1, s.account.transactions.count
+    assert_equal "pending_review", s.account.transactions.order(:id).last.status
+    assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.parked", locale: :"pt-BR"))
+  end
+
   # WA-CAP-24 — a receipt matching NOTHING creates the row and shares the SAME blob (survives
   # the WA media purge)
   test "image receipt: transaction created with the receipt attached to the same blob" do
@@ -424,9 +539,11 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
   test "rate cap: the 21st message in a minute is stored as rate_limited, not processed" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!
 
-    with_canned_ai(extraction: E2E::CannedAI.expense(cents: 1_000, merchant: "loja",
-                                                     method: "desconhecido")) do
-      21.times do |i|
+    # Distinct cents/merchant per message — identical ones would (correctly) trip the
+    # duplicate-confirmation ask (WA-CAP-35), which is not what this test is about.
+    21.times do |i|
+      with_canned_ai(extraction: E2E::CannedAI.expense(cents: 1_000 + i, merchant: "loja #{i}",
+                                                       method: "desconhecido")) do
         wa_inject(s.jid, "loja 10 ##{i}")
         drain_jobs!
       end

@@ -19,6 +19,8 @@ module Whatsapp
       when "transfer_from"      then resolve_transfer_leg(:bank_account_id, "ask_transfer_from")
       when "installments_count" then resolve_installments_count
       when "commitment_pick"    then resolve_commitment_pick
+      when "commitment_pay_confirm" then resolve_commitment_pay_confirm
+      when "duplicate_confirm"  then resolve_duplicate_confirm
       when "instrument_pick"    then resolve_instrument_pick
       when "installment_card_pick" then resolve_installment_card_pick
       else re_ask("whatsapp.replies.clarify_amount")
@@ -174,10 +176,119 @@ module Whatsapp
                       options: commitments.each_with_index.map { |c, i| "#{i + 1}. #{c.name}" }.join("\n"))
       end
       month = Date.parse(@ask.ask["month"])
+      month = chosen.last_month.beginning_of_month if @ask.ask["last_parcel"] && chosen.installment? && chosen.last_month
+      if chosen.card?   # card commitments settle on the bill — same guard as the decider
+        @ask.update!(status: "superseded", updated_by: user)
+        return reply("whatsapp.replies.commitment_on_bill",
+                     instrument: chosen.credit_card.display_name, name: chosen.name)
+      end
+      if chosen.paid_in?(month)
+        @ask.update!(status: "superseded", updated_by: user)
+        return reply("whatsapp.replies.commitment_already_paid", name: chosen.name, month: month_label(month))
+      end
+      # Future parcel → chain into the value confirmation (same flow as the direct path).
+      if month > sp_today.beginning_of_month
+        chained = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES,
+                    ask: { "slot" => "commitment_pay_confirm", "commitment_id" => chosen.id,
+                           "month" => month.strftime("%Y-%m-%d"), "expected_cents" => chosen.amount_cents },
+                    ask_expires_at: 60.minutes.from_now, updated_by_id: @msg.user_id)
+        return unless chained
+        return reply("whatsapp.replies.ask_pay_confirm", name: chosen.name,
+                     month: month_label(month), amount: currency(chosen.amount_cents))
+      end
+      finalize_commitment_pay(chosen, month, nil)
+    end
+
+    # Value confirmation for a future/última parcel: *sim/confirmo* pays the expected (or the
+    # doubted) amount; a number pays that value when plausible — a close parcel (≤1 month out)
+    # tolerates ±20%, a far one ±50% (early-payoff discounts) — else we doubt once and hold.
+    def resolve_commitment_pay_confirm
+      commitment = account.commitments.kept.find_by(id: @ask.ask["commitment_id"])
+      unless commitment
+        @ask.update!(status: "superseded", updated_by: user)
+        return reply("whatsapp.replies.commitment_not_found")
+      end
+      month    = Date.parse(@ask.ask["month"])
+      expected = @ask.ask["expected_cents"].to_i
+
+      if Whatsapp.normalize(@text).match?(/\A(sim|confirmo|confirma|confirmar|ok|isso|yes|confirm)\b/)
+        finalize_commitment_pay(commitment, month, (@ask.ask["pending_cents"] || expected).to_i,
+                                expected: expected)
+      elsif (cents = Money.to_cents(@text))&.positive?
+        if pay_amount_plausible?(cents, expected, month)
+          finalize_commitment_pay(commitment, month, cents, expected: expected)
+        else
+          @ask.guarded_update(Transaction::OPEN_ASK_STATUSES,
+            ask: @ask.ask.merge("pending_cents" => cents), ask_expires_at: 60.minutes.from_now,
+            updated_by_id: @msg.user_id)
+          reply("whatsapp.replies.pay_confirm_doubt", value: currency(cents),
+                month: month_label(month), expected: currency(expected))
+        end
+      else
+        reply("whatsapp.replies.ask_pay_confirm", name: commitment.name,
+              month: month_label(month), amount: currency(expected))
+      end
+    end
+
+    # "É um gasto novo?" — *sim* posts the held stub as-is; *não* discards it.
+    def resolve_duplicate_confirm
+      norm = Whatsapp.normalize(@text)
+      if norm.match?(/\A(sim|s|isso|novo|yes)\b/)
+        posted = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES,
+                   status: "posted", confirmed_at: Time.current, ask: {}, ask_expires_at: nil,
+                   updated_by_id: @msg.user_id)
+        return unless posted
+        if @ask.assigned?
+          kind = @ask.credit_card_id ? "card" : "account"
+          if @ask.category
+            reply("whatsapp.replies.posted_#{kind}_categorized", amount: currency(@ask.amount_cents),
+                  instrument: @ask.instrument.display_name, category: @ask.category.name)
+          else
+            reply("whatsapp.replies.posted_#{kind}", amount: currency(@ask.amount_cents),
+                  instrument: @ask.instrument.display_name)
+          end
+        else
+          reply("whatsapp.replies.posted_unassigned", amount: currency(@ask.amount_cents))
+        end
+      elsif norm.match?(/\A(nao|n|cancela|descarta|no)\b/)
+        discarded = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES,
+                      status: "superseded", ask: {}, ask_expires_at: nil, updated_by_id: @msg.user_id)
+        return unless discarded
+        reply("whatsapp.replies.duplicate_discarded")
+      else
+        label = @ask.merchant.presence || @ask.instrument&.display_name ||
+                I18n.t("whatsapp.replies.no_description", locale: user.locale)
+        reply("whatsapp.replies.ask_duplicate", amount: currency(@ask.amount_cents), label: label)
+      end
+    end
+
+    def pay_amount_plausible?(cents, expected, month)
+      return true if expected.zero?
+      months_ahead = (month.year * 12 + month.month) - (sp_today.year * 12 + sp_today.month)
+      pct = months_ahead <= 1 ? 20 : 50
+      (cents - expected).abs * 100 <= expected * pct
+    end
+
+    def finalize_commitment_pay(commitment, month, amount, expected: nil)
       @ask.update!(status: "superseded", updated_by: user)
-      txn = Commitments::MarkPaid.call(chosen, month, created_by: user)
-      reply("whatsapp.replies.commitment_paid_simple", amount: currency(txn.amount_cents),
-            name: chosen.name, month: month_label(month))
+      txn = Commitments::MarkPaid.call(commitment, month, amount: amount, created_by: user)
+      # Paying ahead for less than the parcel = a discount worth naming, same message.
+      saved = expected ? expected - txn.amount_cents : 0
+      footer = saved.positive? ? { footer_key: "whatsapp.replies.advance_saving_note",
+                                   footer_args: { saved: currency(saved) } } : {}
+      if commitment.completed?
+        reply("whatsapp.replies.commitment_completed", amount: currency(txn.amount_cents),
+              name: commitment.name, month: month_label(month), count: commitment.installments_count, **footer)
+      elsif commitment.installment?
+        # remaining = parcels actually unpaid, never positional (an advanced última must
+        # not read "faltam 0" while earlier parcels are open).
+        remaining = commitment.installments_count - commitment.paid_count
+        reply("whatsapp.replies.commitment_paid", amount: currency(txn.amount_cents), name: commitment.name,
+              month: month_label(month), remaining: remaining, count: commitment.installments_count, **footer)
+      else
+        reply("whatsapp.replies.commitment_paid_simple", amount: currency(txn.amount_cents),
+              name: commitment.name, month: month_label(month), **footer)
+      end
     end
 
     def parse_count(text)

@@ -6,8 +6,8 @@ class WhatsappReply
   # key: an i18n key under whatsapp.replies.*  ·  transaction: optional link  ·
   # footer_key: optional one-line appendix rendered in the same locale (the first-push
   # opt-out courtesy, .plans/up-tier 01 §2)
-  def self.deliver(user:, key:, transaction: nil, footer_key: nil, **i18n_args)
-    body = render(user, key, footer_key: footer_key, **i18n_args)
+  def self.deliver(user:, key:, transaction: nil, footer_key: nil, footer_args: {}, **i18n_args)
+    body = render(user, key, footer_key: footer_key, footer_args: footer_args, **i18n_args)
     outbound = WhatsappMessage.create!(
       user: user, account: user.account, direction: "outbound", message_type: "text",
       body: body, status: "sent", linked_transaction: transaction
@@ -32,10 +32,10 @@ class WhatsappReply
     end
   end
 
-  def self.render(user, key, footer_key: nil, **i18n_args)
+  def self.render(user, key, footer_key: nil, footer_args: {}, **i18n_args)
     I18n.with_locale(user.locale) do
       body = I18n.t(key, **i18n_args)
-      footer_key ? "#{body}\n#{I18n.t(footer_key)}" : body
+      footer_key ? "#{body}\n#{I18n.t(footer_key, **footer_args)}" : body
     end
   end
 end

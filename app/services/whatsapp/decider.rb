@@ -19,6 +19,21 @@ module Whatsapp
 
     def call
       return ask_amount unless @extraction.amount_present?
+      # A receipt exactly matching a recent posted row is its own confidence proof —
+      # reconcile BEFORE the floor gate (a parked duplicate of an already-posted expense
+      # helps no one; the extracted amount is validated by the row it matches).
+      if (existing = reconcile_receipt(assignable_instrument))
+        kind = existing.credit_card ? "card" : "account"
+        reply("whatsapp.replies.receipt_matched_#{kind}", existing,
+              amount: currency, instrument: (existing.credit_card || existing.bank_account).display_name)
+        return existing
+      end
+      # Same thing, same day, already posted → confirm before stacking a silent duplicate
+      # (a re-sent receipt, or "café 5" texted twice). Below the floor it parks anyway —
+      # the review tray IS the confirmation there.
+      if @confidence.above_floor? && (dup = duplicate_suspect)
+        return ask_duplicate(dup)
+      end
       @confidence.above_floor? ? post : park
     end
 
@@ -26,12 +41,6 @@ module Whatsapp
 
     def post
       instrument = assignable_instrument
-      if (existing = reconcile_receipt(instrument))
-        kind = existing.credit_card ? "card" : "account"
-        reply("whatsapp.replies.receipt_matched_#{kind}", existing,
-              amount: currency, instrument: instrument.display_name)
-        return existing
-      end
       # A known payment method narrows the instrument set (credito → cards, debito/pix →
       # accounts): a sole candidate assigns silently; several get ONE numbered ask instead
       # of an unassigned row in the review inbox. Unknown method keeps the unassigned post.
@@ -78,6 +87,30 @@ module Whatsapp
     def assignable_instrument
       return nil unless @match.matched? && @match.c_match >= Transaction::MATCH_ASSIGN_MIN
       @match.instrument
+    end
+
+    # A posted expense with the same cents on the same day: for text the merchant must also
+    # match (two different R$ 5 buys a day are normal); a receipt's exact amount+day alone
+    # is suspicious enough (the reconcile above already merged the receipt-less case).
+    def duplicate_suspect
+      on = @extraction.occurred_on || today
+      scope = account.transactions.kept.where(status: "posted", direction: "expense",
+                                              amount_cents: @extraction.amount_cents, occurred_on: on)
+      merchant = Whatsapp.normalize(@extraction.merchant.to_s)
+      if merchant.present?
+        found = scope.detect { |t| Whatsapp.normalize(t.merchant.to_s) == merchant }
+        return found if found
+      end
+      @extraction.source == "whatsapp_receipt" ? scope.first : nil
+    end
+
+    def ask_duplicate(dup)
+      txn = upsert(status: "needs_disambiguation", instrument: assignable_instrument,
+                   ask: { "slot" => "duplicate_confirm" }, ask_expires_at: ASK_TTL.from_now)
+      label = dup.merchant.presence || (dup.credit_card || dup.bank_account)&.display_name
+      reply("whatsapp.replies.ask_duplicate", txn, amount: currency,
+            label: label || I18n.t("whatsapp.replies.no_description", locale: @msg.user.locale))
+      txn
     end
 
     def method_candidates
@@ -174,12 +207,16 @@ module Whatsapp
 
     # Receipt↔transaction reconciliation (the receipt sibling of link_card_commitment):
     # a receipt matching an already-posted charge attaches to that row instead of posting a
-    # duplicate. Conservative on purpose — exact amount + same matched instrument + a few
-    # days + receipt-less rows only — so a false merge stays unlikely.
+    # duplicate. Conservative on purpose — exact amount + ±3 days + receipt-less rows only;
+    # an instrument match takes the strongest candidate, while a receipt with NO instrument
+    # hint (a plain recibo names no bank) merges only when the account-wide match is UNIQUE
+    # and the row carries an instrument.
     def reconcile_receipt(instrument)
-      return nil unless @extraction.source == "whatsapp_receipt" && instrument
+      return nil unless @extraction.source == "whatsapp_receipt"
       on = @extraction.occurred_on || today
-      scope = instrument.transactions.kept.where(
+      base = instrument ? instrument.transactions :
+               account.transactions.where("bank_account_id IS NOT NULL OR credit_card_id IS NOT NULL")
+      scope = base.kept.where(
         account: account, status: "posted", direction: "expense",
         amount_cents: @extraction.amount_cents,
         occurred_on: (on - RECEIPT_MATCH_DAYS)..(on + RECEIPT_MATCH_DAYS))
@@ -190,7 +227,10 @@ module Whatsapp
                      .find_by(active_storage_attachments: { blob_id: @msg.media.blob.id })
         return rerun if rerun
       end
-      scope.where.missing(:receipt_attachment).order(occurred_on: :desc, id: :desc).first
+      candidates = scope.where.missing(:receipt_attachment).order(occurred_on: :desc, id: :desc)
+      return candidates.first if instrument
+      rows = candidates.limit(2).to_a
+      rows.size == 1 ? rows.first : nil
     end
 
     def assign_instrument(txn, instrument)

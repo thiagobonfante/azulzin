@@ -43,6 +43,9 @@ class CommitmentOccurrence
       months << m
       m = m >> 1
     end
+    # The 12-month horizon only trims unpaid future noise — a parcel PAID beyond it
+    # (an advanced última) must still render in the paid history.
+    months |= payments.keys.select { |mo| mo > last }.sort
     months.map { |mo| new(commitment, mo, payment: payments[mo]) }
   end
 

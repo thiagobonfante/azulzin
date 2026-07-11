@@ -134,6 +134,10 @@ class Commitment < ApplicationRecord
     (presumed_paid_count + posted_paid_count).clamp(0, installments_count.to_i)
   end
 
+  # Every parcel accounted for — the "quitado" celebration gate. Deliberately NOT
+  # positional (paying the final month with an earlier one still open is not done).
+  def completed? = installment? && installments_count.to_i.positive? && paid_count >= installments_count
+
   # "Faltam %{amount}" = total − (presumed months + posted payments/parcels).
   def remaining_cents
     return nil unless installment? && total_cents
