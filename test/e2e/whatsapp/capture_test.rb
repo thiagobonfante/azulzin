@@ -493,6 +493,29 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     assert_wa_reply s.jid, equals: I18n.t("whatsapp.replies.stt_failed", locale: :"pt-BR")
   end
 
+  # WA-CAP-32b — Whisper on silence/noise HALLUCINATES the vocab-bias prompt back as a
+  # confident, parseable expense (observed live: a 1s noise clip → "Gastei R$ 200 na
+  # caixinha da poupança", one word off the prompt's last sentence — and it posted R$ 200).
+  # Prompt echoes are treated as no-speech: same degrade as WA-CAP-32, raw transcript kept.
+  test "audio whose transcript echoes the STT prompt: friendly reply, no LLM, no transaction" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+    media = { data: Base64.strict_encode64("fake-ogg-bytes"), mimetype: "audio/ogg", filename: "v.ogg" }
+    hallucination = "Gastei R$ 200 na caixinha da poupança."
+
+    msg = nil
+    with_canned_ai(transcript: hallucination) do   # no extraction canned: reaching the LLM would raise
+      msg = wa_inject(s.jid, "", type: "ptt", media: media)
+      drain_jobs!
+    end
+
+    msg.reload
+    assert_equal "failed", msg.status
+    assert_equal "stt_echo", msg.error
+    assert_equal hallucination, msg.transcription, "the raw hallucination is kept for ops/tuning"
+    assert_empty s.account.transactions
+    assert_wa_reply s.jid, equals: I18n.t("whatsapp.replies.stt_failed", locale: :"pt-BR")
+  end
+
   # WA-CAP-33 — an image with no completed payment in it (meme, product photo) gets the
   # honest not_receipt reply and creates NOTHING — no "quanto foi?" open-ask trapping the
   # user's next message as its answer (the old behavior, deliberately flipped).

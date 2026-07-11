@@ -61,10 +61,12 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
     text = resolve_text(msg)                # audio → transcript (stored); image → nil; else body
 
-    # Whisper on silence/background noise returns an empty transcript: skip the LLM and
-    # reuse the STT-failure copy (was: a wasted extraction call ending in "Não entendi").
+    # Whisper on silence/background noise returns an empty transcript — or hallucinates our
+    # own vocab prompt back as a real-looking expense (dropped to "" in transcribe, raw text
+    # kept on the row): skip the LLM, reuse the STT-failure copy (WA-CAP-32/32b).
     if msg.type_audio? && text.blank?
-      return self.class.fail_and_tell(msg.id, "stt_empty", "whatsapp.replies.stt_failed")
+      reason = msg.transcription.present? ? "stt_echo" : "stt_empty"
+      return self.class.fail_and_tell(msg.id, reason, "whatsapp.replies.stt_failed")
     end
 
     # A reply routed to the user's single open ask (e.g. the "quanto foi?" answer) never
@@ -112,7 +114,8 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
   def transcribe(msg)
     transcript = Whatsapp::SttClient.transcribe(msg.media)   # media presence guarded in perform
-    msg.update!(transcription: transcript)
+    msg.update!(transcription: transcript)                   # raw text kept for ops/tuning
+    return "" if Whatsapp::SttClient.prompt_echo?(transcript) # hallucinated prompt echo → silence
     transcript
   end
 

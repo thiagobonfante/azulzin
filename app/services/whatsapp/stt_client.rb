@@ -59,5 +59,29 @@ module Whatsapp
       raise Error, "Groq STT #{resp.code}: #{resp.body.to_s[0, 200]}" unless resp.code.to_i.between?(200, 299)
       JSON.parse(resp.body)["text"].to_s.strip
     end
+
+    # Whisper on silence/noise hallucinates by ECHOING its own vocab-bias prompt back as a
+    # confident, perfectly-parseable expense ("Gastei R$ 200 na caixinha da poupança" — one
+    # word off the prompt's last sentence, no_speech_prob=0, WA-CAP-32b). A transcript that is
+    # a near-duplicate of any prompt sentence is treated as no-speech by the caller.
+    # ponytail: catches single-sentence and whole-prompt echoes; a partial multi-sentence
+    # echo would slip through — add per-window comparison if prod stats ever show one.
+    ECHO_THRESHOLD = 0.25 # observed echo scores 0.079; real speech vs prompt scores ~1.0
+
+    def prompt_echo?(text)
+      prompt = settings["prompt"].to_s
+      return false if prompt.blank? || text.blank?
+      candidates = prompt.split(/(?<=[.!?])\s+/) << prompt
+      t = normalize(text)
+      candidates.any? do |sentence|
+        s = normalize(sentence)
+        next false if s.blank?
+        DidYouMean::Levenshtein.distance(t, s) <= ([ t.length, s.length ].max * ECHO_THRESHOLD)
+      end
+    end
+
+    def normalize(str)
+      str.downcase.gsub(/[^[:alnum:]\s]/, " ").squish
+    end
   end
 end

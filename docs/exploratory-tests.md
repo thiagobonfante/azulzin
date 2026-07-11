@@ -499,10 +499,11 @@ Seed: `dev:seed_demo` · AI: live-AI (GROQ_API_KEY for STT + OPENROUTER key for 
 **Expect:** `msg.transcription` stored; the finance-vocab Whisper prompt biases digit money; extraction posts 5490 centavos with the normal ✅ reply. The por-extenso→digits normalization is prompt-only — exploratory: try "mil e duzentos" (→ 120000 centavos expected).
 
 **Variants:**
-- WA-CAP-32 silence: record ~3s of silence → if Whisper returns an empty transcript, reply "Não consegui ouvir seu áudio 😕 Pode mandar de novo?", message failed (stt_empty), NO LLM call. Real-Whisper caveat: it sometimes hallucinates text on noise — that's exactly what this exploratory run measures.
+- WA-CAP-32 silence: record ~3s of silence → if Whisper returns an empty transcript, reply "Não consegui ouvir seu áudio 😕 Pode mandar de novo?", message failed (stt_empty), NO LLM call.
+- WA-CAP-32b prompt-echo hallucination (measured live 2026-07-11): a ~1s noise clip made Whisper echo the vocab-bias prompt back as a confident expense ("Gastei R$ 200 na caixinha da poupança", no_speech_prob=0) — and it posted R$ 200. Now: a transcript that is a near-duplicate (Levenshtein ≤25%) of any prompt sentence is treated as no-speech → same reply as WA-CAP-32, message failed (stt_echo), raw hallucination kept in `transcription` for tuning. Exploratory: send noise/silence clips of varied lengths — expect the 😕 reply, never a posted row.
 - Ambient noise / mumbled amount → whatever the transcript yields rides the text pipeline; verify it parks rather than posting a wrong amount.
 
-Pins: `app/jobs/process_inbound_whatsapp_job.rb:105-117`, `app/services/whatsapp/stt_client.rb:21-33`, `config/openrouter.yml:21`
+Pins: `app/jobs/process_inbound_whatsapp_job.rb:105-121`, `app/services/whatsapp/stt_client.rb` (`prompt_echo?`), `config/openrouter.yml:21`
 
 ### WA-CAP-23 — Image receipt reconciles to an existing posted row: no duplicate, comprovante attached
 

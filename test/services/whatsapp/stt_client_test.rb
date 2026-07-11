@@ -32,4 +32,23 @@ class Whatsapp::SttClientTest < ActiveSupport::TestCase
     assert_equal Rails.application.config.x.openrouter["transcription"]["prompt"], captured
     assert captured.present?, "the vocab-bias prompt must be configured and sent"
   end
+
+  # WA-CAP-32b — Whisper on silence/noise echoes the vocab-bias prompt back as a confident,
+  # parseable expense. Near-duplicates of any prompt sentence are flagged as no-speech.
+  test "prompt_echo? flags near-duplicates of prompt sentences" do
+    # The exact hallucination observed in exploratory testing (prompt says "Guardei"):
+    assert Whatsapp::SttClient.prompt_echo?("Gastei R$ 200 na caixinha da poupança.")
+    # Verbatim sentence and whole-prompt echoes:
+    assert Whatsapp::SttClient.prompt_echo?("Guardei R$ 200 na caixinha da poupança.")
+    assert Whatsapp::SttClient.prompt_echo?(Rails.application.config.x.openrouter["transcription"]["prompt"])
+  end
+
+  test "prompt_echo? passes real speech, blanks, and blank prompts" do
+    refute Whatsapp::SttClient.prompt_echo?("gastei 84,90 no mercado hoje de manhã com a Marina")
+    refute Whatsapp::SttClient.prompt_echo?("refri 13,90")
+    refute Whatsapp::SttClient.prompt_echo?("")
+    Whatsapp::SttClient.stub(:settings, {}) do
+      refute Whatsapp::SttClient.prompt_echo?("Gastei R$ 200 na caixinha da poupança.")
+    end
+  end
 end
