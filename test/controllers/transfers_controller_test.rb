@@ -30,6 +30,9 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
     transfer!(from: @checking, to: @checking, amount: "50")
     assert_response :unprocessable_entity
     assert_equal 0, @user.account.transactions.where(direction: "transfer").count
+    # The user sees the translated attribute + message, never a "Translation missing" leak.
+    assert_match "Conta de destino não pode ser a mesma conta de origem.", response.body
+    assert_no_match(/[Tt]ranslation missing/, response.body)
   end
 
   test "a transfer to savings bumps Guardado; a same-month resgate does NOT decrement it (gross)" do

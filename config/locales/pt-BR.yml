@@ -87,6 +87,9 @@ pt-BR:
         monthly_budget_cents: "Orçamento do mês"
       transaction:
         receipt: "Comprovante"
+        bank_account: "Conta"
+        credit_card: "Cartão"
+        transfer_to_bank_account: "Conta de destino"
       commitment:
         name: "Nome"
         kind: "Tipo"

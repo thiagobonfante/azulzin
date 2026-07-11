@@ -181,11 +181,11 @@ class Transaction < ApplicationRecord
 
     def transfer_shape
       if bank_account_id.blank? || transfer_to_bank_account_id.blank?
-        errors.add(:transfer_to_bank_account_id, :blank)
+        errors.add(:transfer_to_bank_account, :blank)
       elsif transfer_to_bank_account_id == bank_account_id
-        errors.add(:transfer_to_bank_account_id, :same_account)
+        errors.add(:transfer_to_bank_account, :same_account)
       end
-      errors.add(:credit_card_id, :present) if credit_card_id.present?
+      errors.add(:credit_card, :present) if credit_card_id.present?
     end
 
     # Size + declared-type + magic-byte gates in one validation (imports re-derive the real

@@ -86,6 +86,9 @@ en:
         monthly_budget_cents: "Monthly budget"
       transaction:
         receipt: "Receipt"
+        bank_account: "Account"
+        credit_card: "Card"
+        transfer_to_bank_account: "Destination account"
       commitment:
         name: "Name"
         kind: "Type"

@@ -23,6 +23,8 @@ class E2E::WebI18nTest < E2E::PipelineCase
 
     patch locale_path, params: { locale: "en-US" }   # a supported locale
     assert_response :redirect
+    assert_equal "en-US", s.owner.reload.locale,
+                 "a signed-in switch persists to user.locale (mailers read it) even while rendering stays pinned"
 
     get dashboard_path
     assert_match PT_MONEY, response.body,
