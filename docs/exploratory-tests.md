@@ -1819,7 +1819,7 @@ Seed: `dev:seed_demo` · AI: deterministic (no AI, no jobs)
 2. Visit `/exports/new`, pick preset + format, download.
 3. Hit the direct URLs: `/exports.csv?preset=year` · `/exports.xlsx` (default current month) · `/exports.pdf?preset=last_3_months` · custom: `/exports.csv?preset=custom&from=2026-05-01&to=2026-05-31` · garbage: `/exports.exe?preset=all` and `/exports?preset=custom&from=banana`
 
-**Expect:** CSV opens with one row per transaction, summed cents matching the hub month totals exactly (WEB-TX-02); xlsx and pdf download with localized filename (`t('.filename')`). Garbage format serves xlsx (whitelist fallback); unparseable custom dates become nil bounds (unbounded side). All rows belong to the current account only.
+**Expect:** CSV opens with one row per transaction, summed cents matching the account's posted/kept transactions for the range exactly — on the **occurred_on axis** (`Exports::Ledger` deliberately filters by occurred_on with billing_month as its own column, so on a card household the hub's competência-based Entradas/Saídas tiles legitimately differ; verified 2026-07-11: entradas matched the tile, saídas differed by the June-purchase/July-fatura rows). xlsx and pdf download with localized filename (`t('.filename')`). Garbage format serves xlsx (whitelist fallback); unparseable custom dates become nil bounds (unbounded side). All rows belong to the current account only.
 
 **Variants:**
 - X-EXP-13 tenancy (§9): sign into a second account in another browser, export — no cross-account rows (seed 14's "VAZAMENTO LTDA" R$ 666,66 canary must never appear).
@@ -1838,7 +1838,7 @@ Seed: `dev:seed_demo` · AI: live-AI (vision extraction — Groq/vision provider
 2. In the :3001 simulator send the receipt image to the bot as `5511987654321@c.us`.
 3. Send the SAME image again (or a receipt matching the pre-existing posted charge).
 
-**Expect:** first send: expense created (or parked pending on low confidence) AND the image blob copied to transaction.receipt — verify the thumbnail on the row in `/transactions` and via `/transactions/<id>/receipt`. Second send: NO new transaction; the receipt attaches to the already-posted matching row (the T3 receipt-dup fix). The receipt survives WhatsappRetentionJob purging the WA media copy (X-EXP-01: the blob is attached to the transaction, not referenced).
+**Expect:** first send: expense created (or parked pending on low confidence) AND the image blob copied to transaction.receipt — verify the thumbnail on the row in `/transactions` and via `/transactions/<id>/receipt`. Second send, two shapes (verified 2026-07-11): a receipt matching an existing **card** charge (exact amount + same card + ±3 days) attaches silently to it, no new row (WA-CAP-23, the T3 receipt-dup fix; also account-wide for low-confidence instrument-less receipts, WA-CAP-23b); a **confident** identical capture on a bank instrument instead gets the same-day duplicate ask (WA-CAP-35 sim/não — *não* leaves a `superseded` stub, only one posted row). The receipt survives WhatsappRetentionJob purging the WA media copy (X-EXP-01: the blob is attached to the transaction, not referenced).
 
 **Variants:**
 - Non-receipt image (a selfie) → not_receipt flow: polite decline / caption fallback, no transaction (WA-CAP-33/34).
