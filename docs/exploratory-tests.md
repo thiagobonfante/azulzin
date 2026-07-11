@@ -96,15 +96,20 @@ simulator to chat as that user.
 itself (in-process `:async` adapter), but every sweep is manual:
 
 ```sh
-bin/rails runner 'Reminders::DailyDispatchJob.perform_now'      # bill/income/fatura reminders
-bin/rails runner 'Budgets::WeeklyCheckDispatchJob.perform_now'  # budget bands sweep
-bin/rails runner 'Goals::WeeklyCheckDispatchJob.perform_now'    # goal pace / predictive warnings
-bin/rails runner 'Goals::ApplyBudgetCutsJob.perform_now'        # writes goal plan cuts into budgets
-bin/rails runner 'Summaries::WeeklyDispatchJob.perform_now'     # weekly digest
-bin/rails runner 'Summaries::MonthlyDispatchJob.perform_now'    # month recap
+bin/rails runner 'Reminders::DailyDispatchJob.perform_now; sleep 6'      # bill/income/fatura reminders
+bin/rails runner 'Budgets::WeeklyCheckDispatchJob.perform_now; sleep 6'  # budget bands sweep
+bin/rails runner 'Goals::WeeklyCheckDispatchJob.perform_now; sleep 6'    # goal pace / predictive warnings
+bin/rails runner 'Goals::ApplyBudgetCutsJob.perform_now'                 # writes goal plan cuts into budgets (inline, no sleep needed)
+bin/rails runner 'Summaries::WeeklyDispatchJob.perform_now; sleep 6'     # weekly digest
+bin/rails runner 'Summaries::MonthlyDispatchJob.perform_now; sleep 6'    # month recap
 ```
 
 Always use `perform_now` — `perform_later` dies with the runner process on the async adapter.
+**The `sleep 6` is mandatory on the dispatch jobs** (verified 2026-07-11): every `*DispatchJob`
+fans out per-member child jobs via `perform_later`, and those children die silently when the
+runner exits — without the sleep the sweep looks like it ran but writes NOTHING. If a sweep
+seems inexplicably silent, this is the first thing to check (a busy machine may need more
+than 6s).
 
 ### 1.4 Reading notification outcomes
 
@@ -785,7 +790,11 @@ Seed: `exploratory:seed[10]` · AI: live-AI (trigger only)
 **Steps:**
 1. Chat: `quero criar uma meta` → `1` → `Apartamento` → `100.000` → month = next month (e.g. `agosto`).
 2. At the counter-offer, reply `sim`.
-3. too_tight probe: re-seed, then remove essentially all disposable income (add a big fixed commitment close to the monthly income via the Compromissos page) and repeat step 1.
+3. too_tight probe: re-seed, then commit ALL capacity to another active goal (verified 2026-07-11: a big FIXED commitment does NOT move capacity — `PlanBuilder#capacity_base` is `median(entradas−saidas−faturas)` from HISTORY minus only other goals' savings parcels, so a fresh unpaid commitment is invisible to it):
+```
+bin/rails runner 'u=User.find_by!(email_address:"test-10@azulzin.dev"); a=u.account; cx=a.bank_accounts.find_by(kind:"savings"); src=a.bank_accounts.kept.where.not(kind:"savings").first; g=a.goals.create!(kind:"purchase", name:"Sugadora", target_cents:10_000_000, target_date:Date.current>>24, status:"active", monthly_target_cents:500_000, starts_on:Date.current.beginning_of_month, activated_at:Time.current, bank_account:cx, created_by:u, baseline:Goals::Analyzer.call(a).to_snapshot); a.commitments.create!(kind:"savings", goal:g, bank_account:src, amount_cents:500_000, name:"Sugadora", starts_on:Date.current.beginning_of_month, schedule_day:5, schedule_kind:"fixed_day", created_by:u)'
+```
+   then repeat step 1.
 
 **Expect:**
 - Counter renders `goal_flow.counter_offer_date`: "Essa meta não fecha no prazo que você pediu. Com R$ X/mês você chega em <mês> — quer seguir assim?" with a FLOOR whole-reais amount.
@@ -1036,7 +1045,7 @@ bin/rails runner 'wk=Date.current.beginning_of_week; GoalCheck.where(period_star
 ```
 bin/rails runner 'Goals::WeeklyCheckDispatchJob.perform_now'
 ```
-4. Re-arm probe: set the shifted notification's `created_at` to `15.days.ago` AND worsen the pace to 50% of expected (delta calibration on `initial_saved_cents` as in NT-GL-01, targeting `e*50/100`; `update_columns` skips validations). Re-run the trigger.
+4. Re-arm probe: set the shifted notification's `created_at` to `15.days.ago` AND worsen the pace to 50% of expected. ⚠ the NT-GL-01-style delta on `initial_saved_cents` goes NEGATIVE here (real transfers alone exceed 50% of expected) and the `goals_initial_saved_non_negative` DB check rejects it — zero the initial and shrink the newest caixinha-transfer rows instead (same trim loop the seed itself uses). Re-run the trigger.
 
 **Expect:**
 - Step 3 is SILENT — same (finding, category, month) cause at the same severity: no new goal_alert row, no WA message.
@@ -1192,6 +1201,14 @@ Seed: `exploratory:seed[8]` · AI: deterministic (REPLAN_RE pre-pass, no key nee
 
 **Steps:**
 1. `bin/rails "exploratory:seed[8]"` — genuinely slipped goal "Carro" (50% pace, real transfers into its caixinha).
+   **Then tighten the promise** (verified 2026-07-11: the pack's 12-month runway means the honest
+   recomputed finish NEVER slips past the promise — even at 0% pace — so `ReplanOffer` is nil and
+   `reorganizar` honestly answers `goal_replan.unavailable`; the automated twin builds a tight
+   bespoke goal instead):
+```
+bin/rails runner 'g=User.find_by!(email_address:"test-8@azulzin.dev").account.goals.find_by!(name:"Carro"); p=Goals::Progress.new(g); ext=Goals::Recompute.start_month >> Goals.ceil_div(g.target_cents-p.actual_cents, g.monthly_target_cents); promise=ext << 2; g.update_columns(target_date: promise, plan: g.plan.merge("projected_done_on" => promise.iso8601))'
+```
+   (With the 2-month-tight promise BOTH options render — extend and hold_date.)
 2. Record the invariant BEFORE:
 ```
 bin/rails runner 'puts Goals::Progress.new(User.find_by!(email_address:"test-8@azulzin.dev").account.goals.find_by!(name:"Carro")).actual_cents'
@@ -1224,7 +1241,7 @@ Pins: `app/services/whatsapp/interpreter.rb:13,33`, `app/services/whatsapp/goal_
 Seed: `exploratory:seed[8]` (fresh re-seed) · AI: deterministic
 
 **Steps:**
-1. Fresh `bin/rails "exploratory:seed[8]"`; log in `test-8@azulzin.dev`.
+1. Fresh `bin/rails "exploratory:seed[8]"`; tighten the promise (WA-GOAL-05 step 1's runner); log in `test-8@azulzin.dev`.
 2. Visit `/goals/:id` — the `#replan` section lists the derived options → click "manter parcela" (extend). (hold_date only renders when it beats extend AND live capacity funds the higher parcel — visible mainly when the promised date is only a few months out.)
 
 **Expect:**
