@@ -2187,7 +2187,7 @@ Seed: dev:seed_demo · AI: deterministic
 2. Edit the card row → change the "Fatura" select to next month → save.
 3. Edit again changing only `occurred_on` by one day → save.
 
-**Expect:** First save moves the row's fatura (`billing_month_manual = true`) — the bills tile shifts `R$ 80,00` to the chosen month. Second save does NOT re-derive the fatura (sticky flag survives an occurred_on edit). Changing the instrument, however, resets the flag and recomputes.
+**Expect:** First save moves the row's fatura (`billing_month_manual = true`) — the bills tile shifts `R$ 80,00` to the chosen month. Second save does NOT re-derive the fatura (sticky flag survives an occurred_on edit). Changing the instrument, however, resets the flag and recomputes — code-verify only for posted rows: the ledger edit drawer deliberately carries NO instrument field (`transactions_controller.rb:218-229`); only tray forms submit the instrument token.
 
 **Variants:**
 - Fatura select on a bank-account row is ignored (param only applies when `credit_card_id` present).
@@ -2201,8 +2201,11 @@ Covered in full in §8 (WEB-TX-11 run / WEB-TX-11b undo) using seed 4's pre-seed
 Seed: dev:seed_demo · AI: deterministic
 
 **Steps:**
-1. Sign in as marina; on `/transactions` find the "A receber no mês" card listing Salário Marina (`R$ 6.500,00`, day 5). The demo seed only receives past months + current on day 1 — if already received this month, test in next month via `?month=`.
-2. Click Receber (PATCH `/incomes/:id/receive`).
+1. Sign in as marina; on `/transactions` find the "A receber no mês" card listing Salário Marina (`R$ 6.500,00`, day 5). The demo seed receives the current month on day 1, and the "Recebi" button only renders for months ≤ current (`_a_receber.html.erb:32` — future months show "Previsto" with NO button). To exercise it, un-receive July first:
+```
+bin/rails runner 'a=User.find_by!(email_address:"marina@azulzin.dev").account_membership.account; a.transactions.where(income_id: a.incomes.find_by!(name:"Salário Marina").id, billing_month: Date.current.beginning_of_month).first&.destroy!'
+```
+2. Click the "Recebi" button (PATCH `/incomes/:id/receive`).
 
 **Expect:** One posted income transaction `R$ 6.500,00` with linked `income_id` lands in the ledger; entradas stays constant (moves from expected to posted) but the Itaú derived balance rises by 650000 centavos; notice `t('incomes.receive.received')` on the HTML fallback.
 
@@ -2216,7 +2219,7 @@ Pins: `app/controllers/incomes_controller.rb:49-57`, `config/routes.rb:68`
 Seed: dev:seed_demo · AI: deterministic
 
 **Steps:**
-1. On `/incomes` create an income with (a) blank name; (b) amount `R$ 0,00`; (c) schedule "Todo dia" day 32; (d) "dia útil" day 11.
+1. On `/incomes` create an income with (a) blank name; (b) amount `R$ 0,00`; (c) schedule "Todo dia" day 32; (d) "dia útil" day 11. (a)/(b) are blocked client-side by `required` before any POST; (c)/(d) are unreachable through the constrained selects — drive all four as direct POSTs (cookie jar + CSRF) to exercise the server 422s.
 2. Create a valid one: `Freela`, `R$ 1.200,00`, dia útil 5.
 3. Edit it, then delete it from the edit page.
 
@@ -2269,7 +2272,7 @@ Seed: dev:seed_demo · AI: deterministic
 1. Demo Nubank card: due day 10, closing offset 7 → closes on the 3rd. Add two drawer expenses on that card: `R$ 100,00` dated the 3rd of last month, `R$ 200,00` dated the 4th of last month (use `?month=` navigation so `occurred_on` defaults into that month, then edit dates).
 2. Inspect the bills tile on `/transactions` for last month and this month, and the card row on `/dashboard` (open bill + available).
 
-**Expect:** The 3rd-of-month purchase bills in LAST month's fatura; the 4th bills in THIS month's; dashboard "disponível" = limit `R$ 6.500,00` − open bill, exact to the centavo; totals match `bin/rails runner` probes of `open_bill_cents`/`available_cents`.
+**Expect:** The 3rd-of-month purchase bills in LAST month's fatura; the 4th bills in THIS month's; dashboard "disponível" = limit `R$ 6.500,00` − `used_cents` (open bill onward, INCLUDING future faturas/parcels — closed-but-unpaid past bills don't count), exact to the centavo; totals match `bin/rails runner` probes of `open_bill_cents`/`used_cents`/`available_cents`.
 
 Pins: `app/models/credit_card.rb:31`, `app/models/credit_card.rb:71-90`, `test/test_helpers/e2e/scenario.rb:140-153`
 
@@ -2294,7 +2297,7 @@ Seed: dev:seed_demo · AI: deterministic
 1. On the `/credit_cards` form attempt creates with: (a) last4 `abcd`; (b) due day 32; (c) closing offset 29.
 2. Create a valid card with limit `R$ 0,00` (or blank) → save, then view it on `/dashboard` and `/credit_cards`.
 
-**Expect:** (a)–(c) 422 with inline errors, Turbo form NOT reset; (d) saves, and the card renders "não informado" for limit/available with NO division error — a limitless card contributes 0 to the dashboard's total available instead of poisoning it.
+**Expect:** (a) is NOT a 422 — `normalizes :last4` strips non-digits first, so "abcd" saves with `last4` nil (the dedup hint is silently dropped; `credit_card.rb:14`); (b)–(c) 422 with inline errors, Turbo form NOT reset; (d) saves, and the card renders "não informado" for limit/available with NO division error — a limitless card contributes 0 to the dashboard's total available instead of poisoning it.
 
 Pins: `app/models/credit_card.rb:17-23`, `app/models/credit_card.rb:77-90`
 
@@ -2318,7 +2321,7 @@ Seed: dev:seed_demo (≥1 posted expense in 'Lazer') · AI: deterministic
 1. `/categories`: create `Pets` (color pre-picked).
 2. Edit its budget to `R$ 200,00`.
 3. Delete `Lazer`.
-4. Click "restaurar padrões".
+4. Restore defaults: the "restaurar padrões" button only renders in the categories EMPTY state (`_empty.html.erb`); with survivors, POST `/categories/restore` directly (curl with the session cookie jar + CSRF token).
 
 **Expect:** Create appends the row (position = max+1); after deleting Lazer it leaves the picker and the categories page, but the existing ledger row still renders the name with the removed-suffix (`category_id` kept); restore re-seeds the pt-BR defaults idempotently (no duplicates of survivors) with `t('categories.restore.restored')`.
 
@@ -2429,7 +2432,7 @@ Owner rename vs member denial is §6 MU-EXP-06; ownership transfer is §6 MU-07;
 Seed: dev:seed_demo · AI: deterministic
 
 **Steps:**
-1. Signed in as marina, use the footer/UI language switcher to pick English (PATCH `/locale` `locale=en-US`).
+1. Signed in as marina, PATCH `/locale` with `locale=en-US` (curl with cookie jar + CSRF token — no switcher UI is rendered while the pin holds; the endpoint is the whole surface).
 2. Try `?locale=en-US` on `/dashboard`.
 3. curl any page with `Accept-Language: en-US`.
 
