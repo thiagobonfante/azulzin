@@ -50,12 +50,14 @@ module NotificationsHelper
   # Banner copy, templated from the payload snapshot through the shared
   # Notifications.template_args transform (integer cents formatted at render time in the
   # viewer's locale, days → count pluralization) — the same transform the WhatsApp push
-  # renders from, so the two channels never drift. Goal kinds render whole reais (ceil —
-  # round 3 P1: a gap top-up is never under-asked); budget_*_goal keeps 2 decimals for
-  # consistency with the sibling budget alerts (the fork is on kind, mirrored in Deliver).
+  # renders from, so the two channels never drift. Goal kinds render whole reais — goal_alert
+  # CEILs (round 3 P1: a gap top-up is never under-asked), goal_achieved FLOORs ("você guardou"
+  # is a ledger figure, never overstated — matching the goal page party); budget_*_goal keeps
+  # 2 decimals for consistency with the sibling budget alerts (the fork is mirrored in Deliver).
   def notification_message(notification)
     whole = %w[goal_alert goal_achieved].include?(notification.kind)
-    args = Notifications.template_args(notification) { |cents| whole ? brl_whole(cents) : brl(cents) }
+    mode  = notification.kind == "goal_achieved" ? :floor : :ceil
+    args = Notifications.template_args(notification) { |cents| whole ? brl_whole(cents, mode: mode) : brl(cents) }
     t(notification_i18n_key(notification), **args)
   end
 

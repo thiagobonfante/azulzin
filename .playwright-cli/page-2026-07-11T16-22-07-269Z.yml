@@ -1,0 +1,85 @@
+- generic [ref=e36]:
+  - main [ref=e38]:
+    - generic [ref=e39]:
+      - alert [ref=e41]:
+        - generic [ref=e42]: Você já tem 5 metas ativas. Conclua ou abandone uma para criar outra.
+      - generic [ref=e44]:
+        - heading "Suas metas" [level=1] [ref=e45]
+        - paragraph [ref=e46]: Sonhos com um plano — e um guardião que avisa quando o ritmo cai.
+      - generic [ref=e47]: Você já tem 5 metas ativas. Concluir ou abandonar uma abre espaço para a próxima.
+      - generic [ref=e48]:
+        - link "Meta 4 R$ 0/mês" [ref=e49] [cursor=pointer]:
+          - /url: /goals/14
+          - generic [ref=e51]: Meta 4
+          - paragraph [ref=e52]: R$ 0/mês
+        - link "Meta 3 R$ 0/mês" [ref=e53] [cursor=pointer]:
+          - /url: /goals/13
+          - generic [ref=e55]: Meta 3
+          - paragraph [ref=e56]: R$ 0/mês
+        - link "Meta 2 R$ 0/mês" [ref=e57] [cursor=pointer]:
+          - /url: /goals/12
+          - generic [ref=e59]: Meta 2
+          - paragraph [ref=e60]: R$ 0/mês
+        - link "Meta 1 R$ 0/mês" [ref=e61] [cursor=pointer]:
+          - /url: /goals/11
+          - generic [ref=e63]: Meta 1
+          - paragraph [ref=e64]: R$ 0/mês
+        - link "Meta 0 R$ 0/mês" [ref=e65] [cursor=pointer]:
+          - /url: /goals/10
+          - generic [ref=e67]: Meta 0
+          - paragraph [ref=e68]: R$ 0/mês
+  - generic [ref=e69]:
+    - generic "Fechar menu"
+    - complementary [ref=e70]:
+      - link "azulzin" [ref=e71] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e74]: azulzin
+      - navigation [ref=e75]:
+        - list [ref=e76]:
+          - listitem [ref=e77]:
+            - link "Painel" [ref=e78] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e79]
+              - generic [ref=e81]: Painel
+          - listitem [ref=e82]:
+            - link "Contas" [ref=e83] [cursor=pointer]:
+              - /url: /bank_accounts
+              - img [ref=e84]
+              - generic [ref=e86]: Contas
+          - listitem [ref=e87]:
+            - link "Rendas" [ref=e88] [cursor=pointer]:
+              - /url: /incomes
+              - img [ref=e89]
+              - generic [ref=e91]: Rendas
+          - listitem [ref=e92]:
+            - link "Cartões" [ref=e93] [cursor=pointer]:
+              - /url: /credit_cards
+              - img [ref=e94]
+              - generic [ref=e96]: Cartões
+          - listitem [ref=e97]:
+            - link "Transações 1" [ref=e98] [cursor=pointer]:
+              - /url: /transactions
+              - img [ref=e99]
+              - generic [ref=e101]: Transações
+              - generic [ref=e102]: "1"
+          - listitem [ref=e103]:
+            - link "Metas" [ref=e104] [cursor=pointer]:
+              - /url: /goals
+              - img [ref=e105]
+              - generic [ref=e107]: Metas
+          - listitem [ref=e108]:
+            - link "Compromissos" [ref=e109] [cursor=pointer]:
+              - /url: /commitments
+              - img [ref=e110]
+              - generic [ref=e112]: Compromissos
+          - listitem [ref=e113]:
+            - link "Categorias" [ref=e114] [cursor=pointer]:
+              - /url: /categories
+              - img [ref=e115]
+              - generic [ref=e118]: Categorias
+      - button "T Teste 10 test-10@azulzin.dev" [ref=e121]:
+        - generic [ref=e122]: T
+        - generic [ref=e123]:
+          - generic [ref=e124]: Teste 10
+          - generic [ref=e125]: test-10@azulzin.dev
+        - img [ref=e126]

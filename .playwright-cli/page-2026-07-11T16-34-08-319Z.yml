@@ -1,0 +1,142 @@
+- generic [ref=e36]:
+  - main [ref=e38]:
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - heading "Olá, Marina!" [level=1] [ref=e41]
+        - paragraph [ref=e42]: Aqui está um resumo do seu dinheiro.
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - paragraph [ref=e45]: Saldo total
+          - paragraph [ref=e46]: R$ 10.761,45
+          - paragraph [ref=e47]: 4 contas
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Crédito disponível
+          - paragraph [ref=e50]: R$ 12.678,80
+          - paragraph [ref=e51]: de R$ 14.500,00 de limite
+        - generic [ref=e52]:
+          - paragraph [ref=e53]: Faturas atuais
+          - paragraph [ref=e54]: R$ 421,60
+          - paragraph [ref=e55]: 2 cartões
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - heading "Metas" [level=2] [ref=e58]
+          - link "Gerenciar" [ref=e59] [cursor=pointer]:
+            - /url: /goals
+        - generic [ref=e60]:
+          - link "Viagem R$ 300 de R$ 10.000" [ref=e61] [cursor=pointer]:
+            - /url: /goals/23
+            - generic [ref=e63]: Viagem
+            - paragraph [ref=e66]: R$ 300 de R$ 10.000
+          - link "Reforma R$ 0 de R$ 15.000" [ref=e67] [cursor=pointer]:
+            - /url: /goals/22
+            - generic [ref=e69]: Reforma
+            - paragraph [ref=e71]: R$ 0 de R$ 15.000
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - heading "Contas" [level=2] [ref=e74]
+          - link "Gerenciar" [ref=e75] [cursor=pointer]:
+            - /url: /bank_accounts
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - img [ref=e80]
+            - generic [ref=e83]:
+              - paragraph [ref=e84]: Itaú (Marina)
+              - paragraph [ref=e85]: Itaú
+            - paragraph [ref=e86]: R$ 3.412,55
+          - generic [ref=e87]:
+            - img "Nubank" [ref=e90]
+            - generic [ref=e92]:
+              - paragraph [ref=e93]: Nubank (Rafael)
+              - paragraph [ref=e94]: Nubank
+            - paragraph [ref=e95]: R$ 2.148,90
+          - generic [ref=e96]:
+            - img "Nubank" [ref=e99]
+            - generic [ref=e101]:
+              - paragraph [ref=e102]: Caixinha
+              - paragraph [ref=e103]: Nubank
+            - paragraph [ref=e104]: R$ 5.200,00
+          - generic [ref=e105]:
+            - img "Nubank" [ref=e108]
+            - generic [ref=e110]:
+              - paragraph [ref=e111]: Caixinha Viagem
+              - paragraph [ref=e112]: Nubank
+            - paragraph [ref=e113]: —
+      - generic [ref=e114]:
+        - generic [ref=e115]:
+          - heading "Cartões" [level=2] [ref=e116]
+          - link "Gerenciar" [ref=e117] [cursor=pointer]:
+            - /url: /credit_cards
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - img "Nubank" [ref=e123]
+              - generic [ref=e125]:
+                - paragraph [ref=e126]: Nubank
+                - paragraph [ref=e127]: Nubank
+            - generic [ref=e131]:
+              - generic [ref=e132]: Disponível R$ 6.433,20
+              - generic [ref=e133]: R$ 66,80 / R$ 6.500,00
+          - generic [ref=e134]:
+            - generic [ref=e135]:
+              - img [ref=e138]
+              - generic [ref=e141]:
+                - paragraph [ref=e142]: Itaú
+                - paragraph [ref=e143]: Itaú
+            - generic [ref=e147]:
+              - generic [ref=e148]: Disponível R$ 6.245,60
+              - generic [ref=e149]: R$ 1.754,40 / R$ 8.000,00
+  - generic [ref=e150]:
+    - generic "Fechar menu"
+    - complementary [ref=e151]:
+      - link "azulzin" [ref=e152] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e155]: azulzin
+      - navigation [ref=e156]:
+        - list [ref=e157]:
+          - listitem [ref=e158]:
+            - link "Painel" [ref=e159] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e160]
+              - generic [ref=e162]: Painel
+          - listitem [ref=e163]:
+            - link "Contas" [ref=e164] [cursor=pointer]:
+              - /url: /bank_accounts
+              - img [ref=e165]
+              - generic [ref=e167]: Contas
+          - listitem [ref=e168]:
+            - link "Rendas" [ref=e169] [cursor=pointer]:
+              - /url: /incomes
+              - img [ref=e170]
+              - generic [ref=e172]: Rendas
+          - listitem [ref=e173]:
+            - link "Cartões" [ref=e174] [cursor=pointer]:
+              - /url: /credit_cards
+              - img [ref=e175]
+              - generic [ref=e177]: Cartões
+          - listitem [ref=e178]:
+            - link "Transações" [ref=e179] [cursor=pointer]:
+              - /url: /transactions
+              - img [ref=e180]
+              - generic [ref=e182]: Transações
+          - listitem [ref=e183]:
+            - link "Metas" [ref=e184] [cursor=pointer]:
+              - /url: /goals
+              - img [ref=e185]
+              - generic [ref=e187]: Metas
+          - listitem [ref=e188]:
+            - link "Compromissos" [ref=e189] [cursor=pointer]:
+              - /url: /commitments
+              - img [ref=e190]
+              - generic [ref=e192]: Compromissos
+          - listitem [ref=e193]:
+            - link "Categorias" [ref=e194] [cursor=pointer]:
+              - /url: /categories
+              - img [ref=e195]
+              - generic [ref=e198]: Categorias
+      - button "M Marina Andrade marina@azulzin.dev Família Andrade" [ref=e201]:
+        - generic [ref=e202]: M
+        - generic [ref=e203]:
+          - generic [ref=e204]: Marina Andrade
+          - generic [ref=e205]: marina@azulzin.dev
+          - generic [ref=e206]: Família Andrade
+        - img [ref=e207]

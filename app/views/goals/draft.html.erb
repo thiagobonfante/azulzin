@@ -35,10 +35,7 @@
     <%= form_with url: caps_goal_path(@goal), method: :patch, class: "mt-3" do %>
       <div class="mb-1 flex items-baseline justify-between">
         <p class="text-xs font-medium text-base-content/50"><%= t("goals.diagnosis.trim_candidates_title") %></p>
-        <% if @goal.user_caps.present? %>
-          <%= button_tag t("goals.diagnosis.reset_caps"), name: "reset", value: "1", data: { turbo: false },
-                class: "btn btn-ghost btn-xs text-base-content/50" %>
-        <% end %>
+        <%= render "goals/caps_reset", goal: @goal %>
       </div>
       <p class="mb-2 text-xs text-base-content/45"><%= t("goals.diagnosis.trim_hint") %></p>
       <div class="flex flex-col gap-2">

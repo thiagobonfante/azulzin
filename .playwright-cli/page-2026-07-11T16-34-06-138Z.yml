@@ -1,0 +1,34 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "azulzin" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7]: azulzin
+      - navigation [ref=e8]:
+        - link "Entrar" [ref=e9] [cursor=pointer]:
+          - /url: /session/new
+        - link "Começar" [ref=e10] [cursor=pointer]:
+          - /url: /registration/new
+  - main [ref=e11]:
+    - generic [ref=e14]:
+      - heading "Entrar" [level=1] [ref=e15]
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: E-mail
+          - textbox "E-mail" [active] [ref=e19]:
+            - /placeholder: Digite seu e-mail
+        - generic [ref=e20]:
+          - generic [ref=e21]: Senha
+          - textbox "Senha" [ref=e22]:
+            - /placeholder: Digite sua senha
+        - button "Entrar" [ref=e23] [cursor=pointer]
+        - link "Esqueceu a senha?" [ref=e25] [cursor=pointer]:
+          - /url: /passwords/new
+      - generic [ref=e26]: ou
+      - button "Continuar com o Google" [ref=e28] [cursor=pointer]
+      - group [ref=e29]:
+        - generic "Não recebeu o e-mail de confirmação?" [ref=e30] [cursor=pointer]
+  - contentinfo [ref=e31]:
+    - generic [ref=e32]:
+      - generic [ref=e33]: azulzin
+      - generic [ref=e34]: Seu dinheiro sempre no azul.

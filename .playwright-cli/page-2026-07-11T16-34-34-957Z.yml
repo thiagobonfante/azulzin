@@ -1,0 +1,112 @@
+- generic [ref=e36]:
+  - main [ref=e38]:
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - heading "Olá, Teste!" [level=1] [ref=e41]
+        - paragraph [ref=e42]: Aqui está um resumo do seu dinheiro.
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - paragraph [ref=e45]: Saldo total
+          - paragraph [ref=e46]: R$ 0,00
+          - paragraph [ref=e47]: 2 contas
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Crédito disponível
+          - paragraph [ref=e50]: R$ 6.500,00
+          - paragraph [ref=e51]: de R$ 6.500,00 de limite
+        - generic [ref=e52]:
+          - paragraph [ref=e53]: Faturas atuais
+          - paragraph [ref=e54]: R$ 0,00
+          - paragraph [ref=e55]: 1 cartão
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - heading "Metas" [level=2] [ref=e58]
+          - link "Gerenciar" [ref=e59] [cursor=pointer]:
+            - /url: /goals
+        - link "Criar uma meta →" [ref=e60] [cursor=pointer]:
+          - /url: /goals
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - heading "Contas" [level=2] [ref=e63]
+          - link "Gerenciar" [ref=e64] [cursor=pointer]:
+            - /url: /bank_accounts
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - img [ref=e69]
+            - generic [ref=e72]:
+              - paragraph [ref=e73]: Itaú E2E
+              - paragraph [ref=e74]: Itaú
+            - paragraph [ref=e75]: —
+          - generic [ref=e76]:
+            - img "Nubank" [ref=e79]
+            - generic [ref=e81]:
+              - paragraph [ref=e82]: Caixinha
+              - paragraph [ref=e83]: Nubank
+            - paragraph [ref=e84]: —
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - heading "Cartões" [level=2] [ref=e87]
+          - link "Gerenciar" [ref=e88] [cursor=pointer]:
+            - /url: /credit_cards
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - img "Nubank" [ref=e94]
+            - generic [ref=e96]:
+              - paragraph [ref=e97]: Nubank
+              - paragraph [ref=e98]: Nubank
+          - generic [ref=e101]:
+            - generic [ref=e102]: Disponível R$ 6.500,00
+            - generic [ref=e103]: R$ 0,00 / R$ 6.500,00
+  - generic [ref=e104]:
+    - generic "Fechar menu"
+    - complementary [ref=e105]:
+      - link "azulzin" [ref=e106] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e109]: azulzin
+      - navigation [ref=e110]:
+        - list [ref=e111]:
+          - listitem [ref=e112]:
+            - link "Painel" [ref=e113] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e114]
+              - generic [ref=e116]: Painel
+          - listitem [ref=e117]:
+            - link "Contas" [ref=e118] [cursor=pointer]:
+              - /url: /bank_accounts
+              - img [ref=e119]
+              - generic [ref=e121]: Contas
+          - listitem [ref=e122]:
+            - link "Rendas" [ref=e123] [cursor=pointer]:
+              - /url: /incomes
+              - img [ref=e124]
+              - generic [ref=e126]: Rendas
+          - listitem [ref=e127]:
+            - link "Cartões" [ref=e128] [cursor=pointer]:
+              - /url: /credit_cards
+              - img [ref=e129]
+              - generic [ref=e131]: Cartões
+          - listitem [ref=e132]:
+            - link "Transações" [ref=e133] [cursor=pointer]:
+              - /url: /transactions
+              - img [ref=e134]
+              - generic [ref=e136]: Transações
+          - listitem [ref=e137]:
+            - link "Metas" [ref=e138] [cursor=pointer]:
+              - /url: /goals
+              - img [ref=e139]
+              - generic [ref=e141]: Metas
+          - listitem [ref=e142]:
+            - link "Compromissos" [ref=e143] [cursor=pointer]:
+              - /url: /commitments
+              - img [ref=e144]
+              - generic [ref=e146]: Compromissos
+          - listitem [ref=e147]:
+            - link "Categorias" [ref=e148] [cursor=pointer]:
+              - /url: /categories
+              - img [ref=e149]
+              - generic [ref=e152]: Categorias
+      - button "T Teste 10 test-10@azulzin.dev" [ref=e155]:
+        - generic [ref=e156]: T
+        - generic [ref=e157]:
+          - generic [ref=e158]: Teste 10
+          - generic [ref=e159]: test-10@azulzin.dev
+        - img [ref=e160]

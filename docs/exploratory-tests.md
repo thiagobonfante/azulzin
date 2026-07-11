@@ -868,10 +868,10 @@ Seed: `dev:seed_demo` · AI: deterministic
 **Steps:**
 1. As Marina, create a web draft (WEB-GOAL-01 steps 1–2 shape) and STOP on the draft page — demo history provides flexible categories with `trimmable_median_cents > 0` (Lazer/Restaurantes-style).
 2. Drag a category slider down and submit the caps form.
-3. Use "reset".
+3. Use "limpar ajustes" (reset) — it appears next to the sliders title right after the first cap lands (the caps stream swaps it in place; fixed 2026-07-11, was reload-only).
 
 **Expect:**
-- Only the plan area Turbo-swaps (sliders keep their DOM position); plan monthly/cuts change consistently.
+- Only the plan area + the reset button Turbo-swap (sliders keep their DOM position); plan monthly/cuts change consistently.
 - Caps are clamped to `[median − trimmable, median]`; a cap equal to the median is dropped (no-op); reset clears `user_caps` entirely. Out-of-clamp values are clamped server-side; unknown category ids ignored.
 
 **Variants:**
@@ -1327,7 +1327,7 @@ bin/rails runner 'Goals::WeeklyCheckDispatchJob.perform_now'
 - First render: Achieve flips status → 🎉 party section (`goals.show.achieved_title` + `achieved_body` with floor whole-reais amount) + "Criar a próxima" CTA; `celebrated_at` stamped by a guarded one-shot flip.
 - RELOAD: party gone, quiet strip remains (small 🎉 line + CTA — pinned post-T3 behavior).
 - Savings commitment archived (gone from active Compromissos); if cuts were applied, trimmed budgets restore to their `previous_budgets` values.
-- WA: "💙 Meta *<nome>* concluída! Você guardou R$ <alvo>. Que tal a próxima?" — `goal_achieved` is EXEMPT from the weekly WA guard (fires even after a goal_alert the same week). Multi-member delivery (NT-GL-10): on `dev:seed_demo` the push goes to BOTH Marina and Rafael.
+- WA: "💙 Meta *<nome>* concluída! Você guardou R$ <alvo>. Que tal a próxima?" — amount in FLOOR whole reais, same as the page party (fixed 2026-07-11; WA/banner used to CEIL, R$ 1 apart). `goal_achieved` is EXEMPT from the weekly WA guard (fires even after a goal_alert the same week). Multi-member delivery (NT-GL-10): on `dev:seed_demo` the push goes to BOTH Marina and Rafael.
 
 **Variants:**
 - Visit again days later → still only the quiet strip (`celebrated_at` guard, never re-fires).
@@ -1351,7 +1351,7 @@ Seed: `exploratory:seed[9]` · AI: deterministic
 - Restaurantes budget back to R$ 600,00.
 
 **Variants:**
-- **EXPLORATORY GAP (product-decision flag):** click Abandonar on an ACHIEVED goal (e.g. seed 15 after WEB-GOAL-06) — `Abandon.call` returns false (guard) but the controller ignores the result and still flashes the "abandoned" success while nothing changed (`goals_controller.rb:124-127`). Real behavior: status stays achieved. Flagged per the spec-vs-code rule.
+- Abandon on an ACHIEVED goal (e.g. seed 15 after WEB-GOAL-06): the UI hides the button; a raw PATCH is refused with alert `t('goals.abandon.errors.not_active')` and the status stays achieved (gap fixed 2026-07-11 — the controller used to flash success over the no-op).
 - Draft: "Descartar" (DELETE `/goals/:id`) destroys it; a WA GoalConversation pointing at it survives (`dependent: :nullify`).
 
 Pins: `app/services/goals/abandon.rb:7-19`, `app/controllers/goals_controller.rb:124-132`, `app/services/goals/revert_budget_cuts.rb`

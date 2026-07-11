@@ -1,0 +1,182 @@
+- generic [ref=e2]:
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Qual é o seu próximo grande passo?" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Conte o sonho — a gente calcula o caminho com os seus próprios números.
+      - generic [ref=e10]:
+        - group [ref=e11]:
+          - generic [ref=e12] [cursor=pointer]:
+            - radio "Comprar algo Um carro, uma viagem, a entrada do apê." [checked] [ref=e13]
+            - generic [ref=e14]:
+              - generic [ref=e15]:
+                - img [ref=e17]
+                - text: Comprar algo
+              - generic [ref=e19]: Um carro, uma viagem, a entrada do apê.
+          - generic [ref=e20] [cursor=pointer]:
+            - radio "Guardar mais Separar mais dinheiro todo mês." [ref=e21]
+            - generic [ref=e22]:
+              - generic [ref=e23]:
+                - img [ref=e25]
+                - text: Guardar mais
+              - generic [ref=e27]: Separar mais dinheiro todo mês.
+        - generic [ref=e28]:
+          - generic [ref=e29]: Nome
+          - textbox "Nome" [ref=e30]:
+            - /placeholder: Carro, viagem, entrada do apê…
+            - text: Carro novo
+        - generic [ref=e31]:
+          - generic [ref=e32]: Quanto custa?
+          - generic [ref=e33]:
+            - generic [ref=e34]: R$
+            - textbox "R$" [ref=e35]:
+              - /placeholder: "0"
+              - text: 2.000.000
+        - generic [ref=e36]:
+          - generic [ref=e37]: Quando?
+          - combobox "Quando?" [ref=e38]:
+            - option "agosto de 2026"
+            - option "setembro de 2026"
+            - option "outubro de 2026"
+            - option "novembro de 2026"
+            - option "dezembro de 2026"
+            - option "janeiro de 2027"
+            - option "fevereiro de 2027"
+            - option "março de 2027"
+            - option "abril de 2027"
+            - option "maio de 2027"
+            - option "junho de 2027"
+            - option "julho de 2027"
+            - option "agosto de 2027"
+            - option "setembro de 2027"
+            - option "outubro de 2027"
+            - option "novembro de 2027"
+            - option "dezembro de 2027" [selected]
+            - option "janeiro de 2028"
+            - option "fevereiro de 2028"
+            - option "março de 2028"
+            - option "abril de 2028"
+            - option "maio de 2028"
+            - option "junho de 2028"
+            - option "julho de 2028"
+            - option "agosto de 2028"
+            - option "setembro de 2028"
+            - option "outubro de 2028"
+            - option "novembro de 2028"
+            - option "dezembro de 2028"
+            - option "janeiro de 2029"
+            - option "fevereiro de 2029"
+            - option "março de 2029"
+            - option "abril de 2029"
+            - option "maio de 2029"
+            - option "junho de 2029"
+            - option "julho de 2029"
+            - option "agosto de 2029"
+            - option "setembro de 2029"
+            - option "outubro de 2029"
+            - option "novembro de 2029"
+            - option "dezembro de 2029"
+            - option "janeiro de 2030"
+            - option "fevereiro de 2030"
+            - option "março de 2030"
+            - option "abril de 2030"
+            - option "maio de 2030"
+            - option "junho de 2030"
+            - option "julho de 2030"
+            - option "agosto de 2030"
+            - option "setembro de 2030"
+            - option "outubro de 2030"
+            - option "novembro de 2030"
+            - option "dezembro de 2030"
+            - option "janeiro de 2031"
+            - option "fevereiro de 2031"
+            - option "março de 2031"
+            - option "abril de 2031"
+            - option "maio de 2031"
+            - option "junho de 2031"
+            - option "julho de 2031"
+        - generic [ref=e39]:
+          - generic [ref=e40]: Já tem algo guardado?
+          - generic [ref=e41]:
+            - generic [ref=e42] [cursor=pointer]:
+              - radio "Começar do zero" [ref=e43]
+              - text: Começar do zero
+            - generic [ref=e44] [cursor=pointer]:
+              - radio "Já tenho um valor guardado" [checked] [ref=e45]
+              - text: Já tenho um valor guardado
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - generic [ref=e108]: R$
+                - textbox "R$" [ref=e109]:
+                  - /placeholder: "0"
+                  - text: "200.000"
+              - paragraph [ref=e110]: O que você já separou para esta meta.
+            - generic [ref=e111]:
+              - generic [ref=e112]: Em qual poupança está?
+              - button "Escolha a poupança" [ref=e113]:
+                - generic [ref=e114]: Escolha a poupança
+                - img [ref=e115]
+              - generic [ref=e117]:
+                - textbox "Buscar banco…" [active] [ref=e118]
+                - list [ref=e119]:
+                  - listitem [ref=e120] [cursor=pointer]:
+                    - generic [ref=e121]:
+                      - img "Nubank" [ref=e124]
+                      - generic [ref=e126]: Caixinha
+                      - generic [ref=e127]: Saldo não informado
+        - button "Ver meus planos" [ref=e46] [cursor=pointer]
+  - generic [ref=e47]:
+    - generic "Fechar menu"
+    - complementary [ref=e48]:
+      - link "azulzin" [ref=e49] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e52]: azulzin
+      - navigation [ref=e53]:
+        - list [ref=e54]:
+          - listitem [ref=e55]:
+            - link "Painel" [ref=e56] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e57]
+              - generic [ref=e59]: Painel
+          - listitem [ref=e60]:
+            - link "Contas" [ref=e61] [cursor=pointer]:
+              - /url: /bank_accounts
+              - img [ref=e62]
+              - generic [ref=e64]: Contas
+          - listitem [ref=e65]:
+            - link "Rendas" [ref=e66] [cursor=pointer]:
+              - /url: /incomes
+              - img [ref=e67]
+              - generic [ref=e69]: Rendas
+          - listitem [ref=e70]:
+            - link "Cartões" [ref=e71] [cursor=pointer]:
+              - /url: /credit_cards
+              - img [ref=e72]
+              - generic [ref=e74]: Cartões
+          - listitem [ref=e75]:
+            - link "Transações" [ref=e76] [cursor=pointer]:
+              - /url: /transactions
+              - img [ref=e77]
+              - generic [ref=e79]: Transações
+          - listitem [ref=e80]:
+            - link "Metas" [ref=e81] [cursor=pointer]:
+              - /url: /goals
+              - img [ref=e82]
+              - generic [ref=e84]: Metas
+          - listitem [ref=e85]:
+            - link "Compromissos" [ref=e86] [cursor=pointer]:
+              - /url: /commitments
+              - img [ref=e87]
+              - generic [ref=e89]: Compromissos
+          - listitem [ref=e90]:
+            - link "Categorias" [ref=e91] [cursor=pointer]:
+              - /url: /categories
+              - img [ref=e92]
+              - generic [ref=e95]: Categorias
+      - button "T Teste 10 test-10@azulzin.dev" [ref=e98]:
+        - generic [ref=e99]: T
+        - generic [ref=e100]:
+          - generic [ref=e101]: Teste 10
+          - generic [ref=e102]: test-10@azulzin.dev
+        - img [ref=e103]

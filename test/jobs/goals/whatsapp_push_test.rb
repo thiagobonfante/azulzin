@@ -77,6 +77,18 @@ class Goals::WhatsappPushTest < ActiveSupport::TestCase
     assert Notification.where(kind: "goal_achieved").last.whatsapp_sent_at.present?
   end
 
+  # "Você guardou X" is a ledger figure: FLOOR, never overstate (matching the goal page party) —
+  # unlike goal_alert's gap, which CEILs. Exploratory WEB-GOAL-06 caught the R$ 1 drift.
+  test "goal_achieved floors the amount to whole reais" do
+    goal = active_goal(target: 550_457)
+    save!(550_457)
+    bodies = sweep
+    achieved = bodies.find { |b| b.include?("concluída") }
+    assert achieved, "celebration must push"
+    assert_includes achieved, "R$ 5.504"
+    assert goal.reload.achieved?
+  end
+
   test "sidecar disconnected → dashboard row, no send, claim not burned" do
     WhatsappConnection.instance.update!(status: "disconnected")
     active_goal

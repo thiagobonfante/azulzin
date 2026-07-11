@@ -1,0 +1,8 @@
+<%# Wrapper always renders so the caps Turbo swap can toggle the button in place —
+    without it the reset only appeared after a full-page reload (exploratory WEB-GOAL-03). %>
+<span id="goal_caps_reset">
+  <% if goal.user_caps.present? %>
+    <%= button_tag t("goals.diagnosis.reset_caps"), name: "reset", value: "1", data: { turbo: false },
+          class: "btn btn-ghost btn-xs text-base-content/50" %>
+  <% end %>
+</span>

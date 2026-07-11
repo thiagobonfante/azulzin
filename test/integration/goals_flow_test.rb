@@ -147,6 +147,20 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_empty goal.reload.user_caps
   end
 
+  # The reset button lives outside the plan area, so the caps stream must swap it too — or a
+  # user who just dragged a slider has no way to reset without a reload (exploratory WEB-GOAL-03).
+  test "the caps turbo stream toggles the reset button in place" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
+    goal = @account.goals.last
+    follow_redirect!
+    assert_select "span#goal_caps_reset button", count: 0   # no caps yet → no button
+
+    patch caps_goal_path(goal), params: { caps: { @rest.id.to_s => "15000" } },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_match "goal_caps_reset", @response.body
+    assert_match I18n.t("goals.diagnosis.reset_caps"), @response.body
+  end
+
   test "activation without a caixinha/source is blocked with the friendly error (round 3)" do
     post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
     goal = @account.goals.last
@@ -183,6 +197,19 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
 
     patch abandon_goal_path(goal)
     assert_equal 60_000, @rest.reload.monthly_budget_cents    # reverted on abandon
+  end
+
+  # The UI hides the button on closed goals; a raw PATCH used to flash "abandonada" while
+  # changing nothing (exploratory WEB-GOAL-07 gap) — the controller now honors Abandon's guard.
+  test "abandoning an achieved goal is refused with an honest alert" do
+    post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
+    goal = @account.goals.last
+    goal.update_columns(status: "achieved", achieved_at: Time.current)
+
+    patch abandon_goal_path(goal)
+    assert_redirected_to goal_path(goal)
+    assert_equal I18n.t("goals.abandon.errors.not_active"), flash[:alert]
+    assert goal.reload.achieved?, "status must not change"
   end
 
   test "double-submitting choose activates only once" do

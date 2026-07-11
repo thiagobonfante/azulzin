@@ -122,8 +122,13 @@ class GoalsController < AppController
   end
 
   def abandon
-    Goals::Abandon.call(@goal)
-    redirect_to goals_path, notice: t(".abandoned"), status: :see_other
+    if Goals::Abandon.call(@goal)
+      redirect_to goals_path, notice: t(".abandoned"), status: :see_other
+    else
+      # Achieved/closed goals can't be abandoned (Abandon's guard) — the UI hides the button,
+      # so this is the raw-request path; never flash success over a no-op.
+      redirect_to goal_path(@goal), alert: t(".errors.not_active"), status: :see_other
+    end
   end
 
   def destroy

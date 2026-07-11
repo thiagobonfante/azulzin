@@ -1,0 +1,23 @@
+- generic [ref=e1]:
+  - complementary [ref=e2]:
+    - heading "Números (fake)" [level=2] [ref=e3]
+    - generic [ref=e4]:
+      - button "Marina (verificada) 5511987654321@c.us" [ref=e25] [cursor=pointer]:
+        - text: Marina (verificada)
+        - generic [ref=e26]: 5511987654321@c.us
+      - button "Rafael (verificado) 5511976543210@c.us" [ref=e27] [cursor=pointer]:
+        - text: Rafael (verificado)
+        - generic [ref=e28]: 5511976543210@c.us
+      - button "Novo número 5511910000010@c.us" [ref=e29] [cursor=pointer]:
+        - text: Novo número
+        - generic [ref=e30]: 5511910000010@c.us
+    - textbox "+55… ou jid@c.us" [ref=e9] [cursor=pointer]
+    - button "+ adicionar número" [active] [ref=e10] [cursor=pointer]
+    - paragraph [ref=e11]: Verificados vêm do demo seed. Um número novo dispara o handshake AZUL-XXXX.
+  - main [ref=e12]:
+    - generic [ref=e13]: 5511910000010@c.us
+    - generic [ref=e20]:
+      - generic [ref=e21] [cursor=pointer]: 📎
+      - button "🎤" [ref=e22] [cursor=pointer]
+      - 'textbox "Mensagem (ex: gastei 42 no mercado no débito)" [ref=e23]'
+      - button "Enviar" [ref=e24] [cursor=pointer]

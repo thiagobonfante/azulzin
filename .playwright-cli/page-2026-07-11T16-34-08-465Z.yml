@@ -1,0 +1,73 @@
+- generic [ref=e2]:
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - heading "Suas metas" [level=1] [ref=e8]
+          - paragraph [ref=e9]: Sonhos com um plano — e um guardião que avisa quando o ritmo cai.
+        - link "Nova meta" [ref=e10] [cursor=pointer]:
+          - /url: /goals/new
+      - generic [ref=e11]:
+        - link "Viagem R$ 300 de R$ 10.000" [ref=e12] [cursor=pointer]:
+          - /url: /goals/23
+          - generic [ref=e14]: Viagem
+          - paragraph [ref=e17]: R$ 300 de R$ 10.000
+        - link "Reforma R$ 0 de R$ 15.000" [ref=e18] [cursor=pointer]:
+          - /url: /goals/22
+          - generic [ref=e20]: Reforma
+          - paragraph [ref=e22]: R$ 0 de R$ 15.000
+  - generic [ref=e23]:
+    - generic "Fechar menu"
+    - complementary [ref=e24]:
+      - link "azulzin" [ref=e25] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e28]: azulzin
+      - navigation [ref=e29]:
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Painel" [ref=e32] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e33]
+              - generic [ref=e35]: Painel
+          - listitem [ref=e36]:
+            - link "Contas" [ref=e37] [cursor=pointer]:
+              - /url: /bank_accounts
+              - img [ref=e38]
+              - generic [ref=e40]: Contas
+          - listitem [ref=e41]:
+            - link "Rendas" [ref=e42] [cursor=pointer]:
+              - /url: /incomes
+              - img [ref=e43]
+              - generic [ref=e45]: Rendas
+          - listitem [ref=e46]:
+            - link "Cartões" [ref=e47] [cursor=pointer]:
+              - /url: /credit_cards
+              - img [ref=e48]
+              - generic [ref=e50]: Cartões
+          - listitem [ref=e51]:
+            - link "Transações" [ref=e52] [cursor=pointer]:
+              - /url: /transactions
+              - img [ref=e53]
+              - generic [ref=e55]: Transações
+          - listitem [ref=e56]:
+            - link "Metas" [ref=e57] [cursor=pointer]:
+              - /url: /goals
+              - img [ref=e58]
+              - generic [ref=e60]: Metas
+          - listitem [ref=e61]:
+            - link "Compromissos" [ref=e62] [cursor=pointer]:
+              - /url: /commitments
+              - img [ref=e63]
+              - generic [ref=e65]: Compromissos
+          - listitem [ref=e66]:
+            - link "Categorias" [ref=e67] [cursor=pointer]:
+              - /url: /categories
+              - img [ref=e68]
+              - generic [ref=e71]: Categorias
+      - button "M Marina Andrade marina@azulzin.dev Família Andrade" [ref=e74]:
+        - generic [ref=e75]: M
+        - generic [ref=e76]:
+          - generic [ref=e77]: Marina Andrade
+          - generic [ref=e78]: marina@azulzin.dev
+          - generic [ref=e79]: Família Andrade
+        - img [ref=e80]

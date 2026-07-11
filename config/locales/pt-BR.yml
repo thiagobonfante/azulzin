@@ -391,6 +391,8 @@ pt-BR:
       rejected: "Não deu — o valor precisa ser positivo e caber na sobra do mês."
     abandon:
       abandoned: "Meta abandonada. O que você guardou continua guardado."
+      errors:
+        not_active: "Essa meta já está encerrada — não dá para abandonar."
     replan:
       replanned: "Meta reorganizada 💙 Nova parcela de %{monthly}, termina em %{month}."
       errors:

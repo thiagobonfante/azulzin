@@ -1,0 +1,76 @@
+- generic [ref=e2]:
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - alert [ref=e7]:
+        - generic [ref=e8]: Meta ativada! Agora é guardar. 💙
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - heading "Narrada" [level=1] [ref=e11]
+          - generic [ref=e12]: Ativa
+        - link "Voltar" [ref=e13] [cursor=pointer]:
+          - /url: /goals
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - paragraph [ref=e16]: R$ 0
+          - paragraph [ref=e17]: de R$ 18.000
+        - generic [ref=e19]:
+          - generic [ref=e20]: Sem dados ainda
+          - generic [ref=e21]: começa em agosto de 2026
+        - paragraph [ref=e22]: Nesse ritmo, você chega em dezembro de 2027
+      - generic [ref=e23]:
+        - button "Abandonar" [ref=e25] [cursor=pointer]
+        - generic [ref=e26]: Abandonar não apaga o que você já guardou.
+  - generic [ref=e27]:
+    - generic "Fechar menu"
+    - complementary [ref=e28]:
+      - link "azulzin" [ref=e29] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e32]: azulzin
+      - navigation [ref=e33]:
+        - list [ref=e34]:
+          - listitem [ref=e35]:
+            - link "Painel" [ref=e36] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e37]
+              - generic [ref=e39]: Painel
+          - listitem [ref=e40]:
+            - link "Contas" [ref=e41] [cursor=pointer]:
+              - /url: /bank_accounts
+              - img [ref=e42]
+              - generic [ref=e44]: Contas
+          - listitem [ref=e45]:
+            - link "Rendas" [ref=e46] [cursor=pointer]:
+              - /url: /incomes
+              - img [ref=e47]
+              - generic [ref=e49]: Rendas
+          - listitem [ref=e50]:
+            - link "Cartões" [ref=e51] [cursor=pointer]:
+              - /url: /credit_cards
+              - img [ref=e52]
+              - generic [ref=e54]: Cartões
+          - listitem [ref=e55]:
+            - link "Transações" [ref=e56] [cursor=pointer]:
+              - /url: /transactions
+              - img [ref=e57]
+              - generic [ref=e59]: Transações
+          - listitem [ref=e60]:
+            - link "Metas" [ref=e61] [cursor=pointer]:
+              - /url: /goals
+              - img [ref=e62]
+              - generic [ref=e64]: Metas
+          - listitem [ref=e65]:
+            - link "Compromissos" [ref=e66] [cursor=pointer]:
+              - /url: /commitments
+              - img [ref=e67]
+              - generic [ref=e69]: Compromissos
+          - listitem [ref=e70]:
+            - link "Categorias" [ref=e71] [cursor=pointer]:
+              - /url: /categories
+              - img [ref=e72]
+              - generic [ref=e75]: Categorias
+      - button "T Teste 10 test-10@azulzin.dev" [ref=e78]:
+        - generic [ref=e79]: T
+        - generic [ref=e80]:
+          - generic [ref=e81]: Teste 10
+          - generic [ref=e82]: test-10@azulzin.dev
+        - img [ref=e83]

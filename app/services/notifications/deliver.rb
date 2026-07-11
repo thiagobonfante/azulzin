@@ -87,12 +87,16 @@ module Notifications
     # brl-equivalent formatter for a job context. The whole transform runs inside the
     # recipient's locale: the summary digests assemble composite lines (Summaries::Lines)
     # here, not just money.
-    # Goal kinds render whole reais (ceil — round 3 P1), same fork as the dashboard banner
+    # Goal kinds render whole reais, same fork as the dashboard banner
     # (NotificationsHelper#notification_message); budget_*_goal stays 2-decimal.
+    # goal_alert CEILs (round 3 P1: a gap top-up is never under-asked); goal_achieved FLOORs
+    # ("você guardou X" is a ledger figure — never overstate it), matching the goal page party.
     def template_args
-      whole = %w[goal_alert goal_achieved].include?(@notification.kind)
+      whole  = %w[goal_alert goal_achieved].include?(@notification.kind)
+      ledger = @notification.kind == "goal_achieved"
       I18n.with_locale(@user.locale) do
         Notifications.template_args(@notification) do |cents|
+          cents = Money.floor_to_real(cents) if ledger   # pre-floored → the whole:true ceil is a no-op
           WhatsappReply.currency(cents, locale: @user.locale, whole: whole)
         end
       end

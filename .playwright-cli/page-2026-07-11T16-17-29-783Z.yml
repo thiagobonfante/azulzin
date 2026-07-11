@@ -1,0 +1,67 @@
+- generic [ref=e2]:
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - heading "Suas metas" [level=1] [ref=e8]
+          - paragraph [ref=e9]: Sonhos com um plano — e um guardião que avisa quando o ritmo cai.
+        - link "Nova meta" [ref=e10] [cursor=pointer]:
+          - /url: /goals/new
+      - link "Carro novo R$ 2.000 de R$ 20.000" [ref=e12] [cursor=pointer]:
+        - /url: /goals/8
+        - generic [ref=e14]: Carro novo
+        - paragraph [ref=e17]: R$ 2.000 de R$ 20.000
+  - generic [ref=e18]:
+    - generic "Fechar menu"
+    - complementary [ref=e19]:
+      - link "azulzin" [ref=e20] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e23]: azulzin
+      - navigation [ref=e24]:
+        - list [ref=e25]:
+          - listitem [ref=e26]:
+            - link "Painel" [ref=e27] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e28]
+              - generic [ref=e30]: Painel
+          - listitem [ref=e31]:
+            - link "Contas" [ref=e32] [cursor=pointer]:
+              - /url: /bank_accounts
+              - img [ref=e33]
+              - generic [ref=e35]: Contas
+          - listitem [ref=e36]:
+            - link "Rendas" [ref=e37] [cursor=pointer]:
+              - /url: /incomes
+              - img [ref=e38]
+              - generic [ref=e40]: Rendas
+          - listitem [ref=e41]:
+            - link "Cartões" [ref=e42] [cursor=pointer]:
+              - /url: /credit_cards
+              - img [ref=e43]
+              - generic [ref=e45]: Cartões
+          - listitem [ref=e46]:
+            - link "Transações" [ref=e47] [cursor=pointer]:
+              - /url: /transactions
+              - img [ref=e48]
+              - generic [ref=e50]: Transações
+          - listitem [ref=e51]:
+            - link "Metas" [ref=e52] [cursor=pointer]:
+              - /url: /goals
+              - img [ref=e53]
+              - generic [ref=e55]: Metas
+          - listitem [ref=e56]:
+            - link "Compromissos" [ref=e57] [cursor=pointer]:
+              - /url: /commitments
+              - img [ref=e58]
+              - generic [ref=e60]: Compromissos
+          - listitem [ref=e61]:
+            - link "Categorias" [ref=e62] [cursor=pointer]:
+              - /url: /categories
+              - img [ref=e63]
+              - generic [ref=e66]: Categorias
+      - button "T Teste 10 test-10@azulzin.dev" [ref=e69]:
+        - generic [ref=e70]: T
+        - generic [ref=e71]:
+          - generic [ref=e72]: Teste 10
+          - generic [ref=e73]: test-10@azulzin.dev
+        - img [ref=e74]

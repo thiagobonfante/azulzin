@@ -390,6 +390,8 @@ en:
       rejected: "That didn't work — the amount must be positive and fit this month's leftover."
     abandon:
       abandoned: "Goal abandoned. What you saved stays saved."
+      errors:
+        not_active: "This goal is already closed — it can't be abandoned."
     replan:
       replanned: "Goal reorganized 💙 New deposit of %{monthly}, finishing in %{month}."
       errors:

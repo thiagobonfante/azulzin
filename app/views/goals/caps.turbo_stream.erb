@@ -1,3 +1,6 @@
 <%= turbo_stream.replace "goal_plan_area" do %>
   <%= render "goals/plan_area", goal: @goal, build: @build %>
 <% end %>
+<%= turbo_stream.replace "goal_caps_reset" do %>
+  <%= render "goals/caps_reset", goal: @goal %>
+<% end %>
