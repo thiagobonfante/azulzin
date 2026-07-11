@@ -85,7 +85,8 @@
         <%= f.label :credit_limit_reais, t("credit_cards.limit"), class: "mb-1 block text-sm font-medium" %>
         <label class="input input-bordered flex w-full items-center gap-2">
           <span class="text-base-content/50"><%= t("money.symbol") %></span>
-          <%= f.text_field :credit_limit_reais, inputmode: "decimal", placeholder: "0,00", class: "grow" %>
+          <%= f.text_field :credit_limit_reais, inputmode: "decimal", placeholder: "0,00", class: "grow",
+                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
         </label>
       </div>
       <%# Legacy fallback (02 §6): only shown while the card has no billing config — configured
@@ -95,7 +96,8 @@
           <%= f.label :current_bill_reais, t("credit_cards.current_bill"), class: "mb-1 block text-sm font-medium" %>
           <label class="input input-bordered flex w-full items-center gap-2">
             <span class="text-base-content/50"><%= t("money.symbol") %></span>
-            <%= f.text_field :current_bill_reais, inputmode: "decimal", placeholder: "0,00", class: "grow" %>
+            <%= f.text_field :current_bill_reais, inputmode: "decimal", placeholder: "0,00", class: "grow",
+                  data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
           </label>
           <span class="mt-1 text-xs text-base-content/50"><%= t("credit_cards.current_bill_hint") %></span>
         </div>

@@ -37,7 +37,8 @@
               <p class="text-xs text-error"><%= @commitment.errors.full_messages.to_sentence %></p>
             <% end %>
             <div class="form-control"><%= f.label :name, t("commitments.form.name"), class: "mb-1 text-xs" %><%= f.text_field :name, class: "input input-bordered input-sm w-full" %></div>
-            <div class="form-control"><%= f.label :amount_reais, t("commitments.form.amount"), class: "mb-1 text-xs" %><%= f.text_field :amount_reais, inputmode: "decimal", class: "input input-bordered input-sm w-full" %></div>
+            <div class="form-control"><%= f.label :amount_reais, t("commitments.form.amount"), class: "mb-1 text-xs" %><%= f.text_field :amount_reais, inputmode: "decimal", class: "input input-bordered input-sm w-full",
+                  data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %></div>
             <% if @commitment.installment? %>
               <div class="form-control">
                 <%= f.label :installments_count, t("commitments.form.installments_count"), class: "mb-1 text-xs" %>
@@ -77,7 +78,8 @@
                 <span class="text-base-content/50"><%= t("money.symbol") %></span>
                 <%# Prefill mirrors MoneyColumns' *_reais style ("1234,56"). %>
                 <%= text_field_tag :amount_reais, format("%.2f", @commitment.remaining_cents.to_i.fdiv(100)).tr(".", ","),
-                      inputmode: "decimal", required: true, class: "grow" %>
+                      inputmode: "decimal", required: true, class: "grow",
+                      data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
               </label>
               <%= submit_tag t("commitments.show.settle_submit"), class: "btn btn-primary btn-sm" %>
             <% end %>

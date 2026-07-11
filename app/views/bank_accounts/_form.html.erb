@@ -43,7 +43,8 @@
         <%= f.label :balance_reais, t("bank_accounts.balance"), class: "mb-1 block text-sm font-medium" %>
         <label class="input input-bordered flex w-full items-center gap-2">
           <span class="text-base-content/50"><%= t("money.symbol") %></span>
-          <%= f.text_field :balance_reais, inputmode: "decimal", placeholder: "0,00", class: "grow" %>
+          <%= f.text_field :balance_reais, inputmode: "decimal", placeholder: "0,00", class: "grow",
+                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
         </label>
       </div>
       <div class="form-control">

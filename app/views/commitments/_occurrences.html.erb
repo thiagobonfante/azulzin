@@ -38,7 +38,8 @@
             <label class="input input-bordered input-sm flex items-center gap-1">
               <span class="text-base-content/50"><%= t("money.symbol") %></span>
               <input name="amount_reais" id="<%= batch_form %>_amount" data-batch-pay-target="amount"
-                     inputmode="decimal" required class="grow">
+                     inputmode="decimal" required class="grow"
+                     data-controller="money-mask" data-money-mask-cents-value="true" data-action="input->money-mask#format">
             </label>
           </div>
           <%= submit_tag t("commitments.show.batch_submit"), class: "btn btn-primary btn-sm" %>

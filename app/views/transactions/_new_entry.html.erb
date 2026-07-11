@@ -31,7 +31,8 @@
           <label class="mb-1 text-xs text-base-content/60"><%= t("transfers.form.amount") %></label>
           <label class="input input-bordered input-sm flex items-center gap-1">
             <span class="text-base-content/50"><%= t("money.symbol") %></span>
-            <%= text_field_tag "transfer[amount_reais]", params[:amount], inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+            <%= text_field_tag "transfer[amount_reais]", params[:amount], inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+                  data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
           </label>
         </div>
         <div class="form-control">
@@ -62,7 +63,8 @@
           <%= f.label :amount_reais, t("transactions.row.amount"), class: "mb-1 text-xs text-base-content/60" %>
           <label class="input input-bordered input-sm flex items-center gap-1">
             <span class="text-base-content/50"><%= t("money.symbol") %></span>
-            <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+            <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+                  data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
           </label>
         </div>
 

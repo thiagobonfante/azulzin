@@ -19,7 +19,8 @@
           <label class="input input-bordered input-sm flex items-center gap-1">
             <span class="text-base-content/50"><%= t("money.symbol") %></span>
             <%= text_field_tag "edits[#{pid}][amount_reais]", reais_value(proposal.dig("payload", "amount_cents")),
-                               inputmode: "decimal", class: "w-24 border-0 bg-transparent p-0 focus:outline-none" %>
+                               inputmode: "decimal", class: "w-24 border-0 bg-transparent p-0 focus:outline-none",
+                               data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
           </label>
         <% elsif (summary = proposal_summary(proposal)) %>
           <span class="text-sm text-base-content/70"><%= summary %></span>

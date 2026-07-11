@@ -30,7 +30,8 @@
     <%= f.label :amount_reais, t("commitments.form.amount"), class: "mb-1 block text-sm font-medium" %>
     <label class="input input-bordered flex w-full items-center gap-2">
       <span class="text-base-content/50"><%= t("money.symbol") %></span>
-      <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow" %>
+      <%= f.text_field :amount_reais, inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+            data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
     </label>
   </div>
 

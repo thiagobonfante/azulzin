@@ -14,5 +14,6 @@ export default class extends Controller {
     const cents = checked.reduce((sum, c) => sum + parseInt(c.dataset.cents, 10), 0)
     this.countTarget.textContent = `${checked.length} ${checked.length === 1 ? this.oneValue : this.manyValue}`
     this.amountTarget.value = (cents / 100).toFixed(2).replace(".", ",")
+    this.amountTarget.dispatchEvent(new Event("input"))   // let the money mask regroup the prefill
   }
 }

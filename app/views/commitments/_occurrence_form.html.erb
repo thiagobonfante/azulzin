@@ -14,7 +14,8 @@
         <span class="text-base-content/50"><%= t("money.symbol") %></span>
         <%# Prefill mirrors MoneyColumns' *_reais style ("1234,56"). %>
         <%= text_field_tag :amount_reais, format("%.2f", c.amount_cents.fdiv(100)).tr(".", ","),
-              inputmode: "decimal", id: "#{occurrence_dom_id(occurrence)}_amount", class: "grow" %>
+              inputmode: "decimal", id: "#{occurrence_dom_id(occurrence)}_amount", class: "grow",
+              data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
       </label>
       <p class="text-[11px] leading-snug text-base-content/50"><%= t("commitments.occurrences.#{mode == :pay ? "pay_hint" : "adjust_hint"}") %></p>
       <%= submit_tag t("commitments.occurrences.#{mode == :pay ? "confirm_pay" : "confirm_adjust"}"), class: "btn btn-primary btn-sm" %>

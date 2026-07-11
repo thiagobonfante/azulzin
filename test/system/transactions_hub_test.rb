@@ -73,6 +73,27 @@ class TransactionsHubTest < ApplicationSystemTestCase
     assert txn.reload.soft_deleted?
   end
 
+  test "the entry drawer money mask reads typed digits as centavos and posts the exact cents" do
+    visit transactions_path
+    find("a[href*='transactions/new']", text: I18n.t("transactions.ledger.add")).click
+
+    within "#entry_form" do
+      # Bank-app style: digits are centavos — 109200 renders live as 1.092,00.
+      amount = find_field I18n.t("transactions.row.amount")
+      amount.send_keys "109200"
+      assert_equal "1.092,00", amount.value
+      fill_in I18n.t("transactions.row.merchant"), with: "Padaria"
+      find("button[data-method='pix']").click
+      assert_selector "[data-entry-instrument-target='display']", text: "Conta Nubank"
+      click_button I18n.t("transactions.new.submit")
+    end
+
+    # The masked string parses back to the same integer cents — no 100× misread.
+    assert_no_selector "dialog.modal[open]"
+    assert_text "Padaria"
+    assert_equal 109_200, @user.account.transactions.order(:id).last.amount_cents
+  end
+
   test "the confirm modal Cancel button aborts the delete — row and record stay put" do
     txn = @user.account.transactions.create!(bank_account: @account, category: @user.account.categories.first,
                                      direction: "expense", status: "posted", amount_cents: 3_100,
