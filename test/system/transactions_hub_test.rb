@@ -71,6 +71,10 @@ class TransactionsHubTest < ApplicationSystemTestCase
     # (doc 05 §2.6 — in-app delete keeps the row, restorable via console).
     assert_no_selector "##{dom_id(txn, :row)}"
     assert txn.reload.soft_deleted?
+
+    # The edit drawer closes too — the delete link's ephemeral form submits from document.body,
+    # which only the @document-scoped submit-end listener hears (it once stayed open, stale).
+    assert_no_selector "dialog[data-entry-modal-target='dialog'][open]"
   end
 
   test "the entry drawer money mask reads typed digits as centavos and posts the exact cents" do

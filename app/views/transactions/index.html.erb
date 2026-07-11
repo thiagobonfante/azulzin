@@ -7,7 +7,10 @@
     Horizontal swipe (month-swipe) changes months, mirroring the month_nav arrows. %>
 <div class="flex flex-col gap-6 pb-24 lg:pb-0"
      data-controller="mobile-tabs month-swipe entry-modal"
-     data-action="turbo:submit-end->entry-modal#submitEnd"
+     <%# @document: a data-turbo-method delete link submits an ephemeral form appended to the
+         BODY (outside this wrapper), so a wrapper-scoped listener never hears it and the edit
+         drawer stayed open showing the deleted row. Global listener + the open-guard in #close. %>
+     data-action="turbo:submit-end@document->entry-modal#submitEnd"
      data-month-swipe-prev-url-value="<%= transactions_path(month: (@month << 1).strftime("%Y-%m")) %>"
      data-month-swipe-next-url-value="<%= transactions_path(month: (@month >> 1).strftime("%Y-%m")) %>">
   <%# Proactive alerts (up-tier 01 §4) — not month-scoped, so they sit above the nav/tabs. %>
