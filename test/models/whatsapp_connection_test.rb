@@ -24,4 +24,14 @@ class WhatsappConnectionTest < ActiveSupport::TestCase
     assert conn.disconnected?
     assert_equal "logout", conn.last_error
   end
+
+  # logged_out must broadcast like every other lifecycle event, or the admin panel
+  # keeps showing "Conectado" after a phone-side unlink (found live, ch. 9 walk).
+  test "mark_logged_out! moves status and broadcasts" do
+    conn = WhatsappConnection.instance
+    assert_broadcast_on("whatsapp_connection", type: "logged_out", status: "logged_out") do
+      conn.mark_logged_out!
+    end
+    assert conn.logged_out?
+  end
 end

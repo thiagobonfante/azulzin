@@ -3447,7 +3447,7 @@ The fake sidecar self-announces "connected" and never emits lifecycle events —
    Then repeat the same curl with each payload in turn: `{"event":"disconnected","data":{"reason":"phone offline"}}` → `{"event":"auth_failed","data":{"error":"bad session"}}` → `{"event":"connected","data":{}}` → `{"event":"logged_out"}`.
 4. Click the panel's "Reconectar" button, then the "Encerrar sessão" (logout) button.
 
-**Expect:** The QR image renders on the panel and status flips live over ActionCable — no page reload — through qr → disconnected (with "phone offline" in last_error) → auth_failed → connected → logged_out. "Reconectar" POSTs `/session/initialize` on the sidecar and flashes `t('.initializing')`; "Encerrar sessão" flashes `t('.logged_out')` and status becomes logged_out.
+**Expect:** The QR image renders on the panel and status flips live over ActionCable — no page reload — through qr → disconnected (with "phone offline" in last_error) → auth_failed → connected → logged_out (the logged_out live flip was MISSING — bare `update!`, no broadcast, panel stale on "Conectado" after a phone-side unlink — fixed 2026-07-11 with `mark_logged_out!`, pinned in `whatsapp_connection_test.rb`). "Encerrar sessão" is behind a turbo-confirm in-page dialog — click its "Confirmar". "Reconectar" POSTs `/session/initialize` on the sidecar and flashes `t('.initializing')`; "Encerrar sessão" flashes `t('.logged_out')` and status becomes logged_out.
 
 **Variants:**
 - Non-admin rafael visits /admin/whatsapp_connection → redirected to /dashboard with the `admin.not_authorized` alert.
@@ -3505,7 +3505,7 @@ Seed: `dev:seed_demo` (marina admin) · AI: live-AI (prerequisite captures only)
 2. As admin marina, visit http://localhost:3000/admin/whatsapp_messages.
 3. Click into one audio row and one image row (`/admin/whatsapp_messages/:id`).
 
-**Expect:** Index lists the last 100 inbound messages newest-first with user/account. The show page renders the voice-note audio player / receipt thumbnail via Active Storage, the stored transcription, the `ai_result` JSON, and links the produced transaction(s).
+**Expect:** Index lists the last 100 inbound messages newest-first with user/account. The show page renders the voice-note audio player / receipt thumbnail via Active Storage, the stored transcription, and links the produced transaction(s). ⚠️ Pinned gap (2026-07-11): the `ai_result` details section never renders — NOTHING in the pipeline writes `ai_result` (always `{}`); the calibration data actually lives in `transaction.extraction`. Wire-or-drop is a product call. Headless tip: no mic needed — synthesize the voice note (`say -v Luciana "padaria quinze reais" -o v.aiff && afconvert -f m4af -d aac v.aiff v.m4a`) and send it via the simulator's 📎 (accepts audio/*).
 
 **Variants:**
 - Non-admin rafael on /admin/whatsapp_messages → dashboard redirect + `admin.not_authorized` alert.
@@ -3557,10 +3557,10 @@ Marina needs Itaú (debit) + a configured Nubank card. The catalog only covers a
 **Steps:**
 1. Capture: `mercado 54,90 no débito no itaú` — then send `na verdade foi na Padaria Estrela`.
 2. Fresh capture (same message) — then send `foi no nubank, não no itaú`.
-3. Fresh capture — then send `isso foi ontem`.
+3. Fresh capture — then send `muda a data pra <dd/mm de anteontem>` (an EXPLICIT date — `isso foi ontem` answers edit_unclear by design: the prompt forbids the model computing dates, so a relative word leaves occurred_on null).
 4. After (2), open /transactions and find the row.
 
-**Expect:** Each correction returns the "edited" reply with amount + instrument display name. (2) runs `assign_instrument!` → billing_month recomputes onto the Nubank fatura — verify on /transactions the row moved to the faturas bucket. (3) `occurred_on` moves one day back and, on a card row, may re-bucket the fatura via callbacks.
+**Expect:** Each correction returns the "edited" reply with amount + instrument display name. (2) runs `assign_instrument!` → billing_month recomputes onto the Nubank fatura — verify on /transactions the row moved to the faturas bucket (say `no cartão nubank` — the "cartão" qualifier disambiguates the Nubank-institution collision). (3) `occurred_on` moves to that date IN THE CURRENT YEAR — a yearless dd/mm used to land in the model's training-era year (found live: "10/07" → 2024-07-10, a money-path bug); fixed 2026-07-11 by `Extractor.parse_date`'s nearest-past-occurrence snap, pinned in `test/services/whatsapp/extractor_test.rb`.
 
 **Variants:**
 - Correction sent >24h after the capture — age the row first:
@@ -3582,7 +3582,7 @@ The roadmap's named-scariest #2. Seed 14 plants the canary: a separate solo acco
 1. Run `bin/rails "exploratory:seed[14]"` so the canary account exists alongside the demo household. Rafael should have his own WA-captured rows in the demo account (send one from his simulator chat if needed).
 2. Signed in as marina, download all three: http://localhost:3000/exports.csv?preset=all, /exports.xlsx?preset=all and /exports.pdf?preset=all.
 3. `grep VAZAMENTO` the CSV; open the xlsx and pdf and eyeball for the R$ 666,66 row.
-4. Cross-foot: compare the CSV's cent totals against the /transactions month summary.
+4. Cross-foot: compare the CSV's cent totals against the /transactions month summary **for a PAST month** (2026-07-11: June tied to the exact centavo). The CURRENT month's hero is a PROJECTION (posted + projected commitments + faturas, `MonthSummary`) and will not tie to a ledger export by design.
 5. Sign in as test-14@azulzin.dev / test1234 and download the same preset.
 
 **Expect:** "VAZAMENTO LTDA" appears in NONE of marina's three files; rafael's rows DO appear in marina's export (account-scoped, not user-scoped) with attribution intact. CSV cent totals tie out exactly to the /transactions month summary.
@@ -3692,13 +3692,13 @@ Seed: none · AI: deterministic
 
 **Steps:**
 1. Open each static page directly: localhost:3000/404.html, /422.html, /500.html, /400.html, /406-unsupported-browser.html.
-2. Dynamic 406 with an ancient UA rejected by `allow_browser versions: :modern`:
+2. Dynamic 406 with an OLD RECOGNIZED browser (`allow_browser versions: :modern` only blocks browsers it can parse — an unknown/IE-style UA is ALLOWED by Rails design):
    ```
-   curl -si localhost:3000/session/new -A 'Mozilla/5.0 (Windows NT 6.1; rv:11.0) like Gecko'
+   curl -si localhost:3000/session/new -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36'
    ```
 3. Note on dynamic 404s: in dev, /transactions/999999 renders the debug page (`consider_all_requests_local`) — the static pages ARE what prod users see.
 
-**Expect:** All five static pages render branded, mobile-safe, pt-BR copy (no raw Rails default). The ancient-UA request gets HTTP 406 with the unsupported-browser page.
+**Expect:** The old-Chrome UA gets HTTP 406 with the unsupported-browser page (verified 2026-07-11). ⚠️ REAL GAP (pinned, product decision open): all five static pages are the STOCK RAILS defaults — English titles/copy, no azulzin branding — not the branded pt-BR pages this scenario originally asserted.
 
 Pins: `public/404.html:1`, `public/406-unsupported-browser.html:1`, `app/controllers/application_controller.rb:24`
 
@@ -3712,7 +3712,7 @@ Seed 12 gives exactly the state needed: test-12@azulzin.dev confirmed + account 
 1. Sign in as test-12@azulzin.dev / test1234.
 2. Type each URL directly: /transactions, /dashboard, /goals, /account, /categories, /notification_preferences, /exports/new.
 
-**Expect:** Every one redirects to /onboarding; the wizard resumes at the correct incomplete step. The gate is NOT a single shared before_action: most app controllers inherit it from AppController, but TransactionsController, AccountsController and CategoriesController inherit ApplicationController and declare their own `require_onboarding` — and only for some actions (accounts gates only `:show`, categories only `:index`). Exploratory: probe the UNgated actions of those three controllers (e.g. POST /categories, other /account member actions) as an un-onboarded user and flag anything reachable as a gap.
+**Expect:** Every one redirects to /onboarding; the wizard resumes at the correct incomplete step. The gate is NOT a single shared before_action: most app controllers inherit it from AppController, but TransactionsController, AccountsController and CategoriesController inherit ApplicationController and declare their own `require_onboarding`. 2026-07-11 probe results: transactions gates ALL actions ✓; **categories gated only `:index` and POST /categories minted a row pre-onboarding — REAL gap, FIXED** (gate now covers every action, pinned in `categories_controller_test.rb`); accounts still gates only `:show` — `update` (rename) and `destroy` (LGPD) stay reachable, plausibly deliberate for the deletion right (product call, flagged).
 
 **Variants:**
 - POST attempts (e.g. curl POST /transactions with the browser's session cookie) are equally bounced, not just GETs.
@@ -3745,11 +3745,11 @@ Regression guard for the noscript/DOMParser bug: a noscript fallback inside a Tu
 
 **Steps:**
 1. As marina (Itaú debit + configured Nubank card + categories) open 'Adicionar' on /transactions.
-2. Pick category 'Mercado', pick instrument Itaú.
-3. Toggle payment kind débito → crédito → débito — each toggle Turbo-fetches the instrument picker fragment. **After every toggle, assert the picker button still displays the picked value before the next action** (browser-lane discipline).
+2. Pick category 'Mercado', switch to Débito, pick instrument Itaú (Marina).
+3. Toggle payment kind débito → pix → débito (SAME instrument type). **After every toggle, assert the picker button still displays the picked value before the next action.**
 4. Fill R$ 12,34 and submit.
 
-**Expect:** After every toggle the picker button still DISPLAYS the picked value and the hidden field still carries it — the row posts with category Mercado + instrument Itaú, R$ 12,34.
+**Expect:** (Re-pinned 2026-07-11 — the picker is now fully client-side, `entry_instrument_controller.js`; no Turbo fragment refetch remains, so the original noscript/DOMParser regression class is gone.) Across SAME-type toggles (débito↔pix) the picker button keeps displaying the pick and the hidden `instrument` field keeps its token — the row posts with category Mercado + Itaú + R$ 12,34. A CROSS-type toggle (débito→crédito) DELIBERATELY clears an incompatible pick ("Drop a selection that no longer fits the chosen type") and toggling back does NOT restore it (3 accounts → no auto-select); that is design, not the regression.
 
 **Variants:**
 - Same dance inside the onboarding accounts step and the goal-draft caixinha picker — any Turbo-refreshed fragment containing a picker.
@@ -3787,7 +3787,7 @@ Seed 5 ships exactly this state: test-5 WA-verified, `whatsapp_consent` at its D
    ```
    bin/rails runner 'u=User.find_by!(email_address:"test-5@azulzin.dev"); Reminders::NotifyMemberJob.perform_now(u.account.id, u.id)'
    ```
-   (Must be inside 08–21 America/Sao_Paulo for the WA push; the in-app Notification row is the reliable observable either way.)
+   (The push window is the USER's quiet-hours pref, default 21→08 São Paulo — testing at night, shrink it on the prefs page (De 03:00 / Até 04:00) instead of waiting for morning. Two more gates that silently downgrade to dashboard-only, both found live 2026-07-11: the runner needs `WHATSAPP_SERVICE_TOKEN=dev-whatsapp-token bin/rails runner …` — without it every send 401s at the sidecar while STILL burning the claim and the intro footer — and `WhatsappConnection.instance` must be `connected` — a `logged_out` leftover from WEB-ADM-01 gates every push off. Reset both before sweeping.)
 3. Watch test-5's chat in the :3001 simulator.
 4. Flip the toggle OFF, clear the rows (`bin/rails runner 'Notification.where(kind: "bill_due").delete_all'`), re-run the runner.
 
@@ -3805,7 +3805,7 @@ Seed: `dev:seed_demo` · AI: broken-key
 The catalog said "with network down" — this pins the exact reproducible trigger: a broken key makes every OpenRouter call 401 deterministically.
 
 **Steps:**
-1. Stop the stack and restart with a broken key: `OPENROUTER_API_KEY=broken bin/dev-fake` (use `GROQ_API_KEY=broken` instead to force WA-CAP-22's STT path).
+1. ⚠️ The env lever is DEAD when the key lives in credentials: `OpenRouterClient#api_key` is credentials-FIRST (`open_router_client.rb:46`), so `OPENROUTER_API_KEY=broken bin/dev-fake` silently keeps the live key (found 2026-07-11). With a credentials key, either temporarily blank `credentials.dig(:openrouter)` — heavy — or use the simulation levers: the degrade goldens in `test/e2e/whatsapp/capture_test.rb` (STT/vision fail_and_tell) and `ProcessDocumentImportJob.fail_import(id, "llm_failed", err)` for imports (the WEB-IMP-07b precedent). ENV-only setups can still restart with the broken key as originally written.
 2. Send `mercado 54,90` from marina's chat in the simulator.
 3. Separately, upload sample.csv at /bank_accounts.
 4. Tail `log/development.log` and watch the 3 `retry_on` attempts (~5s apart).

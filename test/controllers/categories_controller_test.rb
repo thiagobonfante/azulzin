@@ -13,6 +13,16 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_select "form#category_form"
   end
 
+  # The gate covers every action — an un-onboarded POST /categories used to slip through
+  # the old `only: :index` (found live, ch. 9 walk).
+  test "create requires a completed onboarding" do
+    @user.update!(onboarded_at: nil)
+    assert_no_difference -> { @user.account.categories.count } do
+      post categories_url, params: { category: { name: "GateProbe" } }
+    end
+    assert_redirected_to onboarding_url
+  end
+
   test "create adds a category, scoped to the user" do
     assert_difference -> { @user.account.categories.count }, 1 do
       post categories_url, as: :turbo_stream, params: { category: { name: "Pets" } }

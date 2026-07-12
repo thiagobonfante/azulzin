@@ -38,6 +38,11 @@ class WhatsappConnection < ApplicationRecord
     broadcast_status(type: "auth_failed")
   end
 
+  def mark_logged_out!
+    update!(status: "logged_out")
+    broadcast_status(type: "logged_out")
+  end
+
   def connected? = status == "connected"
 
   private

@@ -119,7 +119,7 @@ module Whatsapp
         amount_cents:       (Money.to_cents(amount_raw) if amount_raw.present?),
         currency:           parsed["currency"] || "BRL",
         merchant:           parsed["merchant"].presence,
-        occurred_on:        parse_date(parsed["occurred_on"]),
+        occurred_on:        parse_date(parsed["occurred_on"], text),
         payment_method:     parsed["payment_method"].presence || "desconhecido",
         instrument_phrase:  parsed["instrument_phrase"].presence,
         field_confidence:   parsed["field_confidence"] || {},
@@ -146,11 +146,30 @@ module Whatsapp
     end
 
     # Explicit ISO date only; reject blanks and future dates (computed in São Paulo).
-    def self.parse_date(value)
+    # A yearless spoken date ("dia 10/07") forces the model to invent a year for the ISO
+    # string — and it guesses its training era (found live: "10/07" came back 2024). When
+    # the transcript literally carries that dd/mm and no 4-digit year, the user means the
+    # nearest past occurrence, so the year is recomputed in Ruby. A date the transcript
+    # does NOT ground (hallucinated) falls through to the future-rejection unchanged, and
+    # receipts pass no transcript, keeping their OCR year.
+    def self.parse_date(value, transcript = nil)
       return nil if value.blank?
       d = Date.iso8601(value.to_s) rescue nil
-      return nil if d.nil? || d > Time.current.to_date
+      return nil if d.nil?
+      if transcript.present? && !transcript.match?(/\d{4}/) &&
+         transcript.match?(%r{(?<!\d)0?#{d.day}[/.]0?#{d.month}(?!\d)})
+        d = nearest_past_occurrence(d.month, d.day) || d
+      end
+      return nil if d > Time.current.to_date
       d
+    end
+
+    # Most recent non-future date with this month/day (Feb 29 in a non-leap year skips).
+    def self.nearest_past_occurrence(month, day)
+      today = Time.current.to_date
+      ((today.year - 1)..(today.year + 1))
+        .filter_map { |y| Date.new(y, month, day) rescue nil }
+        .select { |c| c <= today }.max
     end
 
     def self.source_for(modality)

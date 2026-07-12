@@ -2,7 +2,9 @@
 # Turbo Streams with an HTML fallback, 422 on invalid create so the form isn't reset.
 class CategoriesController < ApplicationController
   layout "app"
-  before_action :require_onboarding, only: :index
+  # All actions, not only :index — an un-onboarded user could POST /categories through the
+  # gap (found live, ch. 9 walk); the onboarding wizard never touches this controller.
+  before_action :require_onboarding
 
   def index
     @categories = Current.account.categories.kept.ordered

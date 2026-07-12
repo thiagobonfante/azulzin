@@ -94,4 +94,19 @@ class Whatsapp::ExtractorTest < ActiveSupport::TestCase
     assert_not ex.amount_present?
     assert_equal "whatsapp_text", ex.source
   end
+
+  # "dia 10/07" carries no year, so the model invents one (found live: 2024) — the year
+  # is recomputed in Ruby to the nearest past occurrence. An explicit year, or a receipt
+  # (no transcript), keeps the model's year.
+  test "yearless spoken date snaps to the nearest past occurrence" do
+    travel_to Time.zone.local(2026, 7, 11, 12) do
+      assert_equal Date.new(2026, 7, 10), Whatsapp::Extractor.parse_date("2024-07-10", "muda a data pra 10/07")
+      assert_equal Date.new(2025, 12, 28), Whatsapp::Extractor.parse_date("2024-12-28", "gastei 50 dia 28/12")
+      assert_equal Date.new(2024, 7, 10), Whatsapp::Extractor.parse_date("2024-07-10", "no dia 10/07/2024")
+      assert_equal Date.new(2024, 7, 10), Whatsapp::Extractor.parse_date("2024-07-10")
+      # an ungrounded (hallucinated) date never snaps — the future guard still rejects it
+      assert_nil Whatsapp::Extractor.parse_date("2026-07-16", "sei la")
+      assert_equal Date.new(2024, 7, 10), Whatsapp::Extractor.parse_date("2024-07-10", "sei la")
+    end
+  end
 end

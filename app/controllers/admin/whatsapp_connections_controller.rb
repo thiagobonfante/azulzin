@@ -23,7 +23,7 @@ class Admin::WhatsappConnectionsController < Admin::BaseController
 
   def logout
     WhatsappService.disconnect
-    WhatsappConnection.instance.update!(status: "logged_out")
+    WhatsappConnection.instance.mark_logged_out!
     redirect_to admin_whatsapp_connection_path, notice: t(".logged_out")
   rescue StandardError => e
     WhatsappConnection.instance.update!(last_error: e.message)

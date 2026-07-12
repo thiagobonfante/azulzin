@@ -13,7 +13,7 @@ module Api
         when "authenticated"    then connection.update!(status: "authenticated")
         when "disconnected"     then connection.mark_disconnected!(params.dig(:data, :reason))
         when "auth_failed"      then connection.mark_auth_failed!(params.dig(:data, :error))
-        when "logged_out"       then connection.update!(status: "logged_out")
+        when "logged_out"       then connection.mark_logged_out!
         when "message_received" then handle_message_received(params[:data])
         else Rails.logger.warn("Unknown WhatsApp event: #{params[:event]}")
         end

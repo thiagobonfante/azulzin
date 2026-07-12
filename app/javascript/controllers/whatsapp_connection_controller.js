@@ -35,6 +35,7 @@ export default class extends Controller {
       case "connected":
       case "disconnected":
       case "auth_failed":
+      case "logged_out":
         window.location.reload()
         break
     }
