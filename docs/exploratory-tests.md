@@ -3202,10 +3202,10 @@ Seed: `exploratory:seed[1]` · AI: live-AI (extraction only; the memory step is 
 
 **Steps:**
 1. `bin/rails "exploratory:seed[1]"` — note the printed owner JID `5511910000001@c.us`. Start `bin/dev-fake`.
-2. In the simulator at http://localhost:3001, pick `5511910000001@c.us` (or "+ adicionar número" and type the digits) and send: `ifood 45,90`
+2. In the simulator at http://localhost:3001, pick `5511910000001@c.us` (or "+ adicionar número" and type the digits) and send: `ifood 45,90 no itaú`
 3. Verify provenance: `bin/rails runner 'puts Transaction.where(merchant: "ifood").order(:id).last.then { |t| [t.amount_cents, t.category&.name, t.category_source].inspect }'`
 
-**Expect:** One posted expense of exactly 4590 cents, category = Restaurantes, `category_source='memory'` (Suggest fires: ≥60% share over the last 20 user-categorized rows for merchant_norm `ifood`). The WA reply names the category — "✅ Lançado: R$ 45,90 no cartão <Instrument> · Restaurantes." (posted_card_categorized / posted_account_categorized) — that named category is the cheap correction loop.
+**Expect:** One posted expense of exactly 4590 cents, category = Restaurantes, `category_source='memory'` (Suggest fires: ≥60% share over the last 20 user-categorized rows for merchant_norm `ifood`). The WA reply names the category — "✅ Lançado: R$ 45,90 na conta Itaú E2E · Restaurantes." (posted_account_categorized) — that named category is the cheap correction loop. ⚠️ Two seed-1 traps (2026-07-11 walk): (a) an instrument-less send (`ifood 45,90`) posts UNASSIGNED — the category is still assigned in the DB but `posted_unassigned` does NOT name it ("✅ Lançado: R$ 45,90. Escolha a conta ou o cartão no app."); (b) `no nubank` is AMBIGUOUS in seed 1 (the Caixinha savings account is Nubank-institution AND the card is Nubank → needs_disambiguation → unassigned) — name `itaú` or `cartão` to see the categorized reply.
 
 **Variants:**
 - Send `guardei 300 na caixinha` — transfer rows stay categoryless by design (scope guard D5; web transfer edits also nil the category).
@@ -3219,7 +3219,7 @@ Seed: `exploratory:seed[1]` · AI: live-AI (twice: extraction AND the label gues
 
 **Steps:**
 1. Same setup as WA-CAP-01. Pick a merchant with zero history in the account.
-2. In :3001 send: `droga raia 32,50 no nubank`
+2. In :3001 send: `droga raia 32,50 no cartão` (NOT `no nubank` — ambiguous in seed 1, see WA-CAP-01; the bare `cartão` phrase narrows to the sole card)
 3. Check the row: `bin/rails runner 'puts Transaction.order(:id).last.then { |t| [t.merchant, t.amount_cents, t.category&.name, t.category_source].inspect }'`
 
 **Expect:** Posted expense of 3250 cents on the Nubank card. No memory rows exist, so the LLM's category label (the extraction prompt injects the closed-set line of the account's category names) is resolved in Ruby by Resolve — exact-normalized match or trigram ≥0.75 — giving `category_source='ai'`; the reply names it ("… · Saúde."). Repeatability of the label is NOT guaranteed (live AI); what IS pinned: whatever label comes back either resolves to an existing category (source `ai`) or the row posts uncategorized — never an invented category.
@@ -3239,7 +3239,7 @@ Seed: `exploratory:seed[1]` · AI: live-AI (intent classification only; the flip
 2. Within 24h of that capture (i.e. immediately), send: `muda pra mercado`
 3. Chain check — send: `padaria do zé 15,00`
 
-**Expect:** Step 2: the sender's most recent WA row (≤24h, not rejected/superseded, not an installment) gets category = Mercado and `category_source` flips to `'user'` (a spoken correction is human signal). Reply: "✅ Corrigido: R$ 12,00 em <Instrument>." Step 3: the new capture must come back categorized Mercado with `category_source='memory'` — the corrected row now feeds Suggest.
+**Expect:** Step 2: the sender's most recent WA row (≤24h, not rejected/superseded, not an installment) gets category = Mercado and `category_source` flips to `'user'` (a spoken correction is human signal). Reply: "✅ Corrigido: R$ 12,00 em <Instrument>." — note: the recipe's own capture posts UNASSIGNED (no instrument named), so the reply reads "em —." (explicit em-dash fallback, `edit_last_handler.rb:16`; copy nit flagged for product). Step 3: the new capture must come back categorized Mercado with `category_source='memory'` — the corrected row now feeds Suggest.
 
 **Variants:**
 - `muda pra jardinagem exótica` (no such category, trigram <0.75) → Resolve nil → apply_edit false → reply edit_unclear: "Não entendi a correção. Me diz assim: 'na verdade foi 54,90' — ou ajusta no app." Row unchanged.
@@ -3397,7 +3397,7 @@ Seed: `exploratory:seed[1]` · AI: live-AI (extraction + label; MarkPaid stampin
 bin/rails runner 'c=Commitment.find_by(name: "Magalu"); puts Commitments::MarkPaid.call(c, Date.current.beginning_of_month).category_source'
 ```
 
-**Expect:** Commitment created with `category_id` from the same auto_assign ladder (memory first, LLM label second); reply "✅ Parcelado: 10x de R$ 349,90 em Nubank · <Categoria>. Primeira parcela na fatura de <mês>." when categorized, plain installments_posted otherwise. Parcel transactions do NOT carry provenance at creation — MarkPaid stamps `category_source 'ai'` for whatsapp-sourced commitments and `'user'` for manually created ones; unpaying resets it to nil.
+**Expect:** Commitment created with `category_id` from the same auto_assign ladder (memory first, LLM label second); reply "✅ Parcelado: 10x de R$ 349,90 em Nubank · <Categoria>. Primeira parcela na fatura de <mês>." when categorized, plain installments_posted otherwise. Parcel transactions do NOT carry provenance at creation — MarkPaid stamps `category_source 'ai'` for whatsapp-sourced commitments and `'user'` for manually created ones; unpaying resets it to nil. Notes from the 2026-07-11 walk: the card lands via the sole-card fallback (`nubank` itself is ambiguous in seed 1 — see WA-CAP-01); parcel-first phrasing ("10x de 349,90", amount_raw null) used to ALWAYS park below the confidence floor — fixed (Confidence#installment_score) with the regression pinned in `test/e2e/whatsapp/money_flows_test.rb` ("parcel-first phrasing posts instead of parking").
 
 **Variants:**
 - Merchant with warm user memory (e.g. an installment for `ifood` on seed 1): commitment category should come from memory, not the LLM — deterministic.

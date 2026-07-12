@@ -124,6 +124,26 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
     assert_brl 34_990, assert_wa_reply(s.jid)
   end
 
+  # WA-CAP-10 / CAT-EXP-07 regression: parcel-first phrasing ("10x de 349,90") extracts with
+  # amount_raw null — it must still fan out, not park (found live 2026-07-11, ch. 8 walk).
+  test "card installments: parcel-first phrasing posts instead of parking" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!
+
+    with_canned_ai(extraction: E2E::CannedAI.installment_parcel_first(
+      parcel_cents: 34_990, count: 10, merchant: "Magalu", instrument: "nubank",
+      transcript: "magalu 10x de 349,90 no nubank", confidence: 1.0)) do
+      wa_inject(s.jid, "magalu 10x de 349,90 no nubank")
+      drain_jobs!
+    end
+
+    c = s.account.commitments.sole
+    assert_equal "installment", c.kind
+    assert_equal s.nubank_card, c.credit_card
+    assert_equal 349_900, c.total_cents
+    assert_equal 34_990, c.amount_cents
+    assert_brl 34_990, assert_wa_reply(s.jid)
+  end
+
   # WA-CAP-11
   test "card installments: uneven split never loses a centavo" do
     s = E2E::Scenario.build(:solo_basic).wa_verified!

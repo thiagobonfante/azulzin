@@ -23,6 +23,35 @@ class Whatsapp::ConfidenceTest < ActiveSupport::TestCase
     assert_equal 0, Whatsapp::Confidence.new(extraction(amount_cents: nil)).capture_score
   end
 
+  # "magalu 10x de 349,90": the value rides installment_parcel_raw with amount_raw null —
+  # a verbatim parcel string is trusted like a verbatim amount.
+  test "parcel-first installment with a verbatim parcel clears the floor" do
+    c = Whatsapp::Confidence.new(extraction(
+      amount_raw: nil, amount_cents: nil, intent: "installment_purchase",
+      installments_count: 10, installment_parcel_raw: "349,90",
+      field_confidence: { "amount" => 0 }, overall_confidence: 1.0,
+      raw: { "transcript" => "magalu 10x de 349,90 no nubank" }))
+    assert_equal 100, c.capture_score
+    assert c.above_floor?
+  end
+
+  test "non-verbatim installment value falls back to overall confidence" do
+    c = Whatsapp::Confidence.new(extraction(
+      amount_raw: nil, amount_cents: nil, intent: "installment_purchase",
+      installments_count: 10, installment_total_raw: "3499",
+      field_confidence: { "amount" => 0 }, overall_confidence: 0.5,
+      raw: { "transcript" => "parcelei o notebook em dez vezes" }))
+    assert_equal 50, c.capture_score
+    assert_not c.above_floor?
+  end
+
+  test "installment fields never score a non-installment intent" do
+    c = Whatsapp::Confidence.new(extraction(
+      amount_raw: nil, amount_cents: nil, intent: "expense",
+      installment_parcel_raw: "349,90", raw: { "transcript" => "349,90" }))
+    assert_equal 0, c.capture_score
+  end
+
   test "floor is configurable" do
     original = Whatsapp::Confidence.floor
     Whatsapp::Confidence.floor = 90

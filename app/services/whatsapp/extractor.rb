@@ -43,7 +43,8 @@ module Whatsapp
       - occurred_on: data ISO só se explícita; caso contrário null.
       - payment_method: debito, credito, pix, dinheiro, boleto ou desconhecido.
       - category: um palpite de categoria do gasto, se der (será resolvido no app). Em edit_last
-        de categoria, é a categoria pedida.
+        de categoria, devolva EXATAMENTE as palavras ditas pelo usuário, mesmo que não estejam
+        na lista de categorias — NUNCA substitua por outra categoria da lista.
       - edit_field_hint: qual campo o edit_last corrige (amount, merchant, instrument, date, category).
       - create_goal: goal_kind = purchase (comprar algo) ou savings_rate (guardar mais por mês), se
         der para inferir. goal_name = nome curto do sonho ("Viagem", "Carro"), se citado.

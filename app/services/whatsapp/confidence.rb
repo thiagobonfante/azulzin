@@ -22,7 +22,7 @@ module Whatsapp
     # amount field confidence and the overall confidence, then apply the modality factor
     # (text 1.0 > OCR 0.95 > ASR 0.90).
     def capture_score
-      return 0 unless @extraction.amount_present?
+      return installment_score unless @extraction.amount_present?
       amount_conf = (@extraction.field_confidence["amount"] || @extraction.overall_confidence).to_f
       base = [ amount_conf, @extraction.overall_confidence.to_f ].min
       # The overall ceiling exists because LLMs invent values; a VERBATIM amount can't be
@@ -34,9 +34,23 @@ module Whatsapp
 
     def above_floor? = capture_score >= self.class.floor
 
-    # amount_raw appears digit-bounded in the message text ("33" never matches inside "133").
-    def verbatim_amount?
-      raw  = @extraction.amount_raw.to_s
+    # A parcel-first installment ("10x de 349,90") legitimately carries its value in
+    # installment_parcel_raw/total_raw with amount_raw null (the model never multiplies),
+    # so there is no amount field to rate: score the overall confidence, trusting a
+    # verbatim string the same way the amount path does.
+    def installment_score
+      return 0 unless @extraction.intent == "installment_purchase"
+      raw = @extraction.installment_parcel_raw.presence || @extraction.installment_total_raw.presence
+      return 0 if raw.blank?
+      base = @extraction.overall_confidence.to_f
+      base = 1.0 if verbatim?(raw)
+      (base * @extraction.modality_factor * 100).round.clamp(0, 100)
+    end
+
+    def verbatim_amount? = verbatim?(@extraction.amount_raw.to_s)
+
+    # `raw` appears digit-bounded in the message text ("33" never matches inside "133").
+    def verbatim?(raw)
       text = @extraction.raw.is_a?(Hash) ? @extraction.raw["transcript"].to_s : ""
       raw.present? && text.match?(/(?<!\d)#{Regexp.escape(raw)}(?!\d)/)
     end

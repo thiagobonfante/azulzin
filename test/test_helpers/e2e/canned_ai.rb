@@ -33,6 +33,19 @@ module E2E
            field_confidence: { "amount" => 0.95 }, overall_confidence: confidence)
     end
 
+    # Parcel-first phrasing ("10x de 349,90"): the real extractor leaves amount_raw null
+    # (the model never multiplies) and rates the absent amount field 0 — the value lives
+    # only in installment_parcel_raw, verbatim in the transcript.
+    def installment_parcel_first(parcel_cents:, count:, merchant:, transcript:,
+                                 instrument: nil, method: "credito", confidence: 0.9)
+      base(intent: "installment_purchase", intent_confidence: confidence,
+           amount_cents: nil, installments_count: count, merchant: merchant,
+           installment_parcel_raw: format("%d,%02d", parcel_cents / 100, parcel_cents % 100),
+           payment_method: method, instrument_phrase: instrument,
+           field_confidence: { "amount" => 0 }, overall_confidence: confidence,
+           raw: { "transcript" => transcript })
+    end
+
     def create_goal(confidence: 0.9)
       base(intent: "create_goal", intent_confidence: confidence, payment_method: "desconhecido")
     end
