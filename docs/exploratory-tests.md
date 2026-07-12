@@ -2706,7 +2706,7 @@ Pre-step: sign in as `test-3b@azulzin.dev` / `test1234` and add one expense via 
 
 **Expect:**
 - Step 1: redirect to dashboard with `members.destroy.left` — "Você saiu da conta." — STILL signed in, now on a fresh empty solo account (different account id, no instruments, dashboard empty).
-- Step 2: `/account` shows 1 member; test-3b's old transactions remain on the family ledger with his name ("Teste 3B") in attribution.
+- Step 2: `/account` shows 1 member; test-3b's old transactions remain on the family ledger, `created_by` intact (his User survives). Note: with the family now solo, the `_attribution` partial's `members_count > 1` guard hides ALL avatars — so his name is NOT shown on the live ledger; verify survival at the data layer (`t.created_by.display_name == "Teste 3B"`). The avatar would reappear if the account regained a 2nd member.
 - Step 3: redirect to `/account` with `members.destroy.owner_cannot_leave` — "Transfira a posse antes de sair da conta."
 
 **Cleanup:** re-run `bin/rails "exploratory:seed[3]"` (or continue straight into MU-EXP-07 part 2, which uses this exact end state).
@@ -2729,7 +2729,7 @@ Pre-step: as in MU-06, give `test-3b` at least one attributed row. Keep `test-3b
 - Step 1: Turbo removes the member row + count badge refresh (HTML fallback flash `members.destroy.removed` — "Membro removido. Agora ele tem a própria conta vazia.").
 - Step 2: the next navigation bounces to sign-in (all his sessions destroyed).
 - Step 3: he lands on a fresh empty solo account.
-- Step 4: old rows still show "Teste 3B" in the attribution avatar/tooltip (the User survives, display name intact).
+- Step 4: the User survives with display name intact — his old rows keep `created_by` pointing at him (`t.created_by.display_name == "Teste 3B"`). BUT via seed 3 the removal drops the family to 1 member, so the `_attribution` partial's `members_count > 1` guard hides the avatar/tooltip — the name is verifiable at the data layer, not on the live ledger. To SEE it on the page you need a 3→2 removal (an account that keeps ≥2 members afterward).
 
 **Variants:**
 - Post-removal WA behavior (exploratory, uncovered by automation — product gap to watch): test-3b's phone stays WA-verified and bound to his USER — a WA capture he sends after removal lands in his NEW empty solo account (the decider stamps `@msg.user.account`), which has no instruments; observe the degraded/parked reply rather than a silent write to the family ledger (`app/services/whatsapp/decider.rb:81`, `app/controllers/api/whatsapp/webhooks_controller.rb:56`).
@@ -2768,7 +2768,7 @@ Seed: `exploratory:seed[13]` (part 1) + `exploratory:seed[3]` end-state of MU-06
 
 **Expect:**
 - Part 1: NO attribution avatars render at all (the `members_count > 1` guard lives in the partial).
-- Part 2: the User destroy nullifies `created_by_id` (FK `on_delete: :nullify`) on the family rows — attribution now shows `shared.attribution.removed_user` ("usuário removido"); the rows and their cents are untouched on the family ledger.
+- Part 2: the User destroy nullifies `created_by_id` (FK `on_delete: :nullify`) on the family rows — the partial's fallback resolves to `shared.attribution.removed_user` ("usuário removido"); the rows and their cents are untouched on the family ledger. Same visibility caveat as MU-05/MU-06: after test-3b leaves, the family is solo (1 member), so the `members_count > 1` guard hides the "usuário removido" avatar on the live page — assert the FK nullify at the data layer (`Transaction#created_by_id` is nil); the fallback string only renders once the account has ≥2 members again.
 
 **Cleanup:** destructive to test-3b's User — re-run `bin/rails "exploratory:seed[3]"`.
 
