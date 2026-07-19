@@ -1,0 +1,42 @@
+<%# locals: day, rows, title, spent_label, empty_text — one day section of the "Hoje" view.
+    Gastos = expense rows only; débito + faturas == gastos to the centavo (settlement split,
+    same convention as the ledger footer); transfers count into neither figure; incomes join
+    as the entradas caption. Figures render only when the day has expenses — an empty or
+    transfer-only day never shows a fake R$ 0,00. %>
+<section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+  <h2 class="text-sm font-semibold">
+    <%= title %> <span class="font-normal text-base-content/50">· <%= l(day, format: :weekday_day) %></span>
+  </h2>
+
+  <% if rows.any? %>
+    <% expenses = rows.select { |r| r.direction == "expense" } %>
+    <% incomes_total = rows.select { |r| r.direction == "income" }.sum(&:amount_cents) %>
+    <% if expenses.any? %>
+      <% bills_total = expenses.select(&:credit_card_id).sum(&:amount_cents) %>
+      <% debit_total = expenses.reject(&:credit_card_id).sum(&:amount_cents) %>
+      <div class="mt-2 flex items-baseline justify-between">
+        <span class="text-xs text-base-content/60"><%= spent_label %></span>
+        <span class="font-display font-bold tabular-nums"><%= brl(debit_total + bills_total) %></span>
+      </div>
+      <%# The split earns its line only when some spend rides a fatura — a débito-only day
+          (the mockup's yesterday) says nothing extra; an all-card day's "R$ 0,00 no débito"
+          is exactly the surprising "nothing left your balance today" case. %>
+      <% if bills_total.positive? %>
+        <p class="text-xs text-base-content/50 tabular-nums">
+          <%= t("transactions.recent.split_debit", amount: brl(debit_total)) %> · <%= t("transactions.recent.split_bills", amount: brl(bills_total)) %>
+        </p>
+      <% end %>
+    <% end %>
+    <% if incomes_total.positive? %>
+      <p class="mt-0.5 text-xs text-success tabular-nums"><%= t("transactions.recent.incomes_caption", amount: brl(incomes_total)) %></p>
+    <% end %>
+
+    <div class="mt-2 divide-y divide-base-300/50 border-t border-base-300/70 pt-1 [&>turbo-frame:nth-of-type(even)]:bg-base-200/40">
+      <% rows.each do |txn| %>
+        <%= render "transactions/ledger_row", transaction: txn %>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="py-4 text-center text-sm text-base-content/50"><%= empty_text %></p>
+  <% end %>
+</section>

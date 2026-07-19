@@ -92,6 +92,7 @@ class Transaction < ApplicationRecord
   # idempotency finders (find_by(source_message_id:), guarded_update) stay unscoped by design.
   scope :spend, -> { posted.kept.where(direction: "expense") }         # excludes rejected/superseded
   scope :posted_in, ->(month) { posted.kept.where(billing_month: month) }   # the ledger scope + every aggregate
+  scope :occurred_between, ->(from, to) { posted.kept.where(occurred_on: from..to) }  # the "Hoje" purchase-date window
   # The single definition of "a goal contribution": posted transfers landing in the given
   # savings accounts. Progress, RiskScan, Replan and the accounts-page earmark split all read
   # this one scope (goals round-4 review) — callers add their own billing_month window.

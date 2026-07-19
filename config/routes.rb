@@ -72,6 +72,9 @@ Rails.application.routes.draw do
     # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the
     # ledger's inline add + edit-in-place, and update/confirm keep the guarded-transition inbox.
     resources :transactions, only: %i[index new create edit update destroy] do
+      collection do
+        get :recent      # "Hoje" — purchase-date view of today + yesterday (.plans/today-expenses)
+      end
       member do
         patch :confirm   # commit a pending/needs_* row → posted (saves review edits first)
         get   :receipt   # up-tier F5 — authenticated, account-scoped receipt bytes (proxied)

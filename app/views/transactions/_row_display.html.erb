@@ -34,6 +34,15 @@
     <p class="truncate text-xs text-base-content/50"><%= transaction.category.name %><%= deleted_suffix(transaction.category) %></p>
   <% end %>
 </div>
+<% if transaction.credit_card_id && transaction.billing_month != transaction.occurred_on.beginning_of_month %>
+  <%# The fatura month differs from the purchase month (either direction — a manual pull-back is
+      just as surprising): say where the money actually lands (.plans/today-expenses §5). The
+      condition is self-contained so every turbo-stream re-render keeps the badge. %>
+  <span class="badge badge-primary badge-outline badge-xs shrink-0"
+        title="<%= t("transactions.recent.bill_badge_hint", month: l(transaction.billing_month, format: :month_name)) %>">
+    <%= t("transactions.recent.bill_badge", month: l(transaction.billing_month, format: :month_name)) %>
+  </span>
+<% end %>
 <% if transaction.receipt.attached? %>
   <%# up-tier F5 — subtle paperclip: this row carries a receipt. %>
   <span class="shrink-0 text-base-content/40" title="<%= t("transactions.row.has_receipt") %>">

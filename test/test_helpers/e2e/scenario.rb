@@ -135,6 +135,20 @@ module E2E
       self
     end
 
+    # The "Hoje" two-day window (WEB-REC-*): the founder's canonical day — PIX R$ 100,00 no
+    # débito + two card swipes of R$ 50,00 riding NEXT month's fatura (the anchor day 20 is
+    # past the card's closing day 3) — plus R$ 84,90 yesterday. Self-checks the split and the
+    # future-fatura shape at build time.
+    def recent_days(**)
+      solo_basic
+      expense(merchant: "Pix Farmácia",         category: "Saúde",        instrument: itau,        cents: 10_000, on: today)
+      expense(merchant: "Padoca",               category: "Restaurantes", instrument: nubank_card, cents: 5_000,  on: today)
+      expense(merchant: "Uber",                 category: "Transporte",   instrument: nubank_card, cents: 5_000,  on: today)
+      expense(merchant: "Supermercado Zaffari", category: "Mercado",      instrument: itau,        cents: 8_490,  on: today - 1)
+      verify_recent_calibration!
+      self
+    end
+
     # solo_basic + purchases straddling the card closing (previous month, so they exist on
     # any anchor day) + a 10× R$ 349,90 installment riding the fatura.
     def cards_billing(**)
@@ -323,6 +337,19 @@ module E2E
     def today             = Date.current
     def this_month        = today.beginning_of_month
     def past_months       = (1..3).map { |i| this_month << i }.reverse
+
+    # recent_days tripwire: the pack's whole point is the exact 100/50/50 split with the card
+    # swipes landing on a FUTURE fatura — fail here, named, if billing rules or amounts drift.
+    def verify_recent_calibration!
+      rows = account.transactions.occurred_between(today - 1, today).to_a
+      card = rows.select(&:credit_card_id)
+      ok = rows.size == 4 && card.size == 2 && card.sum(&:amount_cents) == 10_000 &&
+           card.all? { |r| r.billing_month != r.occurred_on.beginning_of_month }
+      unless ok
+        raise "recent_days pack lost its calibration: " \
+              "#{rows.map { |r| [ r.merchant, r.amount_cents, r.billing_month ] }.inspect}"
+      end
+    end
 
     # Cheap tripwire: if service logic changes ever un-calibrate this pack, fail HERE with
     # the calibration named — not in fifty downstream tests (.plans/e2e/02 §4).

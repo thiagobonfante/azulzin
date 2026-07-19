@@ -21,6 +21,14 @@ class TransactionsController < ApplicationController
     @ledger      = month_ledger
   end
 
+  # "Hoje" (.plans/today-expenses): purchase-date view of today + yesterday. Totals are summed
+  # in memory from the loaded two-day window — no read model, mirroring the ledger footer.
+  def recent
+    @today   = sp_today
+    @pending = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
+    @rows    = recent_window_rows
+  end
+
   def new
     kind = %w[expense income transfer].include?(params[:kind]) ? params[:kind] : "expense"
     @transaction = Current.account.transactions.new(direction: kind, occurred_on: default_occurred_on)
@@ -140,6 +148,17 @@ class TransactionsController < ApplicationController
              .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment,
                        :receipt_attachment)
              .order(occurred_on: :desc, id: :desc)
+    end
+
+    # The two-day purchase-date window, recents-first within a day (occurred_on is date-only,
+    # so created_at breaks the tie: most recently captured first).
+    def recent_window_rows
+      Current.account.transactions
+             .occurred_between(sp_today - 1, sp_today)
+             .includes(:bank_account, :credit_card, :category, :commitment,
+                       :transfer_to_bank_account, :receipt_attachment)
+             .order(occurred_on: :desc, created_at: :desc, id: :desc)
+             .to_a
     end
 
     # A parked WhatsApp installment purchase (07 §4.4): confirming it fans out the real plan

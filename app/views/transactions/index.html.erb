@@ -87,25 +87,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
   <% end %>
 
-  <%# Add/edit entry sheet — bottom sheet on mobile, centered on sm+ (same drawer as the
-      commitment editor). The add + edit forms load into the shared entry_form frame; a
-      successful save closes it, a 422 re-renders the form with errors inside. It lives outside
-      movements_ledger so the ledger re-render on create/update never tears it down mid-submit. %>
-  <dialog data-entry-modal-target="dialog" data-action="close->entry-modal#onClose"
-          class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box sm:max-w-lg text-left">
-      <form method="dialog">
-        <button class="btn btn-ghost btn-sm btn-circle absolute right-2 top-2"
-                aria-label="<%= t("transactions.new_entry.close") %>">✕</button>
-      </form>
-      <%= turbo_frame_tag "entry_form", data: { entry_modal_target: "frame" } do %>
-        <div class="flex justify-center py-10"><span class="loading loading-spinner loading-md text-primary"></span></div>
-      <% end %>
-    </div>
-    <form method="dialog" class="modal-backdrop">
-      <button aria-label="<%= t("transactions.new_entry.close") %>">close</button>
-    </form>
-  </dialog>
+  <%= render "transactions/entry_modal" %>
 
   <%# Mobile bottom tab bar (scoped to this screen, not the global layout). Resumo = dashboard
       grid icon; Movimentos = transactions icon — both reused from the sidebar. %>

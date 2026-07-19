@@ -1,0 +1,26 @@
+<% content_for :title, t(".meta_title") %>
+
+<%# "Hoje" (.plans/today-expenses): purchase-date view of today + yesterday. Rows reuse the
+    ledger row partial verbatim and open the same edit drawer; pending rows surface in the
+    shared tray, never inside the day lists. The submit-end listener is @document for the
+    same reason as the hub: delete links submit ephemeral forms appended to the body. %>
+<div class="flex flex-col gap-6" data-controller="entry-modal"
+     data-action="turbo:submit-end@document->entry-modal#submitEnd">
+  <header>
+    <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl"><%= t(".title") %></h1>
+    <p class="mt-1 text-base-content/60"><%= t(".subtitle") %></p>
+  </header>
+
+  <%= render "transactions/pending_tray", pending: @pending %>
+
+  <%= render "transactions/recent_sections", rows: @rows, today: @today %>
+
+  <div class="text-center">
+    <%= link_to transactions_path, class: "btn btn-ghost btn-sm text-primary" do %>
+      <%= t(".see_month") %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+    <% end %>
+  </div>
+
+  <%= render "transactions/entry_modal" %>
+</div>

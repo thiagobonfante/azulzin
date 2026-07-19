@@ -198,6 +198,7 @@ en:
   app:
     nav:
       dashboard: "Dashboard"
+      today: "Today"
       accounts: "Accounts"
       incomes: "Income"
       cards: "Cards"
@@ -213,6 +214,7 @@ en:
   date:
     formats:
       month_year: "%B %Y"
+      month_name: "%B"
       weekday_day: "%a, %b %d"
   institutions:
     other: "Other"
@@ -735,6 +737,23 @@ en:
       needs_disambiguation: "Which one?"
     index:
       meta_title: "Transactions"
+    recent:
+      meta_title: "Today"
+      title: "Today"
+      subtitle: "Your activity from today and yesterday"
+      today: "Today"
+      yesterday: "Yesterday"
+      spent_today: "Spent today"
+      spent_yesterday: "Spent yesterday"
+      split_debit: "%{amount} on debit"
+      split_bills: "%{amount} on card bills"
+      incomes_caption: "+%{amount} income"
+      bill_badge: "%{month} bill"
+      bill_badge_hint: "Doesn't leave your balance now — lands on the %{month} bill"
+      empty_today: "Nothing yet today"
+      empty_yesterday: "No activity yesterday"
+      empty_both: "No activity here yet"
+      see_month: "See the full month"
     fab_add: "Add entry"
     tabs:
       summary: "Summary"
