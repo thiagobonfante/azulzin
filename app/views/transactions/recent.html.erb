@@ -6,9 +6,17 @@
     same reason as the hub: delete links submit ephemeral forms appended to the body. %>
 <div class="flex flex-col gap-6" data-controller="entry-modal"
      data-action="turbo:submit-end@document->entry-modal#submitEnd">
-  <header>
-    <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl"><%= t(".title") %></h1>
-    <p class="mt-1 text-base-content/60"><%= t(".subtitle") %></p>
+  <header class="flex items-start justify-between gap-2">
+    <div>
+      <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl"><%= t(".title") %></h1>
+      <p class="mt-1 text-base-content/60"><%= t(".subtitle") %></p>
+    </div>
+    <%= link_to new_transaction_path(kind: :expense, context: "recent"),
+          data: { turbo_frame: "entry_form", action: "click->entry-modal#open" },
+          class: "btn btn-ghost btn-sm shrink-0 text-primary" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+      <%= t("transactions.ledger.add") %>
+    <% end %>
   </header>
 
   <%# Accepted v1 edge (.plans/today-expenses §7): confirming a tray row here posts it into
@@ -27,6 +35,15 @@
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
     <% end %>
   </div>
+
+  <%# Mobile quick-add FAB — same affordance as the hub's; no bottom tab bar here, so it sits
+      at the viewport edge. Hidden on lg+ where the header button is in reach. %>
+  <%= link_to new_transaction_path(kind: :expense, context: "recent"),
+        data: { turbo_frame: "entry_form", action: "click->entry-modal#open" },
+        class: "btn btn-primary btn-circle btn-lg fixed bottom-6 left-1/2 z-20 -translate-x-1/2 shadow-lg lg:hidden",
+        aria: { label: t("transactions.fab_add") } do %>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+  <% end %>
 
   <%= render "transactions/entry_modal" %>
 </div>

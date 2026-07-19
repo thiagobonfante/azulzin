@@ -7,13 +7,15 @@
     <div class="mb-3 flex gap-1">
       <%# The Transferência tab is hidden with a single account — there's nowhere to transfer (R5). %>
       <% (multi_account ? %w[expense income transfer] : %w[expense income]).each do |k| %>
-        <%= link_to t("transactions.new_entry.#{k}"), new_transaction_path(kind: k, month: params[:month]),
+        <%= link_to t("transactions.new_entry.#{k}"),
+              new_transaction_path(kind: k, month: params[:month], context: params[:context].presence),
               class: "btn btn-xs #{kind == k ? "btn-primary" : "btn-ghost"}" %>
       <% end %>
     </div>
 
     <% if kind == "transfer" %>
-      <%= form_with url: transfers_path(month: params[:month]), method: :post, class: "grid gap-2 sm:grid-cols-2" do %>
+      <%= form_with url: transfers_path(month: params[:month], context: params[:context].presence),
+            method: :post, class: "grid gap-2 sm:grid-cols-2" do %>
         <% if transaction.errors.any? %>
           <div class="alert alert-error col-span-full py-1 text-xs" role="alert"><span><%= transaction.errors.full_messages.to_sentence %></span></div>
         <% end %>
@@ -51,7 +53,8 @@
       <% selected_token = current_instrument_token(transaction) %>
       <%# Income lands in a bank account — pre-select the first so the destination is always visible. %>
       <% selected_token ||= "bank_account-#{inbox_bank_accounts.first.id}" if !expense && inbox_bank_accounts.any? %>
-      <%= form_with model: transaction, url: transactions_path(kind: kind, month: params[:month]), method: :post,
+      <%= form_with model: transaction,
+            url: transactions_path(kind: kind, month: params[:month], context: params[:context].presence), method: :post,
             data: { controller: "entry-instrument category-suggest", category_suggest_url_value: suggest_categories_path },
             class: "grid gap-2 sm:grid-cols-2" do |f| %>
         <% if transaction.errors.any? %>

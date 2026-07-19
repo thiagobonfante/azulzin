@@ -1,7 +1,7 @@
 <% if params[:from] == "ledger" %>
   <%# Ledger edit-in-place (R7). %>
   <% if @saved %>
-    <% if @transaction.billing_month == viewed_month %>
+    <% if in_month_ledger?(@transaction) %>
       <%= turbo_stream.replace dom_id(@transaction, :row), partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
     <% else %>
       <%# occurred_on / Fatura move pushed the row to another month's page. %>

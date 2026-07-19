@@ -170,20 +170,43 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     assert chips, "the destroy stream must refresh the chip row"
     refute_includes chips, "Sem categoria"
 
-    # occurred_on moved out of the two-day window: the fresh sections no longer carry the row.
+    # occurred_on moved out of the two-day window: the fresh sections no longer carry the row
+    # (the hub-shaped row op may still mention it — the sections replace renders last and wins).
     patch transaction_path(uber), as: :turbo_stream,
           params: { from: "ledger", context: "recent",
                     transaction: { occurred_on: Date.current - 10 } }
     assert_response :success
-    assert_includes response.body, 'target="recent_summary"'
-    refute_includes response.body, "Uber"
-    assert_includes response.body, "R$ 75,00 nas faturas"
+    sections = response.body[/<turbo-stream[^>]*target="recent_summary".*?<\/turbo-stream>/m]
+    assert sections, "the update stream must refresh the day sections"
+    refute_includes sections, "Uber"
+    assert_includes sections, "R$ 75,00 nas faturas"
 
     # A hub edit (no context param) must not stream the recent block.
     patch transaction_path(padoca), as: :turbo_stream,
           params: { from: "ledger", transaction: { amount_reais: "80,00" } }
     assert_response :success
     refute_includes response.body, 'target="recent_summary"'
+  end
+
+  # WEB-REC-07 — adding from the Recentes page: the new-entry form threads context=recent and
+  # the create stream lands the new row in the day list with fresh figures.
+  test "adding a transaction from Recentes streams it into the day list" do
+    s = E2E::Scenario.build(:recent_days)
+    sign_in_as s.owner
+
+    get new_transaction_path(kind: :expense, context: "recent")
+    assert_response :success
+    assert_includes response.body, "context=recent", "the form must carry the context through"
+
+    post transactions_path(kind: "expense", context: "recent"), as: :turbo_stream,
+         params: { instrument: "bank_account-#{s.itau.id}",
+                   transaction: { amount_reais: "12,00", merchant: "Café Novo",
+                                  occurred_on: Date.current, payment_method: "pix" } }
+    assert_response :success
+    sections = response.body[/<turbo-stream[^>]*target="recent_summary".*?<\/turbo-stream>/m]
+    assert sections, "the create stream must refresh the day sections"
+    assert_includes sections, "Café Novo"
+    assert_includes sections, "R$ 112,00 no débito"   # 10_000 + the new 1_200
   end
 
   # WEB-REC-06 — the dashboard's "Gastos de hoje" tile: the exact figure the Hoje page
@@ -198,24 +221,33 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     assert_select "a[href=?]", recent_transactions_path, text: /R\$ 200,00/   # 20_000: today only
   end
 
-  # Hub regression for the shared-partial badge (.plans/today-expenses §5): same-month card
-  # rows — the vast majority of any month ledger — stay badge-free; the June page's May-dated
-  # purchases now explain themselves.
-  test "hub ledger: no badge on same-month card rows, badge on cross-month ones" do
+  # WEB-TX-13 — the hub purchase-date union + view-relative badge (founder call 2026-07-19):
+  # a card swipe made this month but billed next month shows on THIS month's page, badged with
+  # where it bills; the next month's page lists it unbadged (billing == viewed month there).
+  test "hub ledger: this month's future-billed card buys show here badged, unbadged on their bill month" do
     s = E2E::Scenario.build(:recent_days)
-    # Before the closing day (the 3rd) a purchase bills into its own month → no badge.
+    # Before the closing day (the 3rd) a purchase bills into its own month → listed, no badge.
     s.expense(merchant: "Compra Cedo", category: "Outros", instrument: s.nubank_card,
               cents: 3_300, on: Date.current.beginning_of_month + 1)
     sign_in_as s.owner
+    padoca = s.account.transactions.find_by!(merchant: "Padoca")
 
-    get transactions_path
+    get transactions_path   # May: Padoca + Uber (bought May 20, billed June) join via the union
     assert_response :success
     assert_includes response.body, "Compra Cedo"
-    assert_select "span.badge-outline", text: /fatura de/, count: 0
+    assert_includes response.body, "Padoca"
+    assert_select "span.badge-outline", text: /fatura de junho/, count: 4   # 2 rows × responsive pair
 
     get transactions_path(month: (Date.current.beginning_of_month >> 1).strftime("%Y-%m"))
     assert_response :success
-    assert_includes response.body, "Padoca"   # bought May 20, billed June
-    assert_select "span.badge-outline", text: /fatura de junho/, count: 4   # 2 rows × responsive pair
+    assert_includes response.body, "Padoca"   # on its bill month: listed, nothing to flag
+    assert_select "span.badge-outline", text: /fatura de/, count: 0
+
+    # Editing a union row from May's ledger must REPLACE it, not remove it as foreign.
+    patch transaction_path(padoca), as: :turbo_stream,
+          params: { from: "ledger", month: Date.current.strftime("%Y-%m"),
+                    transaction: { merchant: "Padoca da Esquina" } }
+    assert_response :success
+    assert_includes response.body, %(action="replace" target="#{ActionView::RecordIdentifier.dom_id(padoca, :row)}")
   end
 end

@@ -289,13 +289,14 @@ module E2E
 
     # ── building blocks (also for per-test tweaks) ───────────────────────────────────────
 
-    def expense(merchant:, category:, instrument:, cents:, on:, by: owner, source: "manual")
+    def expense(merchant:, category:, instrument:, cents:, on:, by: owner, source: "manual", method: nil)
       attrs = {
         merchant: merchant, direction: "expense", status: "posted", source: source,
         amount_cents: cents, occurred_on: on, confirmed_at: on.in_time_zone,
         created_at: on.in_time_zone, category: self.category(category),
         category_source: "user", created_by: by
       }
+      attrs[:payment_method] = method if method
       attrs[instrument.is_a?(CreditCard) ? :credit_card : :bank_account] = instrument
       account.transactions.create!(**attrs)
     end

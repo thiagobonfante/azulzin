@@ -17,11 +17,16 @@
     <%= (transaction.merchant.presence || transaction.description.presence || "•").first.upcase %>
   </span>
 <% end %>
-<%# Cross-month card row (either direction — a manual pull-back is just as surprising): badge
-    where the money actually lands (.plans/today-expenses §5). Condition is self-contained so
-    every turbo-stream re-render keeps it. On <sm the badge joins the caption line under the
-    name — inline it would crush the merchant to one character between the avatars and amount. %>
-<% show_bill_badge = transaction.credit_card_id && transaction.billing_month != transaction.occurred_on.beginning_of_month %>
+<%# Fatura badge is VIEW-relative (founder call, 2026-07-19): flag only rows whose bill lands
+    AFTER the month being viewed — a June purchase on July's fatura is unremarkable on July's
+    page, but a July swipe billing August is exactly the surprise worth labeling. The reference
+    month comes from params (hub) and defaults to the current month (Recentes) — self-contained,
+    so every turbo-stream re-render keeps the badge. On <sm the badge joins the caption line
+    under the name — inline it would crush the merchant to one character. %>
+<% badge_ref_month = ((Date.strptime(params[:month].to_s, "%Y-%m") rescue nil) || hub_today).beginning_of_month %>
+<% show_bill_badge = transaction.credit_card_id && transaction.billing_month > badge_ref_month %>
+<% method_tag = transaction.payment_method if transaction.expense? &&
+     %w[credito debito pix boleto].include?(transaction.payment_method) %>
 <div class="min-w-0 flex-1">
   <p class="truncate text-sm">
     <% if transaction.transfer? %>
@@ -35,10 +40,14 @@
       <span class="text-xs text-base-content/50"><%= transaction.installment_number %>/<%= transaction.commitment&.installments_count %></span>
     <% end %>
   </p>
-  <% if (transaction.expense? && transaction.category) || show_bill_badge %>
+  <% if (transaction.expense? && transaction.category) || show_bill_badge || method_tag %>
     <p class="flex min-w-0 items-center gap-1.5 text-xs text-base-content/50">
       <% if transaction.expense? && transaction.category %>
         <span class="truncate"><%= transaction.category.name %><%= deleted_suffix(transaction.category) %></span>
+      <% end %>
+      <% if method_tag %>
+        <%# How it was paid — the crédito/débito/pix/boleto split at a glance (founder ask). %>
+        <span class="badge badge-ghost badge-xs shrink-0"><%= t("transactions.new_entry.methods.#{method_tag}") %></span>
       <% end %>
       <% if show_bill_badge %>
         <span class="badge badge-primary badge-outline badge-xs shrink-0 sm:hidden"
@@ -64,7 +73,9 @@
   </span>
 <% end %>
 <%= render "shared/attribution", record: transaction %>
-<% if transaction.instrument %>
-  <%= institution_avatar(transaction.instrument.institution, size: 20) %>
-<% end %>
-<span class="tabular-nums text-sm font-medium <%= amount_tone %>"><%= transaction.income? ? "+" : "" %><%= brl(transaction.amount_cents) %></span>
+<%# Fixed-width slots keep avatar and amount columns vertically aligned across rows — a 3- vs
+    4-digit amount (or a missing instrument) must not push its neighbours around (founder ask). %>
+<span class="grid w-5 shrink-0 place-items-center">
+  <%= institution_avatar(transaction.instrument.institution, size: 20) if transaction.instrument %>
+</span>
+<span class="min-w-22 shrink-0 text-right tabular-nums text-sm font-medium <%= amount_tone %>"><%= transaction.income? ? "+" : "" %><%= brl(transaction.amount_cents) %></span>

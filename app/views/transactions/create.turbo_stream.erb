@@ -8,8 +8,15 @@
     <% end %>
   <% end %>
   <%= render "transactions/hub_figures" %>
-  <%# A card purchase after the fatura closed lands on a later month's bill — it isn't in this
-      month's list, so say where it went instead of letting it seem to vanish (item 4). %>
+  <% if @recent_rows %>
+    <%# Add from the Recentes page: the new row lands in the day list immediately. %>
+    <%= turbo_stream.replace "recent_summary", partial: "transactions/recent_sections",
+          locals: { rows: @recent_rows, window_empty: @recent_window.empty?, today: @recent_today } %>
+    <%= turbo_stream.replace "recent_chips", partial: "transactions/recent_chips",
+          locals: { window: @recent_window, category_filter: @recent_category } %>
+  <% end %>
+  <%# A card purchase after the fatura closed lands on a later month's bill — visible in this
+      month's list since the purchase-date union, but say where it bills anyway (item 4). %>
   <% if @transaction.billing_month != viewed_month %>
     <%= turbo_stream.prepend "toasts" do %>
       <%= render "shared/toast", variant: :info,

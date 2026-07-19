@@ -199,7 +199,7 @@ pt-BR:
   app:
     nav:
       dashboard: "Painel"
-      today: "Hoje"
+      today: "Recentes"
       accounts: "Contas"
       incomes: "Rendas"
       cards: "Cartões"
@@ -739,8 +739,8 @@ pt-BR:
     index:
       meta_title: "Transações"
     recent:
-      meta_title: "Hoje"
-      title: "Hoje"
+      meta_title: "Recentes"
+      title: "Recentes"
       subtitle: "Seus movimentos de hoje e de ontem"
       today: "Hoje"
       yesterday: "Ontem"

@@ -198,7 +198,7 @@ en:
   app:
     nav:
       dashboard: "Dashboard"
-      today: "Today"
+      today: "Recent"
       accounts: "Accounts"
       incomes: "Income"
       cards: "Cards"
@@ -738,8 +738,8 @@ en:
     index:
       meta_title: "Transactions"
     recent:
-      meta_title: "Today"
-      title: "Today"
+      meta_title: "Recent"
+      title: "Recent"
       subtitle: "Your activity from today and yesterday"
       today: "Today"
       yesterday: "Yesterday"

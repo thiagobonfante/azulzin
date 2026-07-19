@@ -4,6 +4,7 @@
 # inbox transitions. Chat and app are two front-ends over the same row, so the same guarded
 # transitions apply. Every action answers a Turbo Stream with an HTML fallback.
 class TransactionsController < ApplicationController
+  include RecentRefresh
   layout "app"
   before_action :require_onboarding
   before_action :require_instrument, only: %i[new create]
@@ -26,9 +27,9 @@ class TransactionsController < ApplicationController
   def recent
     @today    = sp_today
     @pending  = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
-    @window   = recent_window_rows                       # unfiltered — the chip row derives from it
+    @window   = recent_window_rows                              # unfiltered — the chip row derives from it
     @category = recent_category_filter
-    @rows     = filter_by_category(@window, @category)   # day sections + totals reflect the filter
+    @rows     = recent_filter_by_category(@window, @category)   # day sections + totals reflect the filter
   end
 
   def new
@@ -53,6 +54,7 @@ class TransactionsController < ApplicationController
     @transaction.errors.add(:base, :instrument_required) unless @transaction.instrument
     @saved = @transaction.errors.empty? && @transaction.save
     @ledger = month_ledger if @saved
+    load_recent_refresh if @saved
     respond_to do |format|
       format.turbo_stream { render :create, status: (@saved ? :ok : :unprocessable_entity) }
       format.html do
@@ -147,52 +149,27 @@ class TransactionsController < ApplicationController
 
     # The viewed month's posted ledger, ordered newest-first. Shared by index and create (which
     # re-renders the whole list so a first entry cleanly replaces the empty state).
+    # Union (founder call, 2026-07-19): rows billed to this month PLUS purchases MADE this month
+    # that bill later — a card swipe today belongs to "what I spent in July" even though it only
+    # hits August's fatura (the badge says so). Aggregates (MonthSummary, bill tiles) stay
+    # billing-month-scoped; only the visible list gains the rows.
     def month_ledger
-      Current.account.transactions.posted_in(viewed_month)
-             .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment,
-                       :receipt_attachment)
-             .order(occurred_on: :desc, id: :desc)
+      base = Current.account.transactions.posted.kept
+      base.where(billing_month: viewed_month)
+          .or(base.where(occurred_on: viewed_month..viewed_month.end_of_month)
+                  .where("billing_month > ?", viewed_month))
+          .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment,
+                    :receipt_attachment)
+          .order(occurred_on: :desc, id: :desc)
     end
 
-    # The two-day purchase-date window, recents-first within a day (occurred_on is date-only,
-    # so created_at breaks the tie: most recently captured first).
-    def recent_window_rows
-      Current.account.transactions
-             .occurred_between(sp_today - 1, sp_today)
-             .includes(:bank_account, :credit_card, :category, :commitment,
-                       :transfer_to_bank_account, :receipt_attachment)
-             .order(occurred_on: :desc, created_at: :desc, id: :desc)
-             .to_a
+    # Does this row belong on month's hub page? Mirrors month_ledger's union — the stream views
+    # use it to decide replace-vs-remove after an edit.
+    def in_month_ledger?(txn, month = viewed_month)
+      txn.billing_month == month ||
+        (txn.occurred_on.between?(month, month.end_of_month) && txn.billing_month > month)
     end
-
-    # An edit/delete arriving from the "Hoje" page (context=recent, threaded by the row
-    # partials): reload the two-day window so the stream can replace the whole recent_summary
-    # block — figures, day grouping, out-of-window removal and empty states all from one fresh
-    # render. The active chip filter rides along in params[:category].
-    def load_recent_refresh
-      return unless params[:context] == "recent"
-      @recent_today    = sp_today
-      @recent_window   = recent_window_rows
-      @recent_category = recent_category_filter
-      @recent_rows     = filter_by_category(@recent_window, @recent_category)
-    end
-
-    # Chip filter (house param posture): :none = uncategorized, a kept own-account Category,
-    # or nil = all — garbage and cross-account ids fall back to all.
-    def recent_category_filter
-      return :none if params[:category] == "none"
-      Current.account.categories.kept.find_by(id: params[:category]) if params[:category].present?
-    end
-
-    # In-Ruby filter over the loaded window (same posture as the ledger body). :none means
-    # uncategorized non-transfer rows — transfers are never categorized, so they'd drown it.
-    def filter_by_category(rows, filter)
-      case filter
-      when :none    then rows.select { |r| r.category_id.nil? && r.direction != "transfer" }
-      when Category then rows.select { |r| r.category_id == filter.id }
-      else rows
-      end
-    end
+    helper_method :in_month_ledger?
 
     # A parked WhatsApp installment purchase (07 §4.4): confirming it fans out the real plan
     # rather than posting a single expense. Only while still pending (a superseded stub is done).
