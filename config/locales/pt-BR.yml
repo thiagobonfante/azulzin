@@ -208,6 +208,7 @@ pt-BR:
       commitments: "Compromissos"
       categories: "Categorias"
       admin: "Admin"
+      invite: "Convidar amigos"
       open_menu: "Abrir menu"
       close_menu: "Fechar menu"
   money:
@@ -1183,6 +1184,34 @@ pt-BR:
       will_replace_account: "Sua conta atual (vazia) será substituída por esta conta compartilhada."
     create:
       joined: "Você agora faz parte da conta %{account}."
+  referral_mailer:
+    invite:
+      subject: "%{inviter} convidou você para conhecer o azulzin"
+      headline: "%{inviter} quer te ver no azul 💙"
+      intro: "O azulzin é o jeito mais fácil de organizar as finanças: você manda os gastos por mensagem no WhatsApp e ele cuida do resto."
+      point_whatsapp: "Registre gastos mandando uma mensagem (ou um áudio, ou a foto da notinha) no WhatsApp."
+      point_family: "Traga a família — todo mundo na mesma conta, cada gasto com dono."
+      point_goals: "Metas, lembretes de contas e resumos que mantêm vocês no azul."
+      cta: "Criar minha conta"
+      ignore: "Se você não esperava este e-mail, pode ignorá-lo."
+  referrals:
+    create:
+      sent:
+        one: "Convite enviado para %{emails}."
+        other: "Convites enviados para %{emails}."
+      invalid_email: "Digite um e-mail válido."
+      invalid_emails:
+        one: "Este e-mail não parece válido: %{emails}"
+        other: "Estes e-mails não parecem válidos: %{emails}"
+      too_many: "No máximo %{max} convites por vez."
+    modal:
+      title: "Convide amigos e família"
+      subtitle: "Compartilhe o azulzin com quem você quer ver no azul."
+      whatsapp_cta: "Compartilhar no WhatsApp"
+      whatsapp_message: "Ei! Tô usando o azulzin pra deixar as contas da família no azul — registro os gastos só mandando mensagem no WhatsApp. Cria a sua conta: https://azulzin.com.br"
+      or: "ou por e-mail"
+      email_placeholder: "amiga@exemplo.com, amigo@exemplo.com"
+      send: "Enviar"
   notifications:
     dashboard:
       bill_due:

@@ -207,6 +207,7 @@ en:
       commitments: "Commitments"
       categories: "Categories"
       admin: "Admin"
+      invite: "Invite friends"
       open_menu: "Open menu"
       close_menu: "Close menu"
   money:
@@ -1182,6 +1183,34 @@ en:
       will_replace_account: "Your current (empty) account will be replaced by this shared one."
     create:
       joined: "You're now part of %{account}."
+  referral_mailer:
+    invite:
+      subject: "%{inviter} invited you to try azulzin"
+      headline: "%{inviter} wants to see you in the blue 💙"
+      intro: "azulzin is the easiest way to organize your finances: text your expenses on WhatsApp and it takes care of the rest."
+      point_whatsapp: "Log expenses by sending a message (or a voice note, or a photo of the receipt) on WhatsApp."
+      point_family: "Bring the family — everyone on one account, every expense with an owner."
+      point_goals: "Goals, bill reminders and summaries that keep you in the blue."
+      cta: "Create my account"
+      ignore: "If you weren't expecting this email, you can ignore it."
+  referrals:
+    create:
+      sent:
+        one: "Invite sent to %{emails}."
+        other: "Invites sent to %{emails}."
+      invalid_email: "Type a valid email."
+      invalid_emails:
+        one: "This email doesn't look valid: %{emails}"
+        other: "These emails don't look valid: %{emails}"
+      too_many: "At most %{max} invites at a time."
+    modal:
+      title: "Invite friends & family"
+      subtitle: "Share azulzin with the people you want to see in the blue."
+      whatsapp_cta: "Share on WhatsApp"
+      whatsapp_message: "Hey! I'm using azulzin to keep the family finances in the blue — I log expenses just by sending a WhatsApp message. Create your account: https://azulzin.com.br"
+      or: "or by email"
+      email_placeholder: "friend@example.com, family@example.com"
+      send: "Send"
   notifications:
     dashboard:
       bill_due:

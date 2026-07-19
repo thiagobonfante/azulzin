@@ -138,6 +138,10 @@ Rails.application.routes.draw do
     get  "invites/:token", to: "invitation_acceptances#show",   as: :accept_invitation
     post "invites/:token", to: "invitation_acceptances#create", as: :confirm_invitation
 
+    # Refer-a-friend: outbound "come try azulzin" email (recipient creates their OWN account —
+    # unlike Invitation, which joins yours). Stateless, so no model behind it.
+    resource :referral, only: :create
+
     # Admin area (privileged, over all users' data). A normal in-app surface, so it lives
     # inside the on_app host constraint — unlike the server-to-server webhook. See 07 §7.2.
     namespace :admin do
