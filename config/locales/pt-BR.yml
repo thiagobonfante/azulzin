@@ -749,6 +749,7 @@ pt-BR:
       split_debit: "%{amount} no débito"
       split_bills: "%{amount} nas faturas"
       incomes_caption: "+%{amount} de entradas"
+      all_categories: "Todas"
       bill_badge: "fatura de %{month}"
       bill_badge_hint: "Não sai do saldo agora — entra na fatura de %{month}"
       empty_today: "Nenhum movimento hoje ainda"

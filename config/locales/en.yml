@@ -748,6 +748,7 @@ en:
       split_debit: "%{amount} on debit"
       split_bills: "%{amount} on card bills"
       incomes_caption: "+%{amount} income"
+      all_categories: "All"
       bill_badge: "%{month} bill"
       bill_badge_hint: "Doesn't leave your balance now — lands on the %{month} bill"
       empty_today: "Nothing yet today"

@@ -24,9 +24,11 @@ class TransactionsController < ApplicationController
   # "Hoje" (.plans/today-expenses): purchase-date view of today + yesterday. Totals are summed
   # in memory from the loaded two-day window — no read model, mirroring the ledger footer.
   def recent
-    @today   = sp_today
-    @pending = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
-    @rows    = recent_window_rows
+    @today    = sp_today
+    @pending  = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
+    @window   = recent_window_rows                       # unfiltered — the chip row derives from it
+    @category = recent_category_filter
+    @rows     = filter_by_category(@window, @category)   # day sections + totals reflect the filter
   end
 
   def new
@@ -159,6 +161,23 @@ class TransactionsController < ApplicationController
                        :transfer_to_bank_account, :receipt_attachment)
              .order(occurred_on: :desc, created_at: :desc, id: :desc)
              .to_a
+    end
+
+    # Chip filter (house param posture): :none = uncategorized, a kept own-account Category,
+    # or nil = all — garbage and cross-account ids fall back to all.
+    def recent_category_filter
+      return :none if params[:category] == "none"
+      Current.account.categories.kept.find_by(id: params[:category]) if params[:category].present?
+    end
+
+    # In-Ruby filter over the loaded window (same posture as the ledger body). :none means
+    # uncategorized non-transfer rows — transfers are never categorized, so they'd drown it.
+    def filter_by_category(rows, filter)
+      case filter
+      when :none    then rows.select { |r| r.category_id.nil? && r.direction != "transfer" }
+      when Category then rows.select { |r| r.category_id == filter.id }
+      else rows
+      end
     end
 
     # A parked WhatsApp installment purchase (07 §4.4): confirming it fans out the real plan

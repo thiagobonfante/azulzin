@@ -90,6 +90,40 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     refute_includes response.body, "R$ 0,00"
   end
 
+  # WEB-REC-03 — category chips: a chip filters the day lists AND recomputes the totals to
+  # the centavo; chips derive from the unfiltered window (escape stays visible); garbage
+  # falls back to all; Todas resets.
+  test "category chips filter rows and recompute totals; garbage falls back to all" do
+    s = E2E::Scenario.build(:recent_days)
+    uncat = s.expense(merchant: "Banca de Jornal", category: "Outros", instrument: s.itau,
+                      cents: 750, on: Date.current)
+    uncat.update!(category_id: nil, category_source: nil)
+    sign_in_as s.owner
+
+    # Restaurantes = only Padoca (card, R$ 50,00): all-card split, yesterday goes quiet.
+    get recent_transactions_path(category: s.category("Restaurantes").id)
+    assert_response :success
+    assert_includes response.body, "Padoca"
+    refute_includes response.body, "Pix Farmácia"
+    refute_includes response.body, "Supermercado Zaffari"
+    assert_includes response.body, "R$ 0,00 no débito"
+    assert_includes response.body, "R$ 50,00 nas faturas"
+    assert_includes response.body, "Nenhum movimento ontem"
+    assert_includes response.body, "Mercado", "chips derive from the unfiltered window"
+
+    # Sem categoria: only the uncategorized expense counts.
+    get recent_transactions_path(category: "none")
+    assert_includes response.body, "Banca de Jornal"
+    refute_includes response.body, "Padoca"
+    assert_includes response.body, "Gastos de hoje"
+    assert_brl 750, response.body
+
+    # Garbage id → all rows, full totals (Todas is this same unfiltered render).
+    get recent_transactions_path(category: "999999")
+    assert_includes response.body, "R$ 100,00 nas faturas"
+    assert_brl 20_750, response.body   # 20_000 + the R$ 7,50 uncategorized row
+  end
+
   # Hub regression for the shared-partial badge (.plans/today-expenses §5): same-month card
   # rows — the vast majority of any month ledger — stay badge-free; the June page's May-dated
   # purchases now explain themselves.
