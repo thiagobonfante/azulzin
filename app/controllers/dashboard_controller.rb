@@ -15,5 +15,10 @@ class DashboardController < AppController
     # Sum the per-card available (nil for limitless cards → 0), mirroring the per-card view —
     # a card with a bill but no limit must not eat into other cards' available credit.
     @total_available_cents = @credit_cards.sum { _1.available_cents.to_i }
+
+    # "Hoje" tile (.plans/today-expenses §8): today's spend by PURCHASE date — same predicate
+    # the recent view sums (posted+kept expenses occurred today), so both figures always agree.
+    today = Date.current.in_time_zone("America/Sao_Paulo").to_date
+    @today_spent_cents = Current.account.transactions.spend.where(occurred_on: today).sum(:amount_cents)
   end
 end

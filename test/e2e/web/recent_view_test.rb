@@ -175,6 +175,18 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     refute_includes response.body, 'target="recent_summary"'
   end
 
+  # WEB-REC-06 — the dashboard's "Gastos de hoje" tile: the exact figure the Hoje page
+  # shows (purchase-date sum, yesterday excluded), linking there.
+  test "dashboard tile shows today's spend, equal to the page figure" do
+    s = E2E::Scenario.build(:recent_days)
+    sign_in_as s.owner
+
+    get dashboard_path
+    assert_response :success
+    assert_select "a[href=?]", recent_transactions_path, text: /Gastos de hoje/
+    assert_select "a[href=?]", recent_transactions_path, text: /R\$ 200,00/   # 20_000: today only
+  end
+
   # Hub regression for the shared-partial badge (.plans/today-expenses §5): same-month card
   # rows — the vast majority of any month ledger — stay badge-free; the June page's May-dated
   # purchases now explain themselves.
