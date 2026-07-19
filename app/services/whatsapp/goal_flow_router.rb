@@ -427,12 +427,14 @@ module Whatsapp
 
     def purchase? = @conv.data["kind"] == "purchase"
 
-    def caixinhas = account.bank_accounts.kept.savings.order(created_at: :asc).to_a
+    # :id tiebreak — accounts created in the same second (onboarding, frozen test clocks)
+    # would otherwise list in undefined order in the numbered prompt.
+    def caixinhas = account.bank_accounts.kept.savings.order(:created_at, :id).to_a
 
     # Any kept account distinct from the caixinha, mirroring the web source select
     # (Activate's whitelist is the backstop).
     def source_accounts(caixinha_id)
-      account.bank_accounts.kept.where.not(id: caixinha_id).order(created_at: :asc).to_a
+      account.bank_accounts.kept.where.not(id: caixinha_id).order(:created_at, :id).to_a
     end
 
     def re_ask_slot(slot, key, **args)

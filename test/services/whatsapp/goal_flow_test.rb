@@ -10,6 +10,10 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
   WINDOW = [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ].freeze
 
   setup do
+    # Freeze FIRST: rows created before travel_to carry the real clock, which sorts AFTER the
+    # frozen date once the real world passes it — inverting every created_at ordering (the
+    # caixinha picker prompts started listing test-created accounts first on 2026-07-15).
+    travel_to Time.utc(2026, 7, 15, 12)
     @user = users(:confirmed)
     @user.update!(whatsapp_id: "5511999998888", phone_verified_at: Time.current, phone: "5511999998888")
     @account = @user.account
@@ -17,7 +21,6 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     @checking = @account.bank_accounts.create!(institution: @inst, nickname: "Corrente", kind: "checking")
     @caixinha = @account.bank_accounts.create!(institution: @inst, nickname: "Caixinha", kind: "savings")
     @rest = @account.categories.create!(name: "Restaurantes")
-    travel_to Time.utc(2026, 7, 15, 12)
     seed_ledger
   end
 
