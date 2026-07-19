@@ -27,14 +27,46 @@
       ritual proves it annoying. %>
   <%= render "transactions/pending_tray", pending: @pending %>
 
-  <%= render "transactions/recent_chips", window: @window, category_filter: @category %>
+  <%# One toolbar row — search + the Filtros trigger (hub idiom): the category chips live in
+      the sheet, saving the standalone chip row. A clear (×) shows while a chip is active. %>
+  <div class="flex items-center gap-2" data-controller="modal">
+    <label class="input input-bordered input-sm flex min-w-0 flex-1 items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" /></svg>
+      <input type="search" data-ledger-target="search" data-action="input->ledger#filter"
+             placeholder="<%= t("transactions.ledger.search_placeholder") %>"
+             class="grow border-0 bg-transparent p-0 focus:outline-none" autocomplete="off">
+    </label>
 
-  <label class="input input-bordered input-sm flex items-center gap-2">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" /></svg>
-    <input type="search" data-ledger-target="search" data-action="input->ledger#filter"
-           placeholder="<%= t("transactions.ledger.search_placeholder") %>"
-           class="grow border-0 bg-transparent p-0 focus:outline-none" autocomplete="off">
-  </label>
+    <div class="ml-auto flex shrink-0 items-center gap-1">
+      <% if @category %>
+        <%= link_to recent_transactions_path,
+              class: "btn btn-sm btn-ghost btn-square text-base-content/50 hover:text-error",
+              aria: { label: t("transactions.ledger.filter_clear") } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        <% end %>
+      <% end %>
+      <button type="button" data-action="modal#open"
+              class="btn btn-sm btn-ghost gap-1 <%= "text-primary" if @category %>">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" /></svg>
+        <%= t("transactions.ledger.filters_button") %>
+        <% if @category %><span class="h-2 w-2 rounded-full bg-primary" aria-hidden="true"></span><% end %>
+      </button>
+    </div>
+
+    <dialog data-modal-target="dialog" class="modal modal-bottom sm:modal-middle">
+      <div class="modal-box sm:max-w-sm text-left">
+        <form method="dialog">
+          <button class="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" aria-label="<%= t("transactions.new_entry.close") %>">✕</button>
+        </form>
+        <h3 class="mb-4 font-display text-lg font-bold"><%= t("transactions.ledger.filter_sheet_title") %></h3>
+        <p class="mb-1.5 text-xs font-medium text-base-content/60"><%= t("transactions.row.category") %></p>
+        <%= render "transactions/recent_chips", window: @window, category_filter: @category %>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button aria-label="<%= t("transactions.new_entry.close") %>">close</button>
+      </form>
+    </dialog>
+  </div>
 
   <%= render "transactions/recent_sections", rows: @rows, window_empty: @window.empty?, today: @today %>
 

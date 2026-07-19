@@ -9,7 +9,9 @@
         %> · <%= t("shared.attribution.edited_by", name: editor) %><% end %>
     </span>
   <% else %>
-    <span class="tooltip align-middle" data-tip="<%= t("shared.attribution.by", name: creator) %><%=
+    <%# The wrapper is an exact 20px grid — as a plain inline-block its line box grew ~5px
+        below the avatar, floating the circle above its flex-row neighbours (bank icon, value). %>
+    <span class="tooltip inline-grid h-5 w-5 shrink-0 place-items-center align-middle" data-tip="<%= t("shared.attribution.by", name: creator) %><%=
       " · #{t('shared.attribution.edited_by', name: editor)}" if editor && editor != creator %>">
       <span class="inline-grid h-5 w-5 place-items-center rounded-full bg-primary/15
                    text-[10px] font-semibold text-primary"><%= creator.first.upcase %></span>
