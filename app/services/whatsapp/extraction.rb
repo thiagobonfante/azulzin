@@ -12,10 +12,14 @@ module Whatsapp
     :edit_field_hint, :query_kind, :category,
     # --- create_goal (round 3 P6) — raw words only; cents/dates computed in Ruby ---
     :goal_kind, :goal_name, :goal_month_phrase, :goal_initial_saved_raw,
+    # --- multi-expense: raw item hashes when ONE message carries 2+ expenses ---
+    :items,
     keyword_init: true
   ) do
     def amount_present?     = amount_cents.present? && amount_cents != 0
     def instrument_named?   = instrument_phrase.present?
+    # 2+ expenses in one message (items only honored for the expense intent).
+    def multi?              = intent == "expense" && Array(self[:items]).size >= 2
     # Vision said the image shows no completed payment (ReceiptExtractor.not_receipt).
     def not_receipt?        = raw.is_a?(Hash) && raw["is_receipt"] == false
     def field_confidence    = self[:field_confidence] || {}

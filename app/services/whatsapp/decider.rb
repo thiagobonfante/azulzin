@@ -113,26 +113,29 @@ module Whatsapp
       txn
     end
 
-    def method_candidates
-      case @extraction.payment_method
-      when "credito"       then cards
-      when "debito", "pix" then checking_accounts
-      else phrase_candidates
+    def method_candidates = self.class.method_candidates(account, @extraction)
+
+    # Class-level so MultiExpenseHandler narrows each batch item with the exact same rules.
+    def self.method_candidates(account, extraction)
+      case extraction.payment_method
+      when "credito"       then cards(account)
+      when "debito", "pix" then checking_accounts(account)
+      else phrase_candidates(account, extraction)
       end
     end
 
     # "no cartão" without crédito/débito: the model honestly leaves payment_method
     # desconhecido, but the phrase still narrows — in this app "cartão" IS a credit-card
     # row (débito rides the bank account), and a bare "conta" means a checking account.
-    def phrase_candidates
-      phrase = Whatsapp.normalize(@extraction.instrument_phrase.to_s)
-      return cards             if phrase.include?("cartao")
-      return checking_accounts if phrase.include?("conta")
+    def self.phrase_candidates(account, extraction)
+      phrase = Whatsapp.normalize(extraction.instrument_phrase.to_s)
+      return cards(account)             if phrase.include?("cartao")
+      return checking_accounts(account) if phrase.include?("conta")
       []
     end
 
-    def cards             = account.credit_cards.kept.order(:created_at).to_a
-    def checking_accounts = account.bank_accounts.kept.where.not(kind: "savings").order(:created_at).to_a
+    def self.cards(account)             = account.credit_cards.kept.order(:created_at).to_a
+    def self.checking_accounts(account) = account.bank_accounts.kept.where.not(kind: "savings").order(:created_at).to_a
 
     # Same open-ask machinery as ask_amount; the answer routes zero-LLM through ReplyRouter
     # (a leading index or a fuzzy name against the stored prompt-ordered options).
@@ -150,26 +153,40 @@ module Whatsapp
     def currency = WhatsappReply.currency(@extraction.amount_cents, locale: @msg.user.locale)
 
     def upsert(status:, instrument: nil, amount_cents: nil, ask: {}, ask_expires_at: nil, **_)
-      Transaction.find_or_create_by!(source_message_id: @msg.wa_message_id) do |t|
-        t.account          = account       # D2: tenancy (nil fallback), NOT raw @msg.account
-        t.created_by       = @msg.user     # D7: attribution — explicit, never Current.user (job)
-        t.whatsapp_message = @msg
-        t.amount_cents     = amount_cents || @extraction.amount_cents
-        t.merchant         = @extraction.merchant
-        t.payment_method   = @extraction.payment_method
-        t.occurred_on      = @extraction.occurred_on || today
+      self.class.write(msg: @msg, account: account, extraction: @extraction,
+                       confidence_score: @confidence.capture_score,
+                       match_meta: { "reason" => @match.reason, "c_match" => @match.c_match },
+                       source_message_id: @msg.wa_message_id,
+                       status: status, instrument: instrument, amount_cents: amount_cents,
+                       ask: ask, ask_expires_at: ask_expires_at)
+    end
+
+    # The one expense write site, class-level so MultiExpenseHandler posts each batch item
+    # through the exact same money path (billing_month, auto-categorize, commitment link).
+    # Idempotent on source_message_id (batch items pass a "#index"-suffixed id).
+    def self.write(msg:, account:, extraction:, confidence_score:, match_meta:,
+                   source_message_id:, status:, instrument: nil, amount_cents: nil,
+                   ask: {}, ask_expires_at: nil)
+      Transaction.find_or_create_by!(source_message_id: source_message_id) do |t|
+        t.account          = account       # D2: tenancy (nil fallback), NOT raw msg.account
+        t.created_by       = msg.user      # D7: attribution — explicit, never Current.user (job)
+        t.whatsapp_message = msg
+        t.amount_cents     = amount_cents || extraction.amount_cents
+        t.merchant         = extraction.merchant
+        t.payment_method   = extraction.payment_method
+        t.occurred_on      = extraction.occurred_on || today
         # Explicit billing_month write site (02 §3.2-1): the closing rule for a matched card,
         # calendar month otherwise. Computed here, not left solely to the before_validation net.
         t.billing_month    = billing_month_for(instrument, t.occurred_on)
         # R6: memory → LLM label resolved in Ruby (≥ MATCH_MIN), never an LLM id.
         t.category_id, t.category_source =
-          Categories.auto_assign(account: account, merchant: @extraction.merchant, label: @extraction.category)
+          Categories.auto_assign(account: account, merchant: extraction.merchant, label: extraction.category)
         t.status           = status
         t.confirmed_at     = (Time.current if status == "posted")
-        t.source           = @extraction.source
-        t.confidence       = @confidence.capture_score
-        t.extraction       = @extraction.to_h.compact
-        t.match_meta       = { "reason" => @match.reason, "c_match" => @match.c_match }
+        t.source           = extraction.source
+        t.confidence       = confidence_score
+        t.extraction       = extraction.to_h.compact
+        t.match_meta       = match_meta
         t.ask              = ask
         t.ask_expires_at   = ask_expires_at
         assign_instrument(t, instrument)
@@ -188,7 +205,7 @@ module Whatsapp
       @msg.account
     end
 
-    def link_card_commitment(txn)
+    def self.link_card_commitment(txn)
       card = txn.credit_card
       return nil unless card
       candidates = card.commitments.kept.active.select do |c|
@@ -200,7 +217,7 @@ module Whatsapp
       best.id
     end
 
-    def amount_close?(a, b)
+    def self.amount_close?(a, b)
       tol = [ (b.to_i * 0.2).round, 500 ].max
       (a.to_i - b.to_i).abs <= tol
     end
@@ -233,7 +250,7 @@ module Whatsapp
       rows.size == 1 ? rows.first : nil
     end
 
-    def assign_instrument(txn, instrument)
+    def self.assign_instrument(txn, instrument)
       case instrument
       when BankAccount then txn.bank_account = instrument
       when CreditCard  then txn.credit_card = instrument
@@ -241,12 +258,13 @@ module Whatsapp
     end
 
     # Card rows follow the closing rule; everything else buckets by calendar month.
-    def billing_month_for(instrument, occurred_on)
+    def self.billing_month_for(instrument, occurred_on)
       instrument.is_a?(CreditCard) ? instrument.billing_month_for(occurred_on) : occurred_on.beginning_of_month
     end
 
     def reply(key, txn, **args) = WhatsappReply.deliver(user: @msg.user, key: key, transaction: txn, **args)
 
-    def today = Time.current.in_time_zone("America/Sao_Paulo").to_date
+    def self.today = Time.current.in_time_zone("America/Sao_Paulo").to_date
+    def today = self.class.today
   end
 end

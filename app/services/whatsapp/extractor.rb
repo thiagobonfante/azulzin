@@ -51,6 +51,11 @@ module Whatsapp
         goal_month_phrase = as PALAVRAS da data-alvo exatamente como ditas ("outubro do ano que vem",
         "em 6 meses") — NUNCA uma data ISO. goal_initial_saved_raw = valor já guardado para a meta,
         como dito. Em create_goal, amount_raw = o valor da meta.
+      - items: quando a mensagem contém DOIS OU MAIS gastos distintos (em linhas separadas ou na
+        mesma frase: "197 roupas, 11,22 pedágio, 55,90 almoço"), intent = expense e items lista
+        TODOS eles, NA ORDEM da mensagem. Cada item carrega SOMENTE o que a própria parte diz —
+        NUNCA copie o cartão/conta de um item para outro (o app resolve isso). Os campos de nível
+        superior descrevem o primeiro gasto. Com um gasto só (ou outra intent), items = [].
     PT
 
     SCHEMA = {
@@ -62,7 +67,7 @@ module Whatsapp
                          to_instrument_phrase installments_count installment_total_raw
                          installment_parcel_raw commitment_phrase target_bill_raw
                          edit_field_hint query_kind category
-                         goal_kind goal_name goal_month_phrase goal_initial_saved_raw],
+                         goal_kind goal_name goal_month_phrase goal_initial_saved_raw items],
         "properties" => {
           "intent"            => { "type" => "string",
                                    "enum" => %w[expense income transfer installment_purchase pay_commitment
@@ -94,7 +99,26 @@ module Whatsapp
           "goal_kind"              => { "type" => %w[string null], "enum" => [ "purchase", "savings_rate", nil ] },
           "goal_name"              => { "type" => %w[string null] },
           "goal_month_phrase"      => { "type" => %w[string null] },   # raw words, never an ISO date
-          "goal_initial_saved_raw" => { "type" => %w[string null] }
+          "goal_initial_saved_raw" => { "type" => %w[string null] },
+          # 2+ expenses in one message; empty otherwise. Values verbatim, cents still in Ruby.
+          "items" => {
+            "type" => "array", "maxItems" => 15,
+            "items" => {
+              "type" => "object", "additionalProperties" => false,
+              "required" => %w[amount_raw merchant payment_method instrument_phrase category
+                               occurred_on confidence],
+              "properties" => {
+                "amount_raw"        => { "type" => %w[string null] },
+                "merchant"          => { "type" => %w[string null] },
+                "payment_method"    => { "type" => "string",
+                                         "enum" => %w[debito credito pix dinheiro boleto desconhecido] },
+                "instrument_phrase" => { "type" => %w[string null] },
+                "category"          => { "type" => %w[string null] },
+                "occurred_on"       => { "type" => %w[string null] },
+                "confidence"        => { "type" => "number" }
+              }
+            }
+          }
         }
       }
     }.freeze
@@ -141,8 +165,23 @@ module Whatsapp
         goal_kind:              parsed["goal_kind"].presence,
         goal_name:              parsed["goal_name"].presence,
         goal_month_phrase:      parsed["goal_month_phrase"].presence,
-        goal_initial_saved_raw: parsed["goal_initial_saved_raw"].presence
+        goal_initial_saved_raw: parsed["goal_initial_saved_raw"].presence,
+        items:                  Array(parsed["items"]).select { |i| i.is_a?(Hash) }
       )
+    end
+
+    # One batch item → a full Extraction (same Ruby money/date computation as the parent).
+    # The parent's transcript rides along so the verbatim-amount confidence lift still works.
+    def self.build_item(item, parent)
+      transcript = parent.raw.is_a?(Hash) ? parent.raw["transcript"] : nil
+      build(
+        { "intent" => "expense", "intent_confidence" => parent.intent_confidence,
+          "amount_raw" => item["amount_raw"], "merchant" => item["merchant"],
+          "payment_method" => item["payment_method"], "instrument_phrase" => item["instrument_phrase"],
+          "category" => item["category"], "occurred_on" => item["occurred_on"],
+          "field_confidence" => { "amount" => item["confidence"] },
+          "overall_confidence" => item["confidence"] },
+        modality: parent.modality, source: parent.source, text: transcript)
     end
 
     # Explicit ISO date only; reject blanks and future dates (computed in São Paulo).

@@ -14,6 +14,26 @@ module E2E
            overall_confidence: confidence, modality: modality)
     end
 
+    # Several expenses in ONE message: raw item hashes exactly as the extractor schema
+    # emits them (cents/dates still computed in Ruby by Extractor.build_item). The parent's
+    # top-level fields mirror the first item, like the real prompt instructs.
+    def multi_expense(items:, confidence: 0.9)
+      first = items.first
+      ex = expense(cents: first[:cents], merchant: first[:merchant],
+                   method: first[:method] || "desconhecido", instrument: first[:instrument],
+                   confidence: confidence)
+      ex.items = items.map do |it|
+        { "amount_raw"        => (format("%d,%02d", it[:cents] / 100, it[:cents] % 100) if it[:cents]),
+          "merchant"          => it[:merchant],
+          "payment_method"    => it[:method] || "desconhecido",
+          "instrument_phrase" => it[:instrument],
+          "category"          => it[:category],
+          "occurred_on"       => nil,
+          "confidence"        => it[:confidence] || 0.95 }
+      end
+      ex
+    end
+
     def income(cents:, merchant: nil, confidence: 0.9)
       base(intent: "income", intent_confidence: confidence, amount_cents: cents,
            merchant: merchant, payment_method: "desconhecido",

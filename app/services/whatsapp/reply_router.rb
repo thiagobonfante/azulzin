@@ -22,6 +22,7 @@ module Whatsapp
       when "commitment_pay_confirm" then resolve_commitment_pay_confirm
       when "duplicate_confirm"  then resolve_duplicate_confirm
       when "instrument_pick"    then resolve_instrument_pick
+      when "multi_instrument_pick" then resolve_multi_instrument_pick
       when "installment_card_pick" then resolve_installment_card_pick
       else re_ask("whatsapp.replies.clarify_amount")
       end
@@ -121,6 +122,32 @@ module Whatsapp
         reply("whatsapp.replies.posted_#{card_kind ? 'card' : 'account'}",
               amount: currency(@ask.amount_cents), instrument: chosen.display_name)
       end
+    end
+
+    # The one unresolved item of a multi-expense batch (MultiExpenseHandler): options are
+    # type-tagged ("cc:3"/"ba:2") because cards and accounts can mix in one pick. The
+    # confirmation is the whole batch's ONE summary, siblings included.
+    def resolve_multi_instrument_pick
+      records = Array(@ask.ask["options"]).filter_map do |tag|
+        kind, id = tag.to_s.split(":")
+        scope = kind == "cc" ? account.credit_cards : account.bank_accounts
+        scope.kept.find_by(id: id)
+      end
+      chosen = pick(records) { |r| r.display_name }
+      unless chosen
+        label = @ask.merchant.presence || I18n.t("whatsapp.replies.no_description", locale: user.locale)
+        return reply("whatsapp.replies.multi_ask_instrument", amount: currency(@ask.amount_cents),
+                     label: label, options: numbered_options(records))
+      end
+      updates = { status: "posted", confirmed_at: Time.current, ask: {}, ask_expires_at: nil,
+                  updated_by_id: @msg.user_id }
+      updates[chosen.is_a?(CreditCard) ? :credit_card_id : :bank_account_id] = chosen.id
+      updates[:billing_month] = chosen.billing_month_for(@ask.occurred_on) if chosen.is_a?(CreditCard)
+      batch = @ask.ask["batch"]
+      posted = @ask.guarded_update(Transaction::OPEN_ASK_STATUSES, **updates)
+      return unless posted
+      Whatsapp::MultiExpenseHandler.deliver_summary(
+        user, Whatsapp::MultiExpenseHandler.batch_rows(account, batch))
     end
 
     def resolve_installments_count

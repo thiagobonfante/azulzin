@@ -66,8 +66,10 @@ module Whatsapp
       GoalFlowHandler.new(@msg, extraction).call
     end
 
-    # Expense: the existing Decider, byte-for-byte unchanged (regression-free).
+    # Expense: the existing Decider, byte-for-byte unchanged (regression-free). A message
+    # carrying 2+ expenses takes the batch path (one reply for all).
     def expense(extraction)
+      return Whatsapp::MultiExpenseHandler.new(@msg, extraction).call if extraction.multi?
       match      = Whatsapp::Matcher.new(account, extraction).call
       confidence = Whatsapp::Confidence.new(extraction)
       Whatsapp::Decider.new(@msg, extraction, match, confidence).call
