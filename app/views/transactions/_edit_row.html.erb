@@ -10,6 +10,10 @@
           class: "grid gap-2 p-2 sm:grid-cols-2" do |f| %>
       <%= hidden_field_tag :from, "ledger" %>
       <%= hidden_field_tag :month, params[:month] %>
+      <% if params[:context] == "recent" %>
+        <%= hidden_field_tag :context, "recent" %>
+        <%= hidden_field_tag :category, params[:category] if params[:category].present? %>
+      <% end %>
       <% if transaction.errors.any? %>
         <div class="alert alert-error col-span-full py-1 text-xs" role="alert"><span><%= transaction.errors.full_messages.to_sentence %></span></div>
       <% end %>
@@ -100,7 +104,10 @@
         <button type="button" data-action="entry-modal#close" class="btn btn-ghost btn-sm"><%= t("transactions.row.cancel") %></button>
         <%# A link (not button_to) so it isn't a <form> nested inside the edit form_with — nested
             forms are dropped by the browser, which is why delete + its confirm never fired. %>
-        <%= link_to t("transactions.row.reverse"), transaction_path(transaction, month: params[:month], from: "ledger"),
+        <%= link_to t("transactions.row.reverse"),
+              transaction_path(transaction, month: params[:month], from: "ledger",
+                context: params[:context].presence,
+                category: (params[:category].presence if params[:context] == "recent")),
               data: { turbo_method: :delete, turbo_confirm: t("transactions.row.confirm_discard") },
               class: "btn btn-ghost btn-sm text-error" %>
         <%= f.submit t("transactions.row.save"), class: "btn btn-primary btn-sm" %>

@@ -44,7 +44,7 @@
       <div class="mt-3 text-center">
         <%= link_to t("transactions.ledger.show_more"),
               transactions_path(month: month.strftime("%Y-%m"), filter: (filter == "all" ? nil : filter),
-                instrument: params[:instrument].presence, show_all: 1),
+                instrument: params[:instrument].presence, method: params[:method].presence, show_all: 1),
               class: "btn btn-ghost btn-sm text-primary" %>
       </div>
     <% end %>

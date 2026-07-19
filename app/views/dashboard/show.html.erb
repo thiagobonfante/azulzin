@@ -17,6 +17,16 @@
     no-op the transactions-hub-only targets. %>
 <div class="mb-6"><%= render "transactions/pending_tray", pending: @pending %></div>
 
+<%# ── Gastos de hoje → the "Hoje" daily-ritual page ─────────────────── %>
+<%= link_to recent_transactions_path,
+      class: "mb-6 flex items-center justify-between gap-2 rounded-box border border-base-300/70 bg-base-100 px-4 py-3 shadow-sm transition-colors hover:border-primary/50" do %>
+  <span class="text-sm font-medium text-base-content/60"><%= t("transactions.recent.spent_today") %></span>
+  <span class="flex items-center gap-2">
+    <span class="font-display font-bold tabular-nums"><%= brl(@today_spent_cents) %></span>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+  </span>
+<% end %>
+
 <%# ── Summary tiles ─────────────────────────────────────────────────── %>
 <section class="grid gap-4 sm:grid-cols-3">
   <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">

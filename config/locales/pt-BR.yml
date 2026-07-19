@@ -199,6 +199,7 @@ pt-BR:
   app:
     nav:
       dashboard: "Painel"
+      today: "Recentes"
       accounts: "Contas"
       incomes: "Rendas"
       cards: "Cartões"
@@ -214,6 +215,7 @@ pt-BR:
   date:
     formats:
       month_year: "%B de %Y"
+      month_name: "%B"
       weekday_day: "%a, %d %b"
   institutions:
     other: "Outro"
@@ -736,6 +738,24 @@ pt-BR:
       needs_disambiguation: "Qual foi?"
     index:
       meta_title: "Transações"
+    recent:
+      meta_title: "Recentes"
+      title: "Recentes"
+      subtitle: "Seus movimentos de hoje e de ontem"
+      today: "Hoje"
+      yesterday: "Ontem"
+      spent_today: "Gastos de hoje"
+      spent_yesterday: "Gastos de ontem"
+      split_debit: "%{amount} no débito"
+      split_bills: "%{amount} nas faturas"
+      incomes_caption: "+%{amount} de entradas"
+      all_categories: "Todas"
+      bill_badge: "fatura de %{month}"
+      bill_badge_hint: "Não sai do saldo agora — entra na fatura de %{month}"
+      empty_today: "Nenhum movimento hoje ainda"
+      empty_yesterday: "Nenhum movimento ontem"
+      empty_both: "Nenhum movimento por aqui ainda"
+      see_month: "Ver o mês completo"
     fab_add: "Adicionar lançamento"
     tabs:
       summary: "Resumo"

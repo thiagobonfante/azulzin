@@ -1,0 +1,25 @@
+<%# locals: rows (filtered), window_empty, today — both day sections of the "Hoje" view. The
+    capture CTA keys on the UNFILTERED window: a category filter that empties both days shows
+    the quiet per-day lines instead (chips stay visible as the escape). The wrapper id is a
+    stream target: edits from this page replace the whole block from a fresh window load, which
+    keeps figures, day grouping and empty states honest at once (.plans/today-expenses §7). %>
+<div id="recent_summary" class="flex flex-col gap-6">
+  <% if window_empty %>
+    <%# Both days empty — capture is the product's answer (the WhatsApp voice-note nudge). %>
+    <div class="rounded-box border border-dashed border-base-300 bg-base-100/50 px-4 py-8 text-center">
+      <p class="text-sm text-base-content/60"><%= t("transactions.recent.empty_both") %></p>
+      <p class="mt-1 text-xs text-base-content/40"><%= t("transactions.ledger.empty_hint") %></p>
+    </div>
+  <% else %>
+    <%= render "transactions/recent_day", day: today,
+          rows: rows.select { |r| r.occurred_on == today },
+          title: t("transactions.recent.today"),
+          spent_label: t("transactions.recent.spent_today"),
+          empty_text: t("transactions.recent.empty_today") %>
+    <%= render "transactions/recent_day", day: today - 1,
+          rows: rows.select { |r| r.occurred_on == today - 1 },
+          title: t("transactions.recent.yesterday"),
+          spent_label: t("transactions.recent.spent_yesterday"),
+          empty_text: t("transactions.recent.empty_yesterday") %>
+  <% end %>
+</div>

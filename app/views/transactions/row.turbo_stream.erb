@@ -22,7 +22,7 @@
   <%= turbo_stream.remove "pending_tray" %>
 <% end %>
 
-<% if @transaction.posted? && @transaction.billing_month == viewed_month %>
+<% if @transaction.posted? && in_month_ledger?(@transaction) %>
   <% if @confirmed %>
     <%= turbo_stream.prepend "ledger_list", partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
   <% else %>

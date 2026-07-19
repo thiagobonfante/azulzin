@@ -13,3 +13,11 @@
 <% end %>
 
 <%= render "transactions/hub_figures" %>
+
+<% if @recent_rows %>
+  <%# Recent-context delete: fresh day sections keep the figures and empty states honest. %>
+  <%= turbo_stream.replace "recent_summary", partial: "transactions/recent_sections",
+        locals: { rows: @recent_rows, window_empty: @recent_window.empty?, today: @recent_today } %>
+  <%= turbo_stream.replace "recent_chips", partial: "transactions/recent_chips",
+        locals: { window: @recent_window, category_filter: @recent_category } %>
+<% end %>

@@ -4,6 +4,7 @@
 # inbox transitions. Chat and app are two front-ends over the same row, so the same guarded
 # transitions apply. Every action answers a Turbo Stream with an HTML fallback.
 class TransactionsController < ApplicationController
+  include RecentRefresh
   layout "app"
   before_action :require_onboarding
   before_action :require_instrument, only: %i[new create]
@@ -19,6 +20,16 @@ class TransactionsController < ApplicationController
     @pending     = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
     @occurrences = CommitmentOccurrence.for_month(Current.account, @month)          # zone E (R10)
     @ledger      = month_ledger
+  end
+
+  # "Hoje" (.plans/today-expenses): purchase-date view of today + yesterday. Totals are summed
+  # in memory from the loaded two-day window — no read model, mirroring the ledger footer.
+  def recent
+    @today    = sp_today
+    @pending  = Current.account.transactions.includes(:bank_account, :credit_card).pending_inbox.order(created_at: :desc)
+    @window   = recent_window_rows                              # unfiltered — the chip row derives from it
+    @category = recent_category_filter
+    @rows     = recent_filter_by_category(@window, @category)   # day sections + totals reflect the filter
   end
 
   def new
@@ -43,6 +54,7 @@ class TransactionsController < ApplicationController
     @transaction.errors.add(:base, :instrument_required) unless @transaction.instrument
     @saved = @transaction.errors.empty? && @transaction.save
     @ledger = month_ledger if @saved
+    load_recent_refresh if @saved
     respond_to do |format|
       format.turbo_stream { render :create, status: (@saved ? :ok : :unprocessable_entity) }
       format.html do
@@ -59,6 +71,7 @@ class TransactionsController < ApplicationController
 
   def update
     @saved = apply_edits
+    load_recent_refresh
     respond_to do |format|
       format.turbo_stream do
         if params[:from] == "ledger" || !@saved
@@ -116,6 +129,7 @@ class TransactionsController < ApplicationController
   # stays a WhatsApp-pipeline status (undo/supersede), not the in-app delete path.
   def destroy
     @transaction.soft_delete!(by: Current.user)
+    load_recent_refresh
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to transactions_path(month: params[:month]), notice: t(".removed") }
@@ -135,12 +149,27 @@ class TransactionsController < ApplicationController
 
     # The viewed month's posted ledger, ordered newest-first. Shared by index and create (which
     # re-renders the whole list so a first entry cleanly replaces the empty state).
+    # Union (founder call, 2026-07-19): rows billed to this month PLUS purchases MADE this month
+    # that bill later — a card swipe today belongs to "what I spent in July" even though it only
+    # hits August's fatura (the badge says so). Aggregates (MonthSummary, bill tiles) stay
+    # billing-month-scoped; only the visible list gains the rows.
     def month_ledger
-      Current.account.transactions.posted_in(viewed_month)
-             .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment,
-                       :receipt_attachment)
-             .order(occurred_on: :desc, id: :desc)
+      base = Current.account.transactions.posted.kept
+      base.where(billing_month: viewed_month)
+          .or(base.where(occurred_on: viewed_month..viewed_month.end_of_month)
+                  .where("billing_month > ?", viewed_month))
+          .includes(:bank_account, :credit_card, :category, :transfer_to_bank_account, :commitment,
+                    :receipt_attachment)
+          .order(occurred_on: :desc, id: :desc)
     end
+
+    # Does this row belong on month's hub page? Mirrors month_ledger's union — the stream views
+    # use it to decide replace-vs-remove after an edit.
+    def in_month_ledger?(txn, month = viewed_month)
+      txn.billing_month == month ||
+        (txn.occurred_on.between?(month, month.end_of_month) && txn.billing_month > month)
+    end
+    helper_method :in_month_ledger?
 
     # A parked WhatsApp installment purchase (07 §4.4): confirming it fans out the real plan
     # rather than posting a single expense. Only while still pending (a superseded stub is done).

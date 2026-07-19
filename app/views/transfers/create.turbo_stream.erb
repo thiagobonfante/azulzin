@@ -6,6 +6,13 @@
     <% end %>
   <% end %>
   <%= render "transactions/hub_figures" %>
+  <% if @recent_rows %>
+    <%# Transfer added from the Recentes page: refresh its day sections too. %>
+    <%= turbo_stream.replace "recent_summary", partial: "transactions/recent_sections",
+          locals: { rows: @recent_rows, window_empty: @recent_window.empty?, today: @recent_today } %>
+    <%= turbo_stream.replace "recent_chips", partial: "transactions/recent_chips",
+          locals: { window: @recent_window, category_filter: @recent_category } %>
+  <% end %>
   <% if @to_savings %>
     <%= turbo_stream.prepend "toasts" do %>
       <%= render "shared/toast", variant: :success,

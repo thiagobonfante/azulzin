@@ -2,6 +2,8 @@
     can re-render the whole thing (toolbar + list), which is what makes a first entry replace the
     empty state cleanly. Filtered server-side (kind tabs); searched / view-switched client-side. %>
 <% current_filter = %w[expenses incomes transfers].include?(params[:filter]) ? params[:filter] : "all" %>
+<%# Payment-method filter (founder ask): crédito/débito/pix/boleto, whitelisted; garbage = all. %>
+<% current_method = %w[credito debito pix boleto].include?(params[:method]) ? params[:method] : nil %>
 <%# Instrument filter — a whitelisted "bank_account-<id>" / "credit_card-<id>" token; anything
     else resolves to nil (= all). Applied before everything so totals and the by-category view
     reflect it too. A filtered bank account keeps its incoming transfers visible. %>
@@ -16,7 +18,7 @@
     so totals and the by-category view reflect it too. %>
 <% date_from = (Date.iso8601(params[:date_from]) rescue nil) %>
 <% date_to   = (Date.iso8601(params[:date_to])   rescue nil) %>
-<% filters_active = current_filter != "all" || instrument_token.present? || date_from.present? || date_to.present? %>
+<% filters_active = current_filter != "all" || instrument_token.present? || date_from.present? || date_to.present? || current_method.present? %>
 <% all_rows = ledger.to_a %>
 <% all_rows = case current_instrument
               when BankAccount
@@ -27,6 +29,7 @@
               end %>
 <% all_rows = all_rows.select { |r| r.occurred_on >= date_from } if date_from %>
 <% all_rows = all_rows.select { |r| r.occurred_on <= date_to }   if date_to %>
+<% all_rows = all_rows.select { |r| r.payment_method == current_method } if current_method %>
 <% has_expenses  = all_rows.any? { |r| r.direction == "expense" } %>
 <% multi_account = Current.account.bank_accounts.kept.count >= 2 %>
 
@@ -93,6 +96,19 @@
                     <input type="radio" name="filter" value="<%= f == "all" ? "" : f %>"
                            aria-label="<%= t("transactions.ledger.filters.#{f}") %>"
                            class="btn btn-sm join-item" <%= "checked" if current_filter == f %>>
+                  <% end %>
+                </div>
+              </div>
+
+              <div>
+                <p class="mb-1.5 text-xs font-medium text-base-content/60"><%= t("transactions.new_entry.payment_method") %></p>
+                <div class="join max-w-full overflow-x-auto">
+                  <input type="radio" name="method" value="" aria-label="<%= t("transactions.ledger.filters.all") %>"
+                         class="btn btn-sm join-item" <%= "checked" if current_method.nil? %>>
+                  <% %w[credito debito pix boleto].each do |m| %>
+                    <input type="radio" name="method" value="<%= m %>"
+                           aria-label="<%= t("transactions.new_entry.methods.#{m}") %>"
+                           class="btn btn-sm join-item" <%= "checked" if current_method == m %>>
                   <% end %>
                 </div>
               </div>

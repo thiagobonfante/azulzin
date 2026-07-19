@@ -5,6 +5,7 @@
 # per filled source, all-or-nothing). Posting demands both accounts (distinct, no card); the
 # pure-record balances self-correct.
 class TransfersController < ApplicationController
+  include RecentRefresh
   layout "app"
   before_action :require_onboarding
 
@@ -21,6 +22,7 @@ class TransfersController < ApplicationController
     end
     @saved = @transactions.any? && @transactions.all?(&:valid?)
     ActiveRecord::Base.transaction { @transactions.each(&:save!) } if @saved
+    load_recent_refresh if @saved
     @transaction = @transactions.first || Current.account.transactions.new(direction: "transfer")
     @to_savings = @saved && to&.savings?
     @boosted_goal = boosted_goal(to) if @to_savings

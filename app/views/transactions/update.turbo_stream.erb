@@ -1,13 +1,22 @@
 <% if params[:from] == "ledger" %>
   <%# Ledger edit-in-place (R7). %>
   <% if @saved %>
-    <% if @transaction.billing_month == viewed_month %>
+    <% if in_month_ledger?(@transaction) %>
       <%= turbo_stream.replace dom_id(@transaction, :row), partial: "transactions/ledger_row", locals: { transaction: @transaction } %>
     <% else %>
       <%# occurred_on / Fatura move pushed the row to another month's page. %>
       <%= turbo_stream.remove dom_id(@transaction, :row) %>
     <% end %>
     <%= render "transactions/hub_figures" %>
+    <% if @recent_rows %>
+      <%# Recent-context edit: re-render both day sections from the fresh window load, so the
+          figures, day grouping and out-of-window removal stay honest (renders last — it wins
+          over the hub-shaped row ops above; those target ids inside this block). %>
+      <%= turbo_stream.replace "recent_summary", partial: "transactions/recent_sections",
+            locals: { rows: @recent_rows, window_empty: @recent_window.empty?, today: @recent_today } %>
+      <%= turbo_stream.replace "recent_chips", partial: "transactions/recent_chips",
+            locals: { window: @recent_window, category_filter: @recent_category } %>
+    <% end %>
   <% else %>
     <%# 422 — re-render the edit form (with errors) inside the still-open entry sheet. %>
     <%= turbo_stream.replace "entry_form", partial: "transactions/edit_row", locals: { transaction: @transaction } %>

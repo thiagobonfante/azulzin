@@ -1,0 +1,47 @@
+<%# locals: day, rows, title, spent_label, empty_text — one day section of the Recentes view.
+    Gastos = expense rows only; débito + faturas == gastos to the centavo (settlement split,
+    same convention as the ledger footer); transfers count into neither figure; incomes join
+    as the entradas line. The day total sits on the header row (no label row — founder call
+    2026-07-19; the label survives for screen readers) with the sub-totals stacked under it,
+    one per line, right-aligned. Figures render only when the day has expenses — an empty or
+    transfer-only day never shows a fake R$ 0,00. The section is a search group: it collapses
+    while a query filters out all of its rows. %>
+<% expenses      = rows.select { |r| r.direction == "expense" } %>
+<% bills_total   = expenses.select(&:credit_card_id).sum(&:amount_cents) %>
+<% debit_total   = expenses.reject(&:credit_card_id).sum(&:amount_cents) %>
+<% incomes_total = rows.select { |r| r.direction == "income" }.sum(&:amount_cents) %>
+<section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm" data-ledger-target="group">
+  <div class="flex items-baseline justify-between gap-2">
+    <h2 class="text-sm font-semibold">
+      <%= title %> <span class="font-normal text-base-content/50">· <%= l(day, format: :weekday_day) %></span>
+    </h2>
+    <% if expenses.any? %>
+      <span class="font-display font-bold tabular-nums"><span class="sr-only"><%= spent_label %> </span><%= brl(debit_total + bills_total) %></span>
+    <% end %>
+  </div>
+
+  <% if rows.any? %>
+    <% if (expenses.any? && bills_total.positive?) || incomes_total.positive? %>
+      <div class="mt-0.5 flex flex-col items-end text-xs tabular-nums">
+        <%# The split earns its lines only when some spend rides a fatura — a débito-only day
+            (the mockup's yesterday) says nothing extra; an all-card day's "R$ 0,00 no débito"
+            is exactly the surprising "nothing left your balance today" case. %>
+        <% if bills_total.positive? %>
+          <span class="text-base-content/50"><%= t("transactions.recent.split_debit", amount: brl(debit_total)) %></span>
+          <span class="text-base-content/50"><%= t("transactions.recent.split_bills", amount: brl(bills_total)) %></span>
+        <% end %>
+        <% if incomes_total.positive? %>
+          <span class="text-success"><%= t("transactions.recent.incomes_caption", amount: brl(incomes_total)) %></span>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="mt-2 divide-y divide-base-300/50 border-t border-base-300/70 pt-1 [&>turbo-frame:nth-of-type(even)]:bg-base-200/40">
+      <% rows.each do |txn| %>
+        <%= render "transactions/ledger_row", transaction: txn %>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="py-4 text-center text-sm text-base-content/50"><%= empty_text %></p>
+  <% end %>
+</section>
