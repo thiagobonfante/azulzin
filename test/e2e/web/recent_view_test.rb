@@ -25,6 +25,10 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
 
     assert_includes response.body, "Gastos de ontem"
     assert_brl 8_490, response.body
+
+    # Search-by-value material: the formatted amount is baked into each row's data-search
+    # (the client-side box matches "100" or "100,00"; lowercased, so unique to the attr).
+    assert_includes response.body, "r$ 100,00"
   end
 
   # WEB-REC-02 — day separation, recents-first ordering inside a day, and incomes/transfers

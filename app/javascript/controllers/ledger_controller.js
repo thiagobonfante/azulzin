@@ -15,10 +15,11 @@ export default class extends Controller {
       row.hidden = q !== "" && !(row.dataset.search || "").includes(q)
     })
 
-    // Collapse a day group once all of its rows are filtered out.
+    // Collapse a day group once all of its rows are filtered out. The q-guard keeps groups
+    // with no rows at all (Recentes' quiet empty days) visible when the search is cleared.
     this.groupTargets.forEach((group) => {
       const anyVisible = group.querySelectorAll("[data-ledger-target='row']:not([hidden])").length > 0
-      group.hidden = !anyVisible
+      group.hidden = q !== "" && !anyVisible
     })
 
     if (this.hasNoResultsTarget) {

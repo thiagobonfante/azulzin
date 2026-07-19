@@ -4,7 +4,9 @@
     ledger row partial verbatim and open the same edit drawer; pending rows surface in the
     shared tray, never inside the day lists. The submit-end listener is @document for the
     same reason as the hub: delete links submit ephemeral forms appended to the body. %>
-<div class="flex flex-col gap-6" data-controller="entry-modal"
+<%# The ledger controller powers the same client-side search as the hub — rows already bake
+    their text + value into data-search via _ledger_row. %>
+<div class="flex flex-col gap-6" data-controller="entry-modal ledger"
      data-action="turbo:submit-end@document->entry-modal#submitEnd">
   <header class="flex items-start justify-between gap-2">
     <div>
@@ -27,7 +29,18 @@
 
   <%= render "transactions/recent_chips", window: @window, category_filter: @category %>
 
+  <label class="input input-bordered input-sm flex items-center gap-2">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" /></svg>
+    <input type="search" data-ledger-target="search" data-action="input->ledger#filter"
+           placeholder="<%= t("transactions.ledger.search_placeholder") %>"
+           class="grow border-0 bg-transparent p-0 focus:outline-none" autocomplete="off">
+  </label>
+
   <%= render "transactions/recent_sections", rows: @rows, window_empty: @window.empty?, today: @today %>
+
+  <p data-ledger-target="noResults" hidden class="py-4 text-center text-sm text-base-content/50">
+    <%= t("transactions.ledger.no_results") %>
+  </p>
 
   <div class="text-center">
     <%= link_to transactions_path, class: "btn btn-ghost btn-sm text-primary" do %>
