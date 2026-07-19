@@ -1,10 +1,11 @@
 <%# locals: window, category_filter — category chips for the "Hoje" view. Derived from the
     UNFILTERED window rows (always short, and escape stays visible when a filter empties the
-    days). Plain GET links — the URL is the state, same as every hub filter. %>
+    days). Plain GET links — the URL is the state, same as every hub filter. The wrapper
+    always renders (even empty) so the recent-context streams can keep replacing it. %>
 <% cats = window.map(&:category).compact.uniq.sort_by(&:name) %>
 <% has_uncategorized = window.any? { |r| r.category_id.nil? && r.direction == "expense" } %>
-<% if cats.any? || has_uncategorized %>
-  <div class="flex gap-2 overflow-x-auto pb-1">
+<div id="recent_chips" class="flex gap-2 overflow-x-auto pb-1 <%= "hidden" unless cats.any? || has_uncategorized %>">
+  <% if cats.any? || has_uncategorized %>
     <%= link_to t("transactions.recent.all_categories"), recent_transactions_path,
           class: "btn btn-xs shrink-0 #{category_filter ? "btn-ghost" : "btn-primary"}" %>
     <% cats.each do |cat| %>
@@ -18,5 +19,5 @@
       <%= link_to t("transactions.ledger.uncategorized"), recent_transactions_path(category: "none"),
             class: "btn btn-xs shrink-0 #{category_filter == :none ? "btn-primary" : "btn-ghost"}" %>
     <% end %>
-  </div>
-<% end %>
+  <% end %>
+</div>

@@ -171,9 +171,10 @@ class TransactionsController < ApplicationController
     # render. The active chip filter rides along in params[:category].
     def load_recent_refresh
       return unless params[:context] == "recent"
-      @recent_today  = sp_today
-      @recent_window = recent_window_rows
-      @recent_rows   = filter_by_category(@recent_window, recent_category_filter)
+      @recent_today    = sp_today
+      @recent_window   = recent_window_rows
+      @recent_category = recent_category_filter
+      @recent_rows     = filter_by_category(@recent_window, @recent_category)
     end
 
     # Chip filter (house param posture): :none = uncategorized, a kept own-account Category,

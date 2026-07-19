@@ -17,6 +17,11 @@
     <%= (transaction.merchant.presence || transaction.description.presence || "•").first.upcase %>
   </span>
 <% end %>
+<%# Cross-month card row (either direction — a manual pull-back is just as surprising): badge
+    where the money actually lands (.plans/today-expenses §5). Condition is self-contained so
+    every turbo-stream re-render keeps it. On <sm the badge joins the caption line under the
+    name — inline it would crush the merchant to one character between the avatars and amount. %>
+<% show_bill_badge = transaction.credit_card_id && transaction.billing_month != transaction.occurred_on.beginning_of_month %>
 <div class="min-w-0 flex-1">
   <p class="truncate text-sm">
     <% if transaction.transfer? %>
@@ -30,15 +35,22 @@
       <span class="text-xs text-base-content/50"><%= transaction.installment_number %>/<%= transaction.commitment&.installments_count %></span>
     <% end %>
   </p>
-  <% if transaction.expense? && transaction.category %>
-    <p class="truncate text-xs text-base-content/50"><%= transaction.category.name %><%= deleted_suffix(transaction.category) %></p>
+  <% if (transaction.expense? && transaction.category) || show_bill_badge %>
+    <p class="flex min-w-0 items-center gap-1.5 text-xs text-base-content/50">
+      <% if transaction.expense? && transaction.category %>
+        <span class="truncate"><%= transaction.category.name %><%= deleted_suffix(transaction.category) %></span>
+      <% end %>
+      <% if show_bill_badge %>
+        <span class="badge badge-primary badge-outline badge-xs shrink-0 sm:hidden"
+              title="<%= t("transactions.recent.bill_badge_hint", month: l(transaction.billing_month, format: :month_name)) %>">
+          <%= t("transactions.recent.bill_badge", month: l(transaction.billing_month, format: :month_name)) %>
+        </span>
+      <% end %>
+    </p>
   <% end %>
 </div>
-<% if transaction.credit_card_id && transaction.billing_month != transaction.occurred_on.beginning_of_month %>
-  <%# The fatura month differs from the purchase month (either direction — a manual pull-back is
-      just as surprising): say where the money actually lands (.plans/today-expenses §5). The
-      condition is self-contained so every turbo-stream re-render keeps the badge. %>
-  <span class="badge badge-primary badge-outline badge-xs shrink-0"
+<% if show_bill_badge %>
+  <span class="badge badge-primary badge-outline badge-xs shrink-0 hidden sm:inline-flex"
         title="<%= t("transactions.recent.bill_badge_hint", month: l(transaction.billing_month, format: :month_name)) %>">
     <%= t("transactions.recent.bill_badge", month: l(transaction.billing_month, format: :month_name)) %>
   </span>

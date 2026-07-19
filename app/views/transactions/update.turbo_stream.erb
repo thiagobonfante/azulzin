@@ -14,6 +14,8 @@
           over the hub-shaped row ops above; those target ids inside this block). %>
       <%= turbo_stream.replace "recent_summary", partial: "transactions/recent_sections",
             locals: { rows: @recent_rows, window_empty: @recent_window.empty?, today: @recent_today } %>
+      <%= turbo_stream.replace "recent_chips", partial: "transactions/recent_chips",
+            locals: { window: @recent_window, category_filter: @recent_category } %>
     <% end %>
   <% else %>
     <%# 422 — re-render the edit form (with errors) inside the still-open entry sheet. %>

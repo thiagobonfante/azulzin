@@ -20,7 +20,8 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     assert_brl 20_000, response.body                            # 10_000 débito + 10_000 faturas
     assert_includes response.body, "R$ 100,00 no débito"
     assert_includes response.body, "R$ 100,00 nas faturas"
-    assert_select "span.badge-outline", text: /fatura de junho/, count: 2
+    # 2 badged card rows × the responsive pair (caption badge on <sm, inline badge on sm+).
+    assert_select "span.badge-outline", text: /fatura de junho/, count: 4
 
     assert_includes response.body, "Gastos de ontem"
     assert_brl 8_490, response.body
@@ -159,6 +160,16 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     assert_includes response.body, "R$ 0,00 no débito"
     assert_includes response.body, "R$ 125,00 nas faturas"
 
+    # The chip row streams too: deleting the last uncategorized row retires its chip live.
+    uncat = s.expense(merchant: "Banca", category: "Outros", instrument: s.itau,
+                      cents: 750, on: Date.current)
+    uncat.update!(category_id: nil, category_source: nil)
+    delete transaction_path(uncat), as: :turbo_stream, params: { from: "ledger", context: "recent" }
+    assert_response :success
+    chips = response.body[/<turbo-stream[^>]*target="recent_chips".*?<\/turbo-stream>/m]
+    assert chips, "the destroy stream must refresh the chip row"
+    refute_includes chips, "Sem categoria"
+
     # occurred_on moved out of the two-day window: the fresh sections no longer carry the row.
     patch transaction_path(uber), as: :turbo_stream,
           params: { from: "ledger", context: "recent",
@@ -205,6 +216,6 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     get transactions_path(month: (Date.current.beginning_of_month >> 1).strftime("%Y-%m"))
     assert_response :success
     assert_includes response.body, "Padoca"   # bought May 20, billed June
-    assert_select "span.badge-outline", text: /fatura de junho/, count: 2
+    assert_select "span.badge-outline", text: /fatura de junho/, count: 4   # 2 rows × responsive pair
   end
 end
