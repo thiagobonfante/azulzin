@@ -11,6 +11,10 @@
     <p class="mt-1 text-base-content/60"><%= t(".subtitle") %></p>
   </header>
 
+  <%# Accepted v1 edge (.plans/today-expenses §7): confirming a tray row here posts it into
+      "today", but the day lists/figures below refresh only on the next visit — the tray is
+      shared with the dashboard and its streams target hub figures. Revisit if the daily
+      ritual proves it annoying. %>
   <%= render "transactions/pending_tray", pending: @pending %>
 
   <%= render "transactions/recent_chips", window: @window, category_filter: @category %>

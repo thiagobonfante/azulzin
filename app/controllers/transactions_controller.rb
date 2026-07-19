@@ -69,6 +69,7 @@ class TransactionsController < ApplicationController
 
   def update
     @saved = apply_edits
+    load_recent_refresh
     respond_to do |format|
       format.turbo_stream do
         if params[:from] == "ledger" || !@saved
@@ -126,6 +127,7 @@ class TransactionsController < ApplicationController
   # stays a WhatsApp-pipeline status (undo/supersede), not the in-app delete path.
   def destroy
     @transaction.soft_delete!(by: Current.user)
+    load_recent_refresh
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to transactions_path(month: params[:month]), notice: t(".removed") }
@@ -161,6 +163,17 @@ class TransactionsController < ApplicationController
                        :transfer_to_bank_account, :receipt_attachment)
              .order(occurred_on: :desc, created_at: :desc, id: :desc)
              .to_a
+    end
+
+    # An edit/delete arriving from the "Hoje" page (context=recent, threaded by the row
+    # partials): reload the two-day window so the stream can replace the whole recent_summary
+    # block — figures, day grouping, out-of-window removal and empty states all from one fresh
+    # render. The active chip filter rides along in params[:category].
+    def load_recent_refresh
+      return unless params[:context] == "recent"
+      @recent_today  = sp_today
+      @recent_window = recent_window_rows
+      @recent_rows   = filter_by_category(@recent_window, recent_category_filter)
     end
 
     # Chip filter (house param posture): :none = uncategorized, a kept own-account Category,

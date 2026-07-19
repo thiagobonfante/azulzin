@@ -124,6 +124,57 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
     assert_brl 20_750, response.body   # 20_000 + the R$ 7,50 uncategorized row
   end
 
+  # WEB-REC-05 — totals freshness: drawer edits carrying context=recent stream a fresh
+  # recent_summary (figures + day lists from a re-loaded window, chip filter preserved);
+  # a row edited out of the two-day window disappears; hub edits stream nothing extra.
+  test "recent-context edits stream fresh figures; hub edits don't" do
+    s = E2E::Scenario.build(:recent_days)
+    sign_in_as s.owner
+    padoca = s.account.transactions.find_by!(merchant: "Padoca")
+    pix    = s.account.transactions.find_by!(merchant: "Pix Farmácia")
+    uber   = s.account.transactions.find_by!(merchant: "Uber")
+
+    # The page's row links thread the context; the edit form carries it as a hidden field —
+    # the PATCHes below travel exactly what the drawer would submit.
+    get recent_transactions_path
+    assert_includes response.body, "context=recent"
+    get edit_transaction_path(padoca, context: "recent")
+    assert_includes response.body, 'name="context"'
+
+    # Amount edit under the Restaurantes chip: fresh sections keep the filter — only Padoca,
+    # at its new amount (R$ 50,00 → R$ 75,00, all on the fatura).
+    patch transaction_path(padoca), as: :turbo_stream,
+          params: { from: "ledger", context: "recent", category: s.category("Restaurantes").id,
+                    transaction: { amount_reais: "75,00" } }
+    assert_response :success
+    assert_includes response.body, 'target="recent_summary"'
+    assert_includes response.body, "R$ 0,00 no débito"
+    assert_includes response.body, "R$ 75,00 nas faturas"
+    refute_includes response.body, "Pix Farmácia"
+
+    # Destroy from the drawer: figures drop the deleted row (unfiltered: 75 + 50 card only).
+    delete transaction_path(pix), as: :turbo_stream, params: { from: "ledger", context: "recent" }
+    assert_response :success
+    assert_includes response.body, 'target="recent_summary"'
+    assert_includes response.body, "R$ 0,00 no débito"
+    assert_includes response.body, "R$ 125,00 nas faturas"
+
+    # occurred_on moved out of the two-day window: the fresh sections no longer carry the row.
+    patch transaction_path(uber), as: :turbo_stream,
+          params: { from: "ledger", context: "recent",
+                    transaction: { occurred_on: Date.current - 10 } }
+    assert_response :success
+    assert_includes response.body, 'target="recent_summary"'
+    refute_includes response.body, "Uber"
+    assert_includes response.body, "R$ 75,00 nas faturas"
+
+    # A hub edit (no context param) must not stream the recent block.
+    patch transaction_path(padoca), as: :turbo_stream,
+          params: { from: "ledger", transaction: { amount_reais: "80,00" } }
+    assert_response :success
+    refute_includes response.body, 'target="recent_summary"'
+  end
+
   # Hub regression for the shared-partial badge (.plans/today-expenses §5): same-month card
   # rows — the vast majority of any month ledger — stay badge-free; the June page's May-dated
   # purchases now explain themselves.
