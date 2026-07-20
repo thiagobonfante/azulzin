@@ -20,7 +20,7 @@ class MainActivity : HotwireActivity() {
             tab(R.string.tab_inicio, android.R.drawable.ic_menu_view, "inicio", "dashboard"),
             tab(R.string.tab_chat, android.R.drawable.ic_menu_send, "chat", "chat"),
             tab(R.string.tab_movimentos, android.R.drawable.ic_menu_agenda, "movimentos", "transactions"),
-            tab(R.string.tab_metas, android.R.drawable.ic_menu_myplaces, "metas", "goals"),
+            tab(R.string.tab_recentes, android.R.drawable.ic_menu_recent_history, "recentes", "transactions/recent"),
             tab(R.string.tab_mais, android.R.drawable.ic_menu_more, "mais", "menu")
         )
     }

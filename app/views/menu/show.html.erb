@@ -1,20 +1,49 @@
 <% content_for :title, t(".title") %>
 
+<%# Heroicon outline d-strings, shared with the sidebar icon set. %>
+<% icons = {
+  goals:       "M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5",
+  commitments: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z",
+  accounts:    "M12 3l9 4.5H3L12 3zM4.5 10.5v6M9 10.5v6m6-6v6m4.5-6v6M3 20.25h18",
+  incomes:     "M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z",
+  cards:       "M2.25 8.25h19.5M2.25 9V6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 19.5h-15A2.25 2.25 0 012.25 17.25V9z",
+  categories:  [ "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z", "M6 6h.008v.008H6V6z" ],
+  alerts:      "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0",
+  export:      "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3",
+  members:     "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
+  admin:       "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+} %>
+
 <section class="mx-auto w-full max-w-2xl">
   <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
 
-  <ul class="menu mt-6 w-full rounded-box border border-base-300/60 bg-base-100 p-2">
-    <li><%= link_to t("app.nav.commitments"), commitments_path %></li>
-    <li><%= link_to t("app.nav.accounts"), bank_accounts_path %></li>
-    <li><%= link_to t("app.nav.incomes"), incomes_path %></li>
-    <li><%= link_to t("app.nav.cards"), credit_cards_path %></li>
-    <li><%= link_to t("app.nav.categories"), categories_path %></li>
-    <li><%= link_to t("notification_preferences.show.title"), notification_preferences_path %></li>
-    <li><%= link_to t("exports.new.title"), new_export_path %></li>
-    <li><%= link_to t("layout.nav.account_settings"), account_path %></li>
-    <% if Current.user.admin? %>
-      <li><%= link_to t("app.nav.admin"), admin_whatsapp_connection_path %></li>
-    <% end %>
-    <li><%= button_to t("layout.nav.sign_out"), session_path, method: :delete, class: "w-full text-left" %></li>
-  </ul>
+  <div class="mt-6 space-y-4">
+    <ul class="divide-y divide-base-300/60 overflow-hidden rounded-box border border-base-300/60 bg-base-100">
+      <%= render "row", label: t("app.nav.goals"),       path: goals_path,         icon: icons[:goals] %>
+      <%= render "row", label: t("app.nav.commitments"), path: commitments_path,   icon: icons[:commitments] %>
+      <%= render "row", label: t("app.nav.accounts"),    path: bank_accounts_path, icon: icons[:accounts] %>
+      <%= render "row", label: t("app.nav.incomes"),     path: incomes_path,       icon: icons[:incomes] %>
+      <%= render "row", label: t("app.nav.cards"),       path: credit_cards_path,  icon: icons[:cards] %>
+      <%= render "row", label: t("app.nav.categories"),  path: categories_path,    icon: icons[:categories] %>
+    </ul>
+
+    <ul class="divide-y divide-base-300/60 overflow-hidden rounded-box border border-base-300/60 bg-base-100">
+      <%= render "row", label: t("notification_preferences.show.title"), path: notification_preferences_path, icon: icons[:alerts] %>
+      <%= render "row", label: t("exports.new.title"),                   path: new_export_path,               icon: icons[:export] %>
+      <%= render "row", label: t("layout.nav.account_settings"),         path: account_path,                  icon: icons[:members] %>
+      <% if Current.user.admin? %>
+        <%= render "row", label: t("app.nav.admin"), path: admin_whatsapp_connection_path, icon: icons[:admin] %>
+      <% end %>
+    </ul>
+
+    <div class="overflow-hidden rounded-box border border-base-300/60 bg-base-100">
+      <%= button_to session_path, method: :delete,
+            class: "flex w-full items-center gap-3 px-4 py-3.5 text-left text-error transition-colors hover:bg-error/10" do %>
+        <span class="inline-grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-error/10">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3-3H9m12 0l-3-3m3 3l-3 3" /></svg>
+        </span>
+        <span class="flex-1 font-medium"><%= t("layout.nav.sign_out") %></span>
+      <% end %>
+    </div>
+  </div>
 </section>

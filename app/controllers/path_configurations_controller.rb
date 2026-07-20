@@ -30,8 +30,8 @@ class PathConfigurationsController < ApplicationController
     # The chat thread is a Turbo Stream surface — the refresh gesture fights the composer.
     { patterns: [ "^/chat" ],
       properties: { pull_to_refresh_enabled: false } },
-    # Tab roots refresh by pull.
-    { patterns: [ "^/dashboard$", "^/transactions$", "^/goals$", "^/menu$" ],
+    # Tab roots (and the goals index, now reached from Mais) refresh by pull.
+    { patterns: [ "^/dashboard$", "^/transactions$", "^/transactions/recent$", "^/goals$", "^/menu$" ],
       properties: { pull_to_refresh_enabled: true } }
   ].freeze
 

@@ -68,6 +68,7 @@
       "patterns": [
         "^/dashboard$",
         "^/transactions$",
+        "^/transactions/recent$",
         "^/goals$",
         "^/menu$"
       ],

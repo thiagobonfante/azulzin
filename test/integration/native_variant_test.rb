@@ -26,7 +26,7 @@ class NativeVariantTest < ActionDispatch::IntegrationTest
   test "menu page lists every Mais destination" do
     get menu_url, headers: native
     assert_response :success
-    [ commitments_path, bank_accounts_path, incomes_path, credit_cards_path,
+    [ goals_path, commitments_path, bank_accounts_path, incomes_path, credit_cards_path,
       categories_path, notification_preferences_path, new_export_path, account_path ].each do |path|
       assert_select "a[href='#{path}']"
     end
