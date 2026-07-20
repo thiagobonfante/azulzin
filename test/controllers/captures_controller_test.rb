@@ -30,6 +30,7 @@ class CapturesControllerTest < ActionDispatch::IntegrationTest
       post captures_url, headers: HEADERS,
         params: { file: fixture_file_upload("audio.webm", "audio/webm") }
     end
+    assert_response :unprocessable_entity   # a status the shells can key their toast on
     assert_equal 0, CaptureMessage.count
   end
 

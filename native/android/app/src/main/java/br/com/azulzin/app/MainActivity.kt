@@ -1,13 +1,19 @@
 package br.com.azulzin.app
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
 import android.view.WindowManager
+import android.webkit.CookieManager
 import android.widget.Button
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
+import java.io.DataOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
@@ -82,6 +88,7 @@ class MainActivity : HotwireActivity() {
         }
 
         routePushUrl(intent)   // cold-start notification tap carries the deep link here
+        handleShare(intent)    // cold-start share intent carries the stream here
     }
 
     // MARK: biometric gate
@@ -147,6 +154,67 @@ class MainActivity : HotwireActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         routePushUrl(intent)
+        handleShare(intent)
+    }
+
+    // MARK: share-to-app receipts (.plans/mobile/05 §2)
+
+    // A shared image/PDF uploads straight to POST /captures with the webview's session
+    // cookie + the custom capture header (the CSRF stance the controller enforces).
+    // Signed out → the app just opens on sign-in; the share is dropped with a toast (v1).
+    private fun handleShare(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        intent.action = null   // consume — don't re-upload on config change
+        @Suppress("DEPRECATION")
+        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return
+        val caption = intent.getStringExtra(Intent.EXTRA_TEXT)
+        val cookie = CookieManager.getInstance().getCookie(BuildConfig.BASE_URL)
+        if (cookie.isNullOrBlank() || !cookie.contains("session_id=")) {
+            Toast.makeText(this, R.string.share_sign_in_first, Toast.LENGTH_LONG).show()
+            return
+        }
+        Thread { uploadCapture(uri, caption, cookie) }.start()
+    }
+
+    private fun uploadCapture(uri: Uri, caption: String?, cookie: String) {
+        val ok = try {
+            val mime = contentResolver.getType(uri) ?: "image/jpeg"
+            val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            if (bytes == null) false else postCapture(bytes, mime, caption, cookie)
+        } catch (e: Exception) {
+            false
+        }
+        runOnUiThread {
+            Toast.makeText(this, if (ok) R.string.share_received else R.string.share_failed,
+                Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun postCapture(bytes: ByteArray, mime: String, caption: String?, cookie: String): Boolean {
+        val boundary = "azulzin-${SystemClock.elapsedRealtimeNanos()}"
+        val ext = if (mime == "application/pdf") "pdf" else "jpg"
+        val conn = URL("${BuildConfig.BASE_URL}/captures").openConnection() as HttpURLConnection
+        conn.requestMethod = "POST"
+        conn.doOutput = true
+        conn.instanceFollowRedirects = false   // the success redirect is the 3xx we want to SEE
+        conn.setRequestProperty("Cookie", cookie)
+        conn.setRequestProperty("X-Azulzin-Capture", "1")
+        conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+        DataOutputStream(conn.outputStream).use { out ->
+            out.writeBytes("--$boundary\r\n")
+            out.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"share.$ext\"\r\n")
+            out.writeBytes("Content-Type: $mime\r\n\r\n")
+            out.write(bytes)
+            out.writeBytes("\r\n")
+            if (!caption.isNullOrBlank()) {
+                out.writeBytes("--$boundary\r\n")
+                out.writeBytes("Content-Disposition: form-data; name=\"caption\"\r\n\r\n")
+                out.write(caption.toByteArray(Charsets.UTF_8))
+                out.writeBytes("\r\n")
+            }
+            out.writeBytes("--$boundary--\r\n")
+        }
+        return conn.responseCode in 200..399
     }
 
     // FCM notification taps re-launch with data extras; route the deep link on the

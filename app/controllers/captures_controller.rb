@@ -18,7 +18,9 @@ class CapturesController < AppController
       ProcessInboundWhatsappJob.perform_later(message.id)
       redirect_to transactions_path, notice: t(".received")
     else
-      redirect_to transactions_path, alert: message.errors.full_messages.to_sentence
+      # 422, not a redirect: the shells key their "sent/failed" toast on the status —
+      # both branches redirecting would make failure indistinguishable from success.
+      head :unprocessable_entity
     end
   rescue ActionController::ParameterMissing
     head :unprocessable_entity

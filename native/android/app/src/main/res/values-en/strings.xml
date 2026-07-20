@@ -8,4 +8,7 @@
     <string name="tab_mais">More</string>
     <string name="lock_title">Unlock to see your finances</string>
     <string name="lock_retry">Try again</string>
+    <string name="share_sign_in_first">Sign in first to share receipts</string>
+    <string name="share_received">Got it! We\'re reading your receipt.</string>
+    <string name="share_failed">Couldn\'t upload the receipt — try again.</string>
 </resources>
