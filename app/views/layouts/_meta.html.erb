@@ -1,5 +1,8 @@
 <title><%= content_for(:title) || t("layout.title") %></title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<%# viewport-fit=cover only in the native shells: it exposes the iOS floating tab bar's
+    height as env(safe-area-inset-bottom) so bottom-pinned UI can clear it. The web/PWA
+    viewport stays untouched (cover would push content behind the home indicator). %>
+<meta name="viewport" content="width=device-width,initial-scale=1<%= ",viewport-fit=cover" if local_assigns[:viewport_fit_cover] %>">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="application-name" content="azulzin">
 <meta name="mobile-web-app-capable" content="yes">

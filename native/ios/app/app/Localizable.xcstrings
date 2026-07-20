@@ -15,8 +15,8 @@
     },
     "tab.movimentos" : {
       "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Movimentos" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Activity" } }
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Transações" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transactions" } }
       }
     },
     "tab.recentes" : {

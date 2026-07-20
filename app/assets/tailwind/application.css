@@ -122,3 +122,10 @@
   --depth: 1;
   --noise: 0;
 }
+
+/* Native iOS shell: viewport-fit=cover (native layout only) exposes the floating tab
+   bar's height as env(safe-area-inset-bottom); bottom-sheet modals pad past it so their
+   action buttons stay reachable. env() is 0 on web/PWA, so this is inert there. */
+.modal.modal-bottom .modal-box {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}

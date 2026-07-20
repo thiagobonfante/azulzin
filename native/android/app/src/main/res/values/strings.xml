@@ -4,7 +4,7 @@
     <string name="app_name">azulzin</string>
     <string name="tab_inicio">Início</string>
     <string name="tab_chat">Chat</string>
-    <string name="tab_movimentos">Movimentos</string>
+    <string name="tab_movimentos">Transações</string>
     <string name="tab_recentes">Recentes</string>
     <string name="tab_mais">Mais</string>
 </resources>

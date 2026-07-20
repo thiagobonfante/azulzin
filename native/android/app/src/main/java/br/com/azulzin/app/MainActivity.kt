@@ -17,11 +17,11 @@ class MainActivity : HotwireActivity() {
 
     private val tabs by lazy {
         listOf(
-            tab(R.string.tab_inicio, android.R.drawable.ic_menu_view, "inicio", "dashboard"),
-            tab(R.string.tab_chat, android.R.drawable.ic_menu_send, "chat", "chat"),
-            tab(R.string.tab_movimentos, android.R.drawable.ic_menu_agenda, "movimentos", "transactions"),
-            tab(R.string.tab_recentes, android.R.drawable.ic_menu_recent_history, "recentes", "transactions/recent"),
-            tab(R.string.tab_mais, android.R.drawable.ic_menu_more, "mais", "menu")
+            tab(R.string.tab_inicio, R.drawable.ic_tab_home, "inicio", "dashboard"),
+            tab(R.string.tab_chat, R.drawable.ic_tab_chat, "chat", "chat"),
+            tab(R.string.tab_movimentos, R.drawable.ic_tab_transactions, "movimentos", "transactions"),
+            tab(R.string.tab_recentes, R.drawable.ic_tab_recent, "recentes", "transactions/recent"),
+            tab(R.string.tab_mais, R.drawable.ic_tab_more, "mais", "menu")
         )
     }
 
@@ -49,7 +49,6 @@ class MainActivity : HotwireActivity() {
 
     override fun navigatorConfigurations() = tabs.navigatorConfigurations
 
-    // ponytail: system placeholder icons until brand assets exist (.plans/mobile/07 #6).
     private fun tab(titleRes: Int, iconRes: Int, name: String, path: String) = HotwireBottomTab(
         title = getString(titleRes),
         iconResId = iconRes,
@@ -64,7 +63,7 @@ class MainActivity : HotwireActivity() {
         "inicio" to R.id.inicio_nav_host,
         "chat" to R.id.chat_nav_host,
         "movimentos" to R.id.movimentos_nav_host,
-        "metas" to R.id.metas_nav_host,
+        "recentes" to R.id.recentes_nav_host,
         "mais" to R.id.mais_nav_host
     )
 }
