@@ -25,8 +25,10 @@ class ChatMessage < WhatsappMessage
   after_create_commit -> { broadcast_prepend_to [ user, :chat ], target: "chat_messages", partial: "chat/message", locals: { message: self } },
                       if: :outbound?
 
+  # Exact-type scope: shared captures (CaptureMessage) ride the pipeline but are not
+  # conversation turns — they never render as thread bubbles.
   def self.thread_for(user, limit: 50)
-    where(user: user).order(created_at: :desc, id: :desc).limit(limit)
+    where(user: user, type: "ChatMessage").order(created_at: :desc, id: :desc).limit(limit)
   end
 
   # Content type as stored by the browser upload, without codec params

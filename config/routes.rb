@@ -137,6 +137,8 @@ Rails.application.routes.draw do
     # Native push registration (.plans/mobile/04 §3): the shells' bridge POSTs the FCM
     # token here through the webview session.
     resources :push_devices, only: :create
+    # Share-to-app receipts (.plans/mobile/05): the shells POST the shared file here.
+    resources :captures, only: :create
 
     # Shared account: settings page (members, invites, rename, danger zone). Owner-gated
     # actions live in AccountOwnership#require_owner! (.plans/multi-user, D9).

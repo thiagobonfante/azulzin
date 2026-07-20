@@ -1238,6 +1238,10 @@ pt-BR:
       or: "ou por e-mail"
       email_placeholder: "amiga@exemplo.com, amigo@exemplo.com"
       send: "Enviar"
+  captures:
+    not_receipt: "Não parece um comprovante — confira a imagem"
+    create:
+      received: "Recebido! Estamos lendo seu comprovante."
   notifications:
     dashboard:
       bill_due:

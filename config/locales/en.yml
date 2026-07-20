@@ -1237,6 +1237,10 @@ en:
       or: "or by email"
       email_placeholder: "friend@example.com, family@example.com"
       send: "Send"
+  captures:
+    not_receipt: "Doesn't look like a receipt — check the image"
+    create:
+      received: "Got it! We're reading your receipt."
   notifications:
     dashboard:
       bill_due:

@@ -11,6 +11,9 @@ class WhatsappReply
     # Conversation-engine adapter (.plans/mobile/08 §1): a pipeline run that started from
     # an in-app chat message replies as a chat bubble (create + Turbo Stream broadcast in
     # the model) — same body, same keys, no sidecar involved.
+    # Shared captures have NO reply channel (.plans/mobile/05 §1): outcomes surface as
+    # transaction states (posted row, review tray) — the rendered copy is dropped.
+    return if Current.reply_channel == :capture
     if Current.reply_channel == :chat
       return ChatMessage.create!(
         user: user, account: user.account, direction: "outbound", message_type: "text",
