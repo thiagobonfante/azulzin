@@ -46,7 +46,7 @@ module Api
         # the user to resend a smaller file, in their language. No message stored, no job.
         return reply_media_too_large(user, jid) if data["media_too_large"]
 
-        msg = WhatsappMessage.find_or_create_by!(wa_message_id: data["message_id_serialized"]) do |m|
+        msg = WhatsappMessage.find_or_create_by!(wa_message_id: dedup_key(data)) do |m|
           m.direction    = "inbound"
           m.chat_id      = jid
           m.message_type = map_type(data["type"])
@@ -119,6 +119,17 @@ module Api
       def reply_media_too_large(user, jid)
         body = I18n.with_locale(user.locale) { I18n.t("whatsapp.replies.media_too_large") }
         WhatsappService.send_message(jid, body)
+      end
+
+      # Idempotency key for the inbound row. Normally message.id._serialized from the sidecar,
+      # but whatsapp-web.js has been observed to deliver it as nil after a WhatsApp Web build
+      # change. A blank key is fatal: find_or_create_by!(wa_message_id: nil) matches the FIRST
+      # nil-id row for EVERY later message, so newly_created is false and the message is silently
+      # dropped (no job, no reply). Fall back to a stable composed key so dedup can't collapse.
+      def dedup_key(data)
+        data["message_id_serialized"].presence ||
+          [data["from"], data["timestamp"], data["message_id"]].map(&:to_s).reject(&:blank?).join("_").presence ||
+          SecureRandom.uuid
       end
 
       def map_type(type)

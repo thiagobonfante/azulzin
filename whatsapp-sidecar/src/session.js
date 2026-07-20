@@ -220,9 +220,17 @@ class SessionService {
         `id=${contact && contact.id && contact.id._serialized}`
       );
 
+      // whatsapp-web.js has been observed to deliver message.id._serialized as null/undefined
+      // after a WhatsApp Web build change. A blank idempotency key makes Rails' find_or_create
+      // dedup collapse every id-less message onto one row (silently dropping all but the first),
+      // so compose a stable, unique fallback from the parts that ARE present.
+      const msgId = message.id || {};
+      const serializedId = msgId._serialized ||
+        [msgId.fromMe, message.from, msgId.id || message.timestamp].map((v) => String(v)).join('_');
+
       const data = {
-        message_id: message.id.id,
-        message_id_serialized: message.id._serialized, // globally-unique idempotency key
+        message_id: msgId.id,
+        message_id_serialized: serializedId, // globally-unique idempotency key
         from: message.from,
         to: message.to,
         body: message.body,
