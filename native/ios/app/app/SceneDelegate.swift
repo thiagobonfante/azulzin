@@ -100,10 +100,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         lockScreen.dismiss(animated: false)
     }
 
-    // MARK: - Push tap-through (.plans/mobile/04): route the notification's deep link
-    // on the active tab's navigator.
+    // MARK: - Push tap-through (.plans/mobile/04): select the Início tab, then route the
+    // deep link there — routing whatever tab is visible strands the page in that tab's
+    // stack (Android twin routes a hidden navigator, which looks like a dead tap).
 
     func route(path: String) {
+        tabBarController.selectedIndex = 0
         tabBarController.activeNavigator.route(Config.baseURL.appendingPathComponent(path))
     }
 

@@ -18,6 +18,7 @@ import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import dev.hotwire.core.turbo.visit.VisitAction
 import dev.hotwire.core.turbo.visit.VisitOptions
 import dev.hotwire.navigation.activities.HotwireActivity
@@ -218,13 +219,17 @@ class MainActivity : HotwireActivity() {
     }
 
     // FCM notification taps re-launch with data extras; route the deep link on the
-    // Início navigator. ponytail: on a cold start the navigator isn't ready yet —
-    // bounded 500ms retries instead of a lifecycle observer.
+    // Início navigator — and SELECT that tab first: routing a hidden navigator while
+    // another tab is visible looks like a dead tap. ponytail: on a cold start the
+    // navigator isn't ready yet — bounded 500ms retries instead of a lifecycle observer.
     private fun routePushUrl(intent: Intent?, attempt: Int = 0) {
         val path = intent?.getStringExtra("url") ?: return
         val navigator = delegate.findNavigatorHost(R.id.inicio_nav_host)?.navigator
         if (navigator?.isReady() == true) {
             intent.removeExtra("url")
+            findViewById<BottomNavigationView>(R.id.bottom_nav).apply {
+                selectedItemId = menu.getItem(0).itemId
+            }
             navigator.route(BuildConfig.BASE_URL + path)
         } else if (attempt < 10) {
             window.decorView.postDelayed({ routePushUrl(intent, attempt + 1) }, 500)
