@@ -44,8 +44,8 @@
             android:visibility="gone" />
     </FrameLayout>
 
-    <!-- Menu inflated in MainActivity (aapt2 in this AGP refuses the app:menu
-         attr despite material providing it; code inflation is equivalent). -->
+    <!-- Menu items are built by HotwireBottomNavigationController from the tabs list
+         in MainActivity — no res/menu file. -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"

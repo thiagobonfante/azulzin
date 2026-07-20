@@ -13,6 +13,11 @@ class PathConfigurationsController < ApplicationController
     # The goal wizard (new → draft → choose) is a multi-screen flow — push, not modal.
     { patterns: [ "^/goals/new$" ],
       properties: { context: "default", pull_to_refresh_enabled: false } },
+    # Auth screens are NEVER modals: the signed-out cold start redirects to /session/new,
+    # and a modal root breaks the shells (Android hides the tab bar for modal
+    # destinations; a dismissible sign-in sheet makes no sense anywhere).
+    { patterns: [ "^/session/new$", "^/registration/new$", "^/passwords(/|$)" ],
+      properties: { context: "default", pull_to_refresh_enabled: false } },
     # Onboarding wizard back-steps behave under plain push navigation.
     { patterns: [ "^/onboarding" ],
       properties: { context: "default", pull_to_refresh_enabled: false } },

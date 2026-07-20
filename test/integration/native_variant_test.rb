@@ -77,6 +77,11 @@ class NativeVariantTest < ActionDispatch::IntegrationTest
       rules = json.fetch("rules")
       assert rules.first.fetch("patterns").include?("/new$")
       assert_equal "modal", rules.first.dig("properties", "context")
+      # Auth screens must override the generic modal rule AFTER it (later rules win):
+      # a modal /session/new hides the Android tab bar on the signed-out cold start.
+      auth = rules.find { |r| r.fetch("patterns").include?("^/session/new$") }
+      assert_equal "default", auth.dig("properties", "context")
+      assert rules.index(auth) > 0, "the auth exception must come after the generic modal rule"
       assert_includes response.headers["Cache-Control"], "max-age=300"
       assert_includes response.headers["Cache-Control"], "public"
     end
