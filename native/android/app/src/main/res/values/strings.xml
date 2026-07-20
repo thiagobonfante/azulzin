@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pt-BR is the default locale (values/); en lives in values-en/. -->
+<resources>
+    <string name="app_name">azulzin</string>
+    <string name="tab_inicio">Início</string>
+    <string name="tab_chat">Chat</string>
+    <string name="tab_movimentos">Movimentos</string>
+    <string name="tab_metas">Metas</string>
+    <string name="tab_mais">Mais</string>
+</resources>

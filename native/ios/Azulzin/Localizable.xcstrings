@@ -1,0 +1,36 @@
+{
+  "sourceLanguage" : "pt-BR",
+  "strings" : {
+    "tab.inicio" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Início" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home" } }
+      }
+    },
+    "tab.chat" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Chat" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Chat" } }
+      }
+    },
+    "tab.movimentos" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Movimentos" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Activity" } }
+      }
+    },
+    "tab.metas" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Metas" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Goals" } }
+      }
+    },
+    "tab.mais" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Mais" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "More" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

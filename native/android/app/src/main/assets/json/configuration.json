@@ -1,0 +1,68 @@
+{
+  "settings": {},
+  "rules": [
+    {
+      "patterns": [
+        "/new$",
+        "/edit$"
+      ],
+      "properties": {
+        "context": "modal",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "^/goals/new$"
+      ],
+      "properties": {
+        "context": "default",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "^/onboarding"
+      ],
+      "properties": {
+        "context": "default",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "^/exports(\\?.*)?$"
+      ],
+      "properties": {
+        "external": true
+      }
+    },
+    {
+      "patterns": [
+        "/session$"
+      ],
+      "properties": {
+        "presentation": "replace"
+      }
+    },
+    {
+      "patterns": [
+        "^/chat"
+      ],
+      "properties": {
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": [
+        "^/dashboard$",
+        "^/transactions$",
+        "^/goals$",
+        "^/menu$"
+      ],
+      "properties": {
+        "pull_to_refresh_enabled": true
+      }
+    }
+  ]
+}
