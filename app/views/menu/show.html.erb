@@ -1,0 +1,20 @@
+<% content_for :title, t(".title") %>
+
+<section class="mx-auto w-full max-w-2xl">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+
+  <ul class="menu mt-6 w-full rounded-box border border-base-300/60 bg-base-100 p-2">
+    <li><%= link_to t("app.nav.commitments"), commitments_path %></li>
+    <li><%= link_to t("app.nav.accounts"), bank_accounts_path %></li>
+    <li><%= link_to t("app.nav.incomes"), incomes_path %></li>
+    <li><%= link_to t("app.nav.cards"), credit_cards_path %></li>
+    <li><%= link_to t("app.nav.categories"), categories_path %></li>
+    <li><%= link_to t("notification_preferences.show.title"), notification_preferences_path %></li>
+    <li><%= link_to t("exports.new.title"), new_export_path %></li>
+    <li><%= link_to t("layout.nav.account_settings"), account_path %></li>
+    <% if Current.user.admin? %>
+      <li><%= link_to t("app.nav.admin"), admin_whatsapp_connection_path %></li>
+    <% end %>
+    <li><%= button_to t("layout.nav.sign_out"), session_path, method: :delete, class: "w-full text-left" %></li>
+  </ul>
+</section>

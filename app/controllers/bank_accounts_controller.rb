@@ -38,7 +38,9 @@ class BankAccountsController < ApplicationController
   def update
     @bank_account = Current.account.bank_accounts.kept.find(params[:id])
     if @bank_account.update(bank_account_params)
-      redirect_to bank_accounts_path, notice: t(".updated")
+      # Native shells present /edit as a modal (path configuration) — recede closes it;
+      # web behavior is the plain redirect, unchanged. Same on the sibling controllers.
+      recede_or_redirect_to bank_accounts_path, notice: t(".updated")
     else
       render :edit, status: :unprocessable_entity
     end
@@ -48,7 +50,7 @@ class BankAccountsController < ApplicationController
     @bank_account = Current.account.bank_accounts.kept.find(params[:id])
     if @bank_account.soft_delete!(by: Current.user)   # restrict mirror: false while a kept income depends on it
       # Remove lives on the edit page (not the list rows), so a redirect is the only response.
-      redirect_to after_change_path, notice: t(".removed"), status: :see_other
+      recede_or_redirect_to after_change_path, notice: t(".removed"), status: :see_other
     else
       redirect_to after_change_path, alert: @bank_account.errors.full_messages.to_sentence, status: :see_other
     end

@@ -1,3 +1,4 @@
+<% content_for :title, t(".title") %>
 <div class="container mx-auto flex justify-center px-5 py-16">
   <div class="card w-full max-w-md border border-base-300/70 bg-base-100 shadow-xl">
     <div class="card-body gap-6">
@@ -43,10 +44,14 @@
               class: "btn btn-primary w-full" %>
       <% end %>
 
-      <div class="divider my-0 text-sm opacity-60"><%= t("shared.or") %></div>
+      <%# Hidden in the native shells: Google returns 403 disallowed_useragent inside
+          webviews (see sessions/new). %>
+      <% unless turbo_native_app? %>
+        <div class="divider my-0 text-sm opacity-60"><%= t("shared.or") %></div>
 
-      <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
-            data: { turbo: false }, class: "btn btn-outline w-full" %>
+        <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
+              data: { turbo: false }, class: "btn btn-outline w-full" %>
+      <% end %>
 
       <p class="text-center text-sm opacity-70">
         <%= t(".sign_in_prompt") %>

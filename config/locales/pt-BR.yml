@@ -211,6 +211,13 @@ pt-BR:
       invite: "Convidar amigos"
       open_menu: "Abrir menu"
       close_menu: "Fechar menu"
+  chat:
+    show:
+      title: "Chat"
+      empty: "Manda um gasto (“mercado 84,90”), um áudio ou a foto da notinha — o azulzinho lança pra você."
+  menu:
+    show:
+      title: "Mais"
   money:
     symbol: "R$"
   date:
@@ -1347,6 +1354,7 @@ pt-BR:
         create_anyway: "Criar uma conta separada"
     create:
       check_email: "Enviamos um e-mail para você confirmar sua conta. Confirme e depois faça login."
+      check_email_native: "Enviamos um e-mail para você confirmar sua conta. O link abre no navegador do celular — depois volte aqui no app e faça login."
   sessions:
     new:
       title: "Entrar"

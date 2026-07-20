@@ -39,8 +39,16 @@ Rails.application.routes.draw do
         constraints: { provider: /google_oauth2/ }
     get "auth/failure", to: "omniauth_callbacks#failure"
 
+    # Hotwire Native path configuration (.plans/mobile/01 §4) — public, per platform.
+    get "configurations/:platform", to: "path_configurations#show", as: :path_configuration,
+        constraints: { platform: /ios_v1|android_v1/ }, defaults: { format: :json }
+
     # ── Product app (authenticated) ──────────────────────────────────────
     get "dashboard", to: "dashboard#show", as: :dashboard
+
+    # Native tab targets (.plans/mobile/01 §3): the in-app chat thread and the "Mais" menu.
+    get "chat", to: "chat#show", as: :chat
+    get "menu", to: "menu#show", as: :menu
 
     # First-run setup wizard. `onboarding` (no step) resolves to the current step.
     get   "onboarding",       to: "onboarding#show", as: :onboarding

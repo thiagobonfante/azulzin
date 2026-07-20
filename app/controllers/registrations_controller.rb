@@ -24,7 +24,10 @@ class RegistrationsController < ApplicationController
       # inviter's account at first sign-in (ensure_membership_for). doc 02 §3.2.
       Accounts::Bootstrap.call(@user) unless pending_invitation_in_session?
       UserMailer.with(user: @user).email_verification.deliver_later
-      redirect_to new_session_path, status: :see_other, notice: t(".check_email")
+      # Native shells: the verification link opens in the phone BROWSER (no universal
+      # links v1) — tell the user to come back to the app and sign in after verifying.
+      notice = turbo_native_app? ? t(".check_email_native") : t(".check_email")
+      redirect_to new_session_path, status: :see_other, notice: notice
     else
       render :new, status: :unprocessable_entity           # Turbo re-renders inline errors
     end

@@ -210,6 +210,13 @@ en:
       invite: "Invite friends"
       open_menu: "Open menu"
       close_menu: "Close menu"
+  chat:
+    show:
+      title: "Chat"
+      empty: "Send an expense (“groceries 84.90”), a voice note or a receipt photo — azulzinho records it for you."
+  menu:
+    show:
+      title: "More"
   money:
     symbol: "R$"
   date:
@@ -1346,6 +1353,7 @@ en:
         create_anyway: "Create a separate account"
     create:
       check_email: "Check your email to confirm your account, then sign in."
+      check_email_native: "Check your email to confirm your account. The link opens in your phone's browser — then come back to the app and sign in."
   sessions:
     new:
       title: "Sign in"

@@ -31,7 +31,7 @@ class IncomesController < ApplicationController
   def update
     @income = Current.account.incomes.kept.find(params[:id])
     if @income.update(sanitized_income_params)
-      redirect_to incomes_path, notice: t(".updated")
+      recede_or_redirect_to incomes_path, notice: t(".updated")   # closes the native edit modal
     else
       render :edit, status: :unprocessable_entity
     end
@@ -41,7 +41,7 @@ class IncomesController < ApplicationController
     @income = Current.account.incomes.kept.find(params[:id])
     @income.soft_delete!(by: Current.user)   # receipts keep income_id
     # Remove lives on the edit page (not the list rows), so a redirect is the only response.
-    redirect_to after_change_path, notice: t(".removed"), status: :see_other
+    recede_or_redirect_to after_change_path, notice: t(".removed"), status: :see_other
   end
 
   # Hub card "A receber no mês": mark this month's expected deposit received — one posted

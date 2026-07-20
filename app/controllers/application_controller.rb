@@ -8,6 +8,10 @@ class ApplicationController < ActionController::Base
 
   around_action :switch_locale
 
+  # Hotwire Native shells (UA carries "Turbo Native"/"Hotwire Native") render the
+  # chrome-less +native layout/partial variants. turbo_native_app? comes from turbo-rails.
+  before_action :set_native_variant
+
   # View-side owner predicate (D9): belt-and-suspenders with require_owner!. Owner-only controls
   # are hidden for members in the view AND enforced server-side.
   helper_method :account_owner?
@@ -43,6 +47,10 @@ class ApplicationController < ActionController::Base
 
     def switch_locale(&action)
       I18n.with_locale(resolve_locale, &action)
+    end
+
+    def set_native_variant
+      request.variant = :native if turbo_native_app?
     end
 
     # Forced to the pt-BR default for now: the browser (Accept-Language), the ?locale
