@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8DB41E4C300EDD410073D3D7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8DB41E4B300EDD410073D3D7 /* FirebaseCore */; };
+		8DB41E4E300EDD410073D3D7 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 8DB41E4D300EDD410073D3D7 /* FirebaseMessaging */; };
 		A20000000000000000000001 /* HotwireNative in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000003 /* HotwireNative */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +29,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8DB41E4E300EDD410073D3D7 /* FirebaseMessaging in Frameworks */,
+				8DB41E4C300EDD410073D3D7 /* FirebaseCore in Frameworks */,
 				A20000000000000000000001 /* HotwireNative in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +75,8 @@
 			name = app;
 			packageProductDependencies = (
 				A20000000000000000000003 /* HotwireNative */,
+				8DB41E4B300EDD410073D3D7 /* FirebaseCore */,
+				8DB41E4D300EDD410073D3D7 /* FirebaseMessaging */,
 			);
 			productName = app;
 			productReference = 8D6B3B0B300DAA2B00A3F5CC /* app.app */;
@@ -102,6 +108,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A20000000000000000000002 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */,
+				8DB41E4A300EDD410073D3D7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8D6B3B0C300DAA2B00A3F5CC /* Products */;
@@ -260,6 +267,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = app/app.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JM49F35G8A;
@@ -267,8 +275,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Info-Debug.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = azulzin;
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para proteger suas finanças ao abrir o app.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Para anexar a foto de um comprovante direto da câmera.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para proteger suas finanças ao abrir o app.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para registrar seus gastos por áudio no chat.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para anexar a foto de um comprovante que já está no seu celular.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -298,6 +306,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = app/app.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JM49F35G8A;
@@ -305,8 +314,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Info-Release.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = azulzin;
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para proteger suas finanças ao abrir o app.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Para anexar a foto de um comprovante direto da câmera.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para proteger suas finanças ao abrir o app.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para registrar seus gastos por áudio no chat.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para anexar a foto de um comprovante que já está no seu celular.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -333,25 +342,6 @@
 		};
 /* End XCBuildConfiguration section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		A20000000000000000000002 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/hotwired/hotwire-native-ios";
-			requirement = {
-				kind = exactVersion;
-				version = 1.2.2;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		A20000000000000000000003 /* HotwireNative */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A20000000000000000000002 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */;
-			productName = HotwireNative;
-		};
-/* End XCSwiftPackageProductDependency section */
-
 /* Begin XCConfigurationList section */
 		8D6B3B06300DAA2B00A3F5CC /* Build configuration list for PBXProject "app" */ = {
 			isa = XCConfigurationList;
@@ -372,6 +362,43 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8DB41E4A300EDD410073D3D7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.16.0;
+			};
+		};
+		A20000000000000000000002 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hotwired/hotwire-native-ios";
+			requirement = {
+				kind = exactVersion;
+				version = 1.2.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8DB41E4B300EDD410073D3D7 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8DB41E4A300EDD410073D3D7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		8DB41E4D300EDD410073D3D7 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8DB41E4A300EDD410073D3D7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		A20000000000000000000003 /* HotwireNative */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000002 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */;
+			productName = HotwireNative;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8D6B3B03300DAA2B00A3F5CC /* Project object */;
 }

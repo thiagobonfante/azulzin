@@ -23,10 +23,9 @@ class AzulzinApplication : Application() {
             HotwireWebBottomSheetFragment::class
         )
 
-        // Push registration bridge (.plans/mobile/04 §3). Without the google-services
-        // Gradle plugin, initializeApp only succeeds once the founder-provisioned
-        // google-services.json ships — until then FirebaseApp.getApps stays empty and
-        // PushComponent never replies a token.
+        // Push registration bridge (.plans/mobile/04 §3). The google-services plugin
+        // auto-initializes Firebase from app/google-services.json; the explicit call is
+        // a safety net (no-op when already initialized).
         Hotwire.registerBridgeComponents(
             BridgeComponentFactory("push", ::PushComponent)
         )

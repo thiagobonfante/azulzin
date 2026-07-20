@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -46,7 +47,8 @@ dependencies {
     implementation("dev.hotwire:navigation-fragments:1.2.5")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.biometric:biometric:1.1.0")
-    // No google-services Gradle plugin: Firebase boots manually in AzulzinApplication
-    // only when the founder-provisioned google-services.json values ship (04 §3).
-    implementation("com.google.firebase:firebase-messaging:24.1.0")
+    // google-services plugin route (04 §3): app/google-services.json is required at
+    // build time; the BoM pins the firebase-messaging version.
+    implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
+    implementation("com.google.firebase:firebase-messaging")
 }
