@@ -266,6 +266,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Info-Debug.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = azulzin;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Para anexar a foto de um comprovante direto da câmera.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para registrar seus gastos por áudio no chat.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para anexar a foto de um comprovante que já está no seu celular.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -298,6 +302,11 @@
 				DEVELOPMENT_TEAM = JM49F35G8A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Info-Release.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = azulzin;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Para anexar a foto de um comprovante direto da câmera.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para registrar seus gastos por áudio no chat.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para anexar a foto de um comprovante que já está no seu celular.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
