@@ -5,27 +5,29 @@
 module Notifications
   # kind => the NotificationPreference toggle that gates it (BOTH channels: dashboard and
   # WhatsApp). Each kind's copy lives under a per-channel namespace completed from
-  # template_key: notifications.dashboard.<key> for the banner and
-  # whatsapp.replies.notifications.<key> for the push (Phase 3).
+  # template_key: notifications.dashboard.<key> for the banner,
+  # whatsapp.replies.notifications.<key> for the WA push (Phase 3), and
+  # notifications.push.<key> for native push (.plans/mobile/04). url: is the native
+  # push tap-through deep link the shells route.
   KINDS = {
-    "bill_due"         => { toggle: "bill_reminders" },
-    "bill_overdue"     => { toggle: "bill_reminders" },
+    "bill_due"         => { toggle: "bill_reminders", url: "/commitments" },
+    "bill_overdue"     => { toggle: "bill_reminders", url: "/commitments" },
     # Fatura closing and fatura due are two REAL kinds (not one kind + a payload
     # discriminator): the dedup key is (kind, subject, period_key), and a closing date
     # can land exactly on the previous month's due date — distinct kinds keep both.
-    "card_closing"     => { toggle: "bill_reminders" },
-    "card_due"         => { toggle: "bill_reminders" },
-    "income_expected"  => { toggle: "bill_reminders" },
-    "budget_warn"      => { toggle: "budget_alerts" },
-    "budget_breach"    => { toggle: "budget_alerts" },
-    "surplus_nudge"    => { toggle: "surplus_nudges" },
-    "rightsize_budget" => { toggle: "surplus_nudges" },
-    "weekly_summary"   => { toggle: "weekly_summary" },
-    "monthly_summary"  => { toggle: "monthly_summary" },
+    "card_closing"     => { toggle: "bill_reminders", url: "/credit_cards" },
+    "card_due"         => { toggle: "bill_reminders", url: "/credit_cards" },
+    "income_expected"  => { toggle: "bill_reminders", url: "/incomes" },
+    "budget_warn"      => { toggle: "budget_alerts", url: "/dashboard" },
+    "budget_breach"    => { toggle: "budget_alerts", url: "/dashboard" },
+    "surplus_nudge"    => { toggle: "surplus_nudges", url: "/dashboard" },
+    "rightsize_budget" => { toggle: "surplus_nudges", url: "/dashboard" },
+    "weekly_summary"   => { toggle: "weekly_summary", url: "/dashboard" },
+    "monthly_summary"  => { toggle: "monthly_summary", url: "/dashboard" },
     # Goals (.plans/goals 06 §2). goal_alert carries a finding-specific variant selected by
     # payload["finding"] (pace / big_purchase / slipping_date) via notification_i18n_key.
-    "goal_alert"       => { toggle: "goal_alerts" },
-    "goal_achieved"    => { toggle: "goal_achieved" }
+    "goal_alert"       => { toggle: "goal_alerts", url: "/goals" },
+    "goal_achieved"    => { toggle: "goal_achieved", url: "/goals" }
   }.freeze
 
   # The digest kinds carry structured payloads (top_categories, upcoming, budget counts)

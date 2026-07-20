@@ -44,6 +44,9 @@ ignore_unused:
   # WhatsApp reply copy — resolved dynamically via WhatsappReply.deliver(key:) and
   # t("whatsapp.replies.#{...}"); no static literal for the scanner to match.
   - 'whatsapp.replies.*'
+  # Native push copy — resolved dynamically as t("notifications.push.#{template_key}...")
+  # in Notifications::Deliver#push_content.
+  - 'notifications.push.*'
   # Admin panel + inbox status/type labels, looked up dynamically by enum value:
   #   t("admin.whatsapp_connections.statuses.#{status}")
   #   t("admin.whatsapp_messages.types.#{message_type}")

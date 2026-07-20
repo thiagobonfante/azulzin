@@ -10,8 +10,9 @@ module Notifications
   # WhatsappReply (logged as an outbound WhatsappMessage, rendered in the recipient's
   # locale, money pre-formatted by Ruby; NEVER raw WhatsappService.send_message).
   class Deliver
-    DAILY_WA_CAP = 3                  # per-user WhatsApp pushes/day (07 D14; tunable constant)
-    TIME_ZONE    = "America/Sao_Paulo"
+    DAILY_WA_CAP   = 3                # per-user WhatsApp pushes/day (07 D14; tunable constant)
+    DAILY_PUSH_CAP = 3                # native pushes/day — don't-nag doctrine, own counter
+    TIME_ZONE      = "America/Sao_Paulo"
 
     def self.call(notification) = new(notification).call
 
@@ -20,15 +21,19 @@ module Notifications
       @user         = notification.user
     end
 
-    # true only when the push actually went out (Phase 3). Explicitly silent otherwise:
-    # toggle off · no consent · unverified/no JID · sidecar down · quiet hours · over cap.
+    # true only when a message actually went out on SOME channel. One notification, one
+    # channel (.plans/mobile/04 §4): native push first when the user is push-capable,
+    # WhatsApp otherwise; WA is also the fallback when every device send fails. Never
+    # both. Explicitly silent otherwise: toggle off · quiet hours · channel not ready ·
+    # over the channel's cap.
     def call
-      return false unless push_allowed?
-      claim_and_send
+      return false unless toggle_on? && !quiet_hours?
+      return push_deliver if push_ready?
+      wa_deliver
     end
 
-    # Gates 1–4 — whether this notification may reach WhatsApp at all.
-    def push_allowed?
+    # Gates for the WhatsApp branch (shared toggle/quiet checked in #call).
+    def wa_allowed?
       toggle_on? && prefs.whatsapp_consent? && channel_ready? && !quiet_hours? && under_daily_cap?
     end
 
@@ -63,6 +68,55 @@ module Notifications
     end
 
     def now_sp = Time.current.in_time_zone(TIME_ZONE)
+
+    # ── Native push branch (.plans/mobile/04 §4) ─────────────────────────────────────
+
+    # Push-capable = in-app switch on + at least one live device + a configured sender.
+    # A capable user's notification belongs to the push channel: over-cap means
+    # dashboard-only (channel-hopping to WA would still nag), and only a FAILED send
+    # falls back to WhatsApp.
+    def push_ready?
+      prefs.push_enabled? && @user.push_devices.exists? && PushSender.configured?
+    end
+
+    def under_push_cap?
+      Notification.where(user: @user, push_sent_at: now_sp.all_day).count < DAILY_PUSH_CAP
+    end
+
+    # Same atomic fail-closed claim as WA: update_all on the nil-claim predicate, the DB
+    # as referee. A claim burned by a send that then fails on every device falls back to
+    # the WA branch — the burned claim is correct (this notification must never re-push).
+    def push_deliver
+      return false unless under_push_cap?
+      claimed = Notification.where(id: @notification.id, push_sent_at: nil)
+                            .update_all(push_sent_at: Time.current) == 1
+      return false unless claimed
+      content = push_content
+      sent = PushSender.deliver(user: @user, **content)
+      return true if sent
+      wa_deliver
+    end
+
+    # Title/body in the recipient's locale from notifications.push.<template_key> —
+    # shorter and more discreet than the WA replies (lock-screen exposure): no amounts,
+    # no balances. The shared template_args still supply names/count for pluralization;
+    # I18n ignores the args a template doesn't use.
+    def push_content
+      key = "notifications.push.#{Notifications.template_key(@notification)}"
+      I18n.with_locale(@user.locale) do
+        args = template_args
+        { title: I18n.t("#{key}.title", **args.except(:count)),
+          body:  I18n.t("#{key}.body", **args),
+          url:   KINDS.fetch(@notification.kind)[:url] }
+      end
+    end
+
+    # ── WhatsApp branch (Phase 3 posture, unchanged semantics) ───────────────────────
+
+    def wa_deliver
+      return false unless prefs.whatsapp_consent? && channel_ready? && under_daily_cap?
+      claim_and_send
+    end
 
     # Gates 5–6 — the atomic fail-closed claim followed by the logged + localized send.
     # update_all on the nil-claim predicate makes the DB the referee: two concurrent

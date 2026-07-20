@@ -1291,6 +1291,96 @@ pt-BR:
       view_category: "Ver categoria"
       view_goal: "Ver meta"
       rightsize_cta: "Ajustar para %{typical}"
+    # Native push (.plans/mobile/04 §5): shorter and more discreet than the WA replies —
+    # these render on lock screens, so no amounts or balances. Resolved dynamically via
+    # t("notifications.push.#{template_key}.{title,body}").
+    push:
+      bill_due:
+        title: "Conta chegando"
+        body:
+          zero: "%{name} vence hoje."
+          one: "%{name} vence amanhã."
+          other: "%{name} vence em %{count} dias."
+      bill_overdue:
+        title: "Conta vencida"
+        body:
+          one: "%{name} venceu ontem. Já pagou?"
+          other: "%{name} venceu há %{count} dias. Já pagou?"
+      card_closing:
+        title: "Fatura fechando"
+        body:
+          zero: "A fatura do %{card} fecha hoje."
+          one: "A fatura do %{card} fecha amanhã."
+          other: "A fatura do %{card} fecha em %{count} dias."
+      card_due:
+        title: "Fatura vencendo"
+        body:
+          zero: "A fatura do %{card} vence hoje."
+          one: "A fatura do %{card} vence amanhã."
+          other: "A fatura do %{card} vence em %{count} dias."
+      income_expected:
+        title: "Entrada prevista"
+        body:
+          zero: "%{name} deve cair hoje."
+          one: "%{name} deve cair amanhã."
+          other: "%{name} deve cair em %{count} dias."
+      budget_warn:
+        title: "De olho no combinado"
+        body: "%{category} está chegando no combinado do mês."
+      budget_breach:
+        title: "Combinado estourado"
+        body: "%{category} passou do combinado este mês."
+      budget_warn_goal:
+        title: "De olho na meta"
+        body: "%{category} está chegando no combinado da meta %{goal_name}."
+      budget_breach_goal:
+        title: "Combinado da meta estourado"
+        body: "%{category} passou do combinado da meta %{goal_name}."
+      goal_alert_pace:
+        title: "Sua meta pede atenção"
+        body: "Falta um pouco para o valor deste mês da meta %{goal}."
+      goal_alert_big_purchase:
+        title: "Sua meta pede atenção"
+        body: "Uma compra grande este mês pode atrasar a meta %{goal}."
+      goal_alert_red_month:
+        title: "Mês apertado"
+        body: "O mês está fechando no vermelho — vale reorganizar a meta %{goal}."
+      goal_alert_next_month_red:
+        title: "Mês que vem apertado"
+        body: "A projeção do próximo mês fecha no vermelho — a meta %{goal} pode não caber."
+      goal_alert_budget_raised:
+        title: "Orçamento acima da meta"
+        body: "O orçamento de %{category} subiu acima do combinado da meta %{goal}."
+      goal_alert_missed_month:
+        title: "Meta abaixo do combinado"
+        body: "A meta %{goal} ficou abaixo do combinado no mês passado."
+      goal_alert_missed_month_essential:
+        title: "Meta abaixo do combinado"
+        body: "Imprevistos acontecem — a meta %{goal} ficou abaixo do combinado, sem culpa."
+      goal_alert_missed_month_income:
+        title: "Meta abaixo do combinado"
+        body: "A renda veio menor e a meta %{goal} ficou abaixo do combinado — tá tudo bem."
+      goal_alert_missed_month_plain:
+        title: "Meta abaixo do combinado"
+        body: "A meta %{goal} ficou abaixo do combinado no mês passado."
+      goal_achieved:
+        title: "Meta concluída! 🎉"
+        body: "Você concluiu a meta %{goal}. Que tal a próxima?"
+      surplus_nudge:
+        title: "Sobrou dindin"
+        body: "Você fechou o mês com sobra. Quer guardar?"
+      surplus_nudge_investment:
+        title: "Sobrou dindin"
+        body: "Você fechou o mês com sobra. Quer mandar pra conta investimento?"
+      rightsize_budget:
+        title: "Combinado folgado"
+        body: "%{category}: dá para ajustar o combinado ao seu gasto típico."
+      weekly_summary:
+        title: "Resumo da semana"
+        body: "Seu resumo da semana está pronto. 💙"
+      monthly_summary:
+        title: "O mês fechou"
+        body: "Seu resumo do mês está pronto. 💙"
   notification_preferences:
     show:
       meta_title: "Avisos · azulzin"
@@ -1327,6 +1417,8 @@ pt-BR:
       whatsapp_consent: "Receber avisos no WhatsApp"
       whatsapp_consent_hint: "Desligado por padrão. Os avisos sempre aparecem no painel; ligue para recebê-los também no WhatsApp."
       whatsapp_consent_phone_note: "Para chegar no WhatsApp, seu número precisa estar verificado no perfil. Você também pode parar a qualquer momento respondendo \"parar\" por lá."
+      push_enabled: "Notificações no celular"
+      push_enabled_hint: "Avisos pelo app do celular, quando ele estiver instalado. A permissão do aparelho continua valendo."
       save: "Salvar preferências"
     update:
       saved: "Preferências salvas."

@@ -134,6 +134,9 @@ Rails.application.routes.draw do
       member { patch :dismiss }
     end
     resource :notification_preferences, only: %i[show update]
+    # Native push registration (.plans/mobile/04 §3): the shells' bridge POSTs the FCM
+    # token here through the webview session.
+    resources :push_devices, only: :create
 
     # Shared account: settings page (members, invites, rename, danger zone). Owner-gated
     # actions live in AccountOwnership#require_owner! (.plans/multi-user, D9).
