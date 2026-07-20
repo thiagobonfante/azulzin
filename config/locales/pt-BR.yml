@@ -51,6 +51,7 @@ pt-BR:
       invitation: "Convite"
       goal: "Meta"
       goal_check: "Verificação"
+      chat_message: "Mensagem"
     attributes:
       user:
         email_address: "E-mail"
@@ -132,6 +133,8 @@ pt-BR:
       goal_check:
         status: "Situação"
         period_start: "Semana"
+      chat_message:
+        media: "Arquivo"
     errors:
       models:
         account_membership:
@@ -184,6 +187,13 @@ pt-BR:
               missing: "é obrigatório."
               too_large: "excede o limite de 10 MB."
               unsupported_type: "tem um formato não suportado. Envie PDF, CSV ou OFX."
+        chat_message:
+          attributes:
+            base:
+              blank: "Escreva uma mensagem ou anexe um arquivo."
+            media:
+              too_large: "excede o limite de 10 MB."
+              unsupported_type: "tem um formato não suportado. Envie um áudio, JPG, PNG, WEBP, HEIC ou PDF."
         goal:
           attributes:
             base:
@@ -215,6 +225,15 @@ pt-BR:
     show:
       title: "Chat"
       empty: "Manda um gasto (“mercado 84,90”), um áudio ou a foto da notinha — o azulzinho lança pra você."
+    composer:
+      placeholder: "Escreve um gasto…"
+      send: "Enviar"
+      record: "Gravar áudio"
+      attach: "Anexar foto ou PDF"
+    message:
+      audio: "🎤 Áudio"
+      document: "📄 Documento"
+      image_alt: "Imagem enviada"
   menu:
     show:
       title: "Mais"

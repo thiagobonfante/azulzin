@@ -48,6 +48,7 @@ Rails.application.routes.draw do
 
     # Native tab targets (.plans/mobile/01 §3): the in-app chat thread and the "Mais" menu.
     get "chat", to: "chat#show", as: :chat
+    resources :chat_messages, only: :create   # the composer POST (.plans/mobile/08 §3)
     get "menu", to: "menu#show", as: :menu
 
     # First-run setup wizard. `onboarding` (no step) resolves to the current step.

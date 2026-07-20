@@ -34,6 +34,7 @@ class ProcessInboundWhatsappJob < ApplicationJob
     msg = WhatsappMessage.find_by(id: message_id)
     return unless msg&.user
     msg.update!(status: "failed", error: detail.to_s.first(200), processed_at: Time.current)
+    Current.reply_channel = msg.is_a?(ChatMessage) ? :chat : nil
     WhatsappReply.deliver(user: msg.user, key: key)
   end
 
@@ -43,6 +44,9 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
   def perform(message_id)
     msg = WhatsappMessage.find(message_id)
+    # Route every reply this execution produces to the channel the message came in on
+    # (.plans/mobile/08 §1). Set unconditionally — never trust leftover state.
+    Current.reply_channel = msg.is_a?(ChatMessage) ? :chat : nil
     return if msg.status == "processed"     # re-run guard (idempotent)
     return if msg.user.nil?                 # defense-in-depth; webhook already short-circuits
 

@@ -1,0 +1,29 @@
+<%# The composer: text + mic + attach, one multipart POST. `message` carries validation
+    errors back after a 422 (nil on the fresh form). %>
+<%= form_with scope: :chat_message, url: chat_messages_path, id: "chat_composer",
+      data: { controller: "chat-composer" } do |f| %>
+  <% if message&.errors&.any? %>
+    <p class="mb-1 text-sm text-error"><%= message.errors.full_messages.to_sentence %></p>
+  <% end %>
+
+  <div class="flex items-center gap-2">
+    <label class="btn btn-ghost btn-sm btn-circle" aria-label="<%= t("chat.composer.attach") %>">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
+      <%= f.file_field :media, accept: "image/*,application/pdf", class: "hidden",
+            data: { chat_composer_target: "media", action: "change->chat-composer#fileChosen" } %>
+    </label>
+
+    <%= f.text_field :body, value: message&.body, placeholder: t("chat.composer.placeholder"),
+          autocomplete: "off", maxlength: 1000, class: "input input-bordered input-sm min-w-0 flex-1" %>
+
+    <button type="button" data-action="chat-composer#toggleRecording"
+            data-chat-composer-target="mic"
+            class="btn btn-ghost btn-sm btn-circle" aria-label="<%= t("chat.composer.record") %>">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" /></svg>
+    </button>
+
+    <%= f.submit t("chat.composer.send"), class: "btn btn-primary btn-sm" %>
+  </div>
+
+  <p data-chat-composer-target="fileName" class="mt-1 min-h-4 text-xs text-base-content/50"></p>
+<% end %>

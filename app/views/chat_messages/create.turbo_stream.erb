@@ -1,0 +1,6 @@
+<% if @message.persisted? %>
+  <%= turbo_stream.prepend "chat_messages", partial: "chat/message", locals: { message: @message } %>
+  <%= turbo_stream.replace "chat_composer", partial: "chat/composer", locals: { message: nil } %>
+<% else %>
+  <%= turbo_stream.replace "chat_composer", partial: "chat/composer", locals: { message: @message } %>
+<% end %>

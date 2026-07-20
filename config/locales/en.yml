@@ -50,6 +50,7 @@ en:
       invitation: "Invitation"
       goal: "Goal"
       goal_check: "Check"
+      chat_message: "Message"
     attributes:
       user:
         email_address: "Email address"
@@ -131,6 +132,8 @@ en:
       goal_check:
         status: "Status"
         period_start: "Week"
+      chat_message:
+        media: "File"
     errors:
       models:
         account_membership:
@@ -183,6 +186,13 @@ en:
               missing: "is required."
               too_large: "exceeds the 10 MB limit."
               unsupported_type: "has an unsupported format. Send a PDF, CSV or OFX."
+        chat_message:
+          attributes:
+            base:
+              blank: "Write a message or attach a file."
+            media:
+              too_large: "exceeds the 10 MB limit."
+              unsupported_type: "has an unsupported format. Send an audio file, JPG, PNG, WEBP, HEIC or PDF."
         goal:
           attributes:
             base:
@@ -214,6 +224,15 @@ en:
     show:
       title: "Chat"
       empty: "Send an expense (“groceries 84.90”), a voice note or a receipt photo — azulzinho records it for you."
+    composer:
+      placeholder: "Type an expense…"
+      send: "Send"
+      record: "Record audio"
+      attach: "Attach a photo or PDF"
+    message:
+      audio: "🎤 Audio"
+      document: "📄 Document"
+      image_alt: "Sent image"
   menu:
     show:
       title: "More"
