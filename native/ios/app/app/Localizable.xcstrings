@@ -1,36 +1,118 @@
 {
-  "sourceLanguage" : "pt-BR",
-  "strings" : {
-    "tab.inicio" : {
-      "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Início" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home" } }
+  "sourceLanguage": "pt-BR",
+  "strings": {
+    "tab.inicio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Início"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        }
       }
     },
-    "tab.chat" : {
-      "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Chat" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Chat" } }
+    "tab.chat": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat"
+          }
+        }
       }
     },
-    "tab.movimentos" : {
-      "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Transações" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transactions" } }
+    "tab.movimentos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transações"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transactions"
+          }
+        }
       }
     },
-    "tab.recentes" : {
-      "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Recentes" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent" } }
+    "tab.recentes": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recentes"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent"
+          }
+        }
       }
     },
-    "tab.mais" : {
-      "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Mais" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "More" } }
+    "tab.mais": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More"
+          }
+        }
+      }
+    },
+    "lock.reason": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloqueie para ver suas finanças."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock to see your finances."
+          }
+        }
+      }
+    },
+    "lock.retry": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar de novo"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

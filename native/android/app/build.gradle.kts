@@ -45,4 +45,5 @@ dependencies {
     implementation("dev.hotwire:core:1.2.5")
     implementation("dev.hotwire:navigation-fragments:1.2.5")
     implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.biometric:biometric:1.1.0")
 }

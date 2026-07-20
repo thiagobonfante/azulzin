@@ -7,4 +7,6 @@
     <string name="tab_movimentos">Transações</string>
     <string name="tab_recentes">Recentes</string>
     <string name="tab_mais">Mais</string>
+    <string name="lock_title">Desbloqueie para ver suas finanças</string>
+    <string name="lock_retry">Tentar de novo</string>
 </resources>

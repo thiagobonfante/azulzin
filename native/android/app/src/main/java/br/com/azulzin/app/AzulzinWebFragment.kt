@@ -3,6 +3,8 @@ package br.com.azulzin.app
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Bundle
+import android.view.View
 import android.webkit.PermissionRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -16,6 +18,15 @@ import dev.hotwire.navigation.fragments.HotwireWebFragment
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 class AzulzinWebFragment : HotwireWebFragment() {
     private var pendingMicRequest: PermissionRequest? = null
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Landing on the sign-in page invalidates the other tabs' authenticated
+        // snapshots — let the activity reset them (no-op unless we're the visible tab).
+        if (location.endsWith("/session/new")) {
+            (activity as? MainActivity)?.authScreenShown(navigator)
+        }
+    }
 
     private val micPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->

@@ -267,6 +267,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Info-Debug.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = azulzin;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para proteger suas finanças ao abrir o app.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Para anexar a foto de um comprovante direto da câmera.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para registrar seus gastos por áudio no chat.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para anexar a foto de um comprovante que já está no seu celular.";
@@ -304,6 +305,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Info-Release.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = azulzin;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para proteger suas finanças ao abrir o app.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Para anexar a foto de um comprovante direto da câmera.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para registrar seus gastos por áudio no chat.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para anexar a foto de um comprovante que já está no seu celular.";
