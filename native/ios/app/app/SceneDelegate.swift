@@ -15,6 +15,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         window?.makeKeyAndVisible()
         tabBarController.delegate = self
         tabBarController.load(TabBar.tabs)
+
+        // The framework keeps its per-tab navigators private; activeNavigator is the only
+        // public handle, so visit each index once to install the mic-granting UI delegate
+        // (programmatic selection is cheap — load() already routed every navigator — and
+        // never calls didSelect).
+        for index in TabBar.tabs.indices {
+            tabBarController.selectedIndex = index
+            let navigator = tabBarController.activeNavigator
+            navigator.webkitUIDelegate = AzulzinUIController(delegate: navigator)
+        }
+        tabBarController.selectedIndex = 0
     }
 
     // Tabs that loaded while signed out are parked on the sign-in redirect; after the

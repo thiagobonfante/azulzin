@@ -17,8 +17,10 @@ android {
 
     buildTypes {
         debug {
-            // Emulator loopback; cleartext allowed ONLY via the debug network security config.
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:3000\"")
+            // localhost (via `adb reverse tcp:3000 tcp:3000`), NOT 10.0.2.2: getUserMedia
+            // (chat mic) needs a trustworthy origin and Chromium only whitelists localhost.
+            // Cleartext allowed ONLY via the debug network security config.
+            buildConfigField("String", "BASE_URL", "\"http://localhost:3000\"")
         }
         release {
             buildConfigField("String", "BASE_URL", "\"https://app.azulzin.com.br\"")
