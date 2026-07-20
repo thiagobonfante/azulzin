@@ -1418,6 +1418,9 @@ en:
       whatsapp_consent_phone_note: "To reach WhatsApp, your phone number must be verified on your profile. You can also stop anytime by replying \"stop\" there."
       push_enabled: "Phone notifications"
       push_enabled_hint: "Alerts through the mobile app, once it is installed. Your device permission still applies."
+      push_activate: "Turn on notifications"
+      push_activate_hint: "Allow device notifications to get alerts through the app."
+      push_activate_button: "Turn on"
       save: "Save preferences"
     update:
       saved: "Preferences saved."

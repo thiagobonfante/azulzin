@@ -1,8 +1,12 @@
 import HotwireNative
 import UIKit
+import UserNotifications
+#if canImport(FirebaseCore)
+import FirebaseCore
+#endif
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Server can gate features per app version later without new plumbing (02 §1).
@@ -15,6 +19,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             .file(Bundle.main.url(forResource: "path-configuration", withExtension: "json")!),
             .server(Config.pathConfigurationRemoteURL)
         ])
+
+        // Push registration bridge (.plans/mobile/04 §3). Firebase boots only when the
+        // founder-provisioned GoogleService-Info.plist ships with the app.
+        Hotwire.registerBridgeComponents([PushComponent.self])
+        #if canImport(FirebaseCore)
+        if Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil {
+            FirebaseApp.configure()
+        }
+        #endif
+        UNUserNotificationCenter.current().delegate = self
         return true
     }
 
@@ -27,5 +41,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                                  sessionRole: connectingSceneSession.role)
         configuration.delegateClass = SceneDelegate.self
         return configuration
+    }
+
+    // MARK: - Notification tap-through (.plans/mobile/04 §1: data.url deep link)
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        if let url = response.notification.request.content.userInfo["url"] as? String {
+            let scene = UIApplication.shared.connectedScenes.first
+            (scene?.delegate as? SceneDelegate)?.route(path: url)
+        }
+        completionHandler()
+    }
+
+    // Foreground pushes still show as a banner (quiet, no sound doctrine lives server-side).
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .badge])
     }
 }

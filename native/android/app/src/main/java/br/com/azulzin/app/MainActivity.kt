@@ -1,10 +1,12 @@
 package br.com.azulzin.app
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
@@ -78,6 +80,8 @@ class MainActivity : HotwireActivity() {
                 navigator.route(tab.configuration.startLocation, VisitOptions(action = VisitAction.REPLACE))
             }
         }
+
+        routePushUrl(intent)   // cold-start notification tap carries the deep link here
     }
 
     // MARK: biometric gate
@@ -123,6 +127,40 @@ class MainActivity : HotwireActivity() {
                 .setAllowedAuthenticators(authenticators)
                 .build()
         )
+    }
+
+    // MARK: push (registration permission + tap-through deep link)
+
+    private var notificationsPermissionCallback: ((Boolean) -> Unit)? = null
+    private val notificationsPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            notificationsPermissionCallback?.invoke(granted)
+            notificationsPermissionCallback = null
+        }
+
+    // PushComponent's seam for the POST_NOTIFICATIONS runtime prompt (API 33+).
+    fun requestNotificationsPermission(callback: (Boolean) -> Unit) {
+        notificationsPermissionCallback = callback
+        notificationsPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        routePushUrl(intent)
+    }
+
+    // FCM notification taps re-launch with data extras; route the deep link on the
+    // Início navigator. ponytail: on a cold start the navigator isn't ready yet —
+    // bounded 500ms retries instead of a lifecycle observer.
+    private fun routePushUrl(intent: Intent?, attempt: Int = 0) {
+        val path = intent?.getStringExtra("url") ?: return
+        val navigator = delegate.findNavigatorHost(R.id.inicio_nav_host)?.navigator
+        if (navigator?.isReady() == true) {
+            intent.removeExtra("url")
+            navigator.route(BuildConfig.BASE_URL + path)
+        } else if (attempt < 10) {
+            window.decorView.postDelayed({ routePushUrl(intent, attempt + 1) }, 500)
+        }
     }
 
     // MARK: sign-out staleness

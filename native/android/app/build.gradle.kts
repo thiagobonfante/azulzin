@@ -46,4 +46,7 @@ dependencies {
     implementation("dev.hotwire:navigation-fragments:1.2.5")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.biometric:biometric:1.1.0")
+    // No google-services Gradle plugin: Firebase boots manually in AzulzinApplication
+    // only when the founder-provisioned google-services.json values ship (04 §3).
+    implementation("com.google.firebase:firebase-messaging:24.1.0")
 }

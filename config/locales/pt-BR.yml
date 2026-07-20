@@ -1419,6 +1419,9 @@ pt-BR:
       whatsapp_consent_phone_note: "Para chegar no WhatsApp, seu número precisa estar verificado no perfil. Você também pode parar a qualquer momento respondendo \"parar\" por lá."
       push_enabled: "Notificações no celular"
       push_enabled_hint: "Avisos pelo app do celular, quando ele estiver instalado. A permissão do aparelho continua valendo."
+      push_activate: "Ativar notificações"
+      push_activate_hint: "Permita as notificações do aparelho para receber avisos pelo app."
+      push_activate_button: "Ativar"
       save: "Salvar preferências"
     update:
       saved: "Preferências salvas."

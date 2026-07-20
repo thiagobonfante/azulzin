@@ -100,6 +100,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         lockScreen.dismiss(animated: false)
     }
 
+    // MARK: - Push tap-through (.plans/mobile/04): route the notification's deep link
+    // on the active tab's navigator.
+
+    func route(path: String) {
+        tabBarController.activeNavigator.route(Config.baseURL.appendingPathComponent(path))
+    }
+
     // MARK: - Tab selection re-routes
 
     // Tabs that loaded while signed out park on the sign-in redirect; tabs that were
