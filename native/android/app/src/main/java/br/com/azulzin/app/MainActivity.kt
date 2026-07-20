@@ -39,9 +39,15 @@ class MainActivity : HotwireActivity() {
         // handled here — revisit with the biometric-lock phase (delegate.resetSessions()).
         bottomNavigationController.setOnTabSelectedListener { _, tab ->
             val navigator = delegate.findNavigatorHost(tab.configuration.navigatorHostId)?.navigator
-            if (navigator?.isReady() == true && navigator.location?.endsWith("/session/new") == true) {
-                // REPLACE, not push: the stale sign-in page must leave the stack — a push
-                // would put a back arrow on the tab root pointing at it.
+            val parked = navigator?.takeIf { it.isReady() }?.location ?: return@setOnTabSelectedListener
+            val inicioStart = tabs.first().configuration.startLocation
+            // Parked on the sign-in redirect, or on the post-auth landing (root) while not
+            // being the Início tab — the tab the user signed IN on shows root until re-tapped.
+            val stale = parked.endsWith("/session/new") ||
+                (parked == inicioStart && tab.configuration.startLocation != inicioStart)
+            if (stale) {
+                // REPLACE, not push: the stale page must leave the stack — a push would
+                // put a back arrow on the tab root pointing at it.
                 navigator.route(tab.configuration.startLocation, VisitOptions(action = VisitAction.REPLACE))
             }
         }

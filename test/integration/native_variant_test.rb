@@ -93,6 +93,27 @@ class NativeVariantTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # Auth-in-stack wart (.plans/mobile/handoff.md): the sign-in form's visit must REPLACE
+  # the dead form on native, and native must land on root — return_to is whatever the
+  # LAST parallel signed-out tab redirect wrote, i.e. a random other tab's root.
+  test "sign-in form replaces itself and native lands on root, web keeps return_to" do
+    sign_out
+
+    get new_session_url, headers: native
+    assert_select "form[action$=?][data-turbo-action=replace]", session_path
+
+    get transactions_url, headers: native            # parks return_to on Transações
+    post session_url, headers: native,
+      params: { email_address: @user.email_address, password: "password123" }
+    assert_redirected_to root_url
+
+    sign_out
+    get transactions_url                             # same dance on the web…
+    post session_url,
+      params: { email_address: @user.email_address, password: "password123" }
+    assert_redirected_to transactions_url            # …keeps the deep return_to
+  end
+
   test "an edit-form save recedes for native and redirects for web" do
     ba = @user.account.bank_accounts.create!(institution: Institution.find_by!(code: "341"), nickname: "Itaú")
 

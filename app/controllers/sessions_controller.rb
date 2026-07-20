@@ -18,7 +18,10 @@ class SessionsController < ApplicationController
     if user = User.authenticate_by(params.permit(:email_address, :password))
       if user.verified?
         start_new_session_for user
-        redirect_to after_authentication_url
+        # Native lands on root deterministically: return_to was written by whichever of
+        # the parallel signed-out tab redirects ran last — a random other tab's root.
+        url = after_authentication_url
+        redirect_to turbo_native_app? ? root_url : url
       else
         redirect_to new_session_path, alert: t(".unverified")
       end

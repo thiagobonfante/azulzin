@@ -38,10 +38,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         guard let hotwireTabBarController = tabBarController as? HotwireTabBarController,
               TabBar.tabs.indices.contains(tabBarController.selectedIndex) else { return }
         let navigator = hotwireTabBarController.activeNavigator
-        guard navigator.activeWebView.url?.path == "/session/new" else { return }
-        // REPLACE, not push: the stale sign-in page must leave the stack — a push
-        // would put a back arrow on the tab root pointing at it.
-        navigator.route(TabBar.tabs[tabBarController.selectedIndex].url,
-                        options: VisitOptions(action: .replace))
+        let tabURL = TabBar.tabs[tabBarController.selectedIndex].url
+        let parked = navigator.activeWebView.url?.path
+        // Parked on the sign-in redirect, or on the post-auth landing (root) while not
+        // being the Início tab — the tab the user signed IN on shows root until re-tapped.
+        let stale = parked == "/session/new" || (parked == TabBar.tabs[0].url.path && tabURL != TabBar.tabs[0].url)
+        guard stale else { return }
+        // REPLACE, not push: the stale page must leave the stack — a push would put a
+        // back arrow on the tab root pointing at it.
+        navigator.route(tabURL, options: VisitOptions(action: .replace))
     }
 }
