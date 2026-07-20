@@ -21,6 +21,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+        // The Info.plist scene manifest is auto-generated (no delegate entry) — point the
+        // configuration at SceneDelegate in code so the wiring survives plist regeneration.
+        let configuration = UISceneConfiguration(name: "Default Configuration",
+                                                 sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
     }
 }

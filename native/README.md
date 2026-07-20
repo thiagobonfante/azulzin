@@ -5,26 +5,31 @@ stays the product; path configuration is served by Rails
 (`/configurations/{ios,android}_v1.json`) with the bundled copies here as
 first-launch/offline fallback (**keep them in sync at release time**).
 
-## Status: SCAFFOLD — not yet built or run
+## Status
 
-These sources were written without Xcode/Android Studio available. Nothing below has
-compiled, launched, or been device-tested. Before Phase 1 counts as done, run the
-7-point VERIFY checklist in `.plans/mobile/02` §VERIFY / `03` §VERIFY on
-simulator/emulator **and** one real device each.
+- **iOS: builds and launches on the simulator** (Xcode 26, `xcodebuild` green,
+  2026-07-19) — the tab bar, nav-bar titles, native variant (no drawer, no Google
+  button) all confirmed against a local `bin/rails server`. Still pending: the full
+  7-point VERIFY checklist in `.plans/mobile/02` §VERIFY (cookie persistence across
+  relaunch, modal recede, external links, error view) on simulator **and** a real
+  device.
+- **Android: scaffold only** — never compiled (no Android Studio yet). See below.
 
-### iOS (`ios/`) — needs Xcode to finish
+### iOS (`ios/app/`)
 
-The `.xcodeproj` cannot be hand-authored reliably; create it in Xcode and pull these
-sources in:
+`app.xcodeproj` (project/product name "app", bundle id `br.com.azulzin.app`,
+deployment target iOS 15, SPM `hotwire-native-ios` pinned 1.2.2). The `app/` folder is
+a synchronized group — files dropped there join the target automatically.
 
-1. Xcode 15+ → New iOS App project "Azulzin", bundle id `br.com.azulzin.app`,
-   UIKit lifecycle (delete the SwiftUI template files), deployment target iOS 15.
-2. Delete the generated AppDelegate/SceneDelegate; add the files from `ios/Azulzin/`.
-3. Add the SPM package `https://github.com/hotwired/hotwire-native-ios` @ 1.2.2.
-4. Add `path-configuration.json` and `Localizable.xcstrings` to the app target.
-5. Debug scheme only: add an ATS exception for `http://localhost:3000`
-   (`NSAppTransportSecurity → NSAllowsLocalNetworking`) in the Debug Info.plist.
-6. Run on simulator against `bin/rails server`.
+- Debug points at `http://localhost:3000`; the ATS local-networking exception lives in
+  `Info-Debug.plist`, wired via `INFOPLIST_FILE` **only in the Debug configuration**
+  (merged into the generated Info.plist). Release uses the generated plist alone.
+- The scene manifest is generated; `AppDelegate` sets
+  `configuration.delegateClass = SceneDelegate.self` in code, so don't add a manifest
+  delegate entry by hand.
+- Run: `open ios/app/app.xcodeproj`, scheme **app**, any iPhone simulator, with
+  `bin/rails server` running. Or headless:
+  `xcodebuild -project app.xcodeproj -scheme app -destination 'generic/platform=iOS Simulator' build`.
 
 ### Android (`android/`) — needs Android Studio / the Gradle wrapper to finish
 
