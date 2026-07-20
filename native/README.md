@@ -13,7 +13,11 @@ first-launch/offline fallback (**keep them in sync at release time**).
   7-point VERIFY checklist in `.plans/mobile/02` §VERIFY (cookie persistence across
   relaunch, modal recede, external links, error view) on simulator **and** a real
   device.
-- **Android: scaffold only** — never compiled (no Android Studio yet). See below.
+- **Android: compiles** (`./gradlew assembleDebug` green, 2026-07-19; AGP 8.13.2,
+  Kotlin 2.3.0, compileSdk 35) — **not yet launched**: no AVD/system image on this
+  machine. Create a device in Android Studio's Device Manager (or plug in a phone
+  with USB debugging) and run the `app` configuration; then the `.plans/mobile/03`
+  §VERIFY checklist.
 
 ### iOS (`ios/app/`)
 
@@ -31,15 +35,19 @@ a synchronized group — files dropped there join the target automatically.
   `bin/rails server` running. Or headless:
   `xcodebuild -project app.xcodeproj -scheme app -destination 'generic/platform=iOS Simulator' build`.
 
-### Android (`android/`) — needs Android Studio / the Gradle wrapper to finish
+### Android (`android/`)
 
-The Gradle project files are complete but unverified:
+Gradle wrapper committed (Android Studio-generated); `./gradlew assembleDebug` builds.
+minSdk 28 / compileSdk 35, `dev.hotwire:core:1.2.5` + `navigation-fragments:1.2.5`.
 
-1. Open `native/android` in Android Studio (or `gradle wrapper` then `./gradlew
-   assembleDebug`); let it generate the Gradle wrapper (not committed).
-2. minSdk 28, `dev.hotwire:core:1.2.5` + `dev.hotwire:navigation-fragments:1.2.5`.
-3. Debug build points at `http://10.0.2.2:3000` (emulator loopback; cleartext allowed
-   only via the debug-manifest network security config).
+- Debug build points at `http://10.0.2.2:3000` (emulator loopback; cleartext allowed
+  only via the debug-manifest network security config). On a REAL device over USB,
+  either `adb reverse tcp:3000 tcp:3000` won't help cleartext (config allows only
+  10.0.2.2) — test real devices against staging/prod HTTPS instead.
+- The bottom-nav menu is inflated in MainActivity, not via `app:menu` — aapt2 under
+  this AGP rejects the attr in our layout even though material provides it. Don't
+  move it back without re-checking the build.
+- Tab icons are Android system placeholders until brand assets land (07 #6).
 
 ## Deferred to later phases (do NOT add here yet)
 

@@ -25,6 +25,7 @@ class MainActivity : HotwireActivity() {
         setContentView(R.layout.activity_main)
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.inflateMenu(R.menu.bottom_nav)   // in code — see the layout comment
         bottomNav.setOnItemSelectedListener { item ->
             hosts.forEach { (tabId, hostId) ->
                 findViewById<FragmentContainerView>(hostId).isVisible(tabId == item.itemId)
