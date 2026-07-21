@@ -1,9 +1,13 @@
+<% content_for :title, t(".title") %>
 <div class="container mx-auto flex justify-center px-5 py-16">
   <div class="card w-full max-w-md border border-base-300/70 bg-base-100 shadow-xl">
     <div class="card-body gap-6">
       <h1 class="font-display text-3xl font-extrabold tracking-tight"><%= t(".title") %></h1>
 
-      <%= form_with url: session_url, class: "flex flex-col gap-4" do |form| %>
+      <%# turbo_action replace: the post-sign-in visit REPLACES this screen — in the
+          native shells that keeps the dead form out of the tab stack (no back arrow);
+          on the web it merely replaces the history entry. Same for failed attempts. %>
+      <%= form_with url: session_url, data: { turbo_action: "replace" }, class: "flex flex-col gap-4" do |form| %>
         <div class="form-control">
           <label for="email_address" class="mb-1 block text-sm font-medium"><%= User.human_attribute_name(:email_address) %></label>
           <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t(".email_placeholder"), value: params[:email_address], class: "input input-bordered w-full" %>
@@ -21,10 +25,14 @@
         </div>
       <% end %>
 
-      <div class="divider my-0 text-sm opacity-60"><%= t("shared.or") %></div>
+      <%# Hidden in the native shells: Google returns 403 disallowed_useragent inside
+          webviews. Google-only accounts set a password via "esqueci a senha". %>
+      <% unless turbo_native_app? %>
+        <div class="divider my-0 text-sm opacity-60"><%= t("shared.or") %></div>
 
-      <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
-            data: { turbo: false }, class: "btn btn-outline w-full" %>
+        <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",
+              data: { turbo: false }, class: "btn btn-outline w-full" %>
+      <% end %>
 
       <details class="text-sm">
         <summary class="cursor-pointer opacity-70"><%= t(".resend_summary") %></summary>

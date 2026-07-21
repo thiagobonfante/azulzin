@@ -1,0 +1,20 @@
+<%# One bubble. Inbound = the user (right, primary); outbound = azulzinho (left). Renders
+    from the thread, the composer's turbo_stream response AND the pipeline job's broadcast —
+    keep it pure locals, no request/Current dependence. %>
+<div id="<%= dom_id(message) %>" class="chat <%= message.inbound? ? "chat-end" : "chat-start" %>">
+  <div class="chat-bubble <%= message.inbound? ? "chat-bubble-primary" : "bg-base-100 text-base-content" %> whitespace-pre-line text-sm">
+    <% if message.type_image? && message.media.attached? %>
+      <%= image_tag url_for(message.media), alt: t("chat.message.image_alt"), class: "my-1 max-w-48 rounded-box" %>
+    <% elsif message.type_document? %>
+      <span class="italic opacity-80"><%= t("chat.message.document") %></span>
+    <% elsif message.type_audio? %>
+      <% if message.media.attached? %>
+        <audio controls preload="metadata" src="<%= url_for(message.media) %>" class="my-1 max-w-56"></audio>
+      <% else %>
+        <%# 60-day retention purges chat media — the label survives as the tombstone. %>
+        <span class="italic opacity-80"><%= t("chat.message.audio") %></span>
+      <% end %>
+    <% end %>
+    <%= message.body %>
+  </div>
+</div>

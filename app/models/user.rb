@@ -7,6 +7,7 @@ class User < ApplicationRecord
   has_one  :account_membership, dependent: :destroy
   has_one  :account, through: :account_membership
   has_many :sessions,          dependent: :destroy
+  has_many :push_devices,      dependent: :destroy   # revocation also rides Session destroy
   has_many :oauth_identities,  dependent: :destroy   # table added in Phase 4
   # The 7 domain tables now belong to the Account (spine D2); the LGPD cascade lives on
   # Account. No reverse has_many here — attribution reverse-lookups, if ever needed, go

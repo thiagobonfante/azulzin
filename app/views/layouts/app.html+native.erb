@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+  <head>
+    <%= render "layouts/meta", viewport_fit_cover: true %>
+  </head>
+
+  <%# Chrome-less variant for the Hotwire Native shells: the native tab bar and nav bar
+      replace the drawer/sidebar/top bar. Flash, toasts and the global confirm dialog
+      stay — they work identically inside the webview. %>
+  <%# bridge--push: silent daily re-register when the OS permission is already granted
+      (token rotation must never strand a device — .plans/mobile/04 §3). Inert on the
+      web and in shells that don't register the component. %>
+  <body class="native-shell <%= request.user_agent.to_s.match?(/Android/) ? "native-android" : "native-ios" %> min-h-screen bg-base-200 text-base-content font-sans antialiased"
+        data-controller="bridge--push">
+    <%# viewport-fit=cover disables WKWebView's automatic safe-area insets, so the layout
+        pads itself: top clears the native nav bar, bottom clears the floating tab bar. %>
+    <main class="px-4 pt-[calc(0.25rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <div class="mx-auto w-full max-w-5xl">
+        <% if flash.any? %>
+          <div class="mb-4"><%= render "shared/flash" %></div>
+        <% end %>
+        <div id="toasts" class="toast toast-top toast-end z-50 mt-[env(safe-area-inset-top)]"></div>
+        <%= yield %>
+      </div>
+    </main>
+
+    <%# Confirmation modal — same as the web layout; Turbo's confirm override works in the webview. %>
+    <dialog data-controller="confirm" data-action="close->confirm#onClose"
+            class="modal" role="dialog" aria-modal="true" aria-describedby="confirm-modal-message">
+      <div class="modal-box">
+        <p id="confirm-modal-message" data-confirm-target="message" class="text-base-content"></p>
+        <div class="modal-action">
+          <form method="dialog">
+            <button class="btn btn-ghost"><%= t("shared.cancel") %></button>
+          </form>
+          <button type="button" autofocus data-action="confirm#confirm" class="btn btn-error">
+            <%= t("shared.confirm") %>
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button aria-label="<%= t("shared.cancel") %>">close</button>
+      </form>
+    </dialog>
+  </body>
+</html>

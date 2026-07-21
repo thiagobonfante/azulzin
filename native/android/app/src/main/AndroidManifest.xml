@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Chat audio capture (.plans/mobile/08 §4): WebView getUserMedia needs both. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- RECORD_AUDIO implies the mic feature; don't let Play filter out mic-less devices. -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <!-- Native push (.plans/mobile/04 §3): runtime permission requested by PushComponent. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- allowBackup=false: Auto Backup would ship app data (incl. the WebView session
+         cookie jar) to the user's Google Drive — never for a finance app. -->
+    <application
+        android:name=".AzulzinApplication"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.Azulzin"
+        android:allowBackup="false">
+        <!-- singleTask: a push-notification tap re-enters via onNewIntent with the
+             data.url extra instead of stacking a second activity (.plans/mobile/04 §1). -->
+        <activity
+            android:name=".MainActivity"
+            android:launchMode="singleTask"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Share-to-app receipts (.plans/mobile/05 §2): single image or PDF, v1. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

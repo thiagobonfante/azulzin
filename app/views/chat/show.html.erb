@@ -1,0 +1,20 @@
+<% content_for :title, t(".title") %>
+<%= turbo_stream_from Current.user, :chat %>
+
+<section data-chat-fill class="mx-auto flex w-full max-w-2xl flex-col">
+  <h1 data-native-dup class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+
+  <%# Newest-first children inside flex-col-reverse: the browser renders the first child at
+      the BOTTOM and keeps the scroll pinned there natively — new bubbles are prepended
+      (form response + Turbo Stream broadcast), no scroll JS. %>
+  <div id="chat_messages" class="mt-4 flex h-[60vh] flex-col-reverse gap-1 overflow-y-auto pb-2">
+    <%= render partial: "chat/message", collection: @messages %>
+    <% if @messages.empty? %>
+      <div class="chat chat-start">
+        <div class="chat-bubble bg-base-100 text-base-content text-sm"><%= t(".empty") %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="mt-2"><%= render "chat/composer", message: nil %></div>
+</section>

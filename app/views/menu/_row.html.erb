@@ -1,0 +1,13 @@
+<%# One Mais-menu destination: icon chip + label + chevron. `icon` is one or more
+    heroicon outline path d-strings (same 24px/1.8 set as the sidebar). %>
+<li>
+  <%= link_to path, class: "flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-base-200" do %>
+    <span class="inline-grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <% Array(icon).each do |d| %><path stroke-linecap="round" stroke-linejoin="round" d="<%= d %>" /><% end %>
+      </svg>
+    </span>
+    <span class="flex-1 font-medium"><%= label %></span>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+  <% end %>
+</li>

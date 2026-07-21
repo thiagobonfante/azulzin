@@ -1,0 +1,7 @@
+.gradle/
+build/
+local.properties
+.idea/
+.kotlin/
+upload-keystore.jks
+keystore.properties

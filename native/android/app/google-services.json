@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "370669198811",
+    "project_id": "azulzin-6a2db",
+    "storage_bucket": "azulzin-6a2db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370669198811:android:0d9f26270c585f39ad5bfe",
+        "android_client_info": {
+          "package_name": "br.com.azulzin.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAF7DL_x6MZn5AYnJs_4bplTXBwlDC3Ns"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,6 +8,18 @@ class WhatsappReply
   # opt-out courtesy, .plans/up-tier 01 §2)
   def self.deliver(user:, key:, transaction: nil, footer_key: nil, footer_args: {}, **i18n_args)
     body = render(user, key, footer_key: footer_key, footer_args: footer_args, **i18n_args)
+    # Conversation-engine adapter (.plans/mobile/08 §1): a pipeline run that started from
+    # an in-app chat message replies as a chat bubble (create + Turbo Stream broadcast in
+    # the model) — same body, same keys, no sidecar involved.
+    # Shared captures have NO reply channel (.plans/mobile/05 §1): outcomes surface as
+    # transaction states (posted row, review tray) — the rendered copy is dropped.
+    return if Current.reply_channel == :capture
+    if Current.reply_channel == :chat
+      return ChatMessage.create!(
+        user: user, account: user.account, direction: "outbound", message_type: "text",
+        body: body, status: "sent", linked_transaction: transaction
+      )
+    end
     outbound = WhatsappMessage.create!(
       user: user, account: user.account, direction: "outbound", message_type: "text",
       body: body, status: "sent", linked_transaction: transaction

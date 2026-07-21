@@ -6,7 +6,7 @@
   <header class="mb-6 flex items-stretch gap-3">
     <%= render "shared/back_button", path: bank_accounts_path, label: t("app.nav.accounts") %>
     <div class="min-w-0 flex-1">
-      <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= t("bank_accounts.edit_title") %></h1>
+      <h1 data-native-dup class="font-display text-2xl font-extrabold tracking-tight"><%= t("bank_accounts.edit_title") %></h1>
       <p class="truncate text-sm text-base-content/60"><%= @bank_account.display_name %></p>
     </div>
     <div class="flex items-center"><%= render "shared/attribution", record: @bank_account %></div>

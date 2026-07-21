@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_09_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -311,6 +311,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000004) do
     t.boolean "goal_achieved", default: true, null: false
     t.boolean "goal_alerts", default: false, null: false
     t.boolean "monthly_summary", default: false, null: false
+    t.boolean "push_enabled", default: true, null: false
     t.integer "quiet_hours_end", default: 8, null: false
     t.integer "quiet_hours_start", default: 21, null: false
     t.boolean "surplus_nudges", default: true, null: false
@@ -329,6 +330,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000004) do
     t.string "kind", null: false
     t.jsonb "payload", default: {}, null: false
     t.date "period_key", null: false
+    t.datetime "push_sent_at"
     t.bigint "subject_id"
     t.string "subject_type"
     t.datetime "updated_at", null: false
@@ -348,6 +350,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000004) do
     t.bigint "user_id", null: false
     t.index ["provider", "uid"], name: "index_oauth_identities_on_provider_and_uid", unique: true
     t.index ["user_id"], name: "index_oauth_identities_on_user_id"
+  end
+
+  create_table "push_devices", force: :cascade do |t|
+    t.string "app_version"
+    t.datetime "created_at", null: false
+    t.datetime "last_registered_at", null: false
+    t.string "platform", null: false
+    t.bigint "session_id", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["session_id"], name: "index_push_devices_on_session_id"
+    t.index ["token"], name: "index_push_devices_on_token", unique: true
+    t.index ["user_id"], name: "index_push_devices_on_user_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -459,6 +475,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000004) do
     t.string "status", default: "received", null: false
     t.bigint "transaction_id"
     t.text "transcription"
+    t.string "type"
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.string "wa_message_id"
@@ -521,6 +538,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_000004) do
   add_foreign_key "notifications", "accounts"
   add_foreign_key "notifications", "users"
   add_foreign_key "oauth_identities", "users"
+  add_foreign_key "push_devices", "sessions"
+  add_foreign_key "push_devices", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "transactions", "accounts"
   add_foreign_key "transactions", "bank_accounts"

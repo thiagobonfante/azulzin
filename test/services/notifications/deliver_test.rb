@@ -125,34 +125,34 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
 
   test "kind toggle off → no push (gates both channels' push, dashboard row remains)" do
     @user.notification_prefs.update!(bill_reminders: false)
-    assert_not deliver(notification).push_allowed?
+    assert_not deliver(notification).wa_allowed?
   end
 
   test "the toggle is resolved per kind through the registry" do
     @user.notification_prefs.update!(budget_alerts: false)
-    assert_not deliver(notification(kind: "budget_breach")).push_allowed?
-    assert deliver(notification(kind: "bill_due")).push_allowed?, "bill kinds ride a different toggle"
+    assert_not deliver(notification(kind: "budget_breach")).wa_allowed?
+    assert deliver(notification(kind: "bill_due")).wa_allowed?, "bill kinds ride a different toggle"
   end
 
   test "no whatsapp consent (the default) → no push" do
     @user.notification_prefs.update!(whatsapp_consent: false)
-    assert_not deliver(notification).push_allowed?
+    assert_not deliver(notification).wa_allowed?
   end
 
   test "consent without a persisted preferences row is impossible — defaults stay silent" do
     @user.notification_preference.destroy!
     @user.reload   # drop the cached (destroyed) association target
-    assert_not deliver(notification).push_allowed?, "lazy defaults have whatsapp_consent false"
+    assert_not deliver(notification).wa_allowed?, "lazy defaults have whatsapp_consent false"
   end
 
   test "unverified phone → no push (ownership gate)" do
     @user.update!(phone_verified_at: nil)
-    assert_not deliver(notification).push_allowed?
+    assert_not deliver(notification).wa_allowed?
   end
 
   test "missing captured JID → no push (bare phone may not reach @lid contacts)" do
     @user.update!(whatsapp_jid: nil)
-    assert_not deliver(notification).push_allowed?
+    assert_not deliver(notification).wa_allowed?
   end
 
   test "sidecar disconnected → no send, the claim is NOT burned, the dashboard row is intact" do
@@ -168,19 +168,19 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
 
   test "quiet hours wrap midnight in São Paulo time" do
     travel_to Time.utc(2026, 7, 8, 2, 0)     # 23:00 SP — quiet
-    assert_not deliver(notification).push_allowed?
+    assert_not deliver(notification).wa_allowed?
 
     travel_to Time.utc(2026, 7, 8, 10, 30)   # 07:30 SP — still quiet
-    assert_not deliver(notification).push_allowed?
+    assert_not deliver(notification).wa_allowed?
 
     travel_to Time.utc(2026, 7, 8, 12, 0)    # 09:00 SP — allowed again
-    assert deliver(notification).push_allowed?
+    assert deliver(notification).wa_allowed?
   end
 
   test "equal quiet-hours bounds mean an empty window, never all-day silence" do
     @user.notification_prefs.update!(quiet_hours_start: 9, quiet_hours_end: 9)
     travel_to Time.utc(2026, 7, 8, 12, 0)    # 09:00 SP
-    assert deliver(notification).push_allowed?
+    assert deliver(notification).wa_allowed?
   end
 
   test "over the daily cap (3 claims today SP) → no push; yesterday's claims don't count" do
@@ -191,10 +191,10 @@ class Notifications::DeliverTest < ActiveSupport::TestCase
     claim.call("budget_warn", 30.hours.ago)   # yesterday SP — doesn't count
     claim.call("budget_breach", Time.current)
     claim.call("card_due", Time.current)
-    assert deliver(notification).push_allowed?, "two claims today is under the cap"
+    assert deliver(notification).wa_allowed?, "two claims today is under the cap"
 
     claim.call("weekly_summary", Time.current)   # summaries are counted too
-    assert_not deliver(notification).push_allowed?
+    assert_not deliver(notification).wa_allowed?
     assert_no_difference -> { WhatsappMessage.count } do
       assert_not Notifications::Deliver.call(notification), "over the cap → dashboard-only"
     end

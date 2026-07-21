@@ -34,7 +34,16 @@ class ProcessInboundWhatsappJob < ApplicationJob
     msg = WhatsappMessage.find_by(id: message_id)
     return unless msg&.user
     msg.update!(status: "failed", error: detail.to_s.first(200), processed_at: Time.current)
+    Current.reply_channel = reply_channel_for(msg)
     WhatsappReply.deliver(user: msg.user, key: key)
+  end
+
+  # :capture (shared receipt — replies suppressed, outcomes are in-app states),
+  # :chat (bubble), nil (sidecar). CaptureMessage < ChatMessage, so it checks first.
+  def self.reply_channel_for(msg)
+    return :capture if msg.is_a?(CaptureMessage)
+    return :chat if msg.is_a?(ChatMessage)
+    nil
   end
 
   # Bound AI spend from a chatty or malicious sender. A legit user never sends this many
@@ -43,6 +52,9 @@ class ProcessInboundWhatsappJob < ApplicationJob
 
   def perform(message_id)
     msg = WhatsappMessage.find(message_id)
+    # Route every reply this execution produces to the channel the message came in on
+    # (.plans/mobile/08 §1). Set unconditionally — never trust leftover state.
+    Current.reply_channel = self.class.reply_channel_for(msg)
     return if msg.status == "processed"     # re-run guard (idempotent)
     return if msg.user.nil?                 # defense-in-depth; webhook already short-circuits
 
@@ -130,9 +142,26 @@ class ProcessInboundWhatsappJob < ApplicationJob
   def not_receipt(msg)
     if msg.body.present?
       Whatsapp::Interpreter.new(msg, msg.body).call
+    elsif msg.is_a?(CaptureMessage)
+      park_not_receipt(msg)
     else
       WhatsappReply.deliver(user: msg.user, key: "whatsapp.replies.not_receipt")
     end
+  end
+
+  # Captures have no reply channel — a not-receipt verdict must never lose the share
+  # silently (.plans/mobile/05 §1). Park a zero-amount pending_review row carrying the
+  # não-parece copy (rendered in the sender's locale) so the review tray surfaces it
+  # with the image attached; the user fills it in or discards.
+  def park_not_receipt(msg)
+    extraction = Whatsapp::Extraction.new(
+      merchant: I18n.with_locale(msg.user.locale) { I18n.t("captures.not_receipt") },
+      source: "whatsapp_receipt", raw: { "is_receipt" => false })
+    txn = Whatsapp::Decider.write(
+      msg: msg, account: msg.account || msg.user.account, extraction: extraction,
+      confidence_score: 0, match_meta: {}, source_message_id: msg.wa_message_id,
+      status: "pending_review", amount_cents: 0)
+    attach_receipt(txn, msg)
   end
 
   # up-tier F5 (06 §2a): copy the receipt onto the transaction by referencing the SAME blob

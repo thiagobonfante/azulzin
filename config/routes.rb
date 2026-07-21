@@ -39,8 +39,17 @@ Rails.application.routes.draw do
         constraints: { provider: /google_oauth2/ }
     get "auth/failure", to: "omniauth_callbacks#failure"
 
+    # Hotwire Native path configuration (.plans/mobile/01 §4) — public, per platform.
+    get "configurations/:platform", to: "path_configurations#show", as: :path_configuration,
+        constraints: { platform: /ios_v1|android_v1/ }, defaults: { format: :json }
+
     # ── Product app (authenticated) ──────────────────────────────────────
     get "dashboard", to: "dashboard#show", as: :dashboard
+
+    # Native tab targets (.plans/mobile/01 §3): the in-app chat thread and the "Mais" menu.
+    get "chat", to: "chat#show", as: :chat
+    resources :chat_messages, only: :create   # the composer POST (.plans/mobile/08 §3)
+    get "menu", to: "menu#show", as: :menu
 
     # First-run setup wizard. `onboarding` (no step) resolves to the current step.
     get   "onboarding",       to: "onboarding#show", as: :onboarding
@@ -125,6 +134,11 @@ Rails.application.routes.draw do
       member { patch :dismiss }
     end
     resource :notification_preferences, only: %i[show update]
+    # Native push registration (.plans/mobile/04 §3): the shells' bridge POSTs the FCM
+    # token here through the webview session.
+    resources :push_devices, only: :create
+    # Share-to-app receipts (.plans/mobile/05): the shells POST the shared file here.
+    resources :captures, only: :create
 
     # Shared account: settings page (members, invites, rename, danger zone). Owner-gated
     # actions live in AccountOwnership#require_owner! (.plans/multi-user, D9).

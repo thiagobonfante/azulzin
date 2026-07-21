@@ -82,7 +82,7 @@
   <%= link_to new_transaction_path(kind: :expense, month: @month.strftime("%Y-%m")),
         data: { turbo_frame: "entry_form", action: "click->entry-modal#open",
                 mobile_tabs_target: "panel", panel: "movements" },
-        class: "btn btn-primary btn-circle btn-lg fixed bottom-20 left-1/2 z-20 -translate-x-1/2 shadow-lg hidden lg:hidden",
+        class: "btn btn-primary btn-circle btn-lg fixed bottom-20 left-1/2 z-20 -translate-x-1/2 shadow-lg hidden lg:hidden mb-[env(safe-area-inset-bottom)]",
         aria: { label: t("transactions.fab_add") } do %>
     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
   <% end %>
@@ -91,7 +91,7 @@
 
   <%# Mobile bottom tab bar (scoped to this screen, not the global layout). Resumo = dashboard
       grid icon; Movimentos = transactions icon — both reused from the sidebar. %>
-  <nav class="fixed inset-x-0 bottom-0 z-30 flex border-t border-base-300/60 bg-base-100/95 backdrop-blur lg:hidden"
+  <nav class="fixed inset-x-0 bottom-0 z-30 flex border-t border-base-300/60 bg-base-100/95 backdrop-blur lg:hidden pb-[env(safe-area-inset-bottom)]"
        aria-label="<%= t("transactions.tabs.aria_label") %>">
     <button type="button" data-panel="summary" data-mobile-tabs-target="tab" data-action="mobile-tabs#show"
             aria-current="page" class="flex flex-1 flex-col items-center gap-0.5 py-2 text-primary">

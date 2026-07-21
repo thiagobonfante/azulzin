@@ -8,6 +8,18 @@ class ApplicationController < ActionController::Base
 
   around_action :switch_locale
 
+  # Hotwire Native shells (UA carries "Turbo Native"/"Hotwire Native") render the
+  # chrome-less +native layout/partial variants. turbo_native_app? comes from turbo-rails.
+  before_action :set_native_variant
+
+  # Native cold-start CSRF race: the durable session_id cookie is permanent but the Rails
+  # cookie session (home of _csrf_token) dies with the app process, so the shells' N
+  # parallel first GETs each mint a *different* token and only the last Set-Cookie wins
+  # the shared jar — orphaning every other page's form. Seeding the token
+  # deterministically from the durable session makes all parallel mints agree, so any
+  # page's token verifies against any winner cookie. No-op when signed out.
+  before_action :stabilize_csrf_token
+
   # View-side owner predicate (D9): belt-and-suspenders with require_owner!. Owner-only controls
   # are hidden for members in the view AND enforced server-side.
   helper_method :account_owner?
@@ -43,6 +55,19 @@ class ApplicationController < ActionController::Base
 
     def switch_locale(&action)
       I18n.with_locale(resolve_locale, &action)
+    end
+
+    def set_native_variant
+      request.variant = :native if turbo_native_app?
+    end
+
+    def stabilize_csrf_token
+      resume_session
+      return unless Current.session
+      session[:_csrf_token] = Base64.urlsafe_encode64(
+        OpenSSL::HMAC.digest("SHA256", Rails.application.secret_key_base, "csrf:#{Current.session.id}"),
+        padding: false
+      )
     end
 
     # Forced to the pt-BR default for now: the browser (Accept-Language), the ?locale

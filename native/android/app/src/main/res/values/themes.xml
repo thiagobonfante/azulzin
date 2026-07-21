@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chrome follows the app's bg (base-200) instead of Material3's pink-tinted
+         default surface; 48dp toolbar + 17sp title keep the header tight like iOS. -->
+    <style name="Theme.Azulzin" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/azulzin_bg</item>
+        <item name="android:statusBarColor">@color/azulzin_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="actionBarSize">48dp</item>
+        <item name="toolbarStyle">@style/AzulzinToolbar</item>
+        <!-- API 35+ edge-to-edge ignores statusBarColor; the AppBarLayout paints the
+             status-bar zone, so it must carry the app bg too. -->
+        <item name="appBarLayoutStyle">@style/AzulzinAppBar</item>
+    </style>
+
+    <style name="AzulzinAppBar" parent="Widget.Material3.AppBarLayout">
+        <item name="android:background">@color/azulzin_bg</item>
+    </style>
+
+    <style name="AzulzinToolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/azulzin_bg</item>
+        <item name="titleCentered">true</item>
+        <item name="titleTextColor">@color/azulzin_content</item>
+        <item name="titleTextAppearance">@style/AzulzinToolbarTitle</item>
+    </style>
+
+    <style name="AzulzinToolbarTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="BottomNavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">#E4EFFB</item>
+    </style>
+</resources>

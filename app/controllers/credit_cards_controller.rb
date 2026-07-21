@@ -40,7 +40,7 @@ class CreditCardsController < ApplicationController
          (@credit_card.saved_change_to_bill_due_day? || @credit_card.saved_change_to_closing_offset_days?)
         @credit_card.recompute_billing_months!(first_time: was_unconfigured)
       end
-      redirect_to return_path, notice: t(".updated")
+      recede_or_redirect_to return_path, notice: t(".updated")   # closes the native edit modal
     else
       render :edit, status: :unprocessable_entity
     end
@@ -50,7 +50,7 @@ class CreditCardsController < ApplicationController
     @credit_card = Current.account.credit_cards.kept.find(params[:id])
     @credit_card.soft_delete!(by: Current.user)   # children keep their FKs (better history than nullify)
     # Remove lives on the edit page (not the list rows), so a redirect is the only response.
-    redirect_to after_change_path, notice: t(".removed"), status: :see_other
+    recede_or_redirect_to after_change_path, notice: t(".removed"), status: :see_other
   end
 
   private

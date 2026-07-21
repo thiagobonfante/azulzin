@@ -3,7 +3,7 @@
 <%= render "whatsapp/activation", code: @whatsapp_activation_code %>
 
 <div class="rounded-box border border-base-300/70 bg-base-100 p-6 sm:p-8 shadow-sm">
-  <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl"><%= t("onboarding.profile.title") %></h1>
+  <h1 data-native-dup class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl"><%= t("onboarding.profile.title") %></h1>
   <p class="mt-2 text-base-content/70"><%= t("onboarding.profile.subtitle") %></p>
 
   <%= form_with model: @user, url: onboarding_step_path("profile"), method: :patch, class: "mt-7 flex flex-col gap-5" do |f| %>

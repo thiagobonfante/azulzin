@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- White circle at 50% of the visible icon (masked safe zone is the center 72 of 108),
+     matching icon-app.svg's 128r-circle-in-512 proportion. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F4F9FF"
+        android:pathData="M54,36 a18,18 0 1,0 0,36 a18,18 0 1,0 0,-36z" />
+</vector>

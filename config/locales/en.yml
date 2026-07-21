@@ -50,6 +50,7 @@ en:
       invitation: "Invitation"
       goal: "Goal"
       goal_check: "Check"
+      chat_message: "Message"
     attributes:
       user:
         email_address: "Email address"
@@ -131,6 +132,8 @@ en:
       goal_check:
         status: "Status"
         period_start: "Week"
+      chat_message:
+        media: "File"
     errors:
       models:
         account_membership:
@@ -183,6 +186,13 @@ en:
               missing: "is required."
               too_large: "exceeds the 10 MB limit."
               unsupported_type: "has an unsupported format. Send a PDF, CSV or OFX."
+        chat_message:
+          attributes:
+            base:
+              blank: "Write a message or attach a file."
+            media:
+              too_large: "exceeds the 10 MB limit."
+              unsupported_type: "has an unsupported format. Send an audio file, JPG, PNG, WEBP, HEIC or PDF."
         goal:
           attributes:
             base:
@@ -210,6 +220,22 @@ en:
       invite: "Invite friends"
       open_menu: "Open menu"
       close_menu: "Close menu"
+  chat:
+    show:
+      title: "Chat"
+      empty: "Send an expense (“groceries 84.90”), a voice note or a receipt photo — azulzinho records it for you."
+    composer:
+      placeholder: "Type an expense…"
+      send: "Send"
+      record: "Record audio"
+      attach: "Attach a photo or PDF"
+    message:
+      audio: "🎤 Audio"
+      document: "📄 Document"
+      image_alt: "Sent image"
+  menu:
+    show:
+      title: "More"
   money:
     symbol: "R$"
   date:
@@ -1211,6 +1237,10 @@ en:
       or: "or by email"
       email_placeholder: "friend@example.com, family@example.com"
       send: "Send"
+  captures:
+    not_receipt: "Doesn't look like a receipt — check the image"
+    create:
+      received: "Got it! We're reading your receipt."
   notifications:
     dashboard:
       bill_due:
@@ -1264,6 +1294,96 @@ en:
       view_category: "View category"
       view_goal: "View goal"
       rightsize_cta: "Adjust to %{typical}"
+    # Native push (.plans/mobile/04 §5): shorter and more discreet than the WA replies —
+    # these render on lock screens, so no amounts or balances. Resolved dynamically via
+    # t("notifications.push.#{template_key}.{title,body}").
+    push:
+      bill_due:
+        title: "Bill coming up"
+        body:
+          zero: "%{name} is due today."
+          one: "%{name} is due tomorrow."
+          other: "%{name} is due in %{count} days."
+      bill_overdue:
+        title: "Overdue bill"
+        body:
+          one: "%{name} was due yesterday. Paid it?"
+          other: "%{name} was due %{count} days ago. Paid it?"
+      card_closing:
+        title: "Card statement closing"
+        body:
+          zero: "Your %{card} statement closes today."
+          one: "Your %{card} statement closes tomorrow."
+          other: "Your %{card} statement closes in %{count} days."
+      card_due:
+        title: "Card statement due"
+        body:
+          zero: "Your %{card} statement is due today."
+          one: "Your %{card} statement is due tomorrow."
+          other: "Your %{card} statement is due in %{count} days."
+      income_expected:
+        title: "Income expected"
+        body:
+          zero: "%{name} should arrive today."
+          one: "%{name} should arrive tomorrow."
+          other: "%{name} should arrive in %{count} days."
+      budget_warn:
+        title: "Watch your budget"
+        body: "%{category} is getting close to this month's budget."
+      budget_breach:
+        title: "Budget exceeded"
+        body: "%{category} went past this month's budget."
+      budget_warn_goal:
+        title: "Watch your goal"
+        body: "%{category} is getting close to the %{goal_name} goal's budget."
+      budget_breach_goal:
+        title: "Goal budget exceeded"
+        body: "%{category} went past the %{goal_name} goal's budget."
+      goal_alert_pace:
+        title: "Your goal needs attention"
+        body: "You're a bit short of this month's amount for %{goal}."
+      goal_alert_big_purchase:
+        title: "Your goal needs attention"
+        body: "A big purchase this month could delay %{goal}."
+      goal_alert_red_month:
+        title: "Tight month"
+        body: "This month is heading into the red — worth reorganizing %{goal}."
+      goal_alert_next_month_red:
+        title: "Tight month ahead"
+        body: "Next month projects into the red — %{goal} may not fit."
+      goal_alert_budget_raised:
+        title: "Budget above your goal"
+        body: "The %{category} budget rose above what %{goal} planned for."
+      goal_alert_missed_month:
+        title: "Goal fell behind"
+        body: "%{goal} came in under plan last month."
+      goal_alert_missed_month_essential:
+        title: "Goal fell behind"
+        body: "Life happens — %{goal} came in under plan, no guilt."
+      goal_alert_missed_month_income:
+        title: "Goal fell behind"
+        body: "Income came in lower and %{goal} fell behind — it's okay."
+      goal_alert_missed_month_plain:
+        title: "Goal fell behind"
+        body: "%{goal} came in under plan last month."
+      goal_achieved:
+        title: "Goal achieved! 🎉"
+        body: "You completed %{goal}. Ready for the next one?"
+      surplus_nudge:
+        title: "You have money left over"
+        body: "You closed the month with a surplus. Want to save it?"
+      surplus_nudge_investment:
+        title: "You have money left over"
+        body: "You closed the month with a surplus. Send it to your investment account?"
+      rightsize_budget:
+        title: "Room in your budget"
+        body: "%{category}: your budget could match what you typically spend."
+      weekly_summary:
+        title: "Your week in review"
+        body: "Your weekly summary is ready. 💙"
+      monthly_summary:
+        title: "The month closed"
+        body: "Your monthly summary is ready. 💙"
   notification_preferences:
     show:
       meta_title: "Alerts · azulzin"
@@ -1300,6 +1420,11 @@ en:
       whatsapp_consent: "Receive alerts on WhatsApp"
       whatsapp_consent_hint: "Off by default. Alerts always show on your dashboard; turn this on to also get them on WhatsApp."
       whatsapp_consent_phone_note: "To reach WhatsApp, your phone number must be verified on your profile. You can also stop anytime by replying \"stop\" there."
+      push_enabled: "Phone notifications"
+      push_enabled_hint: "Alerts through the mobile app, once it is installed. Your device permission still applies."
+      push_activate: "Turn on notifications"
+      push_activate_hint: "Allow device notifications to get alerts through the app."
+      push_activate_button: "Turn on"
       save: "Save preferences"
     update:
       saved: "Preferences saved."
@@ -1346,6 +1471,7 @@ en:
         create_anyway: "Create a separate account"
     create:
       check_email: "Check your email to confirm your account, then sign in."
+      check_email_native: "Check your email to confirm your account. The link opens in your phone's browser — then come back to the app and sign in."
   sessions:
     new:
       title: "Sign in"

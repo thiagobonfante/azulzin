@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pt-BR is the default locale (values/); en lives in values-en/. -->
+<resources>
+    <string name="app_name">azulzin</string>
+    <string name="tab_inicio">Início</string>
+    <string name="tab_chat">Chat</string>
+    <string name="tab_movimentos">Transações</string>
+    <string name="tab_recentes">Recentes</string>
+    <string name="tab_mais">Mais</string>
+    <string name="lock_title">Desbloqueie para ver suas finanças</string>
+    <string name="lock_retry">Tentar de novo</string>
+    <string name="share_sign_in_first">Entre no app primeiro para enviar comprovantes</string>
+    <string name="share_received">Recebido! Estamos lendo seu comprovante.</string>
+    <string name="share_failed">Não deu para enviar o comprovante — tente de novo.</string>
+</resources>
