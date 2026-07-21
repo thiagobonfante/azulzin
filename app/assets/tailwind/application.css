@@ -43,6 +43,15 @@
   transition: none;
 }
 
+/* Native shells: the nav bar already shows the page title — hide the in-page duplicate.
+   Marked per-view with data-native-dup; .native-shell exists only on app.html+native.erb. */
+.native-shell [data-native-dup] {
+  display: none;
+}
+.native-shell [data-native-dup] + * {
+  margin-top: 0;
+}
+
 /* ── azulzin: the little-blue light theme (default) ─────────────────────── */
 @plugin "./daisyui-theme.mjs" {
   name: "azulzin";

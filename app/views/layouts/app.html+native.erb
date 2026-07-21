@@ -10,7 +10,7 @@
   <%# bridge--push: silent daily re-register when the OS permission is already granted
       (token rotation must never strand a device — .plans/mobile/04 §3). Inert on the
       web and in shells that don't register the component. %>
-  <body class="min-h-screen bg-base-200 text-base-content font-sans antialiased"
+  <body class="native-shell min-h-screen bg-base-200 text-base-content font-sans antialiased"
         data-controller="bridge--push">
     <%# viewport-fit=cover disables WKWebView's automatic safe-area insets, so the layout
         pads itself: top clears the native nav bar, bottom clears the floating tab bar. %>

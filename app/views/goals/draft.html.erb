@@ -5,7 +5,7 @@
 
 <header class="mb-6 flex items-center justify-between gap-3">
   <div>
-    <h1 class="font-display text-2xl font-extrabold tracking-tight"><%= @goal.name %></h1>
+    <h1 data-native-dup class="font-display text-2xl font-extrabold tracking-tight"><%= @goal.name %></h1>
     <span class="badge badge-ghost badge-sm"><%= t("goals.status.draft") %></span>
     <% if baseline["sufficiency"] == "thin" %>
       <span class="badge badge-ghost badge-sm"><%= t("goals.states.estimate_badge") %></span>
