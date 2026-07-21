@@ -93,3 +93,13 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **Browser-lane discipline (anti-flake):** after any Turbo form submit, wait on a UI change (flash/path/selector) **before** touching the DB; after driving a stimulus picker, assert its button display updated before the next action.
 - **Spec vs code disagreement:** never assert behavior that doesn't exist. Pin the REAL behavior with a comment naming the gap, and flag it in [.plans/e2e/07-coverage-audit.md](.plans/e2e/07-coverage-audit.md) for a product decision.
 - **Scenario IDs** (`WA-CAP-nn`, `NT-GL-nn`, `WEB-…`, `MU-…`) come from the catalogs in `.plans/e2e/03–05`; keep the ID comment on every test so coverage stays auditable.
+
+### Mobile — every feature is a three-front feature (web, WhatsApp, native shells)
+
+**The iOS/Android apps (`native/ios`, `native/android`) wrap the SAME server-rendered HTML — so every new page, interaction, or feature is framed mobile-first-class from the start.** Most work is automatically shared; what isn't must be explicitly checked against the shells. Details: `.plans/mobile/handoff.md`.
+
+- **Every user-facing page renders in BOTH layouts**: web (`app.html.erb`) and chrome-less native (`app.html+native.erb`). Native gets its title from `content_for :title` (shown in the nav bar) — an in-page `h1` that duplicates it gets `data-native-dup` (hidden under `.native-shell`). Dashboard-style greetings that aren't dups stay.
+- **Platform CSS truth**: body carries `.native-shell` + `.native-android`/`.native-ios`. iOS's floating tab bar really overlaps the webview → `env(safe-area-inset-bottom)` padding is REAL there; Android reports a PHANTOM bottom inset → zero it (see application.css overrides). Any new bottom-pinned UI (bars, FABs, sheets) must handle both, and must live inside `<main>` or pad env() itself.
+- **New routes** → check `PathConfigurationsController::RULES` (modal vs push; auth pages MUST stay `context: default`) and regenerate BOTH bundled copies on any rules change: `bin/rails runner 'puts JSON.pretty_generate({settings: {}, rules: PathConfigurationsController::RULES})'` → `native/ios/app/app/path-configuration.json` + `native/android/app/src/main/assets/json/configuration.json`.
+- **Native-surface features** (mic, camera, push, share, biometric, downloads, external links) need shell code in BOTH `native/ios` and `native/android`, shipped in lockstep — never one platform ahead.
+- **Verify shell-affecting changes by DRIVING the simulator/emulator with screenshots** (recipes + gotchas in the handoff), not just tests; `test/integration/native_variant_test.rb` pins the layout/path-config contract. Emulator ghost-pixels are a known GPU artifact — check the DOM before chasing them.
