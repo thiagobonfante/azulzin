@@ -19,6 +19,7 @@
 
     <style name="AzulzinToolbar" parent="Widget.Material3.Toolbar">
         <item name="android:background">@color/azulzin_bg</item>
+        <item name="titleCentered">true</item>
         <item name="titleTextColor">@color/azulzin_content</item>
         <item name="titleTextAppearance">@style/AzulzinToolbarTitle</item>
     </style>

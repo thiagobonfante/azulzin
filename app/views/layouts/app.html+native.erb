@@ -14,7 +14,7 @@
         data-controller="bridge--push">
     <%# viewport-fit=cover disables WKWebView's automatic safe-area insets, so the layout
         pads itself: top clears the native nav bar, bottom clears the floating tab bar. %>
-    <main class="px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))]">
+    <main class="px-4 pt-[calc(0.25rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <div class="mx-auto w-full max-w-5xl">
         <% if flash.any? %>
           <div class="mb-4"><%= render "shared/flash" %></div>
