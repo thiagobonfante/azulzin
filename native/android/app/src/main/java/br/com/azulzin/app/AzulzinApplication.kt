@@ -27,7 +27,8 @@ class AzulzinApplication : Application() {
         // auto-initializes Firebase from app/google-services.json; the explicit call is
         // a safety net (no-op when already initialized).
         Hotwire.registerBridgeComponents(
-            BridgeComponentFactory("push", ::PushComponent)
+            BridgeComponentFactory("push", ::PushComponent),
+            BridgeComponentFactory("sign-in", ::SignInComponent)
         )
         FirebaseApp.initializeApp(this)
 

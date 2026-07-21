@@ -23,6 +23,10 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
+
+        // Native Google SSO (.plans/mobile/10): the WEB OAuth client id (Credential
+        // Manager's serverClientId — it becomes the token's aud). Empty = dormant.
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
     }
 
     signingConfigs {
@@ -72,4 +76,8 @@ dependencies {
     // build time; the BoM pins the firebase-messaging version.
     implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
     implementation("com.google.firebase:firebase-messaging")
+    // Native Google SSO (.plans/mobile/10): Credential Manager + Sign in with Google.
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 }

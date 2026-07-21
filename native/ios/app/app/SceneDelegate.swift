@@ -2,6 +2,9 @@ import HotwireNative
 import LocalAuthentication
 import UIKit
 import WebKit
+#if canImport(GoogleSignIn)
+import GoogleSignIn
+#endif
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDelegate {
     var window: UIWindow?
@@ -40,6 +43,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         tabBarController.selectedIndex = 0
 
         showLockCover()
+    }
+
+    // Google SSO return leg (.plans/mobile/10): the SDK's browser session bounces back
+    // on the reversed-client-ID URL scheme (founder adds the URL type in Xcode).
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        #if canImport(GoogleSignIn)
+        if let url = URLContexts.first?.url {
+            _ = GIDSignIn.sharedInstance.handle(url)
+        }
+        #endif
     }
 
     // MARK: - Biometric lock + privacy screen
