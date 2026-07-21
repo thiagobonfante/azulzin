@@ -56,6 +56,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
+        CaptureInbox.drain()   // share-extension inbox → /captures (.plans/mobile/05 §3)
         if let at = backgroundedAt, Date().timeIntervalSince(at) > relockAfter { unlocked = false }
         backgroundedAt = nil
         guard !unlocked else { return hideLockCover() }

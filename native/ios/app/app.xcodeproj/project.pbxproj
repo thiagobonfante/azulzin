@@ -7,19 +7,63 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8D97F02C300EF4A3000C49D0 /* AzulzinShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8D97F022300EF4A3000C49D0 /* AzulzinShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8DB41E4C300EDD410073D3D7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8DB41E4B300EDD410073D3D7 /* FirebaseCore */; };
 		8DB41E4E300EDD410073D3D7 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 8DB41E4D300EDD410073D3D7 /* FirebaseMessaging */; };
 		A20000000000000000000001 /* HotwireNative in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000003 /* HotwireNative */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		8D97F02A300EF4A3000C49D0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8D6B3B03300DAA2B00A3F5CC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8D97F021300EF4A3000C49D0;
+			remoteInfo = AzulzinShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8D97F02D300EF4A3000C49D0 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				8D97F02C300EF4A3000C49D0 /* AzulzinShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		8D6B3B0B300DAA2B00A3F5CC /* app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = app.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D97F022300EF4A3000C49D0 /* AzulzinShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AzulzinShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8D97F030300EF4A3000C49D0 /* Exceptions for "AzulzinShare" folder in "AzulzinShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8D97F021300EF4A3000C49D0 /* AzulzinShare */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8D6B3B0D300DAA2B00A3F5CC /* app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = app;
+			sourceTree = "<group>";
+		};
+		8D97F023300EF4A3000C49D0 /* AzulzinShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8D97F030300EF4A3000C49D0 /* Exceptions for "AzulzinShare" folder in "AzulzinShare" target */,
+			);
+			path = AzulzinShare;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -35,6 +79,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8D97F01F300EF4A3000C49D0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -42,6 +93,7 @@
 			isa = PBXGroup;
 			children = (
 				8D6B3B0D300DAA2B00A3F5CC /* app */,
+				8D97F023300EF4A3000C49D0 /* AzulzinShare */,
 				8D6B3B0C300DAA2B00A3F5CC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -50,6 +102,7 @@
 			isa = PBXGroup;
 			children = (
 				8D6B3B0B300DAA2B00A3F5CC /* app.app */,
+				8D97F022300EF4A3000C49D0 /* AzulzinShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,10 +117,12 @@
 				8D6B3B07300DAA2B00A3F5CC /* Sources */,
 				8D6B3B08300DAA2B00A3F5CC /* Frameworks */,
 				8D6B3B09300DAA2B00A3F5CC /* Resources */,
+				8D97F02D300EF4A3000C49D0 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				8D97F02B300EF4A3000C49D0 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				8D6B3B0D300DAA2B00A3F5CC /* app */,
@@ -82,6 +137,28 @@
 			productReference = 8D6B3B0B300DAA2B00A3F5CC /* app.app */;
 			productType = "com.apple.product-type.application";
 		};
+		8D97F021300EF4A3000C49D0 /* AzulzinShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8D97F031300EF4A3000C49D0 /* Build configuration list for PBXNativeTarget "AzulzinShare" */;
+			buildPhases = (
+				8D97F01E300EF4A3000C49D0 /* Sources */,
+				8D97F01F300EF4A3000C49D0 /* Frameworks */,
+				8D97F020300EF4A3000C49D0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				8D97F023300EF4A3000C49D0 /* AzulzinShare */,
+			);
+			name = AzulzinShare;
+			packageProductDependencies = (
+			);
+			productName = AzulzinShare;
+			productReference = 8D97F022300EF4A3000C49D0 /* AzulzinShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -93,6 +170,9 @@
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					8D6B3B0A300DAA2B00A3F5CC = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					8D97F021300EF4A3000C49D0 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -116,12 +196,20 @@
 			projectRoot = "";
 			targets = (
 				8D6B3B0A300DAA2B00A3F5CC /* app */,
+				8D97F021300EF4A3000C49D0 /* AzulzinShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		8D6B3B09300DAA2B00A3F5CC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8D97F020300EF4A3000C49D0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -138,7 +226,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8D97F01E300EF4A3000C49D0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8D97F02B300EF4A3000C49D0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8D97F021300EF4A3000C49D0 /* AzulzinShare */;
+			targetProxy = 8D97F02A300EF4A3000C49D0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		8D6B3B14300DAA2D00A3F5CC /* Debug */ = {
@@ -340,6 +443,66 @@
 			};
 			name = Release;
 		};
+		8D97F02E300EF4A3000C49D0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = AzulzinShare/AzulzinShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JM49F35G8A;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AzulzinShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AzulzinShare;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = br.com.azulzin.app.AzulzinShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		8D97F02F300EF4A3000C49D0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = AzulzinShare/AzulzinShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JM49F35G8A;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AzulzinShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AzulzinShare;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = br.com.azulzin.app.AzulzinShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -357,6 +520,15 @@
 			buildConfigurations = (
 				8D6B3B17300DAA2D00A3F5CC /* Debug */,
 				8D6B3B18300DAA2D00A3F5CC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8D97F031300EF4A3000C49D0 /* Build configuration list for PBXNativeTarget "AzulzinShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8D97F02E300EF4A3000C49D0 /* Debug */,
+				8D97F02F300EF4A3000C49D0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
