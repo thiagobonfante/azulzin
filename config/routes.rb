@@ -39,6 +39,11 @@ Rails.application.routes.draw do
         constraints: { provider: /google_oauth2/ }
     get "auth/failure", to: "omniauth_callbacks#failure"
 
+    # Native SSO (.plans/mobile/10): the shells verify identity via the platform SDKs
+    # (Google blocks OAuth inside webviews) and the page POSTs the ID token here.
+    post "auth/:provider/token", to: "token_sessions#create", as: :token_session,
+         constraints: { provider: /google_oauth2|apple/ }
+
     # Hotwire Native path configuration (.plans/mobile/01 §4) — public, per platform.
     get "configurations/:platform", to: "path_configurations#show", as: :path_configuration,
         constraints: { platform: /ios_v1|android_v1/ }, defaults: { format: :json }

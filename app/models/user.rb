@@ -139,7 +139,8 @@ class User < ApplicationRecord
   end
 
   def self.provider_email_verified?(auth)
-    auth.provider == "google_oauth2" &&
+    # Apple sends email_verified as true or "true" depending on era; .to_s covers both.
+    %w[google_oauth2 apple].include?(auth.provider) &&
       auth.dig("extra", "raw_info", "email_verified").to_s == "true"
   end
 
