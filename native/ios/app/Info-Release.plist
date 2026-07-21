@@ -6,5 +6,20 @@
 	     compliance question once here instead of on every upload (.plans/mobile/deploy-ios.md §0). -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Google SSO return leg (.plans/mobile/10) — must exist in BOTH plists: this file
+	     and Info-Debug.plist each serve only their own configuration. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>GoogleSSO</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.648002270527-p5ia5bhvviooa0ne51rl7vocbma0oplu</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

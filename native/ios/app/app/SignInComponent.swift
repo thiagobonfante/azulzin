@@ -51,7 +51,7 @@ final class SignInComponent: BridgeComponent {
         }
         GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { [weak self] result, _ in
             guard let idToken = result?.user.idToken?.tokenString else { return }   // nil = cancelled
-            self?.replyToken(message, idToken: idToken)
+            DispatchQueue.main.async { self?.replyToken(message, idToken: idToken) }
         }
         #endif
     }
@@ -62,9 +62,11 @@ final class SignInComponent: BridgeComponent {
         let request = ASAuthorizationAppleIDProvider().createRequest()
         request.requestedScopes = [.email]
         let flow = AppleFlow(anchor: presenter?.view.window) { [weak self] idToken in
-            self?.appleFlow = nil
-            guard let self, let idToken else { return }
-            self.replyToken(message, idToken: idToken)
+            DispatchQueue.main.async {
+                self?.appleFlow = nil
+                guard let self, let idToken else { return }
+                self.replyToken(message, idToken: idToken)
+            }
         }
         appleFlow = flow
         let controller = ASAuthorizationController(authorizationRequests: [request])
