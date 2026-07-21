@@ -32,6 +32,7 @@ class NativeVariantTest < ActionDispatch::IntegrationTest
     end
     assert_select "form[action='#{session_path}'] button"       # Sair
     assert_select "a[href='#{admin_whatsapp_connection_path}']", count: 0   # not an admin
+    assert_select "li[data-controller=modal] dialog form[action='#{referral_path}']"   # Convidar amigos
   end
 
   test "menu page renders for web too" do

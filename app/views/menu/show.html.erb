@@ -31,6 +31,19 @@
       <%= render "row", label: t("notification_preferences.show.title"), path: notification_preferences_path, icon: icons[:alerts] %>
       <%= render "row", label: t("exports.new.title"),                   path: new_export_path,               icon: icons[:export] %>
       <%= render "row", label: t("layout.nav.account_settings"),         path: account_path,                  icon: icons[:members] %>
+      <%# Refer-a-friend — same dialog as the web sidebar; a button row, not a link
+          (opens the modal in place, no navigation for the native stack to track). %>
+      <li data-controller="modal">
+        <button type="button" data-action="modal#open"
+                class="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-base-200">
+          <span class="inline-grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM3 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 019.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
+          </span>
+          <span class="flex-1 font-medium"><%= t("app.nav.invite") %></span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+        </button>
+        <%= render "shared/referral_modal" %>
+      </li>
       <% if Current.user.admin? %>
         <%= render "row", label: t("app.nav.admin"), path: admin_whatsapp_connection_path, icon: icons[:admin] %>
       <% end %>
