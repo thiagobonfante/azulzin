@@ -13,5 +13,5 @@ enum Config {
 
     // Native Google SSO (.plans/mobile/10): the iOS OAuth client id from the founder's
     // Google Cloud console. Empty = Google sign-in stays dormant (Apple still works).
-    static let googleClientID = ""
+    static let googleClientID = "648002270527-p5ia5bhvviooa0ne51rl7vocbma0oplu.apps.googleusercontent.com"
 }

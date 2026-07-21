@@ -26,7 +26,7 @@ android {
 
         // Native Google SSO (.plans/mobile/10): the WEB OAuth client id (Credential
         // Manager's serverClientId — it becomes the token's aud). Empty = dormant.
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"648002270527-bp86fvdelqd71gpk7scgl1rdcne7jf31.apps.googleusercontent.com\"")
     }
 
     signingConfigs {
