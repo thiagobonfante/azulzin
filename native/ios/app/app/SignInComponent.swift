@@ -18,6 +18,11 @@ import GoogleSignIn
 final class SignInComponent: BridgeComponent {
     override nonisolated class var name: String { "sign-in" }
 
+    // The external auth sheet resigns the app active; the privacy cover would slam over
+    // it and can cancel the session — SceneDelegate skips the cover while this is set,
+    // same doctrine as its `authenticating` guard for the Face ID sheet.
+    @MainActor static private(set) var externalAuthInFlight = false
+
     private var appleFlow: AppleFlow?   // retains the delegate while the sheet is up
 
     private struct SignInMessage: Decodable { let provider: String }
@@ -49,9 +54,13 @@ final class SignInComponent: BridgeComponent {
         if GIDSignIn.sharedInstance.configuration == nil {
             GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: Config.googleClientID)
         }
+        Self.externalAuthInFlight = true
         GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { [weak self] result, _ in
-            guard let idToken = result?.user.idToken?.tokenString else { return }   // nil = cancelled
-            DispatchQueue.main.async { self?.replyToken(message, idToken: idToken) }
+            DispatchQueue.main.async {
+                Self.externalAuthInFlight = false
+                guard let idToken = result?.user.idToken?.tokenString else { return }   // nil = cancelled
+                self?.replyToken(message, idToken: idToken)
+            }
         }
         #endif
     }
@@ -61,8 +70,10 @@ final class SignInComponent: BridgeComponent {
     private func signInWithApple(message: Message) {
         let request = ASAuthorizationAppleIDProvider().createRequest()
         request.requestedScopes = [.email]
+        Self.externalAuthInFlight = true
         let flow = AppleFlow(anchor: presenter?.view.window) { [weak self] idToken in
             DispatchQueue.main.async {
+                Self.externalAuthInFlight = false
                 self?.appleFlow = nil
                 guard let self, let idToken else { return }
                 self.replyToken(message, idToken: idToken)

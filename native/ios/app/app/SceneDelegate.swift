@@ -60,7 +60,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
     func sceneWillResignActive(_ scene: UIScene) {
         // Privacy: never let the app-switcher snapshot show balances. The Face ID sheet
         // itself resigns active — don't cover (and cancel the auth) mid-evaluation.
-        guard !authenticating else { return }
+        // Same for the Google/Apple SSO sheets (.plans/mobile/10): covering hides the
+        // signed-out auth screen (nothing private) and can cancel the session.
+        guard !authenticating, !SignInComponent.externalAuthInFlight else { return }
         showLockCover()
     }
 
