@@ -9,11 +9,14 @@
     <!-- Native push (.plans/mobile/04 §3): runtime permission requested by PushComponent. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- allowBackup=false: Auto Backup would ship app data (incl. the WebView session
+         cookie jar) to the user's Google Drive — never for a finance app. -->
     <application
         android:name=".AzulzinApplication"
         android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Azulzin"
-        android:allowBackup="true">
+        android:allowBackup="false">
         <!-- singleTask: a push-notification tap re-enters via onNewIntent with the
              data.url extra instead of stacking a second activity (.plans/mobile/04 §1). -->
         <activity

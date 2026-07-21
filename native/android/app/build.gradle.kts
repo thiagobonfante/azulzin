@@ -1,19 +1,39 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
 }
 
+// Upload keystore lives OUTSIDE git (native/android/keystore.properties + upload-keystore.jks,
+// both gitignored) — Play App Signing holds the real signing key, this one is replaceable.
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     namespace = "br.com.azulzin.app"
-    compileSdk = 35
+    compileSdk = 36          // Play's annual floor: API 36 required for new apps from Aug 31, 2026
 
     defaultConfig {
         applicationId = "br.com.azulzin.app"
         minSdk = 28          // Hotwire Native Android floor (.plans/mobile/03)
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystoreProps.isNotEmpty()) {
+                storeFile = rootProject.file(keystoreProps["storeFile"] as String)
+                storePassword = keystoreProps["storePassword"] as String
+                keyAlias = keystoreProps["keyAlias"] as String
+                keyPassword = keystoreProps["keyPassword"] as String
+            }
+        }
     }
 
     buildTypes {
@@ -26,6 +46,7 @@ android {
         release {
             buildConfigField("String", "BASE_URL", "\"https://app.azulzin.com.br\"")
             isMinifyEnabled = false
+            if (keystoreProps.isNotEmpty()) signingConfig = signingConfigs.getByName("release")
         }
     }
 

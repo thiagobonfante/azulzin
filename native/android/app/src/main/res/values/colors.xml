@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- azulzin daisyUI theme, hex-converted: base-200 (app background), base-content (text),
+     brand blue from public/icon-app.svg. Keep in sync with application.css @plugin block. -->
+<resources>
+    <color name="azulzin_bg">#EDF5FC</color>
+    <color name="azulzin_content">#1D2C42</color>
+    <color name="ic_launcher_background">#1D7ADB</color>
+</resources>
