@@ -25,9 +25,11 @@
         </div>
       <% end %>
 
-      <%# Hidden in the native shells: Google returns 403 disallowed_useragent inside
-          webviews. Google-only accounts set a password via "esqueci a senha". %>
-      <% unless turbo_native_app? %>
+      <%# Web gets the OAuth redirect; the shells get bridge buttons instead — Google
+          returns 403 disallowed_useragent inside webviews (.plans/mobile/10). %>
+      <% if turbo_native_app? %>
+        <%= render "sessions/native_sso" %>
+      <% else %>
         <div class="divider my-0 text-sm opacity-60"><%= t("shared.or") %></div>
 
         <%= button_to t("shared.continue_with_google"), "/auth/google_oauth2",

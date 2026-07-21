@@ -18,6 +18,7 @@ pt-BR:
   shared:
     rate_limited: "Muitas tentativas. Tente novamente daqui a alguns minutos."
     continue_with_google: "Continuar com o Google"
+    continue_with_apple: "Continuar com a Apple"
     or: "ou"
     not_allowed: "Esta conta não está autorizada a acessar o azulzin."
     confirm: "Confirmar"
