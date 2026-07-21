@@ -52,6 +52,32 @@
   margin-top: 0;
 }
 
+/* Chat fills the shell viewport so the composer pins at the bottom; the thread's
+   fixed 60vh stays for the web layout only. */
+.native-shell [data-chat-fill] {
+  height: calc(100dvh - 1.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+.native-shell [data-chat-fill] #chat_messages {
+  height: auto;
+  flex: 1;
+}
+
+/* Android edge-to-edge Chromium reports a phantom bottom safe-area inset even though
+   the webview ends ABOVE the native nav bar — kill the env(bottom) compensation there
+   (it belongs to iOS, where the floating tab bar really overlaps the webview). */
+.native-android main {
+  padding-bottom: 1rem;
+}
+.native-android nav.fixed.bottom-0 {
+  padding-bottom: 0;
+}
+.native-android .btn-circle.fixed {
+  margin-bottom: 0;
+}
+.native-android [data-chat-fill] {
+  height: calc(100dvh - 1.5rem);
+}
+
 /* ── azulzin: the little-blue light theme (default) ─────────────────────── */
 @plugin "./daisyui-theme.mjs" {
   name: "azulzin";

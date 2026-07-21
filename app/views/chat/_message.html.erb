@@ -8,7 +8,12 @@
     <% elsif message.type_document? %>
       <span class="italic opacity-80"><%= t("chat.message.document") %></span>
     <% elsif message.type_audio? %>
-      <span class="italic opacity-80"><%= t("chat.message.audio") %></span>
+      <% if message.media.attached? %>
+        <audio controls preload="metadata" src="<%= url_for(message.media) %>" class="my-1 max-w-56"></audio>
+      <% else %>
+        <%# 60-day retention purges chat media — the label survives as the tombstone. %>
+        <span class="italic opacity-80"><%= t("chat.message.audio") %></span>
+      <% end %>
     <% end %>
     <%= message.body %>
   </div>

@@ -1,7 +1,7 @@
 <% content_for :title, t(".title") %>
 <%= turbo_stream_from Current.user, :chat %>
 
-<section class="mx-auto flex w-full max-w-2xl flex-col">
+<section data-chat-fill class="mx-auto flex w-full max-w-2xl flex-col">
   <h1 data-native-dup class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
 
   <%# Newest-first children inside flex-col-reverse: the browser renders the first child at
