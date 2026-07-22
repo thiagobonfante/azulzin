@@ -3848,6 +3848,7 @@ frozen BCB rates 15,09% / 9,26% a.m.
 8. Back on the bill: "Conferir com o banco" → inform `1.100,00` → banner "**R$ 150,00 a mais que o banco**" + the picker, sorted closing-edge-first ("Na Borda do Corte" on top).
 9. Check "Na Borda do Corte" → the running number flips success + "Bate com o banco 💙" appears live. Submit → notice "1 lançamento movido…", banner now reads "Bate com o banco 💙", total recomputes to R$ 1.100,00, and the moved row sits on NEXT month's ledger (sticky: edit the card's closing offset and confirm the row stays put).
 10. Desfazer the payment → bill back to `em aberto`/`vencida`, Itaú derived balance restored.
+11. **PDF reconcile** (phases 4–6): craft a fatura PDF for the month (the §7 PDF-crafting recipes work; include the two big rows, DROP "Na Borda do Corte", add one line the app never saw, and a `card.sections` plastic like "@FILHA final 9911") → bill page → "Conferir com o PDF da fatura" → upload → the review polls to the diff: matched collapsed, "Só no banco" (create, checked), "Só no azulzin" (move, unchecked = manter), "Valor diferente" (fix), "Cartões nesta fatura" proposing the sub-card. Aplicar → created row carries the sub-card chip; re-uploading the same file is refused (duplicate), a SECOND PDF for the same card this month hits "Já conferimos este cartão neste mês" (CSV still rides free).
 
 **Expect:** every figure above to the centavo; the warning renders beside the field and never blocks submitting; carryover/encargos appear only after the due date and never as transaction rows.
 
@@ -3867,6 +3868,8 @@ Seed: `dev:seed_demo` · AI: none
 3. Nubank recent bill page: carryover + encargos-estimados lines from the partially-paid older bill render under the total.
 4. Itaú recent bill page: divergence banner "R$ 189,90 a mais que o banco" — one click on "Loja na Véspera do Corte" in the picker → "Bate com o banco 💙".
 5. Itaú older bill: **paga**, with its payment row; Nubank older: **parcialmente paga**.
+6. Sub-cards: the Nubank row on `/credit_cards` carries the "+2 cartões" chip → expands "virtual iFood" + "cartão da filha"; the Nubank recent bill's lines show their apelido chips; the stars mark Marina→Itaú and Rafael→Nubank (sign in as each), and starring another card moves the default for THAT member only.
+7. WA (dev-fake): rafael sends "50 no crédito" → silent post on **Nubank** (his default), reply names it; "20 no crédito da filha" → the sub-card, chip on the bill.
 
 **Expect:** the seed's verification block already asserted all of this at seed time — the tour is for the eyes (and the shells: repeat 3–4 in the iOS simulator / Android emulator).
 

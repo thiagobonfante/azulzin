@@ -132,6 +132,19 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     assert_equal 250_000 - 125_000, s.itau.derived_balance_cents
   end
 
+  # LGPD: the account cascade must erase bills and payment transfers without FK trips
+  # (found by the demo-seed wipe: card_bills referenced credit_cards mid-cascade).
+  test "account destroy cascades closed bills and their payment transfers" do
+    s = E2E::Scenario.build(:bill_closed)
+    travel 1.minute
+    CardBills::Pay.call(s.closed_bill, amount_cents: 50_000, paid_on: Date.current,
+                        bank_account: s.itau, created_by: s.owner)
+
+    bill_id = s.closed_bill.id
+    assert_nothing_raised { s.account.destroy! }
+    assert_equal 0, CardBill.where(id: bill_id).count
+  end
+
   private
 
   def push_ready(s)

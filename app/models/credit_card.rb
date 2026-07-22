@@ -6,6 +6,10 @@ class CreditCard < ApplicationRecord
   has_many :transactions, dependent: :nullify    # deleting a card must not erase history
   has_many :commitments,  dependent: :nullify    # card-charged subscriptions / installment plans (R10/R11)
   has_many :card_bills                           # closed faturas; stop rendering with a soft-deleted card
+  # Fatura payment transfers pointing AT this card (the destination leg) — nullify so a
+  # hard destroy (LGPD cascade) never trips the transfer_to_credit_card_id FK.
+  has_many :incoming_bill_payments, class_name: "Transaction",
+           foreign_key: :transfer_to_credit_card_id, dependent: :nullify
 
   # Sub-cards (.plans/credit-cards 04): one nullable self-FK, ONE level deep. A sub-card
   # (virtual copy / family adicional) carries no billing config and no limit — the cycle

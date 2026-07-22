@@ -263,6 +263,23 @@ module DemoSeed
     recent     = open_month << 1
     older      = open_month << 2
     edge_cents = 18_990
+
+    # Sub-cards under Rafael's Nubank (04): nicknames ARE the feature. A couple of rows
+    # each — one on the recently closed bill (sub-card chips on the bill page), one on the
+    # open bill. Default card per member: each spouse's own plastic.
+    subs = {
+      ifood: account.credit_cards.create!(institution: inst[:nubank], parent_card: cartoes[:nubank],
+                                          nickname: "virtual iFood", card_type: "virtual", last4: "7001", created_by: rafael),
+      filha: account.credit_cards.create!(institution: inst[:nubank], parent_card: cartoes[:nubank],
+                                          nickname: "cartão da filha", last4: "7002", created_by: rafael)
+    }
+    closing_recent = cartoes[:nubank].closing_date(recent)
+    add_expense.call("iFood",             "Restaurantes", subs[:ifood], 3_490, closing_recent - 2)
+    add_expense.call("iFood",             "Restaurantes", subs[:ifood], 5_690, closing_recent + 1)
+    add_expense.call("Lanchonete Escola", "Restaurantes", subs[:filha], 2_500, closing_recent - 5)
+    add_expense.call("Papelaria Central", "Educação",     subs[:filha], 4_200, closing_recent + 1)
+    marina.update!(default_credit_card_id: cartoes[:itau].id)
+    rafael.update!(default_credit_card_id: cartoes[:nubank].id)
     add_expense.call("Loja na Véspera do Corte", "Outros", cartoes[:itau], edge_cents,
                      cartoes[:itau].closing_date(recent))   # ON the closing date → `recent`'s bill
 
@@ -358,6 +375,13 @@ module DemoSeed
     abort "FAIL: Itaú #{older.strftime('%m/%Y')} must read paga." unless itau_older.reload.status == "paid"
     abort "FAIL: expected the pay-CTA notification for both members." unless
       Notification.where(account: account, kind: %w[card_due card_overdue]).count == 2
+    # Count-once invariant on the seeded family: sub-card rows ride the ROOT's recent bill.
+    sub_recent = account.transactions.posted.kept
+                        .where(credit_card_id: subs.values.map(&:id), billing_month: recent).sum(:amount_cents)
+    abort "FAIL: expected the sub-cards' rows on the Nubank #{recent.strftime('%m/%Y')} bill." unless sub_recent == 3_490 + 2_500
+    abort "FAIL: expected each member to carry a default card." unless
+      marina.reload.default_credit_card && rafael.reload.default_credit_card
+    puts "  • sub-cards: #{subs.values.map(&:display_name).join(' · ')} (defaults: Marina→Itaú, Rafael→Nubank)"
 
     s = MonthSummary.new(account, this_month)
     puts "\nMonthSummary #{this_month.strftime('%m/%Y')}: entradas #{brl.(s.entradas_cents)} · " \
