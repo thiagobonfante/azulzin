@@ -17,8 +17,11 @@
     <%= form_with url: document_imports_path, method: :post, multipart: true,
                   class: "mt-4 flex flex-col gap-3 sm:flex-row sm:items-center" do %>
       <label class="sr-only" for="document_import_files"><%= t("document_imports.choose_files") %></label>
+      <%# MIME types FIRST: Android's file chooser builds its intent from accept, and an
+          extension-only list resolves to no MIME type → "No apps can perform this action"
+          (found on the emulator, .plans/credit-cards walk). Extensions stay for desktop UX. %>
       <input type="file" id="document_import_files" name="document_import[files][]" multiple
-             accept=".pdf,.csv,.ofx,.txt"
+             accept="application/pdf,text/csv,text/plain,application/x-ofx,.pdf,.csv,.ofx,.txt"
              class="file-input file-input-bordered w-full sm:max-w-xs"
              data-import-upload-target="input"
              data-action="import-upload#validate">
