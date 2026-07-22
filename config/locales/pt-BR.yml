@@ -553,7 +553,6 @@ pt-BR:
       due_on: "Vence em %{date}"
       total: "Total da fatura"
       paid_so_far: "Pago"
-      computed_differs: "Calculado pelo azulzin: %{amount}. Compras perto do fechamento às vezes ficam para a fatura seguinte."
       pay: "Pagar fatura"
       lines_title: "Lançamentos"
       no_lines: "Nenhum lançamento nesta fatura."
@@ -584,6 +583,28 @@ pt-BR:
       invalid_amount: "Informe um valor válido."
     unpay:
       undone: "Pagamento desfeito."
+    divergence:
+      title: "Conferir com o banco"
+      hint: "O valor calculado pode diferir do banco — compras perto do fechamento às vezes ficam para a fatura seguinte."
+      inform_label: "Valor no banco"
+      inform_submit: "Conferir"
+      correct_cta: "Corrigir o valor do banco"
+      matches: "Bate com o banco 💙"
+      ours_higher: "%{amount} a mais que o banco"
+      bank_higher: "%{amount} a menos que o banco"
+      bank_higher_hint: "Tem cobrança no banco que ainda não está aqui — adicione o lançamento que falta nos Movimentos."
+      picker_title: "Escolher o que ficou para a próxima fatura"
+      picker_hint: "Compras perto do fechamento são as mais prováveis — marque as que o banco jogou para a frente."
+      running_ours: "Nosso total sem as marcadas"
+      running_stated: "Valor no banco"
+      move_submit: "Mover para a próxima fatura"
+    update:
+      stated_saved: "Valor do banco registrado."
+    carry_over:
+      moved:
+        one: "1 lançamento movido para a próxima fatura."
+        other: "%{count} lançamentos movidos para a próxima fatura."
+      none: "Nenhum lançamento selecionado."
   incomes:
     add_title: "Adicionar renda"
     edit_title: "Editar renda"

@@ -29,13 +29,6 @@
         <span class="tabular-nums font-medium text-success"><%= brl(@bill.paid_cents) %></span>
       </div>
     <% end %>
-    <%# Late captures with a pre-closing date still land here — show the drift so the page
-        never silently disagrees with what the user saw at close time (01 §1). %>
-    <% if @bill.stated_total_cents.present? && @bill.stated_total_cents != @bill.computed_total_cents %>
-      <p class="mt-2 text-xs text-base-content/50">
-        <%= t(".computed_differs", amount: brl(@bill.computed_total_cents)) %>
-      </p>
-    <% end %>
     <div class="mt-3 flex flex-wrap gap-2">
       <% unless @bill.paid? %>
         <button type="button" class="btn btn-primary btn-sm" data-action="modal#open">
@@ -44,6 +37,8 @@
       <% end %>
     </div>
   </section>
+
+  <%= render "card_bills/divergence", bill: @bill, lines: @lines %>
 
   <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
     <h2 class="mb-2 text-sm font-semibold"><%= t(".lines_title") %></h2>

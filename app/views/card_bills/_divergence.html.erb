@@ -1,0 +1,83 @@
+<%# locals: bill, lines — "conferir com o banco" (.plans/credit-cards 03 §1). No stated
+    value yet → the honest hint + the inform form. Stated present → match / ours-higher
+    (picker) / bank-higher (copy pointing at a manual add). %>
+<section id="divergence" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+  <h2 class="mb-2 text-sm font-semibold"><%= t("card_bills.divergence.title") %></h2>
+
+  <% if bill.stated_total_cents.nil? %>
+    <p class="text-xs text-base-content/50"><%= t("card_bills.divergence.hint") %></p>
+    <%= form_with url: card_bill_path(bill), method: :patch, class: "mt-2 flex items-end gap-2", data: { turbo: false } do %>
+      <div class="form-control">
+        <label class="mb-1 text-xs text-base-content/60" for="divergence_stated_total"><%= t("card_bills.divergence.inform_label") %></label>
+        <label class="input input-bordered input-sm flex items-center gap-1">
+          <span class="text-base-content/50"><%= t("money.symbol") %></span>
+          <%= text_field_tag :stated_total_reais, nil, id: "divergence_stated_total",
+                inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+        </label>
+      </div>
+      <%= submit_tag t("card_bills.divergence.inform_submit"), class: "btn btn-primary btn-sm" %>
+    <% end %>
+  <% else %>
+    <% diff = bill.computed_total_cents - bill.stated_total_cents %>
+    <% if diff.zero? %>
+      <div role="status" class="alert alert-success py-2 text-sm"><span><%= t("card_bills.divergence.matches") %></span></div>
+    <% elsif diff.positive? %>
+      <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.divergence.ours_higher", amount: brl(diff)) %></span></div>
+
+      <%# The left-behind picker: closest to closing first (the likely culprits float up);
+          estornos ride with a negative weight so the running sum stays honest. %>
+      <%= form_with url: carry_over_card_bill_path(bill), method: :patch, class: "mt-3",
+            data: { controller: "carry-over",
+                    carry_over_computed_value: bill.computed_total_cents,
+                    carry_over_stated_value: bill.stated_total_cents, turbo: false } do %>
+        <p class="mb-1 text-sm font-medium"><%= t("card_bills.divergence.picker_title") %></p>
+        <p class="mb-2 text-xs text-base-content/50"><%= t("card_bills.divergence.picker_hint") %></p>
+        <ul class="flex max-h-64 flex-col gap-1 overflow-y-auto">
+          <% lines.sort_by { |l| [ l.occurred_on, l.id ] }.reverse.each do |line| %>
+            <li>
+              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
+                <input type="checkbox" name="transaction_ids[]" value="<%= line.id %>"
+                       class="checkbox checkbox-xs"
+                       data-carry-over-target="checkbox" data-action="carry-over#recount"
+                       data-amount="<%= line.income? ? -line.amount_cents : line.amount_cents %>">
+                <span class="min-w-0 flex-1 truncate">
+                  <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
+                  · <%= l(line.occurred_on, format: :short) %>
+                </span>
+                <span class="tabular-nums"><%= brl(line.amount_cents) %></span>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+        <div class="mt-2 flex flex-wrap items-baseline justify-between gap-2 rounded-box bg-base-200/60 px-3 py-2 text-xs">
+          <span>
+            <%= t("card_bills.divergence.running_ours") %>:
+            <span class="font-medium tabular-nums"><%= t("money.symbol") %> <span data-carry-over-target="remaining"></span></span>
+            · <%= t("card_bills.divergence.running_stated") %>:
+            <span class="font-medium tabular-nums"><%= brl(bill.stated_total_cents) %></span>
+          </span>
+          <span data-carry-over-target="match" class="hidden font-medium text-success"><%= t("card_bills.divergence.matches") %></span>
+        </div>
+        <%= submit_tag t("card_bills.divergence.move_submit"), class: "btn btn-primary btn-sm mt-2" %>
+      <% end %>
+    <% else %>
+      <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.divergence.bank_higher", amount: brl(-diff)) %></span></div>
+      <p class="mt-2 text-xs text-base-content/50"><%= t("card_bills.divergence.bank_higher_hint") %></p>
+    <% end %>
+
+    <%# Correcting a typo'd bank value stays one small disclosure away. %>
+    <details class="mt-3">
+      <summary class="cursor-pointer text-xs text-base-content/50"><%= t("card_bills.divergence.correct_cta") %></summary>
+      <%= form_with url: card_bill_path(bill), method: :patch, class: "mt-2 flex items-end gap-2", data: { turbo: false } do %>
+        <label class="input input-bordered input-sm flex items-center gap-1">
+          <span class="text-base-content/50"><%= t("money.symbol") %></span>
+          <%= text_field_tag :stated_total_reais, MoneyColumns.prefill(bill.stated_total_cents),
+                inputmode: "decimal", required: true, class: "grow", aria: { label: t("card_bills.divergence.inform_label") },
+                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+        </label>
+        <%= submit_tag t("card_bills.divergence.inform_submit"), class: "btn btn-ghost btn-sm" %>
+      <% end %>
+    </details>
+  <% end %>
+</section>

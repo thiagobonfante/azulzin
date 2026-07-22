@@ -33,6 +33,24 @@ class CardBillsController < ApplicationController
     redirect_to card_bill_path(@bill), notice: t(".undone")
   end
 
+  # Informing (or correcting) the bank's number from the bill page (.plans/credit-cards 03 §1).
+  def update
+    stated = Money.to_cents(params[:stated_total_reais]).to_i
+    return redirect_to card_bill_path(@bill), alert: t("card_bills.pay.invalid_amount") unless stated.positive?
+    @bill.update!(stated_total_cents: stated)
+    redirect_to card_bill_path(@bill), notice: t(".stated_saved")
+  end
+
+  # The left-behind batch move: each picked row goes to the NEXT fatura via the existing
+  # sticky manual-move (recompute passes already respect billing_month_manual).
+  def carry_over
+    rows = @bill.credit_card.transactions.posted.kept
+                .where(billing_month: @bill.billing_month, id: Array(params[:transaction_ids]))
+    return redirect_to card_bill_path(@bill), alert: t(".none") if rows.none?
+    rows.each { |row| row.update!(billing_month: @bill.billing_month >> 1, billing_month_manual: true) }
+    redirect_to card_bill_path(@bill), notice: t(".moved", count: rows.size)
+  end
+
   private
     def set_bill
       @bill = Current.account.card_bills.includes(credit_card: :institution).find(params[:id])

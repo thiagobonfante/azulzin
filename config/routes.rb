@@ -83,11 +83,13 @@ Rails.application.routes.draw do
     end
     resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
 
-    # Closed faturas (.plans/credit-cards 01): the bill page + the Pagar/unpay actions.
-    resources :card_bills, only: :show do
+    # Closed faturas (.plans/credit-cards 01+03): the bill page, Pagar/unpay, the bank's
+    # number (update) and the left-behind picker (carry_over).
+    resources :card_bills, only: %i[show update] do
       member do
         post  :pay
         patch :unpay
+        patch :carry_over
       end
     end
 

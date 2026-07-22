@@ -552,7 +552,6 @@ en:
       due_on: "Due on %{date}"
       total: "Bill total"
       paid_so_far: "Paid"
-      computed_differs: "Computed by azulzin: %{amount}. Purchases near closing sometimes roll to the next bill."
       pay: "Pay bill"
       lines_title: "Charges"
       no_lines: "No charges on this bill."
@@ -583,6 +582,28 @@ en:
       invalid_amount: "Enter a valid amount."
     unpay:
       undone: "Payment undone."
+    divergence:
+      title: "Check against the bank"
+      hint: "The computed total can differ from the bank's — purchases near closing sometimes roll to the next bill."
+      inform_label: "Bank's total"
+      inform_submit: "Check"
+      correct_cta: "Correct the bank's total"
+      matches: "Matches the bank 💙"
+      ours_higher: "%{amount} above the bank"
+      bank_higher: "%{amount} below the bank"
+      bank_higher_hint: "The bank has a charge that isn't here yet — add the missing entry in Movements."
+      picker_title: "Pick what rolled to the next bill"
+      picker_hint: "Purchases near closing are the likely ones — check the ones the bank pushed forward."
+      running_ours: "Our total minus the checked"
+      running_stated: "Bank's total"
+      move_submit: "Move to the next bill"
+    update:
+      stated_saved: "Bank's total recorded."
+    carry_over:
+      moved:
+        one: "1 entry moved to the next bill."
+        other: "%{count} entries moved to the next bill."
+      none: "No entries selected."
   incomes:
     add_title: "Add income"
     edit_title: "Edit income"
