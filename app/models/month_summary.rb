@@ -66,14 +66,24 @@ class MonthSummary
 
   # §7.2 — { credit_card => cents } composed bill figure per card. A CLOSED bill row
   # swaps in its effective total (the bank's number when informed — .plans/credit-cards
-  # 01 §4.4); open months keep the live query.
+  # 01 §4.4); open months keep the live query. The previous bill's unpaid remainder rides
+  # as the carryover + estimated-encargos term (02 §5) — labeled lines, never rows.
   def bill_totals
     @bill_totals ||= begin
       closed = account.card_bills.where(billing_month: @month).index_by(&:credit_card_id)
       account.credit_cards.kept.index_with do |card|
-        closed[card.id]&.effective_total_cents || card.bill_cents(@month)
+        base = closed[card.id]&.effective_total_cents || card.bill_cents(@month)
+        base + card_carryovers[card]&.fetch(:total_cents).to_i
       end
     end
+  end
+
+  # { credit_card => carryover projection | absent } — the labeled lines the bills tile
+  # renders under each card (.plans/credit-cards 02 §5).
+  def card_carryovers
+    @card_carryovers ||= account.credit_cards.kept
+                                .index_with { |card| CardBills::Carryover.for(card, @month) }
+                                .compact
   end
 
   # §7.1 — { bank_account_id => cents|nil } derived balance ("now", month-independent).

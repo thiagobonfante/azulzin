@@ -171,8 +171,8 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
   test "an invited member of a stocked account can skip to the app without duplicating categories" do
     @user.update!(name: "Owner", phone: "5511900000000", onboarded_at: Time.current)
     add_income
-    @user.onboard!                                                 # owner seeds the 12 categories
-    assert_equal 12, @user.account.categories.kept.count
+    @user.onboard!                                                 # owner seeds the 13 categories
+    assert_equal 13, @user.account.categories.kept.count
 
     member = User.create!(email_address: "bia@example.com", password: "password123", name: "Bia", phone: "5511988887777")
     @user.account.memberships.create!(user: member, role: "member")
@@ -186,7 +186,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     patch onboarding_skip_url
     assert_redirected_to dashboard_url
     assert member.reload.onboarded?
-    assert_equal 12, @user.account.categories.kept.count, "no duplicate categories (call-site guard)"
+    assert_equal 13, @user.account.categories.kept.count, "no duplicate categories (call-site guard)"
   end
 
   test "a member with an incomplete profile cannot skip (bounces to profile, stays not onboarded)" do

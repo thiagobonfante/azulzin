@@ -30,7 +30,7 @@ module Reminders
       @to      = to
     end
 
-    def call = bill_events + card_events + income_events
+    def call = bill_events + card_events + card_overdue_events + income_events
 
     private
 
@@ -90,6 +90,22 @@ module Reminders
           payload[:amount_cents] = bill.effective_total_cents
         end
         event(kind, card, date, **payload)
+      end
+    end
+
+    # One escalation per closed unpaid bill once past due (.plans/credit-cards phase 3):
+    # period_key = the bill's month, so however many mornings re-scan an unpaid bill, the
+    # dedup key (kind, card, billing_month) yields ONE row ever. Paid bills never fire;
+    # amount = what's still open (partial payments shrink it at snapshot time).
+    def card_overdue_events
+      @account.card_bills.includes(credit_card: :institution)
+              .where(due_on: ...@from).filter_map do |bill|
+        card = bill.credit_card
+        next if card.soft_deleted? || bill.paid?
+        event("card_overdue", card, bill.billing_month,
+              card: card.display_name,
+              amount_cents: bill.effective_total_cents - bill.paid_cents,
+              due_on: bill.due_on.iso8601, card_bill_id: bill.id)
       end
     end
 

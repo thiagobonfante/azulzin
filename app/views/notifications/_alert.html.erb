@@ -29,7 +29,7 @@
                                                  notification_id: notification.id),
                   method: :patch, class: "btn btn-primary btn-xs" %>
           <% end %>
-        <% elsif notification.kind == "card_due" && notification.payload["card_bill_id"].present? %>
+        <% elsif %w[card_due card_overdue].include?(notification.kind) && notification.payload["card_bill_id"].present? %>
           <%# A closed bill exists → deep-link to its page, where the Pagar modal lives
               (.plans/credit-cards 01 §4.3). Bill gone (card deleted) → find_by nil, no button. %>
           <% if (bill = Current.account.card_bills.find_by(id: notification.payload["card_bill_id"])) %>

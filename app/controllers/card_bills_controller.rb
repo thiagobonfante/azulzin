@@ -33,6 +33,14 @@ class CardBillsController < ApplicationController
     redirect_to card_bill_path(@bill), notice: t(".undone")
   end
 
+  # The live partial-payment warning (.plans/credit-cards 02 §4): the Pagar modal fetches
+  # this as the amount is typed — the projection math stays server-side.
+  def projection
+    typed = Money.to_cents(params[:amount_reais]).to_i
+    render partial: "card_bills/rotativo_warning",
+           locals: { bill: @bill, paid_cents: @bill.paid_cents + [ typed, 0 ].max }, layout: false
+  end
+
   # Informing (or correcting) the bank's number from the bill page (.plans/credit-cards 03 §1).
   def update
     stated = Money.to_cents(params[:stated_total_reais]).to_i

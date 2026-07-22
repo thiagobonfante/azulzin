@@ -1,0 +1,20 @@
+<%# locals: carry — the two labeled projection lines (.plans/credit-cards 02 §5): what an
+    underpaid previous bill drags onto this month. Presentation-only, never rows. A
+    negative carryover (overpay) renders as a credit with no encargos line. %>
+<ul class="flex flex-col gap-0.5">
+  <li class="flex items-center justify-between text-xs <%= carry[:carryover_cents].negative? ? "text-success" : "text-warning" %>">
+    <span><%= t("card_bills.carryover.from_bill", month: l(carry[:from_month], format: :month_name)) %></span>
+    <span class="tabular-nums"><%= brl(carry[:carryover_cents]) %></span>
+  </li>
+  <% if carry[:encargos_cents].positive? %>
+    <li class="flex items-center justify-between text-xs text-warning">
+      <span><%= t("card_bills.carryover.estimated_charges") %></span>
+      <span class="tabular-nums"><%= brl(carry[:encargos_cents]) %></span>
+    </li>
+    <% if carry[:rate_month] %>
+      <li class="text-[10px] text-base-content/40">
+        <%= t("card_bills.carryover.estimate_label", month: l(carry[:rate_month], format: :month_year)) %>
+      </li>
+    <% end %>
+  <% end %>
+</ul>

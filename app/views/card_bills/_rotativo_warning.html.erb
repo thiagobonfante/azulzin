@@ -1,0 +1,64 @@
+<%# locals: bill, paid_cents (Σ payments including the amount being typed) — the honest
+    partial-payment warning (.plans/credit-cards 02 §4). Renders beside the field, never
+    blocks, never a red wall. Empty when the payment covers the bill. %>
+<% total = bill.effective_total_cents %>
+<% if paid_cents.positive? && paid_cents < total %>
+  <% rot  = BcbRate.current("rotativo") %>
+  <% parc = BcbRate.current("parcelamento") %>
+  <% min_cents = bill.stated_minimum_cents || (total * 15 / 100) %>
+  <div class="rounded-box border border-warning/40 bg-warning/10 p-3 text-xs" role="status">
+    <p class="font-medium">
+      <% if rot %>
+        <%= t("card_bills.rotativo.below_total", rate: number_with_precision(rot.monthly_rate, precision: 1)) %>
+      <% else %>
+        <%= t("card_bills.rotativo.below_total_generic") %>
+      <% end %>
+    </p>
+    <% if paid_cents < min_cents %>
+      <p class="mt-1">
+        <%= t("card_bills.rotativo.below_minimum",
+              minimum: brl(min_cents),
+              label: (bill.stated_minimum_cents ? "" : t("card_bills.rotativo.assumed_minimum"))).strip %>
+      </p>
+    <% end %>
+
+    <% if rot && parc && (proj = Rotativo.projection(total, paid_cents,
+                                                     rotativo_am: rot.monthly_rate, parcelado_am: parc.monthly_rate)) %>
+      <div class="mt-2">
+        <p class="text-base-content/60">
+          <%= t("card_bills.rotativo.panel_title", amount: brl(total - proj[:financed_cents])) %>
+          <span class="text-base-content/40"><%= t("card_bills.carryover.estimate_label", month: (l(rot.reference_month, format: :month_year))) %></span>
+        </p>
+        <div class="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-4">
+          <div><p class="text-base-content/50"><%= t("card_bills.rotativo.left_behind") %></p><p class="font-medium tabular-nums"><%= brl(proj[:financed_cents]) %></p></div>
+          <div><p class="text-base-content/50"><%= t("card_bills.rotativo.next_bill") %></p><p class="font-medium tabular-nums">+<%= brl(proj[:next_bill_add_cents]) %></p></div>
+          <div><p class="text-base-content/50"><%= t("card_bills.rotativo.after_six") %></p><p class="font-medium tabular-nums"><%= brl(proj[:schedule][5]) %></p></div>
+          <div><p class="text-base-content/50"><%= t("card_bills.rotativo.total_cost") %></p><p class="font-medium tabular-nums"><%= brl(proj[:total_cost_cents]) %></p></div>
+        </div>
+        <p class="mt-0.5 text-base-content/40"><%= t("card_bills.rotativo.bill_was", amount: brl(total)) %></p>
+
+        <%# Remaining-debt bars, month by month — CSS only (house rule: no chart library). %>
+        <% max = [ proj[:schedule].first, 1 ].max %>
+        <div class="mt-2 flex h-8 items-end gap-0.5" aria-hidden="true">
+          <% proj[:schedule].each do |balance| %>
+            <div class="w-3 rounded-t bg-warning/60" style="height: <%= (balance * 100.0 / max).clamp(2, 100).round %>%"></div>
+          <% end %>
+        </div>
+
+        <details class="mt-2">
+          <summary class="cursor-pointer text-base-content/50"><%= t("card_bills.rotativo.schedule_cta") %></summary>
+          <ol class="mt-1 flex flex-col gap-0.5">
+            <% proj[:schedule].each_with_index do |balance, index| %>
+              <li class="flex justify-between tabular-nums text-base-content/60">
+                <span><%= t("card_bills.rotativo.schedule_row", number: index + 1, parcel: brl(proj[:parcel_cents])) %></span>
+                <span><%= t("card_bills.rotativo.schedule_remaining", amount: brl(balance)) %></span>
+              </li>
+            <% end %>
+          </ol>
+        </details>
+
+        <p class="mt-2 text-base-content/60"><%= t("card_bills.rotativo.cap_reassurance", months: proj[:months_to_cap]) %></p>
+      </div>
+    <% end %>
+  </div>
+<% end %>

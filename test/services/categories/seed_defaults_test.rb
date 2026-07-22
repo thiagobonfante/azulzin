@@ -1,14 +1,15 @@
 require "test_helper"
 
 class Categories::SeedDefaultsTest < ActiveSupport::TestCase
-  test "seeds exactly 12 categories in the user's locale, idempotently" do
+  test "seeds exactly 13 categories in the user's locale, idempotently" do
     user = users(:confirmed) # pt-BR
     assert_equal 0, user.account.categories.count
     Categories::SeedDefaults.call(user.account, locale: user.locale)
     Categories::SeedDefaults.call(user.account, locale: user.locale) # run twice — restores nothing extra
-    assert_equal 12, user.account.categories.count
+    assert_equal 13, user.account.categories.count
     assert_includes user.account.categories.pluck(:name), "Mercado"
-    assert_equal (0..11).to_a, user.account.categories.order(:position).pluck(:position)
+    assert_includes user.account.categories.pluck(:name), "Encargos"   # P0 #6 — debt cost stays visible
+    assert_equal (0..12).to_a, user.account.categories.order(:position).pluck(:position)
   end
 
   test "seeds English names for an en-US user" do

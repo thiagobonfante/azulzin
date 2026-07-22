@@ -17,6 +17,9 @@ module Notifications
     # can land exactly on the previous month's due date — distinct kinds keep both.
     "card_closing"     => { toggle: "bill_reminders", url: "/credit_cards" },
     "card_due"         => { toggle: "bill_reminders", url: "/credit_cards" },
+    # The escalation card_due never had (.plans/credit-cards 01 §4.3): a closed bill past
+    # due and not paid. Fires once per bill (period_key = billing_month) and deep-links it.
+    "card_overdue"     => { toggle: "bill_reminders", url: "/credit_cards" },
     "income_expected"  => { toggle: "bill_reminders", url: "/incomes" },
     "budget_warn"      => { toggle: "budget_alerts", url: "/dashboard" },
     "budget_breach"    => { toggle: "budget_alerts", url: "/dashboard" },

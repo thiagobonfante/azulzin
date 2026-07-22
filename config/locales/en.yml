@@ -604,6 +604,25 @@ en:
         one: "1 entry moved to the next bill."
         other: "%{count} entries moved to the next bill."
       none: "No entries selected."
+    carryover:
+      from_bill: "carried from the %{month} bill"
+      estimated_charges: "estimated charges"
+      estimate_label: "estimate (Central Bank average rates, %{month})"
+    rotativo:
+      below_total: "Paying less than the total starts revolving credit — today it costs an average of %{rate}% a month."
+      below_total_generic: "Paying less than the total starts revolving credit — card interest is among the most expensive there is."
+      below_minimum: "Below the minimum payment (%{minimum}%{label}) it becomes a late payment: 2% fine, 1% monthly interest, and the card can be blocked and your name sent to collections."
+      assumed_minimum: ", estimated at 15%"
+      panel_title: "If you pay %{amount} today:"
+      left_behind: "left behind"
+      next_bill: "next bill"
+      after_six: "still owed in 6 months"
+      total_cost: "total cost to pay off"
+      bill_was: "(the bill was %{amount})"
+      schedule_cta: "see month by month"
+      schedule_row: "installment %{number} of %{parcel}"
+      schedule_remaining: "%{amount} left"
+      cap_reassurance: "The law caps charges at 100% of what was left — your debt can at most double. But it doubles in ~%{months} months."
   incomes:
     add_title: "Add income"
     edit_title: "Edit income"
@@ -768,6 +787,7 @@ en:
       - "Subscriptions"
       - "Clothing"
       - "Travel"
+      - "Interest & fees"
       - "Other"
     add_title: "Add category"
     name: "Name"
@@ -1324,6 +1344,7 @@ en:
         zero: "Your %{card} bill closed at %{amount} and is due today — you can pay it now."
         one: "Your %{card} bill closed at %{amount} and is due tomorrow — you can pay it now."
         other: "Your %{card} bill closed at %{amount} and is due in %{count} days — you can pay it now."
+      card_overdue: "Your %{card} bill is overdue with %{amount} still open — revolving credit is expensive, worth paying off."
       income_expected:
         zero: "%{name} (%{amount}) should land today."
         one: "%{name} (%{amount}) should land tomorrow."
@@ -1393,6 +1414,9 @@ en:
           zero: "Your %{card} bill is due today — tap to pay."
           one: "Your %{card} bill is due tomorrow — tap to pay."
           other: "Your %{card} bill is due in %{count} days — tap to pay."
+      card_overdue:
+        title: "Bill overdue"
+        body: "Your %{card} bill is overdue — tap to pay."
       income_expected:
         title: "Income expected"
         body:
@@ -1727,6 +1751,7 @@ en:
           zero: "📄 The *%{card}* bill closed at %{amount} and is due today. You can pay it in the app. 💙"
           one: "📄 The *%{card}* bill closed at %{amount} and is due tomorrow. You can pay it in the app. 💙"
           other: "📄 The *%{card}* bill closed at %{amount} and is due in %{count} days. You can pay it in the app. 💙"
+        card_overdue: "⚠️ The *%{card}* bill is overdue with %{amount} still open. Revolving credit is expensive — you can pay it in the app. 💙"
         income_expected:
           zero: "💰 Your *%{name}* of %{amount} should land today. 💙"
           one: "💰 Your *%{name}* of %{amount} should land tomorrow. 💙"

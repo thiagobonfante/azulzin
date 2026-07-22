@@ -605,6 +605,25 @@ pt-BR:
         one: "1 lançamento movido para a próxima fatura."
         other: "%{count} lançamentos movidos para a próxima fatura."
       none: "Nenhum lançamento selecionado."
+    carryover:
+      from_bill: "veio da fatura de %{month}"
+      estimated_charges: "encargos estimados"
+      estimate_label: "estimativa (taxas médias do Banco Central, %{month})"
+    rotativo:
+      below_total: "Pagar menos que o total liga o rotativo — hoje isso custa em média %{rate}% ao mês."
+      below_total_generic: "Pagar menos que o total liga o rotativo — os juros do cartão são dos mais caros que existem."
+      below_minimum: "Abaixo do pagamento mínimo (%{minimum}%{label}) vira atraso: multa de 2%, mora de 1% ao mês, e o cartão pode ser bloqueado e o nome negativado."
+      assumed_minimum: ", estimado em 15%"
+      panel_title: "Se pagar %{amount} hoje:"
+      left_behind: "fica p/ trás"
+      next_bill: "próx. fatura"
+      after_six: "em 6 meses ainda deve"
+      total_cost: "custo total até quitar"
+      bill_was: "(fatura era %{amount})"
+      schedule_cta: "ver mês a mês"
+      schedule_row: "parcela %{number} de %{parcel}"
+      schedule_remaining: "restam %{amount}"
+      cap_reassurance: "A lei limita os encargos a 100% do valor que ficou — sua dívida pode no máximo dobrar. Mas dobra em ~%{months} meses."
   incomes:
     add_title: "Adicionar renda"
     edit_title: "Editar renda"
@@ -769,6 +788,7 @@ pt-BR:
       - "Assinaturas"
       - "Vestuário"
       - "Viagem"
+      - "Encargos"
       - "Outros"
     add_title: "Adicionar categoria"
     name: "Nome"
@@ -1325,6 +1345,7 @@ pt-BR:
         zero: "A fatura do %{card} fechou em %{amount} e vence hoje — já dá para pagar."
         one: "A fatura do %{card} fechou em %{amount} e vence amanhã — já dá para pagar."
         other: "A fatura do %{card} fechou em %{amount} e vence em %{count} dias — já dá para pagar."
+      card_overdue: "A fatura do %{card} venceu e ainda tem %{amount} em aberto — o rotativo é caro, vale quitar."
       income_expected:
         zero: "%{name} de %{amount} deve cair hoje."
         one: "%{name} de %{amount} deve cair amanhã."
@@ -1394,6 +1415,9 @@ pt-BR:
           zero: "A fatura do %{card} vence hoje — toque para pagar."
           one: "A fatura do %{card} vence amanhã — toque para pagar."
           other: "A fatura do %{card} vence em %{count} dias — toque para pagar."
+      card_overdue:
+        title: "Fatura vencida"
+        body: "A fatura do %{card} venceu — toque para pagar."
       income_expected:
         title: "Entrada prevista"
         body:
@@ -1728,6 +1752,7 @@ pt-BR:
           zero: "📄 A fatura do *%{card}* fechou em %{amount} e vence hoje. Dá pra pagar pelo app. 💙"
           one: "📄 A fatura do *%{card}* fechou em %{amount} e vence amanhã. Dá pra pagar pelo app. 💙"
           other: "📄 A fatura do *%{card}* fechou em %{amount} e vence em %{count} dias. Dá pra pagar pelo app. 💙"
+        card_overdue: "⚠️ A fatura do *%{card}* venceu e ainda tem %{amount} em aberto. O rotativo é caro — dá pra pagar pelo app. 💙"
         income_expected:
           zero: "💰 Seu *%{name}* de %{amount} deve cair hoje. 💙"
           one: "💰 Seu *%{name}* de %{amount} deve cair amanhã. 💙"

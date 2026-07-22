@@ -20,6 +20,8 @@ class Notifications::TemplateShapeTest < ActiveSupport::TestCase
     # A closed CardBill row exists → the pay framing (.plans/credit-cards 01 §4.3); the
     # card_bill_id in the payload is what forks the template key.
     "card_due_payable" => (0..3).map { |d| { kind: "card_due", payload: { "card" => "Nubank", "amount_cents" => 234_056, "date" => "2026-07-17", "days_until" => d, "card_bill_id" => 7 } } },
+    # The once-per-bill escalation (.plans/credit-cards phase 3), as Reminders::Scan snapshots it.
+    "card_overdue"     => [ { kind: "card_overdue", payload: { "card" => "Nubank", "amount_cents" => 234_056, "due_on" => "2026-07-10", "card_bill_id" => 7 } } ],
     "income_expected"  => (0..3).map { |d| { kind: "income_expected", payload: { "name" => "Salário", "amount_cents" => 450_000, "expected_on" => "2026-07-05", "days_until" => d } } },
     "budget_warn"      => [ { kind: "budget_warn", payload: { "category" => "Restaurantes", "spent_cents" => 50_000, "budget_cents" => 60_000, "left_cents" => 10_000 } } ],
     "budget_breach"    => [ { kind: "budget_breach", payload: { "category" => "Restaurantes", "spent_cents" => 66_000, "budget_cents" => 60_000, "left_cents" => 0 } } ],

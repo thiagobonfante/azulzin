@@ -59,6 +59,13 @@
                     class: "mt-1 ml-9 inline-block text-xs font-medium text-primary hover:underline" %>
             <% end %>
           <% end %>
+          <%# What an underpaid previous fatura drags onto this month (02 §5) — labeled
+              projection lines, already inside this card's tile figure. %>
+          <% if (carry = summary.card_carryovers[card]) %>
+            <div class="mt-1 ml-9">
+              <%= render "card_bills/carryover_lines", carry: carry %>
+            </div>
+          <% end %>
         </li>
       <% end %>
     </ul>

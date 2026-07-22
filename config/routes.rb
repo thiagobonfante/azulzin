@@ -90,6 +90,7 @@ Rails.application.routes.draw do
         post  :pay
         patch :unpay
         patch :carry_over
+        get   :projection   # live rotativo warning panel for the Pagar modal
       end
     end
 

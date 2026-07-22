@@ -189,6 +189,33 @@ module E2E
 
     def closed_bill = nubank_card.card_bills.order(:billing_month).last
 
+    # bill_closed's rotativo sibling (ROT packs): one closed bill of exactly 300_000¢ for
+    # the anchor month (already past due at the anchor — due day 10, anchor the 20th) plus
+    # the frozen BCB rates rows (rotativo 15,09 / parcelamento 9,26 — tests NEVER call the
+    # API). Itaú balance R$ 4.000,00.
+    def bill_rotativo(**)
+      solo_basic
+      seed_bcb_rates!
+      expense(merchant: "Compra Grande", category: "Outros", instrument: nubank_card,
+              cents: 300_000, on: (this_month << 1) + 14)
+      itau.update!(balance_cents: 400_000)
+      bills = CardBills::CloseScan.ensure_for(nubank_card)
+      unless bills.size == 1 && bills.last.computed_total_cents == 300_000 && bills.last.overdue?
+        raise "bill_rotativo pack lost its calibration: #{bills.map { |b| [ b.billing_month, b.computed_total_cents ] }.inspect}"
+      end
+      self
+    end
+
+    def seed_bcb_rates!
+      { "rotativo" => "15.09", "parcelamento" => "9.26" }.each do |kind, rate|
+        BcbRate.find_or_create_by!(kind: kind, reference_month: this_month << 1) do |row|
+          row.monthly_rate = BigDecimal(rate)
+          row.fetched_at   = Time.current
+        end
+      end
+      self
+    end
+
     # solo_basic + caixinha + commitments arranged around the traveled "today"
     # (see .plans/e2e/02 §3): Condomínio due today+1 (default lead) · Luz due today−2 unpaid
     # (inside 3-day overdue grace) · Água due today−5 unpaid (outside grace) · card closing
