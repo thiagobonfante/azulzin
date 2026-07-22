@@ -34,7 +34,10 @@ calls, real browser UX, real time.
 **9. Cross-cutting — tenancy, errors, mobile, retention, admin** — 20 scenarios
 `WEB-ADM-01` · `WEB-ADM-02` · `X-EXP-01` · `WEB-ADM-03` · `X-EXP-02` · `WA-CAP-29` · `X-EXP-12` · `X-EXP-13` · `I18N-03` · `X-EXP-03` · `X-EXP-04` · `X-EXP-05` · `X-EXP-06` · `X-EXP-07` · `X-EXP-08` · `X-EXP-09` · `X-EXP-10` · `NT-R-06` · `X-EXP-11` · `X-EXP-14`
 
-**Total: 193 scenarios.** IDs without `-EXP-` come from the automated E2E catalogs (`.plans/e2e/03–05`); `*-EXP-*` IDs are exploratory-only (no automated twin yet). A few catalog IDs appear in two chapters on purpose — each chapter tests a different facet.
+**10. Faturas de cartão — fechar, pagar, rotativo, conferir** — 2 scenarios
+`BILL-EXP-01` · `BILL-EXP-02`
+
+**Total: 195 scenarios.** IDs without `-EXP-` come from the automated E2E catalogs (`.plans/e2e/03–05`); `*-EXP-*` IDs are exploratory-only (no automated twin yet). A few catalog IDs appear in two chapters on purpose — each chapter tests a different facet.
 
 ## 1. Setup & conventions
 
@@ -3816,3 +3819,55 @@ The catalog said "with network down" — this pins the exact reproducible trigge
 - Restore the real key, restart, and resend — the SAME message id is not reprocessed (already failed); a fresh message captures normally.
 
 Pins: `app/jobs/process_inbound_whatsapp_job.rb:1`, `app/jobs/process_document_import_job.rb:1`
+
+## 10. Faturas de cartão — fechar, pagar, rotativo, conferir
+
+The `.plans/credit-cards` bill lifecycle. Seed 16 (`card-bills`) is calibrated for the full
+founder walk in one account; `dev:seed_demo` has the whole story pre-built instead (Nubank:
+partially-paid older bill with carryover + encargos lines; Itaú: paid older bill + a
+divergence exactly one edge purchase wide). Automated twins: `BILL-*`/`ROT-*` in
+`test/e2e/web/card_bill*`.
+
+### BILL-EXP-01 — The founder walk: close → pay partial → warning → carryover → inform bank value → picker
+
+Seed: `exploratory:seed[16]` (⚠ run on day 4+ — this month's bill closes on the 3rd; on days
+4–9 it reads `em aberto`, from the 11th `vencida`) · AI: none (no LLM anywhere in this flow)
+
+Calibration: closed Nubank bill **R$ 1.250,00** = 600,00 + 500,00 + **150,00 "Na Borda do
+Corte"** (dated day 3, ON the closing edge) · bank's number to inform: **R$ 1.100,00** ·
+frozen BCB rates 15,09% / 9,26% a.m.
+
+**Steps:**
+1. `/credit_cards` → the Nubank card shows the status badge + "Fatura fechada — R$ 1.250,00" link. Open it.
+2. Bill page: total R$ 1.250,00, "Fechou em 03/…" · "Vence em 10/…", 3 lançamentos, "Conferir com o banco" section with the closing-edge hint copy.
+3. **Pagar fatura** → modal pre-fills `1.250,00`. Probe the money mask first (chapter-5 lesson): clear it and type `45000` → must render `450,00`, never `45.000,00`.
+4. With `450,00` in the field, the rotativo warning renders live under it (server-fetched): "Pagar menos que o total liga o rotativo — … 15,1% ao mês", the projection strip (fica p/ trás **R$ 800,00**), the month-by-month bars, "ver mês a mês", and the cap line "…dobra em ~5 meses".
+5. Type `100,00` (below the 15% assumed minimum of R$ 187,50) → the atraso band appends (multa 2% + mora), explicitly labeled "estimado em 15%" because no bank minimum was informed.
+6. Submit `450,00` from Itaú E2E → bill reads **parcialmente paga**, payments list shows R$ 450,00 with Desfazer. `/bank_accounts`: Itaú derived balance dropped by exactly R$ 450,00 (stored balance untouched).
+7. From the 11th (past due): hub `/transactions?month=` NEXT month → the Nubank tile carries the two labeled lines "veio da fatura de …" **R$ 800,00** + "encargos estimados" (**R$ 125,73** = juros 15,09% + IOF) with the "estimativa (taxas médias do Banco Central …)" label. They are projection lines — confirm NO such rows exist in the ledger.
+8. Back on the bill: "Conferir com o banco" → inform `1.100,00` → banner "**R$ 150,00 a mais que o banco**" + the picker, sorted closing-edge-first ("Na Borda do Corte" on top).
+9. Check "Na Borda do Corte" → the running number flips success + "Bate com o banco 💙" appears live. Submit → notice "1 lançamento movido…", banner now reads "Bate com o banco 💙", total recomputes to R$ 1.100,00, and the moved row sits on NEXT month's ledger (sticky: edit the card's closing offset and confirm the row stays put).
+10. Desfazer the payment → bill back to `em aberto`/`vencida`, Itaú derived balance restored.
+
+**Expect:** every figure above to the centavo; the warning renders beside the field and never blocks submitting; carryover/encargos appear only after the due date and never as transaction rows.
+
+**Variants:**
+- Kick `Reminders::DailyDispatchJob` (§1.3) after the 10th with WA consent on → ONE `card_overdue` push (golden `whatsapp.replies.notifications.card_overdue`), dashboard alert with the Pagar CTA deep-linking the bill; kick again → no duplicate.
+- Overpay (`1.300,00` on a fresh seed) → next month shows a NEGATIVE "veio da fatura" credit line and no encargos.
+
+Pins: `app/services/card_bills/close_scan.rb:1`, `app/services/card_bills/pay.rb:1`, `app/services/card_bills/carryover.rb:1`, `app/services/rotativo.rb:1`, `app/views/card_bills/_divergence.html.erb:1`
+
+### BILL-EXP-02 — Demo household story: the pre-built lifecycle tour
+
+Seed: `dev:seed_demo` · AI: none
+
+**Steps:**
+1. Sign in as marina → `/dashboard`: both members carry the pay-CTA alert for the Nubank bill (card_due before the 10th, card_overdue after).
+2. `/credit_cards`: Nubank badge shows the unpaid recent bill; Itaú badge shows its recent bill too.
+3. Nubank recent bill page: carryover + encargos-estimados lines from the partially-paid older bill render under the total.
+4. Itaú recent bill page: divergence banner "R$ 189,90 a mais que o banco" — one click on "Loja na Véspera do Corte" in the picker → "Bate com o banco 💙".
+5. Itaú older bill: **paga**, with its payment row; Nubank older: **parcialmente paga**.
+
+**Expect:** the seed's verification block already asserted all of this at seed time — the tour is for the eyes (and the shells: repeat 3–4 in the iOS simulator / Android emulator).
+
+Pins: `lib/demo_seed.rb:1`
