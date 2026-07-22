@@ -4,8 +4,13 @@
   <header>
     <h1 class="font-display text-xl font-bold" data-native-dup><%= t(".title") %></h1>
     <p class="mt-1 text-sm text-base-content/60">
-      <%= t(".subtitle", card: @import.credit_card.display_name,
-                         month: l(@import.period, format: :month_name)) %>
+      <% if @import.credit_card %>
+        <%= t(".subtitle", card: @import.credit_card.display_name,
+                           month: l(@import.period, format: :month_name)) %>
+      <% else %>
+        <%= t(".subtitle_bank", account: @import.bank_account.display_name,
+                                month: l(@import.period, format: :month_year)) %>
+      <% end %>
     </p>
   </header>
 

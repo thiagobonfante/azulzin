@@ -491,6 +491,10 @@ pt-BR:
     empty: "Nenhuma conta adicionada ainda."
     remove: "Remover conta"
     confirm_remove: "Remover esta conta?"
+    reconcile:
+      cta: "Conferir extrato"
+      month: "Mês do extrato"
+      submit: "Enviar e conferir"
     index:
       meta_title: "Contas"
       title: "Suas contas"
@@ -630,6 +634,10 @@ pt-BR:
     show:
       title: "Conferir com o banco"
       subtitle: "%{card} — fatura de %{month}"
+      subtitle_bank: "%{account} — extrato de %{month}"
+      balance_matches: "Seu saldo bate com o banco 💙"
+      balance_drift: "Seu saldo difere do banco em %{amount}."
+      only_in_app_hint_bank: "Marcados serão removidos (provável duplicado); desmarcados ficam como estão."
       processing: "Lendo o documento…"
       failed: "Não conseguimos ler o documento. Tente de novo com outro arquivo."
       applied_state: "Conferência aplicada."
@@ -653,6 +661,7 @@ pt-BR:
       monthly_cap: "Já conferimos este cartão neste mês — de novo em %{date}."
     apply:
       applied: "Conferido: %{created} criados, %{moved} movidos, %{fixed} corrigidos."
+      applied_bank: "Conferido: %{created} criados, %{moved} removidos, %{fixed} corrigidos."
   incomes:
     add_title: "Adicionar renda"
     edit_title: "Editar renda"

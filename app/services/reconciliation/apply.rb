@@ -44,20 +44,19 @@ module Reconciliation
         confirmed_at:      Time.current,
         amount_cents:      row.amount_cents,
         occurred_on:       row.date,
-        credit_card:       @scope.credit_card,
-        billing_month:     @scope.month,
-        billing_month_manual: true,   # the bank put it on THIS bill — never re-bucket it
         category_id:       category_id,
         category_source:   category_source,
         source:            "reconciliation",
-        source_message_id: "recon-#{@import.id}-#{row.digest}")
+        source_message_id: "recon-#{@import.id}-#{row.digest}",
+        **@scope.creation_attributes(row))
       @result.created += 1
     rescue ActiveRecord::RecordNotUnique
       @result.skipped += 1   # replayed run — the row already exists
     end
 
+    # Card scope: sticky move to the next fatura. Bank scope: soft delete (a duplicate).
     def move!(txn)
-      txn.update!(billing_month: @scope.move_month, billing_month_manual: true)
+      @scope.resolve_app_only!(txn, by: @created_by)
       @result.moved += 1
     end
 

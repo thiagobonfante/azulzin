@@ -12,6 +12,21 @@
   <div role="status" class="alert alert-success py-2 text-sm"><span><%= t("reconciliations.show.applied_state") %></span></div>
   <%= link_to t("reconciliations.show.back_to_bill"), back_link_for(import), class: "btn btn-ghost btn-sm mt-2", data: { turbo_frame: "_top" } %>
 <% elsif diff %>
+  <%# Bank scope: the extrato's closing balance vs our derived balance as-of that date —
+      the drift headline (03 §2). Advisory; CSV extratos carry no balance and skip it. %>
+  <% meta = import.extraction.is_a?(Hash) ? import.extraction["meta"] : nil %>
+  <% if import.bank_account_id && (closing = meta&.dig("closing_balance_cents")) %>
+    <% as_of = (Date.iso8601(meta["period_end"].to_s) rescue nil) || import.period.end_of_month %>
+    <% if (ours = import.bank_account.derived_balance_cents(as_of: as_of)) %>
+      <% drift = closing - ours %>
+      <div role="status" class="alert <%= drift.zero? ? "alert-success" : "alert-warning" %> py-2 text-sm">
+        <span>
+          <%= drift.zero? ? t("reconciliations.show.balance_matches")
+                          : t("reconciliations.show.balance_drift", amount: brl(drift.abs)) %>
+        </span>
+      </div>
+    <% end %>
+  <% end %>
   <%= form_with url: apply_reconciliation_path(import), method: :post, class: "flex flex-col gap-4", data: { turbo: false } do %>
     <% if diff.matched.any? %>
       <details class="rounded-box border border-base-300/70 bg-base-100 px-4 py-3">
@@ -52,7 +67,10 @@
     <% if diff.only_in_app.any? %>
       <section class="rounded-box border border-base-300/70 bg-base-100 p-4">
         <h2 class="text-sm font-semibold"><%= t("reconciliations.show.only_in_app") %></h2>
-        <p class="mb-2 text-xs text-base-content/50"><%= t("reconciliations.show.only_in_app_hint") %></p>
+        <p class="mb-2 text-xs text-base-content/50">
+          <%= import.bank_account_id ? t("reconciliations.show.only_in_app_hint_bank")
+                                     : t("reconciliations.show.only_in_app_hint") %>
+        </p>
         <ul class="flex flex-col gap-1.5">
           <% diff.only_in_app.each do |txn| %>
             <li>

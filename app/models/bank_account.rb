@@ -40,14 +40,26 @@ class BankAccount < ApplicationRecord
   # §7.1 derived balance ("now"): the anchored balance plus signed posted rows created after
   # the anchor. THE balance every screen shows — the stored balance_cents alone goes stale as
   # soon as a transaction posts. nil when the balance was never informed.
-  def derived_balance_cents
+  #
+  # as_of: the balance at the END of that date — rows that OCCURRED later are rewound.
+  # Built once for the extrato drift headline (.plans/credit-cards 03 §2) and the
+  # guardado-chart plan. Advisory by nature: the anchor is created_at-based while the
+  # rewind is occurred_on-based, so a backdated future row reads approximately.
+  def derived_balance_cents(as_of: nil)
     return nil unless balance_informed?
     since = balance_anchored_at || updated_at
     own = transactions.posted.kept.where("created_at > ?", since)   # .kept: a soft-deleted row unspends (doc 05)
-    balance_cents +
+    balance = balance_cents +
       own.where(direction: "income").sum(:amount_cents) -
       own.where(direction: %w[expense transfer]).sum(:amount_cents) +
       incoming_transfers.posted.kept.where("created_at > ?", since).sum(:amount_cents)
+    return balance if as_of.nil?
+
+    later = transactions.posted.kept.where("occurred_on > ?", as_of)
+    balance -
+      later.where(direction: "income").sum(:amount_cents) +
+      later.where(direction: %w[expense transfer]).sum(:amount_cents) -
+      incoming_transfers.posted.kept.where("occurred_on > ?", as_of).sum(:amount_cents)
   end
 
   private

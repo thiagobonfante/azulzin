@@ -11,12 +11,13 @@ module Reconciliation
     MISMATCH_SIMILARITY  = 0.6   # "merchant agrees" for the typo pass — deliberately high
 
     def self.call(rows:, scope:)
-      new(rows, scope.transactions.to_a).call
+      new(rows, scope).call
     end
 
-    def initialize(rows, transactions)
-      @rows = rows
-      @txns = transactions
+    def initialize(rows, scope)
+      @rows  = rows
+      @scope = scope
+      @txns  = scope.transactions.to_a
     end
 
     def call
@@ -57,7 +58,7 @@ module Reconciliation
       rows.each do |row|
         next unless row.date
         txns.each do |txn|
-          next unless txn.direction == row.direction
+          next unless @scope.direction_of(txn) == row.direction
           next if (txn.occurred_on - row.date).abs > DATE_WINDOW_DAYS
           score = yield(row, txn)
           candidates << [ score, row, txn ] if score

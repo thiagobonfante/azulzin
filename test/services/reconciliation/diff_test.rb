@@ -82,6 +82,25 @@ class Reconciliation::DiffTest < ActiveSupport::TestCase
     assert_empty miss.matched
   end
 
+  test "bank scope: incoming transfers read as extrato credits, outgoing as debits" do
+    itau  = BankAccount.create!(account: @account, institution: Institution.find_by!(code: "341"))
+    caixa = BankAccount.create!(account: @account, institution: Institution.find_by!(code: "260"), kind: "savings")
+    stash = @account.transactions.create!(
+      merchant: "Guardado do mês", direction: "transfer", status: "posted",
+      amount_cents: 5_000, occurred_on: Date.new(2026, 7, 10),
+      bank_account: itau, transfer_to_bank_account: caixa)
+
+    itau_diff = Reconciliation::Diff.call(
+      rows: [ row("GUARDADO", 5_000, on: Date.new(2026, 7, 10)) ],
+      scope: Reconciliation::BankPeriodScope.new(bank_account: itau, month: @month))
+    assert_equal [ stash ], itau_diff.matched.map(&:last), "the source leg is a debit"
+
+    caixa_diff = Reconciliation::Diff.call(
+      rows: [ row("GUARDADO", 5_000, on: Date.new(2026, 7, 10), direction: "income") ],
+      scope: Reconciliation::BankPeriodScope.new(bank_account: caixa, month: @month))
+    assert_equal [ stash ], caixa_diff.matched.map(&:last), "the destination leg is a credit"
+  end
+
   test "a date beyond ±3 days never matches; an undated row surfaces as only-in-source" do
     txn!("Mercado Central", 12_500, on: Date.new(2026, 6, 20))
 

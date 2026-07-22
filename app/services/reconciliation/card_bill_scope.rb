@@ -17,5 +17,17 @@ module Reconciliation
 
     # only_in_app proposes MOVE to the next fatura (the sticky manual move).
     def move_month = @month >> 1
+
+    # Card rows are already the extrato's expense/estorno view.
+    def direction_of(txn) = txn.direction
+
+    def creation_attributes(_row)
+      # The bank put it on THIS bill — pin it there, never re-bucket.
+      { credit_card: @credit_card, billing_month: @month, billing_month_manual: true }
+    end
+
+    def resolve_app_only!(txn, by: nil)
+      txn.update!(billing_month: move_month, billing_month_manual: true)
+    end
   end
 end

@@ -490,6 +490,10 @@ en:
     empty: "No accounts added yet."
     remove: "Remove account"
     confirm_remove: "Remove this account?"
+    reconcile:
+      cta: "Check statement"
+      month: "Statement month"
+      submit: "Upload and check"
     index:
       meta_title: "Accounts"
       title: "Your accounts"
@@ -629,6 +633,10 @@ en:
     show:
       title: "Check against the bank"
       subtitle: "%{card} — %{month} bill"
+      subtitle_bank: "%{account} — %{month} statement"
+      balance_matches: "Your balance matches the bank 💙"
+      balance_drift: "Your balance differs from the bank by %{amount}."
+      only_in_app_hint_bank: "Checked ones will be removed (likely duplicates); unchecked stay as they are."
       processing: "Reading the document…"
       failed: "We couldn't read the document. Try again with another file."
       applied_state: "Check applied."
@@ -652,6 +660,7 @@ en:
       monthly_cap: "We already checked this card this month — again on %{date}."
     apply:
       applied: "Checked: %{created} created, %{moved} moved, %{fixed} corrected."
+      applied_bank: "Checked: %{created} created, %{moved} removed, %{fixed} corrected."
   incomes:
     add_title: "Add income"
     edit_title: "Edit income"
