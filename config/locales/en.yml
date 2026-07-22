@@ -597,6 +597,8 @@ en:
       running_ours: "Our total minus the checked"
       running_stated: "Bank's total"
       move_submit: "Move to the next bill"
+      pdf_cta: "Check against the bill PDF"
+      pdf_submit: "Upload and check"
     update:
       stated_saved: "Bank's total recorded."
     carry_over:
@@ -623,6 +625,33 @@ en:
       schedule_row: "installment %{number} of %{parcel}"
       schedule_remaining: "%{amount} left"
       cap_reassurance: "The law caps charges at 100% of what was left — your debt can at most double. But it doubles in ~%{months} months."
+  reconciliations:
+    show:
+      title: "Check against the bank"
+      subtitle: "%{card} — %{month} bill"
+      processing: "Reading the document…"
+      failed: "We couldn't read the document. Try again with another file."
+      applied_state: "Check applied."
+      back_to_bill: "Back to the bill"
+      matched:
+        one: "1 entry matches the bank"
+        other: "%{count} entries match the bank"
+      only_in_source: "Only at the bank"
+      only_in_source_hint: "Checked ones will be created in azulzin."
+      only_in_app: "Only in azulzin"
+      only_in_app_hint: "Checked ones move to the next bill; unchecked stay as they are."
+      amount_mismatch: "Different amount"
+      amount_mismatch_hint: "Checked ones will be corrected to the bank's amount."
+      ours: "in azulzin: %{amount}"
+      bank: "at the bank: %{amount}"
+      apply: "Apply"
+      nothing: "All good — matches the bank 💙"
+    create:
+      no_file: "Choose a file."
+      duplicate: "This file was already uploaded."
+      monthly_cap: "We already checked this card this month — again on %{date}."
+    apply:
+      applied: "Checked: %{created} created, %{moved} moved, %{fixed} corrected."
   incomes:
     add_title: "Add income"
     edit_title: "Edit income"

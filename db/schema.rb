@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_21_234001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_010001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -194,15 +194,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_234001) do
 
   create_table "document_imports", force: :cascade do |t|
     t.bigint "account_id", null: false
+    t.bigint "bank_account_id"
     t.string "checksum", null: false
     t.datetime "created_at", null: false
     t.bigint "created_by_id"
+    t.bigint "credit_card_id"
     t.string "error_code"
     t.jsonb "extraction", default: {}, null: false
     t.jsonb "fingerprint", default: {}, null: false
     t.bigint "institution_id"
     t.string "kind"
+    t.date "period"
     t.jsonb "proposals", default: [], null: false
+    t.string "purpose", default: "onboarding", null: false
     t.string "source_format"
     t.string "status", default: "uploaded", null: false
     t.datetime "updated_at", null: false
@@ -210,8 +214,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_234001) do
     t.index ["account_id", "checksum"], name: "index_document_imports_dedupe_checksum", unique: true, where: "((status)::text <> ALL (ARRAY[('dismissed'::character varying)::text, ('failed'::character varying)::text]))"
     t.index ["account_id", "status"], name: "index_document_imports_on_account_id_and_status"
     t.index ["account_id"], name: "index_document_imports_on_account_id"
+    t.index ["bank_account_id"], name: "index_document_imports_on_bank_account_id"
     t.index ["created_by_id"], name: "index_document_imports_on_created_by_id"
+    t.index ["credit_card_id"], name: "index_document_imports_on_credit_card_id"
     t.index ["institution_id"], name: "index_document_imports_on_institution_id"
+    t.check_constraint "purpose::text <> 'reconciliation'::text OR num_nonnulls(credit_card_id, bank_account_id) = 1", name: "document_imports_reconciliation_target"
   end
 
   create_table "goal_checks", force: :cascade do |t|
@@ -551,6 +558,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_234001) do
   add_foreign_key "credit_cards", "users", column: "deleted_by_id", on_delete: :nullify
   add_foreign_key "credit_cards", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "document_imports", "accounts"
+  add_foreign_key "document_imports", "bank_accounts"
+  add_foreign_key "document_imports", "credit_cards"
   add_foreign_key "document_imports", "institutions"
   add_foreign_key "document_imports", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "document_imports", "users", column: "updated_by_id", on_delete: :nullify

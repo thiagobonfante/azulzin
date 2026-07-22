@@ -80,4 +80,19 @@
       <% end %>
     </details>
   <% end %>
+
+  <%# The PDF path (.plans/credit-cards 03 §3): same import pipeline, reconciliation
+      purpose; CSV/OFX ride free, PDFs consume the monthly slot. %>
+  <details class="mt-3">
+    <summary class="cursor-pointer text-xs font-medium text-base-content/60"><%= t("card_bills.divergence.pdf_cta") %></summary>
+    <%= form_with url: reconciliations_path, method: :post, multipart: true,
+          class: "mt-2 flex flex-wrap items-center gap-2", data: { turbo: false } do %>
+      <%= hidden_field_tag :credit_card_id, bill.credit_card_id %>
+      <%= hidden_field_tag :period, bill.billing_month.iso8601 %>
+      <input type="file" name="file" accept=".pdf,.csv,.ofx,.txt" required
+             class="file-input file-input-bordered file-input-sm"
+             aria-label="<%= t("card_bills.divergence.pdf_cta") %>">
+      <%= submit_tag t("card_bills.divergence.pdf_submit"), class: "btn btn-primary btn-sm" %>
+    <% end %>
+  </details>
 </section>

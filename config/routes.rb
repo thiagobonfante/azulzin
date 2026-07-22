@@ -94,6 +94,11 @@ Rails.application.routes.draw do
       end
     end
 
+    # "Conferir com o banco" runs (.plans/credit-cards 03): upload → diff review → apply.
+    resources :reconciliations, only: %i[create show] do
+      member { post :apply }
+    end
+
     # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the
     # ledger's inline add + edit-in-place, and update/confirm keep the guarded-transition inbox.
     resources :transactions, only: %i[index new create edit update destroy] do

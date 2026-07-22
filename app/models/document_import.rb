@@ -5,6 +5,8 @@
 class DocumentImport < ApplicationRecord
   include AccountScoped, Attributable   # no SoftDeletable — status lifecycle + retention is its soft delete
   belongs_to :institution, optional: true
+  belongs_to :credit_card,  optional: true   # reconciliation target (.plans/credit-cards 03 §3)
+  belongs_to :bank_account, optional: true
   has_one_attached :file
 
   MAX_FILE_BYTES = 10.megabytes
@@ -28,6 +30,10 @@ class DocumentImport < ApplicationRecord
 
   enum :kind, { bank_statement: "bank_statement", card_bill: "card_bill", unknown: "unknown" },
        validate: { allow_nil: true }
+  # A reconciliation run rides the SAME pipeline (upload → job → extraction) and branches
+  # only at the tail: no proposals, the review renders the Reconciliation::Diff instead.
+  enum :purpose, { onboarding: "onboarding", reconciliation: "reconciliation" },
+       default: "onboarding", validate: true
   enum :source_format, { csv: "csv", ofx: "ofx", pdf: "pdf" },
        prefix: :format, validate: { allow_nil: true }
 
@@ -39,7 +45,8 @@ class DocumentImport < ApplicationRecord
   validate :file_acceptable, on: :create
 
   scope :terminal,        -> { where(status: TERMINAL_STATUSES) }
-  scope :awaiting_review, -> { where(status: "extracted") }
+  # Onboarding-only: the proposals review/apply flow must never pick up reconciliation runs.
+  scope :awaiting_review, -> { where(status: "extracted", purpose: "onboarding") }
 
   def terminal? = TERMINAL_STATUSES.include?(status)
 

@@ -598,6 +598,8 @@ pt-BR:
       running_ours: "Nosso total sem as marcadas"
       running_stated: "Valor no banco"
       move_submit: "Mover para a próxima fatura"
+      pdf_cta: "Conferir com o PDF da fatura"
+      pdf_submit: "Enviar e conferir"
     update:
       stated_saved: "Valor do banco registrado."
     carry_over:
@@ -624,6 +626,33 @@ pt-BR:
       schedule_row: "parcela %{number} de %{parcel}"
       schedule_remaining: "restam %{amount}"
       cap_reassurance: "A lei limita os encargos a 100% do valor que ficou — sua dívida pode no máximo dobrar. Mas dobra em ~%{months} meses."
+  reconciliations:
+    show:
+      title: "Conferir com o banco"
+      subtitle: "%{card} — fatura de %{month}"
+      processing: "Lendo o documento…"
+      failed: "Não conseguimos ler o documento. Tente de novo com outro arquivo."
+      applied_state: "Conferência aplicada."
+      back_to_bill: "Voltar para a fatura"
+      matched:
+        one: "1 lançamento bate com o banco"
+        other: "%{count} lançamentos batem com o banco"
+      only_in_source: "Só no banco"
+      only_in_source_hint: "Marcados serão criados no azulzin."
+      only_in_app: "Só no azulzin"
+      only_in_app_hint: "Marcados vão para a próxima fatura; desmarcados ficam como estão."
+      amount_mismatch: "Valor diferente"
+      amount_mismatch_hint: "Marcados serão corrigidos para o valor do banco."
+      ours: "no azulzin: %{amount}"
+      bank: "no banco: %{amount}"
+      apply: "Aplicar"
+      nothing: "Tudo certo — bate com o banco 💙"
+    create:
+      no_file: "Escolha um arquivo."
+      duplicate: "Este arquivo já foi enviado."
+      monthly_cap: "Já conferimos este cartão neste mês — de novo em %{date}."
+    apply:
+      applied: "Conferido: %{created} criados, %{moved} movidos, %{fixed} corrigidos."
   incomes:
     add_title: "Adicionar renda"
     edit_title: "Editar renda"

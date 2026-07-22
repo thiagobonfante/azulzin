@@ -10,4 +10,10 @@ module CardBillsHelper
   def card_bill_badge_class(bill)
     CARD_BILL_BADGE_CLASSES.fetch(bill.display_status, "badge-ghost")
   end
+
+  # Where a reconciliation run's "back" lands: the bill page when the row exists.
+  def back_link_for(import)
+    bill = import.credit_card&.card_bills&.find_by(billing_month: import.period)
+    bill ? card_bill_path(bill) : credit_cards_path
+  end
 end

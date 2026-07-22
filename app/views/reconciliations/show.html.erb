@@ -1,0 +1,19 @@
+<% content_for :title, t(".title") %>
+
+<div class="mx-auto flex max-w-2xl flex-col gap-4">
+  <header>
+    <h1 class="font-display text-xl font-bold" data-native-dup><%= t(".title") %></h1>
+    <p class="mt-1 text-sm text-base-content/60">
+      <%= t(".subtitle", card: @import.credit_card.display_name,
+                         month: l(@import.period, format: :month_name)) %>
+    </p>
+  </header>
+
+  <%# While the pipeline runs, the poller reloads this frame every 2s (the import-status
+      idiom); once terminal there are no active rows and it goes quiet. %>
+  <div data-controller="import-status">
+    <%= tag.turbo_frame id: "recon_review", src: (@import.terminal? ? nil : reconciliation_path(@import)) do %>
+      <%= render "reconciliations/review", import: @import, diff: @diff, scope: @scope %>
+    <% end %>
+  </div>
+</div>
