@@ -10,12 +10,18 @@ class CreditCard < ApplicationRecord
   # hard destroy (LGPD cascade) never trips the transfer_to_credit_card_id FK.
   has_many :incoming_bill_payments, class_name: "Transaction",
            foreign_key: :transfer_to_credit_card_id, dependent: :nullify
+  # Members whose default plastic this is (04 §5) — their preference clears with the card.
+  has_many :defaulting_users, class_name: "User",
+           foreign_key: :default_credit_card_id, dependent: :nullify
 
   # Sub-cards (.plans/credit-cards 04): one nullable self-FK, ONE level deep. A sub-card
   # (virtual copy / family adicional) carries no billing config and no limit — the cycle
   # and the limit belong to the root; its rows roll up into the root's bill.
   belongs_to :parent_card, class_name: "CreditCard", optional: true
-  has_many :children, class_name: "CreditCard", foreign_key: :parent_card_id, inverse_of: :parent_card
+  # dependent: :destroy is the HARD-delete path only (the LGPD account cascade may reach
+  # the root first); the friendly soft-delete path refuses a root with kept children.
+  has_many :children, class_name: "CreditCard", foreign_key: :parent_card_id,
+           inverse_of: :parent_card, dependent: :destroy
 
   scope :roots, -> { where(parent_card_id: nil) }
 

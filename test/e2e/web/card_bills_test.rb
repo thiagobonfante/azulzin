@@ -132,13 +132,20 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     assert_equal 250_000 - 125_000, s.itau.derived_balance_cents
   end
 
-  # LGPD: the account cascade must erase bills and payment transfers without FK trips
-  # (found by the demo-seed wipe: card_bills referenced credit_cards mid-cascade).
-  test "account destroy cascades closed bills and their payment transfers" do
+  # LGPD: the account cascade must erase bills, payment transfers AND reconciliation
+  # imports without FK trips (found twice by the demo-seed wipe / exploratory walk:
+  # card_bills and document_imports both referenced instruments mid-cascade).
+  test "account destroy cascades closed bills, payment transfers and reconciliation imports" do
     s = E2E::Scenario.build(:bill_closed)
     travel 1.minute
     CardBills::Pay.call(s.closed_bill, amount_cents: 50_000, paid_on: Date.current,
                         bank_account: s.itau, created_by: s.owner)
+    [ { credit_card: s.nubank_card }, { bank_account: s.itau } ].each do |target|
+      import = s.account.document_imports.new(purpose: "reconciliation", checksum: SecureRandom.hex,
+                                              period: Date.current.beginning_of_month, **target)
+      import.file.attach(io: StringIO.new("%PDF-1.4"), filename: "f.pdf", content_type: "application/pdf")
+      import.save!
+    end
 
     bill_id = s.closed_bill.id
     assert_nothing_raised { s.account.destroy! }

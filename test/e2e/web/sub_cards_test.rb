@@ -142,6 +142,23 @@ class E2E::WebSubCardsTest < E2E::PipelineCase
     assert_not_includes response.body, I18n.t("credit_cards.default.set", locale: :"pt-BR")
   end
 
+  # 04 §5: the star renders the SIGNED-IN member's default — each spouse their own plastic.
+  test "the default star follows the signed-in member" do
+    s = E2E::Scenario.build(:couple)
+    s.owner.update!(default_credit_card_id: s.nubank_card.id)
+    s.partner.update!(default_credit_card_id: s.partner_card.id)
+
+    sign_in_as s.owner
+    get credit_cards_url
+    assert_select "form[action='#{make_default_credit_card_path(s.nubank_card)}'] svg[fill='currentColor']"
+    assert_select "form[action='#{make_default_credit_card_path(s.partner_card)}'] svg[fill='none']"
+
+    sign_in_as s.partner
+    get credit_cards_url
+    assert_select "form[action='#{make_default_credit_card_path(s.partner_card)}'] svg[fill='currentColor']"
+    assert_select "form[action='#{make_default_credit_card_path(s.nubank_card)}'] svg[fill='none']"
+  end
+
   # In-app form precedence: explicit pick > member default > lone card.
   test "manual entry with método crédito and no pick lands on the member's default card" do
     s = E2E::Scenario.build(:card_family)
