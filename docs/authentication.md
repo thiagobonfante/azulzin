@@ -43,6 +43,8 @@ How accounts, sessions, and social login work once this feature is built. The fo
 
 Creation runs in a transaction and rescues both `ActiveRecord::RecordInvalid` (an unverified match to an existing email → refused) and `ActiveRecord::RecordNotUnique` (identity race) → returns nil → the callback shows a friendly "add an email" alert. On success, `start_new_session_for(user)` gives OAuth logins the exact same `Session`/cookie as password logins. Facebook emails are never treated as verified, so Facebook never auto-links or auto-confirms. `/auth/failure` → back to sign-in with a generic alert. The callback uses `skip_forgery_protection only: :create` (OAuth `state` is the CSRF defense) and `allow_unauthenticated_access`.
 
+**Native shells (Google + Apple):** the redirect flow above is impossible inside the iOS/Android webviews (Google 403s them). The shells use platform SDKs to obtain an **ID token** which the page POSTs to `POST /auth/:provider/token`; server-side verification funnels into the same `User.from_omniauth` (same `provider`/`uid`), so web and mobile resolve to the same account. Full mechanics, config surface, and pending items: [native-sso.md](native-sso.md).
+
 ## Routes table
 
 | Verb | Path | Controller#action | Access |

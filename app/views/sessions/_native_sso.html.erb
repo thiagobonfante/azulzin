@@ -1,0 +1,17 @@
+<%# Native SSO buttons (.plans/mobile/10) — hidden until the shell's "sign-in" bridge
+    component connects; plain webviews and old builds never reveal them. Apple renders
+    on iOS only (App Store 4.8 pairs it with Google there; Android has no such rule
+    and no Apple component). %>
+<div data-controller="bridge--sign-in" class="flex flex-col gap-4">
+  <div hidden data-bridge--sign-in-target="button" class="divider my-0 text-sm opacity-60"><%= t("shared.or") %></div>
+
+  <button type="button" hidden data-bridge--sign-in-target="button"
+          data-action="bridge--sign-in#start" data-bridge--sign-in-provider-param="google_oauth2"
+          class="btn btn-outline w-full"><%= t("shared.continue_with_google") %></button>
+
+  <% unless request.user_agent.to_s.match?(/Android/) %>
+    <button type="button" hidden data-bridge--sign-in-target="button"
+            data-action="bridge--sign-in#start" data-bridge--sign-in-provider-param="apple"
+            class="btn btn-neutral w-full"><%= t("shared.continue_with_apple") %></button>
+  <% end %>
+</div>

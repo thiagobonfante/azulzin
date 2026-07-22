@@ -10,4 +10,8 @@ enum Config {
     #endif
 
     static let pathConfigurationRemoteURL = baseURL.appendingPathComponent("configurations/ios_v1.json")
+
+    // Native Google SSO (.plans/mobile/10): the iOS OAuth client id from the founder's
+    // Google Cloud console. Empty = Google sign-in stays dormant (Apple still works).
+    static let googleClientID = "648002270527-p5ia5bhvviooa0ne51rl7vocbma0oplu.apps.googleusercontent.com"
 }

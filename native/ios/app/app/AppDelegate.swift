@@ -22,7 +22,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
         // Push registration bridge (.plans/mobile/04 §3). Firebase boots only when the
         // founder-provisioned GoogleService-Info.plist ships with the app.
-        Hotwire.registerBridgeComponents([PushComponent.self])
+        Hotwire.registerBridgeComponents([PushComponent.self, SignInComponent.self])
         #if canImport(FirebaseCore)
         if Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil {
             FirebaseApp.configure()

@@ -32,6 +32,7 @@ class NativeVariantTest < ActionDispatch::IntegrationTest
     end
     assert_select "form[action='#{session_path}'] button"       # Sair
     assert_select "a[href='#{admin_whatsapp_connection_path}']", count: 0   # not an admin
+    assert_select "li[data-controller=modal] dialog form[action='#{referral_path}']"   # Convidar amigos
   end
 
   test "menu page renders for web too" do
@@ -51,12 +52,22 @@ class NativeVariantTest < ActionDispatch::IntegrationTest
     get new_session_url, headers: native
     assert_select "title", I18n.t("sessions.new.title", locale: :"pt-BR")
     assert_select "form[action='/auth/google_oauth2']", count: 0
+    # Bridge SSO buttons instead (.plans/mobile/10): hidden until the shell's
+    # "sign-in" component connects. Apple renders for the iOS UA only.
+    assert_select "button[data-bridge--sign-in-provider-param=google_oauth2][hidden]"
+    assert_select "button[data-bridge--sign-in-provider-param=apple][hidden]"
+
+    get new_session_url, headers: { "User-Agent" => NATIVE_UA.sub("iPhone", "Android").gsub("iOS", "Android") }
+    assert_select "button[data-bridge--sign-in-provider-param=google_oauth2][hidden]"
+    assert_select "button[data-bridge--sign-in-provider-param=apple]", count: 0   # no Apple on Android
 
     get new_registration_url, headers: native
     assert_select "form[action='/auth/google_oauth2']", count: 0
+    assert_select "button[data-bridge--sign-in-provider-param=google_oauth2][hidden]"
 
     get new_session_url
     assert_select "form[action='/auth/google_oauth2']"   # web keeps Google
+    assert_select "[data-controller='bridge--sign-in']", count: 0   # no bridge buttons on web
   end
 
   test "native registration notice says the verification link opens in the browser" do
