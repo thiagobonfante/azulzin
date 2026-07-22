@@ -544,6 +544,45 @@ en:
       updated: "Card updated."
     destroy:
       removed: "Card removed."
+  card_bills:
+    show:
+      title: "%{month} bill"
+      title_with_card: "%{month} bill — %{card}"
+      closed_on: "Closed on %{date}"
+      due_on: "Due on %{date}"
+      total: "Bill total"
+      paid_so_far: "Paid"
+      computed_differs: "Computed by azulzin: %{amount}. Purchases near closing sometimes roll to the next bill."
+      pay: "Pay bill"
+      lines_title: "Charges"
+      no_lines: "No charges on this bill."
+      payments_title: "Payments"
+      untracked_source: "another account"
+      unpay: "Undo"
+    status:
+      paid: "paid"
+      partially_paid: "partially paid"
+      unpaid: "open"
+      overdue: "overdue"
+    badge:
+      closed: "Bill closed — %{amount}"
+    pay_modal:
+      title: "Pay bill"
+      subtitle: "%{card} bill — %{amount}"
+      amount: "Amount paid"
+      date: "Date"
+      source: "Source account"
+      untracked_source: "Another account (not tracked)"
+      bank_differs: "Is the bank's number different?"
+      stated_total: "Bank's total"
+      stated_minimum: "Minimum payment"
+      submit: "Pay"
+      cancel: "Cancel"
+    pay:
+      paid: "Payment recorded."
+      invalid_amount: "Enter a valid amount."
+    unpay:
+      undone: "Payment undone."
   incomes:
     add_title: "Add income"
     edit_title: "Edit income"
@@ -920,6 +959,7 @@ en:
       view_receipt: "View receipt"
       close_receipt: "Close receipt"
       has_receipt: "Has a receipt"
+      bill_payment: "Payment of the %{month} bill"
     new:
       submit: "Add"
     create:
@@ -1259,6 +1299,10 @@ en:
         zero: "Your %{card} bill is due today — %{amount}."
         one: "Your %{card} bill is due tomorrow — %{amount}."
         other: "Your %{card} bill is due in %{count} days — %{amount}."
+      card_due_payable:
+        zero: "Your %{card} bill closed at %{amount} and is due today — you can pay it now."
+        one: "Your %{card} bill closed at %{amount} and is due tomorrow — you can pay it now."
+        other: "Your %{card} bill closed at %{amount} and is due in %{count} days — you can pay it now."
       income_expected:
         zero: "%{name} (%{amount}) should land today."
         one: "%{name} (%{amount}) should land tomorrow."
@@ -1322,6 +1366,12 @@ en:
           zero: "Your %{card} statement is due today."
           one: "Your %{card} statement is due tomorrow."
           other: "Your %{card} statement is due in %{count} days."
+      card_due_payable:
+        title: "Bill closed"
+        body:
+          zero: "Your %{card} bill is due today — tap to pay."
+          one: "Your %{card} bill is due tomorrow — tap to pay."
+          other: "Your %{card} bill is due in %{count} days — tap to pay."
       income_expected:
         title: "Income expected"
         body:
@@ -1652,6 +1702,10 @@ en:
           zero: "📄 The *%{card}* bill (%{amount}) is due today. 💙"
           one: "📄 The *%{card}* bill (%{amount}) is due tomorrow. 💙"
           other: "📄 The *%{card}* bill (%{amount}) is due in %{count} days. 💙"
+        card_due_payable:
+          zero: "📄 The *%{card}* bill closed at %{amount} and is due today. You can pay it in the app. 💙"
+          one: "📄 The *%{card}* bill closed at %{amount} and is due tomorrow. You can pay it in the app. 💙"
+          other: "📄 The *%{card}* bill closed at %{amount} and is due in %{count} days. You can pay it in the app. 💙"
         income_expected:
           zero: "💰 Your *%{name}* of %{amount} should land today. 💙"
           one: "💰 Your *%{name}* of %{amount} should land tomorrow. 💙"

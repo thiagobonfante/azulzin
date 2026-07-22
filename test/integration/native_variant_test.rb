@@ -70,6 +70,25 @@ class NativeVariantTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller='bridge--sign-in']", count: 0   # no bridge buttons on web
   end
 
+  # .plans/credit-cards 01 §5: the bill page rides the default push context (no RULES
+  # change) and renders in both layouts — native takes the title, the in-page h1 is a dup.
+  test "card bill page renders in both layouts with a native title" do
+    inst = Institution.find_by!(code: "260")
+    card = @user.account.credit_cards.create!(institution: inst, bill_due_day: 10, closing_offset_days: 7)
+    closed_month = card.current_open_bill_month << 1   # the most recently closed cycle, any run date
+    @user.account.transactions.create!(direction: "expense", status: "posted", credit_card: card,
+                                       amount_cents: 10_000, occurred_on: card.closing_date(closed_month) - 1)
+    bill = CardBills::CloseScan.ensure_for(card).sole
+
+    get card_bill_url(bill), headers: native
+    assert_response :success
+    assert_select "h1[data-native-dup]"
+
+    get card_bill_url(bill)
+    assert_response :success
+    assert_select ".drawer"
+  end
+
   test "native registration notice says the verification link opens in the browser" do
     sign_out
     post registration_url, headers: native, params: { user: {

@@ -35,7 +35,9 @@
         <%= f.date_field :occurred_on, class: "input input-bordered input-sm w-full" %>
       </div>
 
-      <% if transaction.transfer? %>
+      <% if transaction.transfer? && transaction.transfer_to_credit_card_id.nil? %>
+        <%# Fatura payments (card destination) keep their destination — re-pointing one at a
+            bank account is not an edit, it's an unpay + new transfer (bill page owns that). %>
         <div class="form-control">
           <%= f.label :transfer_to_bank_account_id, t("transfers.form.to"), class: "mb-1 text-xs text-base-content/60" %>
           <%= f.collection_select :transfer_to_bank_account_id, Current.account.bank_accounts.kept.includes(:institution).order(:created_at),

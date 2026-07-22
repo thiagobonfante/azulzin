@@ -18,6 +18,7 @@ class Account < ApplicationRecord
   has_many :categories,        dependent: :destroy
   has_many :bank_accounts,     dependent: :destroy
   has_many :credit_cards,      dependent: :destroy
+  has_many :card_bills,        dependent: :destroy
   has_many :transactions,      dependent: :destroy
   has_many :whatsapp_messages, dependent: :destroy                 # account-owned audit trail
   has_many :document_imports,  dependent: :destroy

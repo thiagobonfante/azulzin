@@ -6,6 +6,9 @@ class CreditCardsController < ApplicationController
 
   def index
     @credit_cards = Current.account.credit_cards.kept.includes(:institution).order(:created_at)
+    # Lazy close (.plans/credit-cards 01 §2): arriving minutes after closing, before the
+    # daily scan, still shows a payable bill — same code path, second trigger.
+    @credit_cards.each { |card| CardBills::CloseScan.ensure_for(card) }
     @credit_card  = CreditCard.new
   end
 

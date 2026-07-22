@@ -29,6 +29,12 @@
                                                  notification_id: notification.id),
                   method: :patch, class: "btn btn-primary btn-xs" %>
           <% end %>
+        <% elsif notification.kind == "card_due" && notification.payload["card_bill_id"].present? %>
+          <%# A closed bill exists → deep-link to its page, where the Pagar modal lives
+              (.plans/credit-cards 01 §4.3). Bill gone (card deleted) → find_by nil, no button. %>
+          <% if (bill = Current.account.card_bills.find_by(id: notification.payload["card_bill_id"])) %>
+            <%= link_to t("card_bills.show.pay"), card_bill_path(bill), class: "btn btn-primary btn-xs" %>
+          <% end %>
         <% elsif %w[budget_warn budget_breach].include?(notification.kind) %>
           <%# Deep-link to the category (01 §4): the budget field lives on the categories
               index (in-place edit), anchored at the subject's row. %>

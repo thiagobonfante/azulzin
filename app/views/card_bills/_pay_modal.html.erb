@@ -1,0 +1,73 @@
+<%# locals: bill — the Pagar fatura modal (.plans/credit-cards 01 §4.2). Pre-fills what's
+    left of the effective total; source select includes "outra conta (não cadastrada)"
+    (P0 #4). The collapsed disclosure stores the bank's numbers (phase 1: silently). %>
+<dialog data-modal-target="dialog" class="modal modal-bottom sm:modal-middle">
+  <%# modal-bottom is place-items:end — cap the width only from sm: up (house gotcha). %>
+  <div class="modal-box sm:max-w-md">
+    <form method="dialog">
+      <button class="btn btn-ghost btn-sm btn-circle absolute right-2 top-2"
+              aria-label="<%= t("card_bills.pay_modal.cancel") %>">✕</button>
+    </form>
+    <h3 class="font-display text-lg font-bold"><%= t("card_bills.pay_modal.title") %></h3>
+    <p class="mt-1 text-sm text-base-content/60">
+      <%= t("card_bills.pay_modal.subtitle", card: bill.credit_card.display_name, amount: brl(bill.effective_total_cents)) %>
+    </p>
+
+    <%= form_with url: pay_card_bill_path(bill), method: :post, class: "mt-3 grid gap-3", data: { turbo: false } do %>
+      <div class="form-control">
+        <label class="mb-1 text-xs text-base-content/60" for="pay_amount_reais"><%= t("card_bills.pay_modal.amount") %></label>
+        <label class="input input-bordered input-sm flex items-center gap-1">
+          <span class="text-base-content/50"><%= t("money.symbol") %></span>
+          <%= text_field_tag :amount_reais, MoneyColumns.prefill([ bill.effective_total_cents - bill.paid_cents, 0 ].max),
+                id: "pay_amount_reais", inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+        </label>
+      </div>
+
+      <div class="form-control">
+        <label class="mb-1 text-xs text-base-content/60" for="pay_paid_on"><%= t("card_bills.pay_modal.date") %></label>
+        <%= date_field_tag :paid_on, Date.current, id: "pay_paid_on", class: "input input-bordered input-sm w-full" %>
+      </div>
+
+      <div class="form-control">
+        <label class="mb-1 text-xs text-base-content/60" for="pay_bank_account_id"><%= t("card_bills.pay_modal.source") %></label>
+        <%= select_tag :bank_account_id,
+              options_from_collection_for_select(Current.account.bank_accounts.kept.includes(:institution).order(:created_at), :id, :display_name) +
+                content_tag(:option, t("card_bills.pay_modal.untracked_source"), value: ""),
+              id: "pay_bank_account_id", class: "select select-bordered select-sm w-full" %>
+      </div>
+
+      <details class="rounded-box border border-base-300/70 px-3 py-2">
+        <summary class="cursor-pointer text-xs font-medium text-base-content/60"><%= t("card_bills.pay_modal.bank_differs") %></summary>
+        <div class="mt-2 grid gap-2">
+          <div class="form-control">
+            <label class="mb-1 text-xs text-base-content/60" for="pay_stated_total_reais"><%= t("card_bills.pay_modal.stated_total") %></label>
+            <label class="input input-bordered input-sm flex items-center gap-1">
+              <span class="text-base-content/50"><%= t("money.symbol") %></span>
+              <%= text_field_tag :stated_total_reais, (MoneyColumns.prefill(bill.stated_total_cents) if bill.stated_total_cents),
+                    id: "pay_stated_total_reais", inputmode: "decimal", placeholder: "0,00", class: "grow",
+                    data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="mb-1 text-xs text-base-content/60" for="pay_stated_minimum_reais"><%= t("card_bills.pay_modal.stated_minimum") %></label>
+            <label class="input input-bordered input-sm flex items-center gap-1">
+              <span class="text-base-content/50"><%= t("money.symbol") %></span>
+              <%= text_field_tag :stated_minimum_reais, (MoneyColumns.prefill(bill.stated_minimum_cents) if bill.stated_minimum_cents),
+                    id: "pay_stated_minimum_reais", inputmode: "decimal", placeholder: "0,00", class: "grow",
+                    data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="modal#close"><%= t("card_bills.pay_modal.cancel") %></button>
+        <%= submit_tag t("card_bills.pay_modal.submit"), class: "btn btn-primary btn-sm" %>
+      </div>
+    <% end %>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button aria-label="<%= t("card_bills.pay_modal.cancel") %>"></button>
+  </form>
+</dialog>

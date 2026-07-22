@@ -1,0 +1,79 @@
+<% content_for :title, t(".title_with_card", month: l(@bill.billing_month, format: :month_name), card: @bill.credit_card.display_name) %>
+
+<div class="mx-auto flex max-w-2xl flex-col gap-4" data-controller="modal">
+  <header>
+    <h1 class="font-display text-xl font-bold" data-native-dup>
+      <%= t(".title", month: l(@bill.billing_month, format: :month_name)) %>
+    </h1>
+    <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-base-content/60">
+      <span class="flex items-center gap-1.5">
+        <%= institution_avatar(@bill.credit_card.institution, size: 20) %>
+        <%= @bill.credit_card.display_name %>
+      </span>
+      <span class="badge badge-sm <%= card_bill_badge_class(@bill) %>"><%= t("card_bills.status.#{@bill.display_status}") %></span>
+    </div>
+    <p class="mt-1 text-xs text-base-content/50">
+      <%= t(".closed_on", date: l(@bill.closed_on, format: :short)) %> ·
+      <%= t(".due_on", date: l(@bill.due_on, format: :short)) %>
+    </p>
+  </header>
+
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <div class="flex items-baseline justify-between">
+      <span class="text-sm text-base-content/60"><%= t(".total") %></span>
+      <span class="font-display text-2xl font-bold tabular-nums"><%= brl(@bill.effective_total_cents) %></span>
+    </div>
+    <% if @bill.paid_cents.positive? %>
+      <div class="mt-1 flex items-baseline justify-between text-sm">
+        <span class="text-base-content/60"><%= t(".paid_so_far") %></span>
+        <span class="tabular-nums font-medium text-success"><%= brl(@bill.paid_cents) %></span>
+      </div>
+    <% end %>
+    <%# Late captures with a pre-closing date still land here — show the drift so the page
+        never silently disagrees with what the user saw at close time (01 §1). %>
+    <% if @bill.stated_total_cents.present? && @bill.stated_total_cents != @bill.computed_total_cents %>
+      <p class="mt-2 text-xs text-base-content/50">
+        <%= t(".computed_differs", amount: brl(@bill.computed_total_cents)) %>
+      </p>
+    <% end %>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <% unless @bill.paid? %>
+        <button type="button" class="btn btn-primary btn-sm" data-action="modal#open">
+          <%= t(".pay") %>
+        </button>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <h2 class="mb-2 text-sm font-semibold"><%= t(".lines_title") %></h2>
+    <% if @lines.any? %>
+      <%= render "card_bills/lines", lines: @lines %>
+    <% else %>
+      <p class="text-xs text-base-content/50"><%= t(".no_lines") %></p>
+    <% end %>
+  </section>
+
+  <% if @payments.any? %>
+    <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+      <h2 class="mb-2 text-sm font-semibold"><%= t(".payments_title") %></h2>
+      <ul class="flex flex-col gap-2">
+        <% @payments.each do |payment| %>
+          <li class="flex items-center justify-between gap-2 text-sm">
+            <span class="min-w-0 truncate text-base-content/70">
+              <%= payment.bank_account&.display_name || t(".untracked_source") %>
+              · <%= l(payment.occurred_on, format: :short) %>
+            </span>
+            <span class="flex shrink-0 items-center gap-2">
+              <span class="tabular-nums font-medium"><%= brl(payment.amount_cents) %></span>
+              <%= button_to t(".unpay"), unpay_card_bill_path(@bill, payment_id: payment.id),
+                    method: :patch, class: "btn btn-ghost btn-xs" %>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <%= render "card_bills/pay_modal", bill: @bill %>
+</div>

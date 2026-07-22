@@ -107,7 +107,7 @@ module Notifications
         args = template_args
         { title: I18n.t("#{key}.title", **args.except(:count)),
           body:  I18n.t("#{key}.body", **args),
-          url:   KINDS.fetch(@notification.kind)[:url] }
+          url:   Notifications.url_for(@notification) }
       end
     end
 

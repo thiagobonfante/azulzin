@@ -545,6 +545,45 @@ pt-BR:
       updated: "Cartão atualizado."
     destroy:
       removed: "Cartão removido."
+  card_bills:
+    show:
+      title: "Fatura de %{month}"
+      title_with_card: "Fatura de %{month} — %{card}"
+      closed_on: "Fechou em %{date}"
+      due_on: "Vence em %{date}"
+      total: "Total da fatura"
+      paid_so_far: "Pago"
+      computed_differs: "Calculado pelo azulzin: %{amount}. Compras perto do fechamento às vezes ficam para a fatura seguinte."
+      pay: "Pagar fatura"
+      lines_title: "Lançamentos"
+      no_lines: "Nenhum lançamento nesta fatura."
+      payments_title: "Pagamentos"
+      untracked_source: "outra conta"
+      unpay: "Desfazer"
+    status:
+      paid: "paga"
+      partially_paid: "parcialmente paga"
+      unpaid: "em aberto"
+      overdue: "vencida"
+    badge:
+      closed: "Fatura fechada — %{amount}"
+    pay_modal:
+      title: "Pagar fatura"
+      subtitle: "Fatura do %{card} — %{amount}"
+      amount: "Valor pago"
+      date: "Data"
+      source: "Conta de origem"
+      untracked_source: "Outra conta (não cadastrada)"
+      bank_differs: "O valor do banco é diferente?"
+      stated_total: "Valor no banco"
+      stated_minimum: "Pagamento mínimo"
+      submit: "Pagar"
+      cancel: "Cancelar"
+    pay:
+      paid: "Pagamento registrado."
+      invalid_amount: "Informe um valor válido."
+    unpay:
+      undone: "Pagamento desfeito."
   incomes:
     add_title: "Adicionar renda"
     edit_title: "Editar renda"
@@ -921,6 +960,7 @@ pt-BR:
       view_receipt: "Ver comprovante"
       close_receipt: "Fechar comprovante"
       has_receipt: "Tem comprovante"
+      bill_payment: "Pagamento da fatura de %{month}"
     new:
       submit: "Adicionar"
     create:
@@ -1260,6 +1300,10 @@ pt-BR:
         zero: "A fatura do %{card} vence hoje — %{amount}."
         one: "A fatura do %{card} vence amanhã — %{amount}."
         other: "A fatura do %{card} vence em %{count} dias — %{amount}."
+      card_due_payable:
+        zero: "A fatura do %{card} fechou em %{amount} e vence hoje — já dá para pagar."
+        one: "A fatura do %{card} fechou em %{amount} e vence amanhã — já dá para pagar."
+        other: "A fatura do %{card} fechou em %{amount} e vence em %{count} dias — já dá para pagar."
       income_expected:
         zero: "%{name} de %{amount} deve cair hoje."
         one: "%{name} de %{amount} deve cair amanhã."
@@ -1323,6 +1367,12 @@ pt-BR:
           zero: "A fatura do %{card} vence hoje."
           one: "A fatura do %{card} vence amanhã."
           other: "A fatura do %{card} vence em %{count} dias."
+      card_due_payable:
+        title: "Fatura fechada"
+        body:
+          zero: "A fatura do %{card} vence hoje — toque para pagar."
+          one: "A fatura do %{card} vence amanhã — toque para pagar."
+          other: "A fatura do %{card} vence em %{count} dias — toque para pagar."
       income_expected:
         title: "Entrada prevista"
         body:
@@ -1653,6 +1703,10 @@ pt-BR:
           zero: "📄 A fatura do *%{card}* (%{amount}) vence hoje. 💙"
           one: "📄 A fatura do *%{card}* (%{amount}) vence amanhã. 💙"
           other: "📄 A fatura do *%{card}* (%{amount}) vence em %{count} dias. 💙"
+        card_due_payable:
+          zero: "📄 A fatura do *%{card}* fechou em %{amount} e vence hoje. Dá pra pagar pelo app. 💙"
+          one: "📄 A fatura do *%{card}* fechou em %{amount} e vence amanhã. Dá pra pagar pelo app. 💙"
+          other: "📄 A fatura do *%{card}* fechou em %{amount} e vence em %{count} dias. Dá pra pagar pelo app. 💙"
         income_expected:
           zero: "💰 Seu *%{name}* de %{amount} deve cair hoje. 💙"
           one: "💰 Seu *%{name}* de %{amount} deve cair amanhã. 💙"

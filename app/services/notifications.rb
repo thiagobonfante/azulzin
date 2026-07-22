@@ -49,8 +49,21 @@ module Notifications
     elsif notification.kind == "surplus_nudge" && notification.payload["destination_kind"] == "investment"
       # No poupança, but an investment account → the nudge names it instead of "dindin".
       "surplus_nudge_investment"
+    elsif notification.kind == "card_due" && notification.payload["card_bill_id"].present?
+      # A closed bill row exists → the copy gains the pay framing (.plans/credit-cards 01 §4.3).
+      "card_due_payable"
     else
       notification.kind
+    end
+  end
+
+  # The deep link a notification tap lands on. Static per kind (KINDS), except a card_due
+  # carrying a closed bill — that one goes straight to the payable bill page.
+  def self.url_for(notification)
+    if (bill_id = notification.payload["card_bill_id"]).present?
+      "/card_bills/#{bill_id}"
+    else
+      KINDS.fetch(notification.kind)[:url]
     end
   end
 

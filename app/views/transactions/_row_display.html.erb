@@ -29,7 +29,11 @@
      %w[credito debito pix boleto].include?(transaction.payment_method) %>
 <div class="min-w-0 flex-1">
   <p class="truncate text-sm">
-    <% if transaction.transfer? %>
+    <% if transaction.transfer_to_credit_card_id %>
+      <%# Fatura payment (.plans/credit-cards 01 §6): named by the bill it settles. %>
+      <%= t("transactions.row.bill_payment", month: l(transaction.billing_month, format: :month_name)) %>
+      <span class="text-xs text-base-content/50">· <%= transaction.transfer_to_credit_card&.display_name %></span>
+    <% elsif transaction.transfer? %>
       <%= transaction.bank_account&.display_name %><%= deleted_suffix(transaction.bank_account) %> →
       <%= transaction.transfer_to_bank_account&.display_name %><%= deleted_suffix(transaction.transfer_to_bank_account) %>
     <% else %>

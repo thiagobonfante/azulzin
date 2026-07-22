@@ -5,6 +5,7 @@ class CreditCard < ApplicationRecord
   belongs_to :institution                        # required (belongs_to is non-optional)
   has_many :transactions, dependent: :nullify    # deleting a card must not erase history
   has_many :commitments,  dependent: :nullify    # card-charged subscriptions / installment plans (R10/R11)
+  has_many :card_bills                           # closed faturas; stop rendering with a soft-deleted card
 
   money_column :credit_limit, :current_bill
 

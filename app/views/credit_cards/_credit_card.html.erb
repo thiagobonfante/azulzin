@@ -27,6 +27,15 @@
       <%= t("transactions.bills.due_on", day: credit_card.bill_due_day) %> ·
       <%= t("transactions.bills.closes_on", day: credit_card.closing_date(credit_card.current_open_bill_month).day) %>
     </p>
+    <%# Newest unpaid closed fatura → the pay entry point (.plans/credit-cards 01 §4.2).
+        ponytail: only the 3 newest bills are probed — older unpaid ones escalate via
+        card_overdue instead of an unbounded scan on every page view. %>
+    <% if (unpaid = credit_card.card_bills.order(billing_month: :desc).limit(3).detect { |b| !b.paid? }) %>
+      <%= link_to card_bill_path(unpaid), class: "mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline" do %>
+        <span class="badge badge-sm <%= card_bill_badge_class(unpaid) %>"><%= t("card_bills.status.#{unpaid.display_status}") %></span>
+        <%= t("card_bills.badge.closed", amount: brl(unpaid.effective_total_cents)) %>
+      <% end %>
+    <% end %>
   <% else %>
     <%= link_to t("transactions.bills.setup_billing"), edit_credit_card_path(credit_card),
           class: "mt-2 inline-block text-xs font-medium text-primary hover:underline" %>

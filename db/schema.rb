@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_21_232402) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -81,6 +81,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
     t.index ["account_id"], name: "index_bank_accounts_on_account_id"
     t.index ["created_by_id"], name: "index_bank_accounts_on_created_by_id"
     t.index ["institution_id"], name: "index_bank_accounts_on_institution_id"
+  end
+
+  create_table "card_bills", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.date "billing_month", null: false
+    t.date "closed_on", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "credit_card_id", null: false
+    t.date "due_on", null: false
+    t.bigint "stated_minimum_cents"
+    t.bigint "stated_total_cents"
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_id"
+    t.index ["account_id"], name: "index_card_bills_on_account_id"
+    t.index ["created_by_id"], name: "index_card_bills_on_created_by_id"
+    t.index ["credit_card_id", "billing_month"], name: "index_card_bills_on_credit_card_id_and_billing_month", unique: true
+    t.index ["updated_by_id"], name: "index_card_bills_on_updated_by_id"
   end
 
   create_table "categories", force: :cascade do |t|
@@ -383,6 +401,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
     t.bigint "bank_account_id"
     t.date "billing_month", null: false
     t.boolean "billing_month_manual", default: false, null: false
+    t.bigint "card_bill_id"
     t.bigint "category_id"
     t.string "category_source"
     t.bigint "commitment_id"
@@ -407,6 +426,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
     t.string "source_message_id"
     t.string "status", default: "pending_review", null: false
     t.bigint "transfer_to_bank_account_id"
+    t.bigint "transfer_to_credit_card_id"
     t.datetime "updated_at", null: false
     t.bigint "updated_by_id"
     t.bigint "whatsapp_message_id"
@@ -415,6 +435,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
     t.index ["account_id", "status"], name: "index_transactions_on_account_id_and_status"
     t.index ["account_id"], name: "index_transactions_on_account_id"
     t.index ["bank_account_id"], name: "index_transactions_on_bank_account_id"
+    t.index ["card_bill_id"], name: "index_transactions_on_card_bill_id", where: "(card_bill_id IS NOT NULL)"
     t.index ["category_id"], name: "index_transactions_on_category_id"
     t.index ["commitment_id", "billing_month"], name: "index_transactions_commitment_paid_once", unique: true, where: "((commitment_id IS NOT NULL) AND ((status)::text = 'posted'::text) AND ((installment_number IS NULL) OR (credit_card_id IS NULL)) AND (deleted_at IS NULL))"
     t.index ["commitment_id"], name: "index_transactions_on_commitment_id"
@@ -424,10 +445,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
     t.index ["income_id"], name: "index_transactions_on_income_id"
     t.index ["source_message_id"], name: "index_transactions_on_source_message_id", unique: true, where: "(source_message_id IS NOT NULL)"
     t.index ["transfer_to_bank_account_id"], name: "index_transactions_on_transfer_to_bank_account_id"
+    t.index ["transfer_to_credit_card_id"], name: "index_transactions_on_transfer_to_credit_card_id"
     t.index ["whatsapp_message_id"], name: "index_transactions_on_whatsapp_message_id"
     t.check_constraint "installment_number IS NULL OR commitment_id IS NOT NULL", name: "transactions_installment_requires_commitment"
     t.check_constraint "num_nonnulls(bank_account_id, credit_card_id) <= 1", name: "transactions_one_instrument_max"
-    t.check_constraint "transfer_to_bank_account_id IS NULL OR direction::text = 'transfer'::text", name: "transactions_transfer_dest_only_on_transfer"
+    t.check_constraint "num_nonnulls(transfer_to_bank_account_id, transfer_to_credit_card_id) <= 1", name: "transactions_one_transfer_dest_max"
+    t.check_constraint "transfer_to_bank_account_id IS NULL AND transfer_to_credit_card_id IS NULL OR direction::text = 'transfer'::text", name: "transactions_transfer_dest_only_on_transfer"
   end
 
   create_table "users", force: :cascade do |t|
@@ -495,6 +518,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
   add_foreign_key "bank_accounts", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "bank_accounts", "users", column: "deleted_by_id", on_delete: :nullify
   add_foreign_key "bank_accounts", "users", column: "updated_by_id", on_delete: :nullify
+  add_foreign_key "card_bills", "accounts"
+  add_foreign_key "card_bills", "credit_cards"
+  add_foreign_key "card_bills", "users", column: "created_by_id"
+  add_foreign_key "card_bills", "users", column: "updated_by_id"
   add_foreign_key "categories", "accounts"
   add_foreign_key "categories", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "categories", "users", column: "deleted_by_id", on_delete: :nullify
@@ -544,9 +571,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_170000) do
   add_foreign_key "transactions", "accounts"
   add_foreign_key "transactions", "bank_accounts"
   add_foreign_key "transactions", "bank_accounts", column: "transfer_to_bank_account_id"
+  add_foreign_key "transactions", "card_bills"
   add_foreign_key "transactions", "categories"
   add_foreign_key "transactions", "commitments"
   add_foreign_key "transactions", "credit_cards"
+  add_foreign_key "transactions", "credit_cards", column: "transfer_to_credit_card_id"
   add_foreign_key "transactions", "incomes"
   add_foreign_key "transactions", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "transactions", "users", column: "deleted_by_id", on_delete: :nullify

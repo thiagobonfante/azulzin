@@ -83,6 +83,14 @@ Rails.application.routes.draw do
     end
     resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
 
+    # Closed faturas (.plans/credit-cards 01): the bill page + the Pagar/unpay actions.
+    resources :card_bills, only: :show do
+      member do
+        post  :pay
+        patch :unpay
+      end
+    end
+
     # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the
     # ledger's inline add + edit-in-place, and update/confirm keep the guarded-transition inbox.
     resources :transactions, only: %i[index new create edit update destroy] do

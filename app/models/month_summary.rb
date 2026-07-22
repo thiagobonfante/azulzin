@@ -64,9 +64,16 @@ class MonthSummary
 
   def projected_guardado_cents = projected_guardado_commitments.sum(&:amount_cents)
 
-  # §7.2 — { credit_card => cents } composed bill figure per card.
+  # §7.2 — { credit_card => cents } composed bill figure per card. A CLOSED bill row
+  # swaps in its effective total (the bank's number when informed — .plans/credit-cards
+  # 01 §4.4); open months keep the live query.
   def bill_totals
-    @bill_totals ||= account.credit_cards.kept.index_with { |card| card.bill_cents(@month) }
+    @bill_totals ||= begin
+      closed = account.card_bills.where(billing_month: @month).index_by(&:credit_card_id)
+      account.credit_cards.kept.index_with do |card|
+        closed[card.id]&.effective_total_cents || card.bill_cents(@month)
+      end
+    end
   end
 
   # §7.1 — { bank_account_id => cents|nil } derived balance ("now", month-independent).

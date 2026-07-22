@@ -1,0 +1,13 @@
+<%# locals: lines — a closed/open fatura's line items (shared by the hub bills tile and the
+    bill page): merchant, parcel k/N, date, amount. %>
+<ul class="flex flex-col gap-1">
+  <% lines.each do |line| %>
+    <li class="flex items-center justify-between text-xs text-base-content/60">
+      <span class="truncate">
+        <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
+        · <%= l(line.occurred_on, format: :short) %>
+      </span>
+      <span class="tabular-nums"><%= brl(line.amount_cents) %></span>
+    </li>
+  <% end %>
+</ul>

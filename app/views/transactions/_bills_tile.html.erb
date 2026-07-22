@@ -47,17 +47,9 @@
           <% if lines.any? %>
             <details class="group">
               <summary class="cursor-pointer list-none"><%= header %></summary>
-              <ul class="mt-2 ml-9 flex flex-col gap-1">
-                <% lines.each do |line| %>
-                  <li class="flex items-center justify-between text-xs text-base-content/60">
-                    <span class="truncate">
-                      <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
-                      · <%= l(line.occurred_on, format: :short) %>
-                    </span>
-                    <span class="tabular-nums"><%= brl(line.amount_cents) %></span>
-                  </li>
-                <% end %>
-              </ul>
+              <div class="mt-2 ml-9">
+                <%= render "card_bills/lines", lines: lines %>
+              </div>
             </details>
           <% else %>
             <%= header %>

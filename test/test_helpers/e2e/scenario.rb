@@ -166,6 +166,29 @@ module E2E
       self
     end
 
+    # solo_basic + a CLOSED, unpaid fatura for the anchor month (BILL packs): calibrated
+    # 125_000¢ = 60_000 + 50_000 mid-cycle + 15_000 ON the closing edge (the BILL-05
+    # left-behind candidate — closest to closing, floats to the top of the picker).
+    # Itaú balance R$ 2.500,00 anchors derived-balance assertions. Card due day 10 /
+    # closes the 3rd ⇒ at the anchor (the 20th) the bill is closed and already past due.
+    def bill_closed(**)
+      solo_basic
+      close_day = nubank_card.bill_due_day - nubank_card.closing_offset_days   # the 3rd
+      prev = this_month << 1
+      expense(merchant: "Mercado Grande",    category: "Mercado", instrument: nubank_card,
+              cents: 60_000, on: prev + 14)
+      expense(merchant: "Farmácia Central",  category: "Saúde",   instrument: nubank_card,
+              cents: 50_000, on: prev + 19)
+      expense(merchant: "Na Borda do Corte", category: "Outros",  instrument: nubank_card,
+              cents: 15_000, on: this_month + (close_day - 1))   # ON the closing date → this bill
+      itau.update!(balance_cents: 250_000)
+      bills = CardBills::CloseScan.ensure_for(nubank_card)
+      verify_bill_calibration!(bills)
+      self
+    end
+
+    def closed_bill = nubank_card.card_bills.order(:billing_month).last
+
     # solo_basic + caixinha + commitments arranged around the traveled "today"
     # (see .plans/e2e/02 §3): Condomínio due today+1 (default lead) · Luz due today−2 unpaid
     # (inside 3-day overdue grace) · Água due today−5 unpaid (outside grace) · card closing
@@ -350,6 +373,17 @@ module E2E
         raise "recent_days pack lost its calibration: " \
               "#{rows.map { |r| [ r.merchant, r.amount_cents, r.billing_month ] }.inspect}"
       end
+    end
+
+    # bill_closed tripwire: exactly ONE closed bill for the anchor month at exactly
+    # 125_000¢, unpaid — the frozen cents every BILL test asserts against.
+    def verify_bill_calibration!(bills)
+      bill = bills.last
+      ok = bills.size == 1 && bill&.billing_month == this_month &&
+           bill.computed_total_cents == 125_000 && bill.status == "unpaid"
+      return if ok
+      raise "bill_closed pack lost its calibration: " \
+            "#{bills.map { |b| [ b.billing_month, b.computed_total_cents, b.status ] }.inspect}"
     end
 
     # Cheap tripwire: if service logic changes ever un-calibrate this pack, fail HERE with
