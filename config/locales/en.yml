@@ -156,6 +156,19 @@ en:
           attributes:
             base:
               has_kept_incomes: "has active incomes — move them to another account before deleting."
+        credit_card:
+          attributes:
+            base:
+              has_kept_children: "has extra cards — remove the extra cards first."
+            parent_card:
+              nested: "can't be an extra card — one level only."
+              cross_account: "must belong to this account."
+            institution:
+              mismatch: "must match the main card's."
+            bill_due_day:
+              sub_card: "doesn't apply to an extra card — the due day belongs to the main card."
+            credit_limit_cents:
+              sub_card: "doesn't apply to an extra card — the limit belongs to the main card."
         commitment:
           one_instrument: "must have exactly one account or card."
           attributes:
@@ -542,6 +555,22 @@ en:
       meta_title: "Cards"
       title: "Your cards"
       subtitle: "Manage the cards you track in azulzin."
+    sub_cards:
+      title: "Extra and virtual cards"
+      subtitle: "The family's virtual copies and extra cards — the bill and the limit live on the main card."
+      chip:
+        one: "+1 card"
+        other: "+%{count} cards"
+      add: "+ extra or virtual card"
+      edit: "edit"
+      nickname: "Nickname"
+      nickname_placeholder: "e.g. iFood virtual, daughter's card"
+      belongs_to: "Extra card of %{card} — the due day and the limit live on the main card."
+      imported_name: "ending %{last4}"
+    default:
+      set: "Use as default"
+    make_default:
+      set: "%{card} is now your default card."
     create:
       created: "Card added."
     update:
@@ -637,6 +666,8 @@ en:
       balance_matches: "Your balance matches the bank 💙"
       balance_drift: "Your balance differs from the bank by %{amount}."
       only_in_app_hint_bank: "Checked ones will be removed (likely duplicates); unchecked stay as they are."
+      sections: "Cards on this bill"
+      sections_hint: "Plastics that appeared on the bill and aren't in azulzin yet — checked ones will be created as extra cards."
       processing: "Reading the document…"
       failed: "We couldn't read the document. Try again with another file."
       applied_state: "Check applied."

@@ -30,11 +30,11 @@
       <% end %>
       <% cards.each do |card| %>
         <li data-entry-instrument-target="option" data-value="credit_card-<%= card.id %>" data-type="credit_card"
-            data-name="<%= card.display_name.downcase %>" data-action="click->entry-instrument#pick"
-            class="flex cursor-pointer items-center gap-3 rounded-box px-2 py-2 hover:bg-base-200">
+            data-name="<%= instrument_card_label(card).downcase %>" data-action="click->entry-instrument#pick"
+            class="flex cursor-pointer items-center gap-3 rounded-box px-2 py-2 hover:bg-base-200 <%= "pl-6" if card.sub_card? %>">
           <span data-label class="flex items-center gap-2">
             <%= institution_avatar(card.institution, size: 24) %>
-            <span class="text-sm"><%= card.display_name %></span>
+            <span class="text-sm"><%= instrument_card_label(card) %></span>
             <span class="badge badge-ghost badge-xs"><%= t("app.nav.cards") %></span>
           </span>
         </li>

@@ -5,14 +5,14 @@ module CardBills
   # [credit_card_id, billing_month] unique index.
   class CloseScan
     def self.call(account)
-      account.credit_cards.kept.select(&:billing_configured?).flat_map { |card| ensure_for(card) }
+      account.credit_cards.kept.roots.select(&:billing_configured?).flat_map { |card| ensure_for(card) }
     end
 
     # With no rows yet only the most recently closed month materializes — history before
     # ship day stays query-only (no backfill migration); once a row exists, the catch-up
     # loop covers scan gaps without duplicates and without touching the open month.
     def self.ensure_for(card)
-      return [] unless card.billing_configured?
+      return [] unless card.root? && card.billing_configured?   # sub-cards never own bills
       open_month = card.current_open_bill_month
       last  = card.card_bills.maximum(:billing_month)
       month = last ? (last >> 1) : (open_month << 1)

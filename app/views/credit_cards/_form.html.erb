@@ -36,9 +36,18 @@
     </div>
   </div>
 
+  <%# Sub-cards carry no billing config and no limit (04 §1) — the cycle and the limit
+      belong to the root, so those sections simply don't render. %>
+  <% if credit_card.sub_card? %>
+    <%= f.hidden_field :parent_card_id %>
+    <p class="text-xs text-base-content/50">
+      <%= t("credit_cards.sub_cards.belongs_to", card: credit_card.billing_root.display_name) %>
+    </p>
+  <% end %>
+
   <%# ── Billing config (R2) — primary fields; R11 correctness depends on them ─────────── %>
   <% offset = credit_card.closing_offset_days || 7 %>
-  <div class="grid gap-4 sm:grid-cols-2" data-controller="billing-hint"
+  <div class="grid gap-4 sm:grid-cols-2 <%= "hidden" if credit_card.sub_card? %>" data-controller="billing-hint"
        data-billing-hint-template-value="<%= t('credit_cards.best_purchase_day', day: '{day}') %>">
     <div class="form-control">
       <%= f.label :bill_due_day, t("credit_cards.bill_due_day"), class: "mb-1 block text-sm font-medium" %>
@@ -70,7 +79,7 @@
   </div>
 
   <%# Optional details — legacy fallback for unconfigured cards; nothing here is required. %>
-  <details class="group">
+  <details class="group <%= "hidden" if credit_card.sub_card? %>">
     <summary class="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-primary">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
       <%= t("credit_cards.optional_details") %>

@@ -71,7 +71,7 @@ class MonthSummary
   def bill_totals
     @bill_totals ||= begin
       closed = account.card_bills.where(billing_month: @month).index_by(&:credit_card_id)
-      account.credit_cards.kept.index_with do |card|
+      account.credit_cards.kept.roots.index_with do |card|
         base = closed[card.id]&.effective_total_cents || card.bill_cents(@month)
         base + card_carryovers[card]&.fetch(:total_cents).to_i
       end
@@ -81,7 +81,7 @@ class MonthSummary
   # { credit_card => carryover projection | absent } — the labeled lines the bills tile
   # renders under each card (.plans/credit-cards 02 §5).
   def card_carryovers
-    @card_carryovers ||= account.credit_cards.kept
+    @card_carryovers ||= account.credit_cards.kept.roots
                                 .index_with { |card| CardBills::Carryover.for(card, @month) }
                                 .compact
   end

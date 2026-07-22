@@ -44,6 +44,28 @@
       </details>
     <% end %>
 
+    <%# Unknown plastics on the fatura ("@FILHA final 9911") → propose sub-cards (04 §3). %>
+    <% if import.credit_card_id && (sections = unknown_card_sections(import)).any? %>
+      <section class="rounded-box border border-base-300/70 bg-base-100 p-4">
+        <h2 class="text-sm font-semibold"><%= t("reconciliations.show.sections") %></h2>
+        <p class="mb-2 text-xs text-base-content/50"><%= t("reconciliations.show.sections_hint") %></p>
+        <ul class="flex flex-col gap-1.5">
+          <% sections.each do |section| %>
+            <li>
+              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
+                <input type="checkbox" name="sections[]" value="<%= section["last4"] %>" checked class="checkbox checkbox-xs">
+                <span class="min-w-0 flex-1 truncate">
+                  <%= section["holder"].to_s.presence || t("credit_cards.sub_cards.imported_name", last4: section["last4"]) %>
+                  · <%= t("credit_cards.ending", last4: section["last4"]) %>
+                </span>
+                <% if section["is_virtual"] %><span class="badge badge-info badge-xs"><%= t("credit_cards.card_types.virtual") %></span><% end %>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+
     <% if diff.only_in_source.any? %>
       <section class="rounded-box border border-base-300/70 bg-base-100 p-4">
         <h2 class="text-sm font-semibold"><%= t("reconciliations.show.only_in_source") %></h2>
@@ -107,7 +129,8 @@
       </section>
     <% end %>
 
-    <% if diff.only_in_source.empty? && diff.only_in_app.empty? && diff.amount_mismatch.empty? %>
+    <% if diff.only_in_source.empty? && diff.only_in_app.empty? && diff.amount_mismatch.empty? &&
+          (!import.credit_card_id || unknown_card_sections(import).empty?) %>
       <div role="status" class="alert alert-success py-2 text-sm"><span><%= t("reconciliations.show.nothing") %></span></div>
       <%= link_to t("reconciliations.show.back_to_bill"), back_link_for(import), class: "btn btn-ghost btn-sm self-start", data: { turbo_frame: "_top" } %>
     <% else %>

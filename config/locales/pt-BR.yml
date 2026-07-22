@@ -157,6 +157,19 @@ pt-BR:
           attributes:
             base:
               has_kept_incomes: "tem entradas ativas — mova-as para outra conta antes de excluir."
+        credit_card:
+          attributes:
+            base:
+              has_kept_children: "tem cartões adicionais — remova os cartões adicionais primeiro."
+            parent_card:
+              nested: "não pode ser um cartão adicional — só um nível."
+              cross_account: "precisa ser desta conta."
+            institution:
+              mismatch: "precisa ser a mesma do cartão principal."
+            bill_due_day:
+              sub_card: "não se aplica a um cartão adicional — o vencimento é do cartão principal."
+            credit_limit_cents:
+              sub_card: "não se aplica a um cartão adicional — o limite é do cartão principal."
         commitment:
           one_instrument: "deve ter exatamente uma conta ou um cartão."
           attributes:
@@ -543,6 +556,22 @@ pt-BR:
       meta_title: "Cartões"
       title: "Seus cartões"
       subtitle: "Gerencie os cartões que você acompanha no azulzin."
+    sub_cards:
+      title: "Cartões adicionais e virtuais"
+      subtitle: "Cópias virtuais e adicionais da família — a fatura e o limite ficam no cartão principal."
+      chip:
+        one: "+1 cartão"
+        other: "+%{count} cartões"
+      add: "+ cartão adicional ou virtual"
+      edit: "editar"
+      nickname: "Apelido"
+      nickname_placeholder: "Ex.: virtual iFood, cartão da filha"
+      belongs_to: "Cartão adicional do %{card} — vencimento e limite ficam no principal."
+      imported_name: "final %{last4}"
+    default:
+      set: "Usar como padrão"
+    make_default:
+      set: "%{card} agora é seu cartão padrão."
     create:
       created: "Cartão adicionado."
     update:
@@ -638,6 +667,8 @@ pt-BR:
       balance_matches: "Seu saldo bate com o banco 💙"
       balance_drift: "Seu saldo difere do banco em %{amount}."
       only_in_app_hint_bank: "Marcados serão removidos (provável duplicado); desmarcados ficam como estão."
+      sections: "Cartões nesta fatura"
+      sections_hint: "Plásticos que apareceram na fatura e ainda não estão no azulzin — marcados serão criados como cartões adicionais."
       processing: "Lendo o documento…"
       failed: "Não conseguimos ler o documento. Tente de novo com outro arquivo."
       applied_state: "Conferência aplicada."

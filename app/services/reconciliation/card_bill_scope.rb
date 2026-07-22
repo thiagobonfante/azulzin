@@ -9,9 +9,9 @@ module Reconciliation
       @month       = month.beginning_of_month
     end
 
-    # ponytail: phase 6 widens credit_card_id to the family (root + sub-cards).
     def transactions
-      credit_card.transactions.posted.kept.where(billing_month: @month)
+      Transaction.where(credit_card_id: credit_card.family_ids)
+                 .posted.kept.where(billing_month: @month)
                  .includes(:commitment).order(:occurred_on, :id)
     end
 
@@ -21,9 +21,17 @@ module Reconciliation
     # Card rows are already the extrato's expense/estorno view.
     def direction_of(txn) = txn.direction
 
-    def creation_attributes(_row)
-      # The bank put it on THIS bill — pin it there, never re-bucket.
-      { credit_card: @credit_card, billing_month: @month, billing_month_manual: true }
+    def creation_attributes(row)
+      # The bank put it on THIS bill — pin it there, never re-bucket. A row whose
+      # section_last4 names a family plastic posts to THAT card (04 §3); unknown → root.
+      { credit_card: family_card_for(row.section_last4),
+        billing_month: @month, billing_month_manual: true }
+    end
+
+    def family_card_for(last4)
+      return @credit_card if last4.blank?
+      @credit_card.children.kept.find_by(last4: last4) ||
+        (@credit_card.last4 == last4 ? @credit_card : @credit_card)
     end
 
     def resolve_app_only!(txn, by: nil)

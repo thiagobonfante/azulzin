@@ -6,6 +6,14 @@ class User < ApplicationRecord
 
   has_one  :account_membership, dependent: :destroy
   has_one  :account, through: :account_membership
+
+  # The member's default plastic (.plans/credit-cards 04 §5) — read through a guard, like
+  # resolve_instrument: a soft-deleted or foreign card reads as no-default.
+  def default_credit_card
+    return nil if default_credit_card_id.nil?
+    card = CreditCard.kept.find_by(id: default_credit_card_id)
+    card if card && card.account_id == account&.id
+  end
   has_many :sessions,          dependent: :destroy
   has_many :push_devices,      dependent: :destroy   # revocation also rides Session destroy
   has_many :oauth_identities,  dependent: :destroy   # table added in Phase 4

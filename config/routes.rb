@@ -81,7 +81,9 @@ Rails.application.routes.draw do
     resources :incomes,       only: %i[index create edit update destroy] do  # R1 — recurring income schedules
       member { patch :receive }   # mark this month's expected deposit as received (hub card)
     end
-    resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
+    resources :credit_cards,  only: %i[index create edit update destroy] do  # edit/update: billing config (R2)
+      member { patch :make_default }   # the per-member default plastic (.plans/credit-cards 04 §5)
+    end
 
     # Closed faturas (.plans/credit-cards 01+03): the bill page, Pagar/unpay, the bank's
     # number (update) and the left-behind picker (carry_over).

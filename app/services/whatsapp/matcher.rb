@@ -63,6 +63,13 @@ module Whatsapp
       # disambiguate rather than silently pick one (e.g. two cards at the same bank).
       tied = scored.select { |(_, s)| (top_score - s) < TIE }.map { |(c, _)| c[:record] }
       if tied.size >= 2
+        # Root-over-child (.plans/credit-cards 04 §4): a tie INSIDE one card family ("nubank"
+        # matching the root and its own virtual) silently posts to the ROOT — the default
+        # plastic; misattribution within a family is cosmetic (same bill, "muda pra…" fixes).
+        # Cross-family ties keep the numbered ask.
+        if (root = single_family_root(tied))
+          return Result.new(instrument: root, candidates: scored, c_match: 0.75, reason: "family_root")
+        end
         return Result.new(instrument: nil, candidates: tied, c_match: 0.40, reason: "needs_disambiguation")
       end
 
@@ -76,6 +83,13 @@ module Whatsapp
     end
 
     def miss(reason, c: 0.0) = Result.new(instrument: nil, candidates: [], c_match: c, reason: reason)
+
+    # The one root every tied card belongs to (itself or its parent), or nil.
+    def single_family_root(records)
+      return nil unless records.all? { |r| r.is_a?(CreditCard) }
+      roots = records.map(&:billing_root).uniq
+      roots.first if roots.size == 1
+    end
 
     # No instrument named (typical for a receipt) — auto-pick ONLY when the payment method
     # is a decisive KIND (débito xor crédito) and the user has exactly one instrument of
@@ -110,11 +124,14 @@ module Whatsapp
 
     # Normalized term bag for an instrument: nickname + institution name/initials + aliases
     # (+ last-4 for cards). `short` terms (≤ SHORT_ALIAS_MAX) match as whole tokens only.
+    # Terms take the SAME filler strip as the phrase — "cartão da filha" must equal its own
+    # nickname after both sides normalize (found while pinning SUB-01: the phrase side
+    # dropped "cartão"/"da" while the term kept them, so multiword nicknames never hit).
     def term_bag(record)
       inst = record.institution
       raw = [ record.nickname, inst.name, inst.initials, *Whatsapp.aliases_for(inst.code) ]
       raw << record.last4 if record.respond_to?(:last4) && record.last4.present?
-      raw.compact.map { |t| scrub(t) }.reject(&:blank?).uniq
+      raw.compact.map { |t| normalize_phrase(t) }.reject(&:blank?).uniq
     end
 
     def normalize_phrase(phrase)

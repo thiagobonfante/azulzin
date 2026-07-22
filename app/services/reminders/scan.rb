@@ -65,7 +65,7 @@ module Reminders
     # (closing_offset_days), so billing months one past the window are probed too — a date
     # outside the window simply yields nothing.
     def card_events
-      @account.credit_cards.kept.select(&:billing_configured?).flat_map do |card|
+      @account.credit_cards.kept.roots.select(&:billing_configured?).flat_map do |card|
         months_between(@from, @to >> 1).flat_map { |month| fatura_events(card, month) }
       end
     end

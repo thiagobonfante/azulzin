@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_010001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_030001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -183,11 +183,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_010001) do
     t.bigint "institution_id", null: false
     t.string "last4"
     t.string "nickname"
+    t.bigint "parent_card_id"
     t.datetime "updated_at", null: false
     t.bigint "updated_by_id"
     t.index ["account_id"], name: "index_credit_cards_on_account_id"
     t.index ["created_by_id"], name: "index_credit_cards_on_created_by_id"
     t.index ["institution_id"], name: "index_credit_cards_on_institution_id"
+    t.index ["parent_card_id"], name: "index_credit_cards_on_parent_card_id"
     t.check_constraint "bill_due_day >= 1 AND bill_due_day <= 31", name: "credit_cards_bill_due_day_range"
     t.check_constraint "closing_offset_days >= 0 AND closing_offset_days <= 28", name: "credit_cards_closing_offset_range"
   end
@@ -474,6 +476,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_010001) do
     t.boolean "admin", default: false, null: false
     t.datetime "confirmed_at"
     t.datetime "created_at", null: false
+    t.bigint "default_credit_card_id"
     t.citext "email_address", null: false
     t.string "locale", default: "pt-BR", null: false
     t.string "name"
@@ -486,6 +489,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_010001) do
     t.string "whatsapp_id"
     t.string "whatsapp_jid"
     t.string "whatsapp_verification_code"
+    t.index ["default_credit_card_id"], name: "index_users_on_default_credit_card_id"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["whatsapp_id"], name: "index_users_on_whatsapp_id", unique: true, where: "(whatsapp_id IS NOT NULL)"
     t.index ["whatsapp_verification_code"], name: "index_users_on_whatsapp_verification_code", unique: true, where: "(whatsapp_verification_code IS NOT NULL)"
@@ -553,6 +557,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_010001) do
   add_foreign_key "commitments", "users", column: "deleted_by_id", on_delete: :nullify
   add_foreign_key "commitments", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "credit_cards", "accounts"
+  add_foreign_key "credit_cards", "credit_cards", column: "parent_card_id"
   add_foreign_key "credit_cards", "institutions"
   add_foreign_key "credit_cards", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "credit_cards", "users", column: "deleted_by_id", on_delete: :nullify
@@ -600,6 +605,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_010001) do
   add_foreign_key "transactions", "users", column: "deleted_by_id", on_delete: :nullify
   add_foreign_key "transactions", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "transactions", "whatsapp_messages"
+  add_foreign_key "users", "credit_cards", column: "default_credit_card_id"
   add_foreign_key "whatsapp_messages", "accounts"
   add_foreign_key "whatsapp_messages", "transactions"
   add_foreign_key "whatsapp_messages", "users"

@@ -55,7 +55,8 @@ class ReconciliationsController < ApplicationController
 
     result = Reconciliation::Apply.call(
       import: @import, scope: scope_for(@import), created_by: Current.user,
-      accepted: { create: Array(params[:create]), move: Array(params[:move]), fix: Array(params[:fix]) })
+      accepted: { create: Array(params[:create]), move: Array(params[:move]),
+                  fix: Array(params[:fix]), sections: Array(params[:sections]) })
     counts = { created: result.created, moved: result.moved, fixed: result.fixed }
     notice = @import.bank_account_id ? t(".applied_bank", **counts) : t(".applied", **counts)
     redirect_to back_path(@import.credit_card || @import.bank_account, @import.period), notice: notice

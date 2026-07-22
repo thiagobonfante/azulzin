@@ -6,9 +6,9 @@ class CardBillsController < ApplicationController
   before_action :set_bill
 
   def show
-    @lines = @bill.credit_card.transactions.posted.kept
+    @lines = @bill.credit_card.family_transactions.posted.kept
                   .where(billing_month: @bill.billing_month)
-                  .includes(:commitment).order(:occurred_on, :id)
+                  .includes(:commitment, credit_card: :institution).order(:occurred_on, :id)
     @payments = @bill.payments.posted.kept.includes(:bank_account).order(:occurred_on, :id)
   end
 
@@ -52,7 +52,7 @@ class CardBillsController < ApplicationController
   # The left-behind batch move: each picked row goes to the NEXT fatura via the existing
   # sticky manual-move (recompute passes already respect billing_month_manual).
   def carry_over
-    rows = @bill.credit_card.transactions.posted.kept
+    rows = @bill.credit_card.family_transactions.posted.kept
                 .where(billing_month: @bill.billing_month, id: Array(params[:transaction_ids]))
     return redirect_to card_bill_path(@bill), alert: t(".none") if rows.none?
     rows.each { |row| row.update!(billing_month: @bill.billing_month >> 1, billing_month_manual: true) }

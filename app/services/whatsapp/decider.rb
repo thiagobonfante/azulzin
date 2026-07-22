@@ -45,8 +45,15 @@ module Whatsapp
       # accounts): a sole candidate assigns silently; several get ONE numbered ask instead
       # of an unassigned row in the review inbox. Unknown method keeps the unassigned post.
       if instrument.nil? && (candidates = method_candidates).any?
-        return ask_instrument_pick(candidates) if candidates.size > 1
-        instrument = candidates.first
+        if candidates.size == 1
+          instrument = candidates.first
+        else
+          # P0 #3: several cards + no instrument phrase → post silently to the sender's
+          # default; the reply names the card so a wrong guess stays visible and
+          # correctable ("muda pro C6"). An explicit phrase never reaches this branch.
+          instrument = default_card_among(candidates)
+          return ask_instrument_pick(candidates) if instrument.nil?
+        end
       end
       txn = upsert(status: "posted", confirmed_at: Time.current, instrument: instrument)
       # Naming the auto-assigned category in the reply is the cheap correction loop (O2):
@@ -114,6 +121,13 @@ module Whatsapp
     end
 
     def method_candidates = self.class.method_candidates(account, @extraction)
+
+    # The SENDER's default plastic, only when it is one of the narrowed candidates.
+    def default_card_among(candidates)
+      return nil unless candidates.first.is_a?(CreditCard)
+      default = @msg.user&.default_credit_card
+      default if default && candidates.map(&:id).include?(default.id)
+    end
 
     # Class-level so MultiExpenseHandler narrows each batch item with the exact same rules.
     def self.method_candidates(account, extraction)

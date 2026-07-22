@@ -1,11 +1,18 @@
-<%# locals: lines — a closed/open fatura's line items (shared by the hub bills tile and the
-    bill page): merchant, parcel k/N, date, amount. %>
+<%# locals: lines, [family_root] — a fatura's line items (shared by the hub bills tile and
+    the bill page): merchant, parcel k/N, date, amount. Rows posted to a SUB-card show its
+    apelido chip (04 §3); zero chips when the family is just the root. %>
+<% family_root = local_assigns[:family_root] %>
 <ul class="flex flex-col gap-1">
   <% lines.each do |line| %>
-    <li class="flex items-center justify-between text-xs text-base-content/60">
-      <span class="truncate">
-        <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
-        · <%= l(line.occurred_on, format: :short) %>
+    <li class="flex items-center justify-between gap-2 text-xs text-base-content/60">
+      <span class="flex min-w-0 flex-1 items-center gap-1.5 truncate">
+        <span class="truncate">
+          <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
+          · <%= l(line.occurred_on, format: :short) %>
+        </span>
+        <% if family_root && line.credit_card_id && line.credit_card_id != family_root.id %>
+          <span class="badge badge-ghost badge-xs shrink-0"><%= line.credit_card.display_name %></span>
+        <% end %>
       </span>
       <span class="tabular-nums"><%= brl(line.amount_cents) %></span>
     </li>

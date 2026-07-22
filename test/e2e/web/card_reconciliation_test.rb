@@ -100,6 +100,45 @@ class E2E::WebCardReconciliationTest < E2E::PipelineCase
     assert_equal 4, s.account.document_imports.reconciliation.count
   end
 
+  # SUB-01 tie-in (04 §3): an unknown plastic in the fatura's sections becomes a proposed
+  # sub-card; its section's rows post to the fresh sub-card, not the root.
+  test "unknown fatura sections become sub-cards and catch their rows on apply" do
+    s = E2E::Scenario.build(:bill_closed)
+    sign_in_as s.owner
+    bill = s.closed_bill
+
+    post reconciliations_url, params: {
+      credit_card_id: s.nubank_card.id, period: bill.billing_month.iso8601,
+      file: fixture_file_upload("imports/statement.pdf", "application/pdf") }
+    import = s.account.document_imports.reconciliation.sole
+    extraction = canned_extraction.merge(
+      "meta" => { "card" => { "sections" => [
+        { "last4" => "9911", "holder" => "@FILHA", "is_virtual" => false } ] } })
+    extraction["rows"] << { "date" => bill.closed_on.iso8601, "description" => "LANCHONETE ESCOLA",
+                            "amount_cents" => 2_500, "direction" => "out",
+                            "installment" => nil, "section_last4" => "9911" }
+    Imports::DocumentExtractor.stub(:call, ->(*_a, **_k) { extraction }) do
+      perform_enqueued_jobs
+    end
+
+    get reconciliation_url(import)
+    assert_includes response.body, I18n.t("reconciliations.show.sections", locale: :"pt-BR")
+    assert_includes response.body, "@FILHA"
+
+    diff = Reconciliation::Diff.call(rows: Reconciliation.rows_from_extraction(import.reload.extraction),
+      scope: Reconciliation::CardBillScope.new(credit_card: s.nubank_card, month: bill.billing_month))
+    escola = diff.only_in_source.find { |r| r.section_last4 == "9911" }
+
+    post apply_reconciliation_url(import), params: { sections: [ "9911" ], create: [ escola.digest ] }
+
+    sub = s.nubank_card.children.kept.find_by!(last4: "9911")
+    assert_equal "@FILHA", sub.nickname
+    assert sub.physical?
+    created = s.account.transactions.find_by!(merchant: "LANCHONETE ESCOLA")
+    assert_equal sub.id, created.credit_card_id, "the section's row posts to the fresh sub-card"
+    assert_equal bill.billing_month, created.billing_month
+  end
+
   private
 
   # The bank's side of the bill_closed pack (125.000¢ = 60.000 + 50.000 + 15.000):

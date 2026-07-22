@@ -10,12 +10,12 @@
     <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.faturas_cents) %></span>
   </header>
 
-  <% cards = Current.account.credit_cards.kept.includes(:institution).order(:created_at) %>
+  <% cards = Current.account.credit_cards.kept.roots.includes(:institution).order(:created_at) %>
   <% if cards.any? %>
     <ul class="flex flex-col gap-3">
       <% cards.each do |card| %>
         <li>
-          <% lines = card.billing_configured? ? card.transactions.posted.where(billing_month: month).order(:occurred_on).to_a : [] %>
+          <% lines = card.billing_configured? ? card.family_transactions.posted.kept.where(billing_month: month).includes(credit_card: :institution).order(:occurred_on).to_a : [] %>
           <%# The card block itself toggles its fatura lines (no separate "Ver fatura" link);
               the chevron by the name signals it. Shared header so both branches stay identical. %>
           <% header = capture do %>
@@ -48,7 +48,7 @@
             <details class="group">
               <summary class="cursor-pointer list-none"><%= header %></summary>
               <div class="mt-2 ml-9">
-                <%= render "card_bills/lines", lines: lines %>
+                <%= render "card_bills/lines", lines: lines, family_root: card %>
               </div>
             </details>
           <% else %>

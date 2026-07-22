@@ -206,6 +206,39 @@ module E2E
       self
     end
 
+    # SUB-01 calibrated family: nubank root + "virtual iFood" + "cartão da filha", three
+    # rows on the anchor-month bill split across the family — 40.000 + 12.000 + 8.000 =
+    # 60.000¢. The count-once invariant self-checks at build time.
+    def card_family(**)
+      solo_basic
+      @instruments[:ifood_virtual] = account.credit_cards.create!(
+        institution: nubank_card.institution, parent_card: nubank_card,
+        nickname: "virtual iFood", card_type: "virtual", last4: "7001", created_by: owner)
+      @instruments[:filha_card] = account.credit_cards.create!(
+        institution: nubank_card.institution, parent_card: nubank_card,
+        nickname: "cartão da filha", last4: "7002", created_by: owner)
+      prev = this_month << 1
+      expense(merchant: "Compra Root",  category: "Outros",       instrument: nubank_card,   cents: 40_000, on: prev + 10)
+      expense(merchant: "iFood",        category: "Restaurantes", instrument: ifood_virtual, cents: 12_000, on: prev + 12)
+      expense(merchant: "Lanche Filha", category: "Restaurantes", instrument: filha_card,    cents: 8_000,  on: prev + 14)
+      verify_family_calibration!
+      self
+    end
+
+    def ifood_virtual = @instruments.fetch(:ifood_virtual)
+    def filha_card    = @instruments.fetch(:filha_card)
+
+    # The count-once invariant (04 §2): Σ over ROOTS' bill_cents covers every family row
+    # exactly once — no double count, no hole.
+    def verify_family_calibration!
+      roots_total = account.credit_cards.kept.roots.sum { |c| c.bill_cents(this_month) }
+      rows_total  = account.transactions.posted.kept
+                           .where.not(credit_card_id: nil)
+                           .where(billing_month: this_month, direction: "expense").sum(:amount_cents)
+      return if roots_total == 60_000 && rows_total == 60_000
+      raise "card_family pack lost the count-once calibration: roots=#{roots_total} rows=#{rows_total}"
+    end
+
     def seed_bcb_rates!
       { "rotativo" => "15.09", "parcelamento" => "9.26" }.each do |kind, rate|
         BcbRate.find_or_create_by!(kind: kind, reference_month: this_month << 1) do |row|

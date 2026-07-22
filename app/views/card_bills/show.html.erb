@@ -48,7 +48,7 @@
   <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
     <h2 class="mb-2 text-sm font-semibold"><%= t(".lines_title") %></h2>
     <% if @lines.any? %>
-      <%= render "card_bills/lines", lines: @lines %>
+      <%= render "card_bills/lines", lines: @lines, family_root: @bill.credit_card %>
     <% else %>
       <p class="text-xs text-base-content/50"><%= t(".no_lines") %></p>
     <% end %>
