@@ -17,6 +17,9 @@ module CardBills
     def estimate(card, month)
       prev = card.card_bills.find_by(billing_month: month << 1)
       return nil unless prev && Date.current > prev.due_on
+      # A contracted parcelamento replaces the rotativo: the remainder rides the future
+      # bills as parcel lines (CreditCard#financing_parcels_cents), never as carryover.
+      return nil if prev.financed?
 
       carry = prev.carryover_cents
       return nil if carry.zero?

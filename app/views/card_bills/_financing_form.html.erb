@@ -1,0 +1,67 @@
+<%# locals: bill, variant ("page" | "modal") — THE financing form, shared by the bill-page
+    section and the Pagar modal's "Parcelei" swap (founder 2026-07-22e: two places, same
+    form). variant keeps input ids unique when both render on one page. The entrada IS
+    this bill's payment (posts a Pay transfer from the chosen account); the bank's
+    numbers rule for the plan itself. Fields pair up from sm: (founder 2026-07-22f —
+    entrada+conta are one concept, the three plan numbers read as "509 em 10x de 100"). %>
+<%= form_with url: finance_card_bill_path(bill), method: :post, class: "grid gap-3" do %>
+  <p class="text-xs text-base-content/50"><%= t("card_bills.financing.help") %></p>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    <div class="form-control">
+      <label class="mb-1 text-xs text-base-content/60" for="financing_entrada_<%= variant %>"><%= t("card_bills.financing.entrada") %></label>
+      <label class="input input-bordered input-sm flex w-full items-center gap-1">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%= text_field_tag :entrada_reais, nil,
+              id: "financing_entrada_#{variant}", inputmode: "decimal", placeholder: "0,00", class: "grow",
+              data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+      </label>
+    </div>
+
+    <div class="form-control">
+      <label class="mb-1 text-xs text-base-content/60" for="financing_source_<%= variant %>"><%= t("card_bills.pay_modal.source") %></label>
+      <%= select_tag :bank_account_id,
+            options_from_collection_for_select(Current.account.bank_accounts.kept.includes(:institution).order(:created_at), :id, :display_name) +
+              content_tag(:option, t("card_bills.pay_modal.untracked_source"), value: ""),
+            id: "financing_source_#{variant}", class: "select select-bordered select-sm w-full" %>
+    </div>
+  </div>
+  <p class="-mt-1 text-xs text-base-content/50"><%= t("card_bills.financing.entrada_help") %></p>
+
+  <div class="grid gap-3 sm:grid-cols-3">
+    <div class="form-control">
+      <label class="mb-1 text-xs text-base-content/60" for="financing_financed_<%= variant %>"><%= t("card_bills.financing.financed") %></label>
+      <label class="input input-bordered input-sm flex w-full items-center gap-1">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%= text_field_tag :financed_reais, MoneyColumns.prefill(bill.carryover_cents),
+              id: "financing_financed_#{variant}", inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+              data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+      </label>
+    </div>
+
+    <div class="form-control">
+      <label class="mb-1 text-xs text-base-content/60" for="financing_count_<%= variant %>"><%= t("card_bills.financing.count") %></label>
+      <%= number_field_tag :installments_count, nil, id: "financing_count_#{variant}",
+            min: 2, max: 48, required: true, class: "input input-bordered input-sm w-full" %>
+    </div>
+
+    <div class="form-control">
+      <label class="mb-1 text-xs text-base-content/60" for="financing_installment_<%= variant %>"><%= t("card_bills.financing.installment") %></label>
+      <label class="input input-bordered input-sm flex w-full items-center gap-1">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%= text_field_tag :installment_reais, nil,
+              id: "financing_installment_#{variant}", inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+              data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+      </label>
+    </div>
+  </div>
+
+  <%# back: modal variant only (founder 2026-07-22f) — swaps back to the Pagar form. %>
+  <% back = local_assigns.fetch(:back, false) %>
+  <div class="flex items-center <%= back ? "justify-between" : "justify-end" %> gap-2 pt-1">
+    <% if back %>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="swap#toggle"><%= t("card_bills.financing.back") %></button>
+    <% end %>
+    <%= submit_tag t("card_bills.financing.submit"), class: "btn btn-primary btn-sm" %>
+  </div>
+<% end %>

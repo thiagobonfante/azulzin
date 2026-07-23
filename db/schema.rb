@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_23_011206) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_23_060001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -91,6 +91,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_23_011206) do
     t.date "reference_month", null: false
     t.datetime "updated_at", null: false
     t.index ["kind", "reference_month"], name: "index_bcb_rates_on_kind_and_reference_month", unique: true
+  end
+
+  create_table "card_bill_financings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "card_bill_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "entrada_transaction_id"
+    t.bigint "financed_cents", null: false
+    t.date "first_charge_month", null: false
+    t.bigint "installment_cents", null: false
+    t.integer "installments_count", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_id"
+    t.index ["account_id"], name: "index_card_bill_financings_on_account_id"
+    t.index ["card_bill_id"], name: "index_card_bill_financings_on_card_bill_id", unique: true
+    t.index ["created_by_id"], name: "index_card_bill_financings_on_created_by_id"
+    t.index ["entrada_transaction_id"], name: "index_card_bill_financings_on_entrada_transaction_id"
+    t.index ["updated_by_id"], name: "index_card_bill_financings_on_updated_by_id"
   end
 
   create_table "card_bills", force: :cascade do |t|
@@ -540,6 +559,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_23_011206) do
   add_foreign_key "bank_accounts", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "bank_accounts", "users", column: "deleted_by_id", on_delete: :nullify
   add_foreign_key "bank_accounts", "users", column: "updated_by_id", on_delete: :nullify
+  add_foreign_key "card_bill_financings", "accounts"
+  add_foreign_key "card_bill_financings", "card_bills"
+  add_foreign_key "card_bill_financings", "transactions", column: "entrada_transaction_id", on_delete: :nullify
+  add_foreign_key "card_bill_financings", "users", column: "created_by_id"
+  add_foreign_key "card_bill_financings", "users", column: "updated_by_id"
   add_foreign_key "card_bills", "accounts"
   add_foreign_key "card_bills", "credit_cards"
   add_foreign_key "card_bills", "users", column: "created_by_id"

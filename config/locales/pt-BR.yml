@@ -625,6 +625,7 @@ pt-BR:
       unpaid: "em aberto"
       overdue: "vencida"
       rolled: "restante na fatura seguinte"
+      financed: "parcelada"
     badge:
       closed: "Fatura fechada — %{amount}"
     pay_modal:
@@ -692,6 +693,30 @@ pt-BR:
       from_bill: "veio da fatura de %{month}"
       estimated_charges: "encargos estimados"
       estimate_label: "estimativa (taxas médias do Banco Central, %{month})"
+    financing:
+      title: "Parcelamento da fatura"
+      offer: "Parcelei a fatura com o banco"
+      short_cta: "Parcelei"
+      back: "Voltar"
+      help: "Copie os valores do app do banco — as parcelas entram nas próximas faturas e o valor parcelado continua ocupando o limite até quitar."
+      entrada: "Entrada"
+      entrada_help: "A entrada é o pagamento desta fatura: sai da conta escolhida e a fatura fica como paga. Deixe em branco se já registrou pelo Pagar."
+      financed: "Valor parcelado"
+      count: "Número de parcelas"
+      installment: "Valor da parcela"
+      submit: "Registrar parcelamento"
+      summary: "%{count}x de %{parcel} — total %{total}"
+      summary_fees: "sendo %{amount} de juros e IOF"
+      summary_span: "parcelas de %{from} a %{to}"
+      cancel: "Cancelar parcelamento"
+      line: "parcelamento da fatura de %{month} — %{no}/%{count}"
+      line_fees: "sendo %{amount} de juros e IOF"
+    finance:
+      financed: "Parcelamento em %{count}x registrado — as parcelas entram nas próximas faturas."
+      invalid: "Confira os valores do parcelamento — parcelas × valor precisa cobrir o valor parcelado."
+    unfinance:
+      unfinanced: "Parcelamento cancelado — as parcelas saíram das próximas faturas."
+      unfinanced_with_entrada: "Parcelamento cancelado — as parcelas saíram das próximas faturas e a entrada foi desfeita."
     rotativo:
       below_total: "Pagar menos que o total liga o rotativo."
       below_total_rate: "Hoje isso custa em média %{rate}% ao mês."

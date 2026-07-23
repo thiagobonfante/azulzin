@@ -135,6 +135,48 @@ class CardBillsController < ApplicationController
     redirect_to destination, notice: t(".moved", count: rows.size)
   end
 
+  # Records a parcelamento de fatura contracted with the bank (founder 2026-07-22d/e).
+  # The BANK's numbers verbatim (count + parcela from the bank's app, financed prefilled
+  # with our remainder but editable); parcels become derived lines on the next faturas
+  # via CreditCard#bill_cents — never rows, so unfinance (destroy) is the whole rollback.
+  # The entrada rides the same form: it IS this bill's payment (a normal Pay transfer
+  # from the chosen account); blank when it was already recorded via Pagar.
+  def finance
+    return redirect_to card_bill_path(@bill) if @bill.paid?
+    financing = @bill.build_financing(
+      account:            @bill.account,
+      installments_count: params[:installments_count].to_i,
+      installment_cents:  Money.to_cents(params[:installment_reais]).to_i,
+      financed_cents:     Money.to_cents(params[:financed_reais]).to_i,
+      first_charge_month: @bill.billing_month >> 1)
+    return redirect_to card_bill_path(@bill), alert: t(".invalid") unless financing.valid?
+    ActiveRecord::Base.transaction do
+      financing.save!
+      entrada = Money.to_cents(params[:entrada_reais]).to_i
+      if entrada.positive?
+        payment = CardBills::Pay.call(@bill, amount_cents: entrada, paid_on: Date.current,
+                                      bank_account: source_account, created_by: Current.user)
+        financing.update!(entrada_transaction: payment)
+      end
+    end
+    redirect_to card_bill_path(@bill), notice: t(".financed", count: financing.installments_count)
+  end
+
+  # Cancel the parcelamento record: parcels vanish from future bills, the plain carryover
+  # behavior returns on its own (everything downstream is derived) — and the entrada the
+  # form posted is reversed too (founder 2026-07-22f: cancel rolls back EVERYTHING the
+  # form did; a payment recorded via Pagar beforehand is not the form's and stays).
+  def unfinance
+    financing = @bill.financing
+    entrada = financing&.entrada_transaction
+    ActiveRecord::Base.transaction do
+      entrada.reverse! if entrada&.posted? && !entrada.soft_deleted?
+      financing&.destroy!
+    end
+    notice = entrada ? t(".unfinanced_with_entrada") : t(".unfinanced")
+    redirect_to card_bill_path(@bill), notice: notice
+  end
+
   private
     def set_bill
       @bill = Current.account.card_bills.includes(credit_card: :institution).find(params[:id])

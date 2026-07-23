@@ -5,7 +5,9 @@
     the 4-stat grid reduced to the two facts + one plain-words sentence explaining the
     12x parcelamento, and the whole bar chart is the month-by-month expander. %>
 <% total = bill.effective_total_cents %>
-<% if paid_cents.positive? && paid_cents < total %>
+<%# A financed bill left the rotativo — its remainder is contracted parcels, so the
+    rotativo projection would be flatly wrong (founder 2026-07-22d). %>
+<% if paid_cents.positive? && paid_cents < total && !bill.financed? %>
   <% rot  = BcbRate.current("rotativo") %>
   <% parc = BcbRate.current("parcelamento") %>
   <% min_cents = bill.stated_minimum_cents || (total * 15 / 100) %>

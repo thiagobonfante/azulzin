@@ -79,6 +79,7 @@ module NotificationsHelper
   # bill's banner simply doesn't render, and undoing the payment brings it back.
   def stale_card_bill_notification?(notification)
     return false unless %w[card_due card_overdue].include?(notification.kind)
+    # paid? covers financed too — a parceled bill is settled here (parcels ride the next faturas).
     !!Current.account.card_bills.find_by(id: notification.payload["card_bill_id"])&.paid?
   end
 

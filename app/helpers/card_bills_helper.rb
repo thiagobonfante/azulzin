@@ -6,7 +6,8 @@ module CardBillsHelper
     "partially_paid" => "badge-info",
     "unpaid"         => "badge-primary badge-outline",
     "overdue"        => "badge-error",
-    "rolled"         => "badge-ghost"
+    "rolled"         => "badge-ghost",
+    "financed"       => "badge-info badge-outline"
   }.freeze
 
   def card_bill_badge_class(bill)

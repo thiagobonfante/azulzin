@@ -6,6 +6,7 @@ class CreditCard < ApplicationRecord
   has_many :transactions, dependent: :nullify    # deleting a card must not erase history
   has_many :commitments,  dependent: :nullify    # card-charged subscriptions / installment plans (R10/R11)
   has_many :card_bills                           # closed faturas; stop rendering with a soft-deleted card
+  has_many :bill_financings, through: :card_bills, source: :financing   # contracted parcelamentos de fatura
   # Fatura payment transfers pointing AT this card (the destination leg) — nullify so a
   # hard destroy (LGPD cascade) never trips the transfer_to_credit_card_id FK.
   has_many :incoming_bill_payments, class_name: "Transaction",
@@ -79,10 +80,17 @@ class CreditCard < ApplicationRecord
   end
 
   # Hub-facing bill figure: posted rows PLUS card-commitment occurrences active in M with no
-  # linked posted charge (05 §5.7). Constant before/after a subscription charge is linked.
+  # linked posted charge (05 §5.7), PLUS parcelamento-de-fatura parcels charged in M —
+  # the ONE composition point, so closed bills (computed_total), the hub tile and
+  # MonthSummary all inherit the parcels. Constant before/after a charge is linked.
   def bill_cents(month)
-    bill_total_cents(month) + unlinked_card_commitment_cents(month)
+    bill_total_cents(month) + unlinked_card_commitment_cents(month) + financing_parcels_cents(month)
   end
+
+  # Contracted parcelamentos with a parcel landing on month M's fatura — derived lines on
+  # the Carryover spine (never rows). Financings live on root bills, so family-safe as-is.
+  def financings_in(month) = bill_financings.select { |f| f.active_in?(month) }
+  def financing_parcels_cents(month) = financings_in(month).sum(&:installment_cents)
 
   # Committed-not-yet-paid usage (02 §6): a 10× purchase holds the FULL amount against the
   # limit immediately. Σ posted expenses on the open bill and later − same-range refunds,
@@ -94,7 +102,8 @@ class CreditCard < ApplicationRecord
     scope = family_transactions.posted.kept.where("billing_month >= ?", current_open_bill_month)
     scope.where(direction: "expense").sum(:amount_cents) -
       scope.where(direction: "income").sum(:amount_cents) +
-      reserved_commitment_cents
+      reserved_commitment_cents +
+      financing_held_cents
   end
 
   # The open (current) bill figure the dashboard shows: composed (posted + unlinked
@@ -170,6 +179,12 @@ class CreditCard < ApplicationRecord
       from = current_open_bill_month
       Commitment.where(credit_card_id: family_ids).kept.active
                 .sum { |c| unposted_occurrence_months(c, from).size * c.amount_cents }
+    end
+
+    # Parceled bill remainders still consuming limit: banks hold the financed amount and
+    # release it as parcels are paid (paid = the parcel's fatura month has passed).
+    def financing_held_cents
+      bill_financings.sum { |f| f.held_cents(current_open_bill_month) }
     end
 
     def unposted_occurrence_months(commitment, from)

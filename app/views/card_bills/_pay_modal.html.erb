@@ -1,54 +1,74 @@
 <%# locals: bill — the Pagar fatura modal (.plans/credit-cards 01 §4.2). Pre-fills what's
     left of the effective total; source select includes "outra conta (não cadastrada)"
-    (P0 #4). Bank divergences are handled by the Conferir flow, not here. %>
-<dialog data-modal-target="dialog" class="modal modal-bottom sm:modal-middle">
+    (P0 #4). Bank divergences are handled by the Conferir flow, not here. "Parcelei"
+    (bottom-left, founder 2026-07-22e) swaps the pay form for the SAME financing form the
+    bill-page section renders — two places, one form (`_financing_form`). %>
+<%# swap lives on the dialog so its close event can reset the panels — a reopened modal
+    always starts on the Pagar form (founder 2026-07-22f). %>
+<dialog data-modal-target="dialog" data-controller="swap" data-action="close->swap#reset"
+        class="modal modal-bottom sm:modal-middle">
   <%# modal-bottom is place-items:end — cap the width only from sm: up (house gotcha). %>
   <div class="modal-box sm:max-w-md">
     <form method="dialog">
       <button class="btn btn-ghost btn-sm btn-circle absolute right-2 top-2"
               aria-label="<%= t("card_bills.pay_modal.cancel") %>">✕</button>
     </form>
-    <h3 class="font-display text-lg font-bold"><%= t("card_bills.pay_modal.title") %></h3>
-    <p class="mt-1 text-sm text-base-content/60">
-      <%= t("card_bills.pay_modal.subtitle", card: bill.credit_card.display_name, amount: brl(bill.effective_total_cents)) %>
-    </p>
 
-    <%= form_with url: pay_card_bill_path(bill), method: :post, class: "mt-3 grid gap-3",
-          data: { turbo: false, controller: "rotativo-warning",
-                  rotativo_warning_url_value: projection_card_bill_path(bill) } do %>
-      <div class="form-control">
-        <label class="mb-1 text-xs text-base-content/60" for="pay_amount_reais"><%= t("card_bills.pay_modal.amount") %></label>
-        <label class="input input-bordered input-sm flex w-full items-center gap-1">
-          <span class="text-base-content/50"><%= t("money.symbol") %></span>
-          <%= text_field_tag :amount_reais, MoneyColumns.prefill([ bill.effective_total_cents - bill.paid_cents, 0 ].max),
-                id: "pay_amount_reais", inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
-                data: { controller: "money-mask", money_mask_cents_value: true,
-                        rotativo_warning_target: "amount",
-                        action: "input->money-mask#format input->rotativo-warning#recount" } %>
-        </label>
+    <div data-swap-target="a">
+      <h3 class="font-display text-lg font-bold"><%= t("card_bills.pay_modal.title") %></h3>
+      <p class="mt-1 text-sm text-base-content/60">
+        <%= t("card_bills.pay_modal.subtitle", card: bill.credit_card.display_name, amount: brl(bill.effective_total_cents)) %>
+      </p>
+
+      <%= form_with url: pay_card_bill_path(bill), method: :post, class: "mt-3 grid gap-3",
+            data: { turbo: false, controller: "rotativo-warning",
+                    rotativo_warning_url_value: projection_card_bill_path(bill) } do %>
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60" for="pay_amount_reais"><%= t("card_bills.pay_modal.amount") %></label>
+          <label class="input input-bordered input-sm flex w-full items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= text_field_tag :amount_reais, MoneyColumns.prefill([ bill.effective_total_cents - bill.paid_cents, 0 ].max),
+                  id: "pay_amount_reais", inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
+                  data: { controller: "money-mask", money_mask_cents_value: true,
+                          rotativo_warning_target: "amount",
+                          action: "input->money-mask#format input->rotativo-warning#recount" } %>
+          </label>
+        </div>
+
+        <%# The live rotativo warning lands here (server-rendered — 02 §4; warn, never block). %>
+        <div data-rotativo-warning-target="panel"></div>
+
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60" for="pay_paid_on"><%= t("card_bills.pay_modal.date") %></label>
+          <%= date_field_tag :paid_on, Date.current, id: "pay_paid_on", class: "input input-bordered input-sm w-full" %>
+        </div>
+
+        <div class="form-control">
+          <label class="mb-1 text-xs text-base-content/60" for="pay_bank_account_id"><%= t("card_bills.pay_modal.source") %></label>
+          <%= select_tag :bank_account_id,
+                options_from_collection_for_select(Current.account.bank_accounts.kept.includes(:institution).order(:created_at), :id, :display_name) +
+                  content_tag(:option, t("card_bills.pay_modal.untracked_source"), value: ""),
+                id: "pay_bank_account_id", class: "select select-bordered select-sm w-full" %>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button type="button" class="btn btn-ghost btn-sm text-primary" data-action="swap#toggle">
+            <%= t("card_bills.financing.short_cta") %>
+          </button>
+          <div class="flex gap-2">
+            <button type="button" class="btn btn-ghost btn-sm" data-action="modal#close"><%= t("card_bills.pay_modal.cancel") %></button>
+            <%= submit_tag t("card_bills.pay_modal.submit"), class: "btn btn-primary btn-sm" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div data-swap-target="b" class="hidden">
+      <h3 class="font-display text-lg font-bold"><%= t("card_bills.financing.offer") %></h3>
+      <div class="mt-3">
+        <%= render "card_bills/financing_form", bill: bill, variant: "modal", back: true %>
       </div>
-
-      <%# The live rotativo warning lands here (server-rendered — 02 §4; warn, never block). %>
-      <div data-rotativo-warning-target="panel"></div>
-
-      <div class="form-control">
-        <label class="mb-1 text-xs text-base-content/60" for="pay_paid_on"><%= t("card_bills.pay_modal.date") %></label>
-        <%= date_field_tag :paid_on, Date.current, id: "pay_paid_on", class: "input input-bordered input-sm w-full" %>
-      </div>
-
-      <div class="form-control">
-        <label class="mb-1 text-xs text-base-content/60" for="pay_bank_account_id"><%= t("card_bills.pay_modal.source") %></label>
-        <%= select_tag :bank_account_id,
-              options_from_collection_for_select(Current.account.bank_accounts.kept.includes(:institution).order(:created_at), :id, :display_name) +
-                content_tag(:option, t("card_bills.pay_modal.untracked_source"), value: ""),
-              id: "pay_bank_account_id", class: "select select-bordered select-sm w-full" %>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-1">
-        <button type="button" class="btn btn-ghost btn-sm" data-action="modal#close"><%= t("card_bills.pay_modal.cancel") %></button>
-        <%= submit_tag t("card_bills.pay_modal.submit"), class: "btn btn-primary btn-sm" %>
-      </div>
-    <% end %>
+    </div>
   </div>
   <form method="dialog" class="modal-backdrop">
     <button aria-label="<%= t("card_bills.pay_modal.cancel") %>"></button>

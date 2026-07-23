@@ -102,6 +102,8 @@ Rails.application.routes.draw do
         post  :add_line       # a missed purchase found during the review, clamped to the bill window
         patch :clear_stated   # cancel the conferência — forget the informed bank value
         get   :projection   # live rotativo warning panel for the Pagar modal
+        post   :finance     # record a parcelamento de fatura contracted with the bank
+        delete :unfinance   # cancel it — parcels are derived, destroy is the rollback
       end
     end
 

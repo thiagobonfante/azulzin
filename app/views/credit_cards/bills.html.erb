@@ -31,8 +31,8 @@
               <span class="text-right font-display text-sm font-bold tabular-nums"><%= brl(bill.effective_total_cents) %></span>
             </span>
           <% end %>
-          <%# A rolled bill is settled HERE — its remainder (plus encargos) is payable on
-              the next bill, so no pay CTA (founder round 2026-07-22). %>
+          <%# A rolled bill is settled HERE — its remainder is payable on the next bill,
+              so no pay CTA (founder round 2026-07-22). paid? covers financed bills too. %>
           <% unless bill.paid? || bill.rolled? %>
             <%= link_to t("card_bills.show.pay"), card_bill_path(bill), class: "btn btn-primary btn-xs shrink-0" %>
           <% end %>

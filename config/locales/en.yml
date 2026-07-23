@@ -624,6 +624,7 @@ en:
       unpaid: "open"
       overdue: "overdue"
       rolled: "remainder on the next bill"
+      financed: "split into installments"
     badge:
       closed: "Bill closed — %{amount}"
     pay_modal:
@@ -691,6 +692,30 @@ en:
       from_bill: "carried from the %{month} bill"
       estimated_charges: "estimated charges"
       estimate_label: "estimate (Central Bank average rates, %{month})"
+    financing:
+      title: "Bill installment plan"
+      offer: "I split this bill with the bank"
+      short_cta: "I split it"
+      back: "Back"
+      help: "Copy the numbers from your bank's app — the installments land on the next bills, and the financed amount keeps using your limit until settled."
+      entrada: "Down payment"
+      entrada_help: "The down payment is this bill's payment: it leaves the chosen account and the bill counts as paid. Leave blank if you already recorded it via Pay."
+      financed: "Financed amount"
+      count: "Number of installments"
+      installment: "Installment amount"
+      submit: "Record installment plan"
+      summary: "%{count}x of %{parcel} — total %{total}"
+      summary_fees: "of which %{amount} is interest and IOF"
+      summary_span: "installments from %{from} to %{to}"
+      cancel: "Cancel installment plan"
+      line: "installment plan from the %{month} bill — %{no}/%{count}"
+      line_fees: "of which %{amount} is interest and IOF"
+    finance:
+      financed: "Installment plan in %{count}x recorded — the installments land on the next bills."
+      invalid: "Check the plan's numbers — installments × amount must cover the financed amount."
+    unfinance:
+      unfinanced: "Installment plan canceled — the installments left the next bills."
+      unfinanced_with_entrada: "Installment plan canceled — the installments left the next bills and the down payment was undone."
     rotativo:
       below_total: "Paying less than the total starts revolving credit."
       below_total_rate: "Today it costs an average of %{rate}% a month."

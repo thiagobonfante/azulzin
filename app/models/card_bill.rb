@@ -13,6 +13,9 @@ class CardBill < ApplicationRecord
   # Unscoped: paid_cents applies posted.kept itself; unpay needs to find any linked row.
   has_many :payments, class_name: "Transaction", foreign_key: :card_bill_id,
            dependent: :nullify, inverse_of: :card_bill
+  # A contracted parcelamento de fatura on this bill's remainder; destroy = rollback
+  # (parcels are derived, so plain carryover behavior returns on its own).
+  has_one :financing, class_name: "CardBillFinancing", dependent: :destroy
 
   validates :billing_month, :closed_on, :due_on, presence: true
   validates :stated_total_cents, :stated_minimum_cents,
@@ -54,7 +57,10 @@ class CardBill < ApplicationRecord
     end
   end
 
-  def paid?    = status == "paid"
+  # A financed bill counts as PAID everywhere (founder 2026-07-22e): the entrada was its
+  # payment, the remainder is contracted parcels on the next faturas — only the status
+  # tag still reads "parcelada" (display_status checks financed? first).
+  def paid?    = financed? || status == "paid"
   def overdue? = !paid? && due_on < Date.current
 
   # Fully paid, but the last payment landed after the due date — the badge says so
@@ -71,10 +77,16 @@ class CardBill < ApplicationRecord
     !paid? && credit_card.card_bills.where("billing_month > ?", billing_month).exists?
   end
 
-  # Status as the UI names it — overdue styling only after due_on (01 §4.1); paid-late and
-  # rolled refine it so a settled or carried-forward bill never screams "vencida".
+  # The remainder was contracted into a parcelamento de fatura — the debt now lives on
+  # the future bills' parcel lines, so this bill is settled here (like rolled).
+  def financed? = financing.present?
+
+  # Status as the UI names it — overdue styling only after due_on (01 §4.1); paid-late,
+  # rolled and financed refine it so a settled or carried-forward bill never screams
+  # "vencida".
   def display_status
-    if paid? then paid_late? ? "paid_late" : "paid"
+    if financed? then "financed"
+    elsif paid? then paid_late? ? "paid_late" : "paid"
     elsif rolled? then "rolled"
     elsif overdue? then "overdue"
     else status

@@ -66,6 +66,13 @@
               <%= render "card_bills/carryover_lines", carry: carry %>
             </div>
           <% end %>
+          <%# Contracted parcelamento-de-fatura parcels charged this month — same spine,
+              already inside this card's tile figure via bill_cents. %>
+          <% if (fins = card.financings_in(month)).any? %>
+            <div class="mt-1 ml-9">
+              <%= render "card_bills/financing_lines", financings: fins, month: month %>
+            </div>
+          <% end %>
         </li>
       <% end %>
     </ul>
