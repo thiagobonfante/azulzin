@@ -7,13 +7,13 @@ require "test_helpers/e2e/pipeline_case"
 # on the ROT pack (bill 300.000¢): entrada 45.000 → remainder 255.000, financed as
 # 6 × 47.000 = 282.000 (encargos 27.000, 4.500/parcel).
 class E2E::WebCardBillFinancingTest < E2E::PipelineCase
-  def finance!(scenario, count: 6, parcela: "470,00", financed: "2.550,00", entrada: "450,00")
+  def finance!(scenario, count: 6, installment: "470,00", financed: "2.550,00", down_payment: "450,00")
     travel 1.minute
     # One submit (founder 2026-07-22e): the entrada rides the financing form and IS this
     # bill's payment — a normal Pay transfer from the chosen account.
     post finance_card_bill_url(scenario.closed_bill), params: {
-      entrada_reais: entrada, bank_account_id: scenario.itau.id,
-      financed_reais: financed, installments_count: count, installment_reais: parcela
+      down_payment_reais: down_payment, bank_account_id: scenario.itau.id,
+      financed_reais: financed, installments_count: count, installment_reais: installment
     }
     # Harness gotcha: the query cache is per-THREAD, so the financings SELECT cached
     # empty on the test thread (scenario build) survives the server thread's INSERT —
@@ -41,9 +41,9 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
     assert bill.paid?, "a financed bill counts as paid everywhere — the tag alone says parcelada"
     assert_equal rows_before, s.account.transactions.count, "only the entrada row — parcels are never rows"
 
-    entrada = bill.payments.posted.kept.sole
-    assert_equal 45_000, entrada.amount_cents
-    assert_equal s.itau.id, entrada.bank_account_id, "the entrada debits the chosen account"
+    down_payment = bill.payments.posted.kept.sole
+    assert_equal 45_000, down_payment.amount_cents
+    assert_equal s.itau.id, down_payment.bank_account_id, "the entrada debits the chosen account"
 
     summary = MonthSummary.new(s.account, next_month)
     assert_nil summary.card_carryovers[s.nubank_card], "contracted plan replaces the rotativo carryover"
@@ -91,7 +91,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
 
     travel 1.minute
     post pay_card_bill_url(bill), params: { amount_reais: "450,00", bank_account_id: s.itau.id }
-    finance! s, entrada: ""   # entrada already recorded — form field left blank
+    finance! s, down_payment: ""   # entrada already recorded — form field left blank
     delete unfinance_card_bill_url(bill)
 
     assert_not bill.reload.financed?
@@ -156,7 +156,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
     s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
 
-    finance! s, count: 2, parcela: "100,00"   # 2 × 10.000 < 255.000
+    finance! s, count: 2, installment: "100,00"   # 2 × 10.000 < 255.000
 
     assert_not s.closed_bill.reload.financed?
     assert_equal I18n.t("card_bills.finance.invalid", locale: :"pt-BR"), flash[:alert]
@@ -167,7 +167,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
     get card_bill_url(s.closed_bill)
     assert_includes response.body, I18n.t("card_bills.financing.offer", locale: :"pt-BR")
     assert_includes response.body, I18n.t("card_bills.financing.short_cta", locale: :"pt-BR")
-    assert_select "#financing_entrada_page"
-    assert_select "#financing_entrada_modal"
+    assert_select "#financing_down_payment_page"
+    assert_select "#financing_down_payment_modal"
   end
 end

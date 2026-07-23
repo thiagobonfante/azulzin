@@ -152,11 +152,11 @@ class CardBillsController < ApplicationController
     return redirect_to card_bill_path(@bill), alert: t(".invalid") unless financing.valid?
     ActiveRecord::Base.transaction do
       financing.save!
-      entrada = Money.to_cents(params[:entrada_reais]).to_i
-      if entrada.positive?
-        payment = CardBills::Pay.call(@bill, amount_cents: entrada, paid_on: Date.current,
+      down_payment = Money.to_cents(params[:down_payment_reais]).to_i
+      if down_payment.positive?
+        payment = CardBills::Pay.call(@bill, amount_cents: down_payment, paid_on: Date.current,
                                       bank_account: source_account, created_by: Current.user)
-        financing.update!(entrada_transaction: payment)
+        financing.update!(down_payment_transaction: payment)
       end
     end
     redirect_to card_bill_path(@bill), notice: t(".financed", count: financing.installments_count)
@@ -168,12 +168,12 @@ class CardBillsController < ApplicationController
   # form did; a payment recorded via Pagar beforehand is not the form's and stays).
   def unfinance
     financing = @bill.financing
-    entrada = financing&.entrada_transaction
+    down_payment = financing&.down_payment_transaction
     ActiveRecord::Base.transaction do
-      entrada.reverse! if entrada&.posted? && !entrada.soft_deleted?
+      down_payment.reverse! if down_payment&.posted? && !down_payment.soft_deleted?
       financing&.destroy!
     end
-    notice = entrada ? t(".unfinanced_with_entrada") : t(".unfinanced")
+    notice = down_payment ? t(".unfinanced_with_entrada") : t(".unfinanced")
     redirect_to card_bill_path(@bill), notice: notice
   end
 

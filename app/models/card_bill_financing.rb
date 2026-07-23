@@ -11,7 +11,7 @@ class CardBillFinancing < ApplicationRecord
   belongs_to :card_bill
   # The entrada payment the financing form posted (nil when it was recorded via Pagar
   # beforehand, or hard-deleted) — cancel reverses it along with the plan.
-  belongs_to :entrada_transaction, class_name: "Transaction", optional: true
+  belongs_to :down_payment_transaction, class_name: "Transaction", optional: true
 
   money_column :installment, :financed
 

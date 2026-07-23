@@ -9,11 +9,11 @@
 
   <div class="grid gap-3 sm:grid-cols-2">
     <div class="form-control">
-      <label class="mb-1 text-xs text-base-content/60" for="financing_entrada_<%= variant %>"><%= t("card_bills.financing.entrada") %></label>
+      <label class="mb-1 text-xs text-base-content/60" for="financing_down_payment_<%= variant %>"><%= t("card_bills.financing.entrada") %></label>
       <label class="input input-bordered input-sm flex w-full items-center gap-1">
         <span class="text-base-content/50"><%= t("money.symbol") %></span>
-        <%= text_field_tag :entrada_reais, nil,
-              id: "financing_entrada_#{variant}", inputmode: "decimal", placeholder: "0,00", class: "grow",
+        <%= text_field_tag :down_payment_reais, nil,
+              id: "financing_down_payment_#{variant}", inputmode: "decimal", placeholder: "0,00", class: "grow",
               data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
       </label>
     </div>
