@@ -12,7 +12,7 @@ class Goals::ApplyBudgetCutsTest < ActiveSupport::TestCase
   setup do
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
     @rest     = @account.categories.create!(name: "Restaurantes")
     travel_to Time.utc(2026, 7, 15, 12)
   end
@@ -23,7 +23,7 @@ class Goals::ApplyBudgetCutsTest < ActiveSupport::TestCase
     @account.goals.create!({ name: "Carro", kind: "purchase", target_cents: 6_000_000,
                              target_date: Date.new(2027, 12, 1), status: "active",
                              monthly_target_cents: 300_000, starts_on:, activated_at: Time.utc(2026, 6, 15),
-                             bank_account: @caixinha, baseline: {},
+                             bank_account: @savings_account, baseline: {},
                              plan: { "cuts" => cuts } }.merge(attrs))
   end
 

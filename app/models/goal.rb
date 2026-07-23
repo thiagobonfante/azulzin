@@ -36,8 +36,8 @@ class Goal < ApplicationRecord
   validates :target_date, presence: true, if: :purchase?
   validates :target_date, absence: true, if: :savings_rate?
   validate  :initial_below_target, if: :purchase?
-  validate  :bank_account_is_a_savings_caixinha, if: -> { bank_account_id.present? }
-  validate  :initial_saved_account_is_a_savings_caixinha, if: -> { initial_saved_bank_account_id.present? }
+  validate  :bank_account_is_a_savings_account, if: -> { bank_account_id.present? }
+  validate  :initial_saved_account_is_a_savings_account, if: -> { initial_saved_bank_account_id.present? }
   # An amount must say WHERE it sits whenever there's a caixinha to point at; households with
   # no savings account keep the bare-amount behavior (round 3 decision 7).
   validate  :initial_saved_account_required, if: -> { initial_saved_cents.to_i.positive? && initial_saved_bank_account_id.blank? }
@@ -49,7 +49,7 @@ class Goal < ApplicationRecord
 
   # Where this goal's contributions land: the linked caixinha, else every savings account
   # (legacy pre-round-3 goals). One definition shared by Progress / RiskScan / Replan /
-  # GoalsHelper — pair with Transaction.guardado_into (round-4 review consolidation).
+  # GoalsHelper — pair with Transaction.saved_into (round-4 review consolidation).
   def savings_account_ids
     return [ bank_account_id ] if bank_account_id
     account.bank_accounts.kept.savings.pluck(:id)
@@ -71,12 +71,12 @@ class Goal < ApplicationRecord
       errors.add(:base, :too_many_active) if account.goals.active.where.not(id: id).count >= MAX_ACTIVE
     end
 
-    def bank_account_is_a_savings_caixinha
+    def bank_account_is_a_savings_account
       return if bank_account&.account_id == account_id && bank_account&.savings?
       errors.add(:bank_account, :not_savings)
     end
 
-    def initial_saved_account_is_a_savings_caixinha
+    def initial_saved_account_is_a_savings_account
       return if initial_saved_bank_account&.account_id == account_id && initial_saved_bank_account&.savings?
       errors.add(:initial_saved_bank_account, :not_savings)
     end

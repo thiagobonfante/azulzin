@@ -36,7 +36,7 @@ module Whatsapp
       case @conv.status
       when "collecting"          then resolve_slot
       when "offered"             then resolve_offer_reply
-      when "picking_caixinha"    then resolve_caixinha_pick
+      when "picking_caixinha"    then resolve_savings_account_pick
       when "picking_source"      then resolve_source_pick
       when "replan_picking_goal" then resolve_replan_goal_pick
       when "replan_offered"      then resolve_replan_reply
@@ -151,9 +151,9 @@ module Whatsapp
     # (floored whole reais — never overstate a ledger figure, round 3 decision 1).
     def ask_amount
       return reply("goal_flow.ask_amount_purchase", name: @conv.data["name"]) if purchase?
-      guardado = Goals::Analyzer.call(account).median_guardado_cents
-      if guardado.positive?
-        reply("goal_flow.ask_amount_savings", guardado: whole_floor(guardado))
+      saved = Goals::Analyzer.call(account).median_saved_cents
+      if saved.positive?
+        reply("goal_flow.ask_amount_savings", saved: whole_floor(saved))
       else
         reply("goal_flow.ask_amount_savings_zero")
       end
@@ -190,16 +190,16 @@ module Whatsapp
         status: "draft", created_by: user
       )
       goal.baseline = Goals::Analyzer.call(account).to_snapshot
-      guardado = goal.baseline["median_guardado_cents"].to_i
+      saved = goal.baseline["median_guardado_cents"].to_i
       # Same guard as the web create: a "guardar mais" total at or below today's guardado
       # plans nothing — re-ask the amount instead of saving a doomed draft.
-      if goal.savings_rate? && goal.target_cents.to_i <= guardado
-        re_ask_slot("amount", "goal_flow.below_current_guardado", guardado: whole_floor(guardado))
+      if goal.savings_rate? && goal.target_cents.to_i <= saved
+        re_ask_slot("amount", "goal_flow.below_current_guardado", saved: whole_floor(saved))
         return nil
       end
       # The "já guardado" head start needs a home when a caixinha exists (decision 7);
       # re-pointed to the picked caixinha at accept time.
-      goal.initial_saved_bank_account = caixinhas.first if goal.initial_saved_cents.positive?
+      goal.initial_saved_bank_account = savings_accounts.first if goal.initial_saved_cents.positive?
       if goal.save
         @conv.update!(goal: goal)
         goal
@@ -298,9 +298,9 @@ module Whatsapp
     # ---- accept: always-linked activation (decision 4) --------------------------------------
 
     def accept!
-      list = caixinhas
-      return block_no_caixinha! if list.empty?
-      return with_caixinha(list.first.id) if list.size == 1
+      list = savings_accounts
+      return block_no_savings_account! if list.empty?
+      return with_savings_account(list.first.id) if list.size == 1
       moved = @conv.guarded_transition("offered", status: "picking_caixinha",
                 data: @conv.data.merge("options" => list.map(&:id)),
                 expires_at: GoalConversation::TTL.from_now)
@@ -308,19 +308,19 @@ module Whatsapp
       reply("goal_flow.ask_caixinha_pick", options: numbered_options(list))
     end
 
-    def resolve_caixinha_pick
+    def resolve_savings_account_pick
       options = account.bank_accounts.kept.savings.in_order_of(:id, @conv.data["options"]).to_a
       chosen = pick(options) { |a| a.display_name }
       return re_ask("goal_flow.ask_caixinha_pick", options: numbered_options(options)) unless chosen
-      with_caixinha(chosen.id)
+      with_savings_account(chosen.id)
     end
 
-    def with_caixinha(caixinha_id)
-      sources = source_accounts(caixinha_id)
-      return block_no_caixinha! if sources.empty?   # no distinct source → same friendly block
-      return activate!(caixinha_id, sources.first.id) if sources.size == 1
+    def with_savings_account(savings_account_id)
+      sources = source_accounts(savings_account_id)
+      return block_no_savings_account! if sources.empty?   # no distinct source → same friendly block
+      return activate!(savings_account_id, sources.first.id) if sources.size == 1
       moved = @conv.guarded_transition(%w[offered picking_caixinha], status: "picking_source",
-                data: @conv.data.merge("caixinha_id" => caixinha_id, "options" => sources.map(&:id)),
+                data: @conv.data.merge("caixinha_id" => savings_account_id, "options" => sources.map(&:id)),
                 expires_at: GoalConversation::TTL.from_now)
       return unless moved
       reply("goal_flow.ask_source_pick", options: numbered_options(sources))
@@ -333,17 +333,17 @@ module Whatsapp
       activate!(@conv.data["caixinha_id"], chosen.id)
     end
 
-    def activate!(caixinha_id, source_id)
+    def activate!(savings_account_id, source_id)
       goal = @conv.goal
       # The head start lives in the caixinha the goal links to (earmark consistency, P3).
-      if goal.initial_saved_cents.positive? && goal.initial_saved_bank_account_id != caixinha_id
-        goal.update!(initial_saved_bank_account_id: caixinha_id)
+      if goal.initial_saved_cents.positive? && goal.initial_saved_bank_account_id != savings_account_id
+        goal.update!(initial_saved_bank_account_id: savings_account_id)
       end
       # Guarded close BEFORE Activate: a double "sim" matches zero rows and never runs
       # Activate twice (Activate's own draft guard is the second lock).
       return unless @conv.guarded_transition(%w[offered picking_caixinha picking_source], status: "closed")
       result = Goals::Activate.call(goal, template: "recomendado",
-                                    bank_account_id: caixinha_id, source_bank_account_id: source_id,
+                                    bank_account_id: savings_account_id, source_bank_account_id: source_id,
                                     created_by: @msg.user)
       if result.ok?
         goal.reload
@@ -356,7 +356,7 @@ module Whatsapp
       end
     end
 
-    def block_no_caixinha!
+    def block_no_savings_account!
       discard_draft!
       close!
       reply("goal_flow.no_caixinha")
@@ -429,12 +429,12 @@ module Whatsapp
 
     # :id tiebreak — accounts created in the same second (onboarding, frozen test clocks)
     # would otherwise list in undefined order in the numbered prompt.
-    def caixinhas = account.bank_accounts.kept.savings.order(:created_at, :id).to_a
+    def savings_accounts = account.bank_accounts.kept.savings.order(:created_at, :id).to_a
 
     # Any kept account distinct from the caixinha, mirroring the web source select
     # (Activate's whitelist is the backstop).
-    def source_accounts(caixinha_id)
-      account.bank_accounts.kept.where.not(id: caixinha_id).order(:created_at, :id).to_a
+    def source_accounts(savings_account_id)
+      account.bank_accounts.kept.where.not(id: savings_account_id).order(:created_at, :id).to_a
     end
 
     def re_ask_slot(slot, key, **args)

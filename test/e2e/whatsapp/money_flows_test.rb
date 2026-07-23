@@ -21,7 +21,7 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
 
   # WA-CAP-07b — income always lands in a bank account (2026-07-11): sole checking self-picks
   test "income with no account named and a sole checking account → posts assigned" do
-    s = E2E::Scenario.build(:solo_basic).add_caixinha!.wa_verified!
+    s = E2E::Scenario.build(:solo_basic).add_savings_account!.wa_verified!
 
     with_canned_ai(extraction: E2E::CannedAI.income(cents: 120_000, merchant: "freela")) do
       wa_inject(s.jid, "caiu 1200 de um freela")
@@ -30,7 +30,7 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
 
     txn = s.account.transactions.sole
     assert txn.posted?
-    assert_equal s.itau, txn.bank_account, "sole checking account self-picks (caixinha excluded)"
+    assert_equal s.itau, txn.bank_account, "sole checking account self-picks (savings account excluded)"
     assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.income_posted", amount: brl(120_000),
                                           instrument: s.itau.display_name, locale: :"pt-BR"))
   end
@@ -64,8 +64,8 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
   end
 
   # WA-CAP-08
-  test "transfer to the caixinha: one posted row, both legs, savings reply" do
-    s = E2E::Scenario.build(:solo_basic).wa_verified!.add_caixinha!
+  test "transfer to the savings account: one posted row, both legs, savings reply" do
+    s = E2E::Scenario.build(:solo_basic).wa_verified!.add_savings_account!
 
     with_canned_ai(extraction: E2E::CannedAI.transfer(cents: 30_000, from: "itau", to: "caixinha")) do
       wa_inject(s.jid, "guardei 300 na caixinha")
@@ -76,16 +76,16 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
     assert txn.posted?
     assert_equal 30_000, txn.amount_cents
     assert_equal s.itau, txn.bank_account
-    assert_equal s.caixinha, txn.transfer_to_bank_account
+    assert_equal s.savings_account, txn.transfer_to_bank_account
     assert_nil txn.category_id, "transfers are never categorized"
     assert_wa_reply(s.jid, equals: I18n.t("whatsapp.replies.transfer_saved",
                                           amount: brl(30_000),
-                                          instrument: s.caixinha.display_name, locale: :"pt-BR"))
+                                          instrument: s.savings_account.display_name, locale: :"pt-BR"))
   end
 
   # WA-CAP-09 (one chained leg: destination unmatched → numbered ask → pick resolves)
   test "transfer with unmatched destination asks with numbered options, the pick posts it" do
-    s = E2E::Scenario.build(:solo_basic).wa_verified!.add_caixinha!
+    s = E2E::Scenario.build(:solo_basic).wa_verified!.add_savings_account!
 
     with_canned_ai(extraction: E2E::CannedAI.transfer(cents: 20_000, from: "itau", to: "misteriosa")) do
       wa_inject(s.jid, "transferi 200")
@@ -93,7 +93,7 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
     end
     ask = s.account.transactions.where(direction: "transfer").sole
     assert_equal "transfer_to", ask.ask["slot"]
-    assert_includes assert_wa_reply(s.jid), "1. #{s.caixinha.display_name}",
+    assert_includes assert_wa_reply(s.jid), "1. #{s.savings_account.display_name}",
                     "savings come first in the prompt order"
 
     wa_inject(s.jid, "1")
@@ -101,7 +101,7 @@ class E2E::WhatsappMoneyFlowsTest < E2E::PipelineCase
 
     ask.reload
     assert ask.posted?
-    assert_equal s.caixinha, ask.transfer_to_bank_account
+    assert_equal s.savings_account, ask.transfer_to_bank_account
     assert_equal s.itau, ask.bank_account
   end
 

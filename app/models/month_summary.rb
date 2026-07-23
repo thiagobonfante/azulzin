@@ -22,30 +22,30 @@ class MonthSummary
   def projecting? = mode != :past
 
   # §7.3 — entradas: posted incomes + expected income, counted once.
-  def entradas_cents = posted_incomes_cents + expected_incomes_cents
+  def incomes_cents = posted_incomes_cents + expected_incomes_cents
 
   # §7.4 — saídas: posted bank expenses + projected debit commitments.
-  def saidas_cents = posted_expenses_cents + projected_debit_cents
+  def expenses_cents = posted_expenses_cents + projected_debit_cents
 
   # §7.2 Σ over the user's cards — the composed bill figure (posted + card-commitment projection).
-  def faturas_cents = bill_totals.values.sum
+  def bills_cents = bill_totals.values.sum
 
   # Saídas as the hero strip shows it: bank/debit outflow + card bills folded into one figure.
-  def saidas_total_cents = saidas_cents + faturas_cents
+  def outflows_total_cents = expenses_cents + bills_cents
 
   # §7.5 — guardado: transfers landing in a savings account this month (gross).
-  def guardado_cents
+  def saved_cents
     return 0 if savings_account_ids.empty?
     posted.where(direction: "transfer", transfer_to_bank_account_id: savings_account_ids).sum(:amount_cents)
   end
 
   # §7.6 — THE number (sobra): blue when ≥ 0, red when < 0. A goal contribution ("pay yourself
-  # first", .plans/goals 07 §1.3) is subtracted while unpaid via projected_guardado_cents and,
-  # once paid, via guardado_cents — the amount moves buckets, so sobra is invariant at pay time.
-  def remaining_cents = entradas_cents - saidas_cents - faturas_cents - guardado_cents - projected_guardado_cents
+  # first", .plans/goals 07 §1.3) is subtracted while unpaid via projected_saved_cents and,
+  # once paid, via saved_cents — the amount moves buckets, so sobra is invariant at pay time.
+  def remaining_cents = incomes_cents - expenses_cents - bills_cents - saved_cents - projected_saved_cents
 
   # §7.7 — a pagar no mês (incl. the still-owed goal contributions — that IS pay-yourself-first).
-  def a_pagar_cents = faturas_cents + projected_debit_cents + projected_guardado_cents
+  def payable_cents = bills_cents + projected_debit_cents + projected_saved_cents
 
   # §7.4 — the still-unpaid debit commitments projected into this month (empty for a past month).
   # The per-commitment rows behind projected_debit_cents; the category bar folds them in by category.
@@ -57,12 +57,12 @@ class MonthSummary
   # §7.5 (goals 07 §1.3) — the still-unpaid savings-commitment occurrences this month: the
   # "pay yourself first" contributions still owed. A projection term (empty for a past month),
   # mirroring projected_debit_commitments; the hub renders these in blue as "Meta: <name>".
-  def projected_guardado_commitments
+  def projected_saved_commitments
     return [] unless projecting?
     savings_commitments.select { |c| c.active_in?(@month) && !c.paid_in?(@month) }
   end
 
-  def projected_guardado_cents = projected_guardado_commitments.sum(&:amount_cents)
+  def projected_saved_cents = projected_saved_commitments.sum(&:amount_cents)
 
   # §7.2 — { credit_card => cents } composed bill figure per card. A CLOSED bill row
   # swaps in its effective total (the bank's number when informed — .plans/credit-cards
@@ -95,7 +95,7 @@ class MonthSummary
   end
 
   # The "Guardado" total tile figure: Σ §7.1 balances of savings accounts.
-  def guardado_total_cents
+  def saved_total_cents
     bank_accounts.select(&:savings?).sum { |a| account_balances[a.id].to_i }
   end
 
@@ -141,7 +141,7 @@ class MonthSummary
     def projected_debit_cents = projected_debit_commitments.sum(&:amount_cents)
 
     # Savings-kind commitments are excluded here (they're not spending) and projected separately
-    # via projected_guardado_cents — .plans/goals 07 §1.3, the sobra-invariance-at-pay-time trap.
+    # via projected_saved_cents — .plans/goals 07 §1.3, the sobra-invariance-at-pay-time trap.
     def debit_commitments
       @debit_commitments ||= account.commitments.kept.active.where.not(bank_account_id: nil).where.not(kind: "savings").to_a
     end

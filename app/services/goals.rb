@@ -53,7 +53,7 @@ module Goals
     :categories,                   # [CategoryStat]
     :median_income_cents,
     :median_capacity_base_cents,   # median(entradas − saidas − faturas) = sobra + guardado (synthesis #7)
-    :median_guardado_cents,
+    :median_saved_cents,
     :income_irregular,             # boolean (CV > 0.35)
     :uncategorized_ratio_bd,       # BigDecimal share of trimmable spend that is uncategorized
     :window                        # [Date, Date, Date] window months (first-of-month)
@@ -73,7 +73,7 @@ module Goals
         },
         "median_income_cents" => median_income_cents,
         "median_capacity_base_cents" => median_capacity_base_cents,
-        "median_guardado_cents" => median_guardado_cents,
+        "median_guardado_cents" => median_saved_cents,
         "income_irregular" => income_irregular,
         "uncategorized_ratio_bd" => uncategorized_ratio_bd.to_s("F"),
         "window" => window.map(&:iso8601)
@@ -90,7 +90,7 @@ module Goals
         },
         median_income_cents: h["median_income_cents"],
         median_capacity_base_cents: h["median_capacity_base_cents"],
-        median_guardado_cents: h["median_guardado_cents"],
+        median_saved_cents: h["median_guardado_cents"],
         income_irregular: h["income_irregular"],
         uncategorized_ratio_bd: BigDecimal(h["uncategorized_ratio_bd"]),
         window: h["window"].map { |d| Date.iso8601(d) }

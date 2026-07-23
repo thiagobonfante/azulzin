@@ -24,7 +24,7 @@ class E2E::WhatsappMultiUserTest < E2E::PipelineCase
 
     # Both phones see the SAME month — the shared-money promise, asked over WhatsApp.
     summary = MonthSummary.new(s.account, Date.current.beginning_of_month)
-    assert_equal 17_520, summary.saidas_cents
+    assert_equal 17_520, summary.expenses_cents
 
     s.members.each do |member|
       fake_sidecar.reset!

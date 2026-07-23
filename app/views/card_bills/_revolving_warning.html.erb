@@ -28,8 +28,8 @@
       </p>
     <% end %>
 
-    <% if rot && parc && (proj = Rotativo.projection(total, paid_cents,
-                                                     rotativo_am: rot.monthly_rate, parcelado_am: parc.monthly_rate)) %>
+    <% if rot && parc && (proj = RevolvingCredit.projection(total, paid_cents,
+                                                     revolving_monthly_rate: rot.monthly_rate, installment_monthly_rate: parc.monthly_rate)) %>
       <%# Founder round 2026-07-22b: shallow on purpose — what stays behind, what LANDS on
           the next bill (fees included), and a one-line parcelamento nudge. No 12x model,
           no chart; revisit depth when real usage asks for it. %>

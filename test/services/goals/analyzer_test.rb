@@ -91,7 +91,7 @@ class Goals::AnalyzerTest < ActiveSupport::TestCase
     profile = analyze
     # each month: 500_000 − 400_000 − 0 = 100_000 (= the guardado), sobra itself ≈ 0
     assert_equal 100_000, profile.median_capacity_base_cents
-    assert_equal 100_000, profile.median_guardado_cents
+    assert_equal 100_000, profile.median_saved_cents
     assert_equal 500_000, profile.median_income_cents
   end
 

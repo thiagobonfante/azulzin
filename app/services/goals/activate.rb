@@ -29,11 +29,11 @@ module Goals
       return failure(:invalid_template) unless plan
       # A goal is ALWAYS linked to a savings commitment (round 3 decision 4): the transfer needs
       # both legs, so a missing caixinha, missing source, or source == caixinha blocks activation.
-      return failure(:missing_caixinha) if @bank_account_id.blank? || @source_bank_account_id.blank? ||
+      return failure(:missing_savings_account) if @bank_account_id.blank? || @source_bank_account_id.blank? ||
                                            @source_bank_account_id.to_s == @bank_account_id.to_s
       # The instrument ids come from params and are written via update_all/create! (which skip
       # model validations), so whitelist them against THIS account here (tenancy + savings-kind).
-      return failure(:not_savings) unless valid_caixinha?
+      return failure(:not_savings) unless valid_savings_account?
       return failure(:invalid_source) unless valid_source?
 
       # with_lock serializes activations per account so the cap check + flip are one critical
@@ -58,14 +58,14 @@ module Goals
         ).positive?
       end
 
-      def valid_caixinha? = @goal.account.bank_accounts.kept.savings.exists?(id: @bank_account_id)
+      def valid_savings_account? = @goal.account.bank_accounts.kept.savings.exists?(id: @bank_account_id)
       def valid_source?   = @goal.account.bank_accounts.kept.exists?(id: @source_bank_account_id)
 
       def at_active_cap?
         @goal.account.goals.active.where.not(id: @goal.id).count >= Goal::MAX_ACTIVE
       end
 
-      # Caixinha + distinct source are guaranteed by the :missing_caixinha gate above — every
+      # Caixinha + distinct source are guaranteed by the :missing_savings_account gate above — every
       # active goal carries its commitment. (Pre-round-3 goals may still be unlinked: Progress
       # keeps the all-savings fallback for them.)
       def create_savings_commitment(plan)

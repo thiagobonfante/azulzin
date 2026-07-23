@@ -102,7 +102,7 @@ module ExploratorySeeds
   # ── builders (return [scenario_or_nil, notes]) ───────────────────────────────────────────
 
   def self.wa_capture(n)
-    scenario = E2E::Scenario.build(:solo_basic).add_caixinha!.wa_verified!
+    scenario = E2E::Scenario.build(:solo_basic).add_savings_account!.wa_verified!
     # Merchant memory needs same-merchant user-categorized history (Categories::Suggest).
     [ 21, 14, 7 ].each do |days_ago|
       scenario.expense(merchant: "iFood", category: "Restaurantes", instrument: scenario.itau,
@@ -118,7 +118,7 @@ module ExploratorySeeds
   end
 
   def self.couple(n)
-    [ E2E::Scenario.build(:couple).add_caixinha!, [] ]
+    [ E2E::Scenario.build(:couple).add_savings_account!, [] ]
   end
 
   def self.budgets_history(n)
@@ -153,7 +153,7 @@ module ExploratorySeeds
     goal = scenario.goal
     progress = Goals::Progress.new(goal)
     delta = progress.actual_cents - (progress.expected_cents * 93 / 100)
-    goal.account.transactions.guardado_into(goal.savings_account_ids)
+    goal.account.transactions.saved_into(goal.savings_account_ids)
         .order(occurred_on: :desc, id: :desc).each do |t|
       break if delta <= 0
       cut = [ delta, t.amount_cents ].min
@@ -176,13 +176,13 @@ module ExploratorySeeds
   end
 
   def self.goal_chat(n)
-    scenario = E2E::Scenario.build(:solo_basic).add_caixinha!.wa_verified!
+    scenario = E2E::Scenario.build(:solo_basic).add_savings_account!.wa_verified!
     scenario.ensure_income_history!   # Analyzer baseline the goal plans need
     [ scenario, [ "sem meta ativa; caixinha + 3 meses de salário recebido (baseline do Analyzer)" ] ]
   end
 
   def self.imports(n)
-    [ E2E::Scenario.build(:solo_basic).add_caixinha!, [ "Itaú + cartão Nubank prontos p/ casar propostas de extrato/fatura" ] ]
+    [ E2E::Scenario.build(:solo_basic).add_savings_account!, [ "Itaú + cartão Nubank prontos p/ casar propostas de extrato/fatura" ] ]
   end
 
   def self.onboarding(n)

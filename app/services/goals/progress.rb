@@ -11,7 +11,7 @@ module Goals
 
     # initial head start + every posted transfer into the linked (or all) savings accounts since start.
     def actual_cents
-      @goal.initial_saved_cents.to_i + guardado_since_start
+      @goal.initial_saved_cents.to_i + saved_since_start
     end
 
     # monthly_target × full months elapsed + the pay-schedule-aware slice of the current month.
@@ -31,7 +31,7 @@ module Goals
     def contributions
       ids = @goal.savings_account_ids
       return @goal.account.transactions.none if ids.empty? || @goal.starts_on.blank?
-      @goal.account.transactions.guardado_into(ids)
+      @goal.account.transactions.saved_into(ids)
            .where(billing_month: counting_from..)
            .order(occurred_on: :desc, id: :desc)
     end
@@ -64,10 +64,10 @@ module Goals
     end
 
     private
-      def guardado_since_start
+      def saved_since_start
         ids = @goal.savings_account_ids   # linked caixinha only, else every savings account (01 §1)
         return 0 if ids.empty? || @goal.starts_on.blank?
-        @goal.account.transactions.guardado_into(ids)
+        @goal.account.transactions.saved_into(ids)
              .where(billing_month: counting_from..)
              .sum(:amount_cents)
       end
@@ -92,7 +92,7 @@ module Goals
       end
 
       def current_income_cents
-        MonthSummary.new(@goal.account, current_month).entradas_cents
+        MonthSummary.new(@goal.account, current_month).incomes_cents
       end
   end
 end

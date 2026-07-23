@@ -42,7 +42,7 @@
             data: { controller: "money-mask", action: "input->money-mask#format" } %>
     </label>
     <p class="mt-1 text-xs text-base-content/50" hidden data-goal-kind-target="savingsOnly">
-      <%= @guardado_baseline_cents.to_i.positive? ? t("goals.form.current_guardado_hint", amount: brl_whole(@guardado_baseline_cents)) :
+      <%= @saved_baseline_cents.to_i.positive? ? t("goals.form.current_guardado_hint", amount: brl_whole(@saved_baseline_cents)) :
                                                     t("goals.form.current_guardado_zero") %>
     </p>
   </div>

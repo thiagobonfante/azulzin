@@ -12,14 +12,14 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
   setup do
     # Freeze FIRST: rows created before travel_to carry the real clock, which sorts AFTER the
     # frozen date once the real world passes it — inverting every created_at ordering (the
-    # caixinha picker prompts started listing test-created accounts first on 2026-07-15).
+    # savings_account picker prompts started listing test-created accounts first on 2026-07-15).
     travel_to Time.utc(2026, 7, 15, 12)
     @user = users(:confirmed)
     @user.update!(whatsapp_id: "5511999998888", phone_verified_at: Time.current, phone: "5511999998888")
     @account = @user.account
     @inst = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, nickname: "Corrente", kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, nickname: "Caixinha", kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, nickname: "Caixinha", kind: "savings")
     @rest = @account.categories.create!(name: "Restaurantes")
     seed_ledger
   end
@@ -89,7 +89,7 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     goal.reload
     assert goal.active?
     assert_equal Date.new(2026, 8, 1), goal.starts_on, "starts next month"
-    assert_equal @caixinha, goal.bank_account
+    assert_equal @savings_account, goal.bank_account
     c = goal.savings_commitment
     assert_equal @checking, c.bank_account
     assert_equal 375_000, c.amount_cents
@@ -181,7 +181,7 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
   test "savings target at or below the current guardado re-asks the amount" do
     WINDOW.each do |m|
       @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 50_000,
-                                    bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                    bank_account: @checking, transfer_to_bank_account: @savings_account,
                                     occurred_on: m, billing_month: m, billing_month_manual: true)
     end
     run_pipeline(inbound("quero guardar 400 por mês"),
@@ -240,8 +240,8 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
 
   # ---- always-linked accept (decision 4) -------------------------------------------------
 
-  test "no caixinha: sim blocks with the create-a-caixinha nudge, draft destroyed, closed" do
-    @caixinha.update!(kind: "checking")             # household has no savings account
+  test "no savings account: sim blocks with the create-a-savings account nudge, draft destroyed, closed" do
+    @savings_account.update!(kind: "checking")             # household has no savings account
     reach_offer
     run_pipeline(inbound("sim"))
     assert_equal 0, @account.goals.count
@@ -249,7 +249,7 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     assert_includes @sent.last, "poupança"
   end
 
-  test "no distinct source (caixinha is the only account): same block" do
+  test "no distinct source (savings account is the only account): same block" do
     @account.transactions.update_all(bank_account_id: nil)   # free the checking account
     @checking.soft_delete!(by: @user)
     reach_offer
@@ -259,23 +259,23 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     assert_includes @sent.last, "poupança"
   end
 
-  test "2 caixinhas and 3 sources: numbered picks in prompt order, then activation" do
-    caixinha2 = @account.bank_accounts.create!(institution: @inst, nickname: "Sonhos", kind: "savings")
+  test "2 savings accounts and 3 sources: numbered picks in prompt order, then activation" do
+    savings_account2 = @account.bank_accounts.create!(institution: @inst, nickname: "Sonhos", kind: "savings")
     checking2 = @account.bank_accounts.create!(institution: @inst, nickname: "Itaú", kind: "checking")
     reach_offer
     run_pipeline(inbound("sim"))
     assert conv.picking_caixinha?
-    assert_equal [ @caixinha.id, caixinha2.id ], conv.data["options"]   # prompt order stored
+    assert_equal [ @savings_account.id, savings_account2.id ], conv.data["options"]   # prompt order stored
     assert_includes @sent.last, "1. Caixinha"
 
     run_pipeline(inbound("2"))                      # → Sonhos
     assert conv.picking_source?
-    assert_equal [ @checking.id, @caixinha.id, checking2.id ], conv.data["options"]
+    assert_equal [ @checking.id, @savings_account.id, checking2.id ], conv.data["options"]
 
     run_pipeline(inbound("3"))                      # → Itaú
     goal = @account.goals.sole
     assert goal.active?
-    assert_equal caixinha2, goal.bank_account
+    assert_equal savings_account2, goal.bank_account
     assert_equal checking2, goal.savings_commitment.bank_account
     assert conv.closed?
   end
@@ -387,7 +387,7 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     run_pipeline(inbound("reorganizar"))
     assert GoalConversation.open_for(@user).replan_offered?
     @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 6_000_000,
-                                  bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                  bank_account: @checking, transfer_to_bank_account: @savings_account,
                                   occurred_on: Date.new(2026, 7, 15), billing_month: Date.new(2026, 7, 1),
                                   billing_month_manual: true)   # target reached between offer and reply
     run_pipeline(inbound("1"))
@@ -401,14 +401,14 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     goal = @account.goals.create!(name:, kind: "purchase", target_cents: 6_000_000,
       target_date: Date.new(2027, 12, 1), status: "active", monthly_target_cents: monthly,
       starts_on: Date.new(2026, 6, 1), activated_at: Time.utc(2026, 5, 20),
-      bank_account: @caixinha, baseline: {}, plan: { "projected_done_on" => "2028-02-01" })
+      bank_account: @savings_account, baseline: {}, plan: { "projected_done_on" => "2028-02-01" })
     @account.commitments.create!(kind: "savings", goal:, bank_account: @checking,
       amount_cents: monthly, name:, starts_on: goal.starts_on,
       schedule_day: 5, schedule_kind: "fixed_day")
     goal
   end
 
-  # Trigger + slot answers up to the feasible offer (single caixinha/source unless changed).
+  # Trigger + slot answers up to the feasible offer (single savings_account/source unless changed).
   def reach_offer
     run_pipeline(inbound("quero juntar 60 mil pra um carro"),
                  extraction(goal_kind: "purchase", goal_name: "Carro", amount_raw: "60000"))

@@ -5,7 +5,7 @@
               Current.account.bank_accounts.kept.checking.exists? &&
               Current.account.bank_accounts.kept.where(kind: %w[savings investment]).exists? %>
 <section id="hero" class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm"
-         <% if save_cta %>data-controller="sobra-cta" data-sobra-cta-phrases-value="<%= t("transactions.hero.save_phrases").to_json %>"<% end %>>
+         <% if save_cta %>data-controller="surplus-cta" data-surplus-cta-phrases-value="<%= t("transactions.hero.save_phrases").to_json %>"<% end %>>
   <% label = case summary.mode
              when :future then t("transactions.hero.remaining_projected")
              when :past   then t("transactions.hero.month_result")
@@ -23,7 +23,7 @@
     <% if save_cta %>
       <button type="button" aria-haspopup="dialog"
               class="<%= amount_classes %> origin-left cursor-pointer transition-transform duration-200 hover:scale-110 focus-visible:scale-110"
-              data-action="sobra-cta#open mouseenter->sobra-cta#tease mouseleave->sobra-cta#untease focus->sobra-cta#tease blur->sobra-cta#untease">
+              data-action="surplus-cta#open mouseenter->surplus-cta#tease mouseleave->surplus-cta#untease focus->surplus-cta#tease blur->surplus-cta#untease">
         <%= brl(summary.remaining_cents) %>
       </button>
     <% else %>
@@ -33,19 +33,19 @@
       <%= summary.in_the_blue? ? t("transactions.hero.in_the_blue") : t("transactions.hero.in_the_red") %>
     </span>
     <% if save_cta %>
-      <span data-sobra-cta-target="phrase" aria-hidden="true"
+      <span data-surplus-cta-target="phrase" aria-hidden="true"
             class="text-sm font-medium text-primary opacity-0 transition-opacity duration-200"></span>
     <% end %>
   </div>
 
   <%# Equation strip — the sobra math stays inspectable. %>
   <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-base-content/50 tabular-nums">
-    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.incomes") %> <span class="font-medium"><%= brl(summary.entradas_cents) %></span></a>
+    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.incomes") %> <span class="font-medium"><%= brl(summary.incomes_cents) %></span></a>
     <span aria-hidden="true">·</span>
-    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.expenses") %> <span class="font-medium"><%= brl(summary.saidas_total_cents) %></span></a>
-    <% if summary.guardado_cents.positive? %>
+    <a href="#ledger" class="hover:text-base-content"><%= t("transactions.hero.expenses") %> <span class="font-medium"><%= brl(summary.outflows_total_cents) %></span></a>
+    <% if summary.saved_cents.positive? %>
       <span aria-hidden="true">·</span>
-      <a href="#accounts_tile" class="hover:text-base-content"><%= t("transactions.accounts.saved_total") %> <span class="font-medium"><%= brl(summary.guardado_cents) %></span></a>
+      <a href="#accounts_tile" class="hover:text-base-content"><%= t("transactions.accounts.saved_total") %> <span class="font-medium"><%= brl(summary.saved_cents) %></span></a>
     <% end %>
   </div>
 

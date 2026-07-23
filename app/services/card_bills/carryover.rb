@@ -7,7 +7,7 @@ module CardBills
   module Carryover
     module_function
 
-    # → { from_month:, carryover_cents:, encargos_cents:, total_cents:, rate_month: } | nil
+    # → { from_month:, carryover_cents:, finance_charges_cents:, total_cents:, rate_month: } | nil
     # These ARE the display lines too — always shown as the figure's breakdown, even
     # after a stated_total is accepted (founder rule 2026-07-22c: resolving equalizes
     # our figure with the bank's, so the lines keep summing to the total).
@@ -25,9 +25,9 @@ module CardBills
       return nil if carry.zero?
 
       rate = (BcbRate.current("rotativo") if carry.positive?)
-      encargos = rate ? Rotativo.cycle_cost(carry, monthly_rate: rate.monthly_rate)[:total_cents] : 0
-      { from_month: prev.billing_month, carryover_cents: carry, encargos_cents: encargos,
-        total_cents: carry + encargos, rate_month: rate&.reference_month }
+      finance_charges = rate ? RevolvingCredit.cycle_cost(carry, monthly_rate: rate.monthly_rate)[:total_cents] : 0
+      { from_month: prev.billing_month, carryover_cents: carry, finance_charges_cents: finance_charges,
+        total_cents: carry + finance_charges, rate_month: rate&.reference_month }
     end
   end
 end

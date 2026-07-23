@@ -92,14 +92,14 @@ digits-only whole reais — server prefills must be whole-real strings. Notifica
 Activating a goal creates a `kind: "savings"` **Commitment** (`Goals::Activate`, guarded draft→active
 transition + creation in one transaction). It behaves like rent: it shows in the commitments hub
 (the **"Guardar"** group, rendered first), it reduces sobra *before* it's paid
-(`MonthSummary#projected_guardado_cents`), and paying it (through the normal pay path, forked in
+(`MonthSummary#projected_saved_cents`), and paying it (through the normal pay path, forked in
 `Commitments::MarkPaid`) posts a **transfer** into the caixinha — never an expense. **Sobra is
 invariant at pay time**: the amount moves from `projected_guardado` to `guardado`. Goals never move
 money themselves; the user pays the occurrence.
 
 - **Always linked.** Activation *requires* a caixinha (savings account) plus a **distinct** source
   account — the transfer needs both legs. Missing either (or source == caixinha) fails with
-  `:missing_caixinha`; the choose step blocks with a create-caixinha CTA when the household has
+  `:missing_savings_account`; the choose step blocks with a create-caixinha CTA when the household has
   none. Both ids are whitelisted against the account (tenancy + savings-kind). Pre-round-3 goals
   may still be unlinked — `Progress` keeps the all-savings-accounts fallback for them.
 - **Purchase goals are a parcelado.** `n = ⌈(target − initial_saved) / parcel⌉`, `ends_on =

@@ -100,7 +100,7 @@ class CommitmentTest < ActiveSupport::TestCase
     assert_equal start, c.next_charge_month
   end
 
-  # ── Standalone savings (round 3 P4): goal-less "Guardar" needs a caixinha destination ──
+  # ── Standalone savings (round 3 P4): goal-less "Guardar" needs a savings-account destination ──
 
   def savings(**attrs)
     Commitment.new({ account: @user.account, bank_account: @account, name: "Guardar", kind: "savings",
@@ -108,38 +108,38 @@ class CommitmentTest < ActiveSupport::TestCase
   end
 
   test "goal-less savings is valid with a savings-kind destination and invalid without one" do
-    caixinha = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
-    assert savings(transfer_to_bank_account: caixinha).valid?
+    savings_account = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
+    assert savings(transfer_to_bank_account: savings_account).valid?
     missing = savings
     assert_not missing.valid?
     assert_includes missing.errors.attribute_names, :transfer_to_bank_account
   end
 
-  test "the destination must be a caixinha of THIS account, distinct from the source" do
+  test "the destination must be a savings account of THIS account, distinct from the source" do
     checking2 = BankAccount.create!(account: @user.account, institution: @inst)
     assert_not savings(transfer_to_bank_account: checking2).valid?          # not savings kind → sobra would jump
 
     stray = Account.create!(name: "Other").bank_accounts.create!(institution: @inst, kind: "savings")
     assert_not savings(transfer_to_bank_account: stray).valid?              # cross-account
 
-    caixinha = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
-    same = savings(bank_account: caixinha, transfer_to_bank_account: caixinha)
+    savings_account = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
+    same = savings(bank_account: savings_account, transfer_to_bank_account: savings_account)
     assert_not same.valid?                                                  # destination == source
     assert_includes same.errors.details[:transfer_to_bank_account].map { |d| d[:error] }, :same_account
   end
 
   test "a savings commitment can't ride a credit card" do
-    caixinha = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
-    bad = savings(bank_account: nil, credit_card: @card, transfer_to_bank_account: caixinha)
+    savings_account = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
+    bad = savings(bank_account: nil, credit_card: @card, transfer_to_bank_account: savings_account)
     assert_not bad.valid?
     assert_includes bad.errors.details[:credit_card].map { |d| d[:error] }, :not_on_savings
   end
 
   test "a goal-backed savings commitment stays valid with a nil destination (it lives on the goal)" do
-    caixinha = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
+    savings_account = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
     goal = @user.account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
                                        target_date: Date.new(2027, 12, 1), status: "active",
-                                       bank_account: caixinha)
+                                       bank_account: savings_account)
     assert savings(goal:).valid?
   end
 

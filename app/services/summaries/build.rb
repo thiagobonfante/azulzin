@@ -50,16 +50,16 @@ module Summaries
     def monthly
       month   = @today.prev_month.beginning_of_month
       summary = MonthSummary.new(@account, month)
-      return if summary.entradas_cents.zero? && summary.saidas_total_cents.zero? &&
-                summary.guardado_cents.zero?
+      return if summary.incomes_cents.zero? && summary.outflows_total_cents.zero? &&
+                summary.saved_cents.zero?
       spend = Budgets::Actuals.for(@account, month, summary: summary)
       { period_key: month,
         payload: { month: month.iso8601,
-                   in_cents:    summary.entradas_cents,
-                   out_cents:   summary.saidas_cents,
-                   bills_cents: summary.faturas_cents,
+                   in_cents:    summary.incomes_cents,
+                   out_cents:   summary.expenses_cents,
+                   bills_cents: summary.bills_cents,
                    sobra_cents: summary.remaining_cents,
-                   saved_cents: summary.guardado_cents }
+                   saved_cents: summary.saved_cents }
                  .merge(category_snapshot(spend)).merge(budget_counts(spend)) }
     end
 

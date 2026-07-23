@@ -44,9 +44,9 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     month   = bill.billing_month
     summary = -> { MonthSummary.new(s.account, month) }
     before  = summary.call
-    saidas_before, faturas_before, sobra_before =
-      before.saidas_cents, before.faturas_cents, before.remaining_cents
-    assert_equal 125_000, faturas_before, "pack calibration rides through faturas"
+    expenses_before, bills_before, surplus_before =
+      before.expenses_cents, before.bills_cents, before.remaining_cents
+    assert_equal 125_000, bills_before, "pack calibration rides through faturas"
 
     travel 1.minute   # order the payment after the balance anchor (frozen-clock gotcha)
     post pay_card_bill_url(bill), params: {
@@ -60,9 +60,9 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     assert_equal 250_000, s.itau.reload.balance_cents, "stored balance is never written"
 
     after = summary.call
-    assert_equal saidas_before,  after.saidas_cents,  "a fatura payment is never a saída"
-    assert_equal faturas_before, after.faturas_cents, "the obligation stays in faturas — counted once"
-    assert_equal sobra_before,   after.remaining_cents, "sobra invariant at pay time"
+    assert_equal expenses_before,  after.expenses_cents,  "a fatura payment is never a saída"
+    assert_equal bills_before, after.bills_cents, "the obligation stays in faturas — counted once"
+    assert_equal surplus_before,   after.remaining_cents, "sobra invariant at pay time"
 
     payment = bill.payments.sole
     assert payment.transfer?
@@ -136,7 +136,7 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
   # undo → banner back. The notification is NOT dismissed on pay (payment is reversible),
   # the render simply skips a paid bill's card_due/card_overdue alert.
   test "overdue banner hides once the bill is paid and returns on undo" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     dispatch_reminders!
     notification = Notification.find_by!(user: s.owner, kind: "card_overdue")
     sign_in_as s.owner
@@ -163,7 +163,7 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
   # page badges only the newest bill (same debt never announced twice); once fully paid
   # after due, the badge says "paga em atraso".
   test "rolled and paid_late refine display_status; cards badge probes only the newest bill" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     bill = s.closed_bill                        # due day 10, anchor the 20th → past due
     travel 1.minute
     CardBills::Pay.call(bill, amount_cents: 100_000, paid_on: Date.current,

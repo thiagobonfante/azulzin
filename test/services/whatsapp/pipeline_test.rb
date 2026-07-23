@@ -92,7 +92,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     nubank_t  = BankAccount.create!(account: @user.account, institution: inst.("260"), nickname: "Nubank (Thiago)")
     nubank_f  = BankAccount.create!(account: @user.account, institution: inst.("260"), nickname: "Nubank (Fran)")
     bb        = BankAccount.create!(account: @user.account, institution: inst.("001"))
-    caixinha  = BankAccount.create!(account: @user.account, institution: inst.("260"), nickname: "Caixinha", kind: "savings")
+    savings_account  = BankAccount.create!(account: @user.account, institution: inst.("260"), nickname: "Caixinha", kind: "savings")
 
     run_pipeline(inbound("transferi 300 pra outra conta"),
                  extraction(intent: "transfer", intent_confidence: 0.95, amount_raw: "300", amount_cents: 30_000,
@@ -101,7 +101,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     ask = @user.account.transactions.where(direction: "transfer").sole
     assert_equal "transfer_to", ask.ask["slot"]
     # Prompt order: savings first (kind: :desc), then created_at — NOT PK order.
-    prompt_order = [ caixinha, santander, nubank_t, nubank_f, bb ].map(&:id)
+    prompt_order = [ savings_account, santander, nubank_t, nubank_f, bb ].map(&:id)
     assert_equal prompt_order, ask.ask["options"]
 
     run_pipeline(inbound("4"))     # 4th PROMPT item = Nubank (Fran); PK order would give BB
@@ -110,7 +110,7 @@ class Whatsapp::PipelineTest < ActiveSupport::TestCase
     assert_not ask.posted?, "must never post a transfer with a nil source leg"
     assert_equal "transfer_from", ask.ask["slot"]                  # chained ask for the other leg
     assert_operator ask.ask_expires_at, :>, Time.current           # not born expired
-    assert_includes @sent.last, "1. #{caixinha.display_name}"      # numbered options re-sent
+    assert_includes @sent.last, "1. #{savings_account.display_name}"      # numbered options re-sent
 
     run_pipeline(inbound("2"))     # 2nd prompt item = Santander
     ask.reload

@@ -11,7 +11,7 @@ class CardBillFinancing < ApplicationRecord
   belongs_to :card_bill
   # The entrada payment the financing form posted (nil when it was recorded via Pagar
   # beforehand, or hard-deleted) — cancel reverses it along with the plan.
-  belongs_to :entrada_transaction, class_name: "Transaction", optional: true
+  belongs_to :down_payment_transaction, class_name: "Transaction", optional: true
 
   money_column :installment, :financed
 
@@ -24,7 +24,7 @@ class CardBillFinancing < ApplicationRecord
 
   # Everything the plan will collect, and the juros+IOF baked into it.
   def total_cents          = installment_cents * installments_count
-  def encargos_total_cents = total_cents - financed_cents
+  def finance_charges_total_cents = total_cents - financed_cents
 
   def last_charge_month = first_charge_month >> (installments_count - 1)
 
@@ -40,9 +40,9 @@ class CardBillFinancing < ApplicationRecord
   # The juros+IOF share of parcel N — even split, remainder cents on parcel 1.
   # ponytail: even split, not the Price front-loaded curve — totals are exact and the
   # per-month drift is centavos; swap in a solved-rate Price split if anyone ever cares.
-  def encargos_for(parcel_no)
-    base = encargos_total_cents / installments_count
-    parcel_no == 1 ? base + encargos_total_cents % installments_count : base
+  def finance_charges_for(parcel_no)
+    base = finance_charges_total_cents / installments_count
+    parcel_no == 1 ? base + finance_charges_total_cents % installments_count : base
   end
 
   # Principal still held against the card limit: banks keep the parceled amount consuming

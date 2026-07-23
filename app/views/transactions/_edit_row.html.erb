@@ -45,7 +45,7 @@
       <% elsif transaction.credit_card_id %>
         <div class="form-control">
           <%= f.label :billing_month, t("transactions.row.bill_month"), class: "mb-1 text-xs text-base-content/60" %>
-          <%= f.select :billing_month, fatura_month_options(transaction),
+          <%= f.select :billing_month, bill_month_options(transaction),
                 { selected: transaction.billing_month.strftime("%Y-%m-%d") }, class: "select select-bordered select-sm w-full" %>
         </div>
       <% end %>

@@ -36,8 +36,8 @@ increment-before-call so a retried 429 never grants an extra call), worst case <
 real `kind: "savings"` Commitment. Goals still never write *transactions* — the commitment is a
 schedule definition; the money moves only when the **user** pays the occurrence, producing an
 ordinary posted **transfer** into the caixinha. An unpaid occurrence reduces sobra via
-`MonthSummary#projected_guardado_cents` (excluded from spending); paying it moves the amount into
-`guardado_cents` with **sobra invariant at pay time** — a named money-trap test. This buys due-date
+`MonthSummary#projected_saved_cents` (excluded from spending); paying it moves the amount into
+`saved_cents` with **sobra invariant at pay time** — a named money-trap test. This buys due-date
 reminders and the "guardei" WhatsApp loop from the shipped spine for free.
 
 **Alerting rides the spine (ADR 0011), not a new sender.** `goal_alert` and `goal_achieved` are two

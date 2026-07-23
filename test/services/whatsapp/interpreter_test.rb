@@ -35,7 +35,7 @@ class Whatsapp::InterpreterTest < ActiveSupport::TestCase
     end
   end
 
-  test "guardei 200 na caixinha → one posted transfer to savings; replay creates zero rows" do
+  test "guardei 200 na savings account → one posted transfer to savings; replay creates zero rows" do
     ex = extraction(intent: "transfer", amount_raw: "200", amount_cents: 20_000, to_instrument_phrase: "caixinha")
     msg = inbound("guardei 200 na caixinha")
     interpret(msg, ex)

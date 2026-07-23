@@ -13,7 +13,7 @@ class GoalsController < AppController
   def new
     redirect_to goals_path, alert: t(".limit_reached") and return if at_active_cap?
     @goal = Current.account.goals.new(kind: "purchase")
-    @guardado_baseline_cents = Goals::Analyzer.call(Current.account).median_guardado_cents
+    @saved_baseline_cents = Goals::Analyzer.call(Current.account).median_saved_cents
   end
 
   # The baseline is analyzed IN-REQUEST here (not lazily on first view) so the NarrativeJob —
@@ -21,9 +21,9 @@ class GoalsController < AppController
   def create
     @goal = Current.account.goals.new(create_params.merge(status: "draft"))
     @goal.baseline = Goals::Analyzer.call(Current.account).to_snapshot
-    @guardado_baseline_cents = @goal.baseline["median_guardado_cents"].to_i
-    if @goal.valid? && savings_target_not_above_guardado?
-      @goal.errors.add(:target_cents, :below_current_guardado, guardado: helpers.brl_whole(@guardado_baseline_cents, mode: :floor))
+    @saved_baseline_cents = @goal.baseline["median_guardado_cents"].to_i
+    if @goal.valid? && savings_target_not_above_saved_baseline?
+      @goal.errors.add(:target_cents, :below_current_guardado, saved: helpers.brl_whole(@saved_baseline_cents, mode: :floor))
       render :new, status: :unprocessable_entity
     elsif @goal.save
       Goals::ClassifyJob.perform_later(Current.account.id)             # exempt from the session quota
@@ -71,7 +71,7 @@ class GoalsController < AppController
   def contribute
     offer = Goals::SpeedUpOffer.for(@goal)
     cents = Money.to_cents(params[:amount_reais])
-    if offer && cents.to_i.positive? && cents <= offer.sobra_cents
+    if offer && cents.to_i.positive? && cents <= offer.surplus_cents
       Current.account.transactions.create!(
         direction: "transfer", status: "posted", confirmed_at: Time.current, source: "manual",
         amount_cents: cents, occurred_on: sp_today,
@@ -173,8 +173,8 @@ class GoalsController < AppController
     end
 
     # A "guardar mais" total at or below what the household already puts away plans nothing.
-    def savings_target_not_above_guardado?
-      @goal.savings_rate? && @goal.target_cents.to_i <= @guardado_baseline_cents
+    def savings_target_not_above_saved_baseline?
+      @goal.savings_rate? && @goal.target_cents.to_i <= @saved_baseline_cents
     end
 
     # Slider caps come as { category_id => cents }. Only the frozen baseline's flexible categories

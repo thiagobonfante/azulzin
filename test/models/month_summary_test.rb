@@ -20,14 +20,14 @@ class MonthSummaryTest < ActiveSupport::TestCase
     post!(bank_account: @account, amount_cents: 5_000)
     post!(credit_card: @card, amount_cents: 9_000, occurred_on: Date.new(2026, 6, 20)) # d10/f7 → July fatura
     s = summary
-    assert_equal 5_000, s.saidas_cents
-    assert_equal 9_000, s.faturas_cents
+    assert_equal 5_000, s.expenses_cents
+    assert_equal 9_000, s.bills_cents
   end
 
   test "entradas counts posted incomes; a card income (estorno) does not" do
     post!(bank_account: @account, direction: "income", amount_cents: 4_500_00)
     post!(credit_card: @card, direction: "income", amount_cents: 3_000, occurred_on: Date.new(2026, 6, 20))
-    assert_equal 4_500_00, summary.entradas_cents
+    assert_equal 4_500_00, summary.incomes_cents
   end
 
   test "remaining = entradas − saídas − faturas − guardado" do
@@ -53,7 +53,7 @@ class MonthSummaryTest < ActiveSupport::TestCase
 
   test "an unassigned posted expense counts in saídas until it gets an instrument" do
     post!(amount_cents: 7_000) # no instrument
-    assert_equal 7_000, summary.saidas_cents
+    assert_equal 7_000, summary.expenses_cents
   end
 
   # Adversarial hub-constancy (06 §6.5.2): a checking→checking transfer moves exactly the two
@@ -61,8 +61,8 @@ class MonthSummaryTest < ActiveSupport::TestCase
   test "a checking→checking transfer changes only the two balances" do
     a = BankAccount.create!(account: @user.account, institution: @inst, balance_cents: 100_000)
     b = BankAccount.create!(account: @user.account, institution: @inst, balance_cents: 50_000)
-    headlines = ->(s) { [ s.entradas_cents, s.saidas_cents, s.faturas_cents, s.a_pagar_cents,
-                          s.guardado_cents, s.remaining_cents ] }
+    headlines = ->(s) { [ s.incomes_cents, s.expenses_cents, s.bills_cents, s.payable_cents,
+                          s.saved_cents, s.remaining_cents ] }
     before = headlines.call(MonthSummary.new(@user.account, @month))
 
     @user.account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 20_000,
@@ -78,10 +78,10 @@ class MonthSummaryTest < ActiveSupport::TestCase
     month = Date.current.beginning_of_month
     inc = Income.create!(account: @user.account, bank_account: @account, name: "salário", amount_cents: 500_000,
                          schedule_kind: "fixed_day", schedule_day: 5)
-    assert_equal 500_000, MonthSummary.new(@user.account, month).entradas_cents # expected term only
+    assert_equal 500_000, MonthSummary.new(@user.account, month).incomes_cents # expected term only
     @user.account.transactions.create!(direction: "income", status: "posted", amount_cents: 500_000,
                                occurred_on: Date.current, bank_account: @account, income: inc)
-    assert_equal 500_000, MonthSummary.new(@user.account, month).entradas_cents # posted, not doubled
+    assert_equal 500_000, MonthSummary.new(@user.account, month).incomes_cents # posted, not doubled
   end
 
   test "an UNLINKED deposit within ±10% on the income's account also suppresses the expected term" do
@@ -90,7 +90,7 @@ class MonthSummaryTest < ActiveSupport::TestCase
                    schedule_kind: "fixed_day", schedule_day: 5)
     @user.account.transactions.create!(direction: "income", status: "posted", amount_cents: 480_000, # income_id nil, within 10%
                                occurred_on: Date.current, bank_account: @account)
-    assert_equal 480_000, MonthSummary.new(@user.account, month).entradas_cents # posted only, expected suppressed
+    assert_equal 480_000, MonthSummary.new(@user.account, month).incomes_cents # posted only, expected suppressed
   end
 
   test "guardado counts transfers into a savings account, keyed by billing_month" do
@@ -98,7 +98,7 @@ class MonthSummaryTest < ActiveSupport::TestCase
     savings  = BankAccount.create!(account: @user.account, institution: @inst, kind: "savings")
     @user.account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 30_000,
                                occurred_on: Date.new(2026, 7, 5), bank_account: checking, transfer_to_bank_account: savings)
-    assert_equal 30_000, summary.guardado_cents
+    assert_equal 30_000, summary.saved_cents
     assert_equal(-30_000, summary.remaining_cents) # entradas 0 − saídas 0 − faturas 0 − guardado 30k
   end
 end

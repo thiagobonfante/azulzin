@@ -6,7 +6,7 @@ require "test_helpers/e2e/pipeline_case"
 # runs with NO LLM and NO cap consumed.
 class E2E::WebBankReconciliationTest < E2E::PipelineCase
   test "REC-05: PDF extrato → exact drift headline → create + remove via apply" do
-    s = E2E::Scenario.build(:solo_basic).add_caixinha!
+    s = E2E::Scenario.build(:solo_basic).add_savings_account!
     sign_in_as s.owner
     s.itau.update!(balance_cents: 100_000)
     travel 1.minute   # rows below carry a fresh created_at, AFTER the balance anchor
@@ -19,7 +19,7 @@ class E2E::WebBankReconciliationTest < E2E::PipelineCase
     end
     fresh.call("Padaria Real", 2_000, prev + 9)
     fresh.call("Guardado do mês", 5_000, prev + 11,
-               { direction: "transfer", transfer_to_bank_account: s.caixinha })      # outgoing transfer leg
+               { direction: "transfer", transfer_to_bank_account: s.savings_account })      # outgoing transfer leg
     ghost = fresh.call("Lançamento Fantasma", 3_000, prev + 15)                      # only in the app
 
     post reconciliations_url, params: { bank_account_id: s.itau.id, period: prev.strftime("%Y-%m"),

@@ -11,7 +11,7 @@ class Goals::ReplanTest < ActiveSupport::TestCase
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
     travel_to Time.utc(2026, 7, 9, 12)
     history!   # Apr–Jun: 800k in / 200k out → live capacity 600k/month
   end
@@ -33,9 +33,9 @@ class Goals::ReplanTest < ActiveSupport::TestCase
     @account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
                            target_date: Date.new(2027, 12, 1), status: "active",
                            monthly_target_cents: monthly, starts_on: Date.new(2026, 6, 1),
-                           activated_at: Time.utc(2026, 5, 20), bank_account: @caixinha,
+                           activated_at: Time.utc(2026, 5, 20), bank_account: @savings_account,
                            initial_saved_cents: initial,
-                           initial_saved_bank_account: (initial.positive? ? @caixinha : nil),
+                           initial_saved_bank_account: (initial.positive? ? @savings_account : nil),
                            baseline: { "median_income_cents" => 800_000, "categories" => [] },
                            plan: { "projected_done_on" => "2028-02-01" }.merge(plan))
   end
@@ -49,7 +49,7 @@ class Goals::ReplanTest < ActiveSupport::TestCase
 
   def save!(cents, month:)
     @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: cents,
-                                  bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                  bank_account: @checking, transfer_to_bank_account: @savings_account,
                                   occurred_on: month, billing_month: month, billing_month_manual: true)
   end
 
@@ -78,7 +78,7 @@ class Goals::ReplanTest < ActiveSupport::TestCase
     rate = @account.goals.create!(name: "Guardar", kind: "savings_rate", target_cents: 100_000,
                                   status: "active", monthly_target_cents: 100_000,
                                   starts_on: Date.new(2026, 6, 1), activated_at: Time.utc(2026, 5, 20),
-                                  bank_account: @caixinha, baseline: {}, plan: {})
+                                  bank_account: @savings_account, baseline: {}, plan: {})
     assert_nil Goals::ReplanOffer.for(rate)
 
     goal = active_goal
@@ -116,7 +116,7 @@ class Goals::ReplanTest < ActiveSupport::TestCase
 
     assert_equal before, Goals::Progress.new(goal).actual_cents   # the money trap
     assert_equal 300_000, goal.initial_saved_cents      # everything through June rebased in
-    assert_equal @caixinha.id, goal.initial_saved_bank_account_id
+    assert_equal @savings_account.id, goal.initial_saved_bank_account_id
     assert_equal Date.new(2026, 8, 1), goal.starts_on
     assert_equal Date.new(2028, 3, 1), goal.target_date
     assert_equal 300_000, goal.monthly_target_cents

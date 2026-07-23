@@ -4,9 +4,9 @@ require "test_helpers/e2e/pipeline_case"
 # panel to the centavo, the carryover + estimated-encargos projection lines (NEVER rows),
 # the estimates-never-coexist-with-stated rule, the negative carryover, and the
 # card_overdue escalation with its golden body.
-class E2E::WebCardBillRotativoTest < E2E::PipelineCase
+class E2E::WebCardBillRevolvingTest < E2E::PipelineCase
   test "ROT-01: partial payment warning panel renders the canonical figures" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
 
     get projection_card_bill_url(s.closed_bill), params: { amount_reais: "450,00" }
@@ -25,7 +25,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   end
 
   test "ROT-01: below the assumed minimum adds the atraso band, labeled as an assumption" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
 
     get projection_card_bill_url(s.closed_bill), params: { amount_reais: "100,00" }
@@ -33,7 +33,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   end
 
   test "ROT-01: carryover + encargos ride the next month as labeled lines, never rows" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     next_month = bill.billing_month >> 1
@@ -45,8 +45,8 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     summary = MonthSummary.new(s.account, next_month)
     carry = summary.card_carryovers[s.nubank_card]
     assert_equal 255_000, carry[:carryover_cents]
-    assert_equal 40_076,  carry[:encargos_cents]
-    assert_equal 295_076, summary.bill_totals[s.nubank_card], "next month's fatura figure = carryover + encargos"
+    assert_equal 40_076,  carry[:finance_charges_cents]
+    assert_equal 295_076, summary.bill_totals[s.nubank_card], "next month's fatura figure = carryover + finance_charges"
 
     assert_equal rows_before + 1, s.account.transactions.count, "ONLY the payment row exists — projections are never rows"
     assert_equal 400_000, s.itau.reload.balance_cents, "stored balance never written"
@@ -63,7 +63,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   # estimate lines — only once the conferência RESOLVES. While pending, our figure
   # (rows + carryover estimate) keeps ruling every surface.
   test "ROT-01: NEXT bill's stated rules only after the check resolves" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     next_month = bill.billing_month >> 1
@@ -91,8 +91,8 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     assert_equal 295_000, summary.bill_totals[s.nubank_card], "the bank's number IS the figure now"
   end
 
-  test "ROT-01: overpay yields a negative carryover that reduces the next figure, no encargos" do
-    s = E2E::Scenario.build(:bill_rotativo)
+  test "ROT-01: overpay yields a negative carryover that reduces the next figure, no finance_charges" do
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     travel 1.minute
@@ -101,12 +101,12 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     summary = MonthSummary.new(s.account, bill.billing_month >> 1)
     carry = summary.card_carryovers[s.nubank_card]
     assert_equal(-10_000, carry[:carryover_cents])
-    assert_equal 0, carry[:encargos_cents], "a credit charges nothing"
+    assert_equal 0, carry[:finance_charges_cents], "a credit charges nothing"
     assert_equal(-10_000, summary.bill_totals[s.nubank_card])
   end
 
   test "ROT-01: card_overdue fires once past due with the golden body, never again, never for paid" do
-    s = push_ready(E2E::Scenario.build(:bill_rotativo))
+    s = push_ready(E2E::Scenario.build(:bill_revolving))
 
     2.times { dispatch_reminders! }
 
@@ -117,7 +117,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     notification = Notification.find_by!(user: s.owner, kind: "card_overdue")
     assert_equal "/card_bills/#{s.closed_bill.id}", Notifications.url_for(notification)
 
-    paid = push_ready(E2E::Scenario.build(:bill_rotativo))
+    paid = push_ready(E2E::Scenario.build(:bill_revolving))
     CardBills::Pay.call(paid.closed_bill, amount_cents: 300_000, paid_on: Date.current,
                         bank_account: paid.itau, created_by: paid.owner)
     dispatch_reminders!

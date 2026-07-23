@@ -66,7 +66,7 @@ module Reminders
     # outside the window simply yields nothing.
     def card_events
       @account.credit_cards.kept.roots.select(&:billing_configured?).flat_map do |card|
-        months_between(@from, @to >> 1).flat_map { |month| fatura_events(card, month) }
+        months_between(@from, @to >> 1).flat_map { |month| card_bill_events(card, month) }
       end
     end
 
@@ -77,7 +77,7 @@ module Reminders
     # A card_due whose month already has a CLOSED bill row carries card_bill_id + the
     # bill's effective total — the pay CTA (.plans/credit-cards 01 §4.3); dedup key
     # unchanged. card_closing fires BEFORE closing, so there is never a row to link.
-    def fatura_events(card, billing_month)
+    def card_bill_events(card, billing_month)
       bill = card.card_bills.find_by(billing_month: billing_month)
       { "card_closing" => card.closing_date(billing_month),
         "card_due"     => card.due_date(billing_month) }.filter_map do |kind, date|

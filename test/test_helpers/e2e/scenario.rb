@@ -32,7 +32,7 @@ module E2E
 
     def itau         = @instruments.fetch(:itau)
     def nubank_card  = @instruments.fetch(:nubank_card)
-    def caixinha     = @instruments.fetch(:caixinha)
+    def savings_account     = @instruments.fetch(:savings_account)
     def partner_card = @instruments.fetch(:partner_card)
 
     def category(name) = account.categories.kept.find_by!(name: name)
@@ -85,19 +85,19 @@ module E2E
       self
     end
 
-    def add_caixinha!
-      @instruments[:caixinha] ||= account.bank_accounts.create!(
+    def add_savings_account!
+      @instruments[:savings_account] ||= account.bank_accounts.create!(
         institution: institution("260"), nickname: "Caixinha", kind: "savings", created_by: owner)
       self
     end
 
-    # solo_basic + caixinha + 3 trailing full months + current month, calibrated
+    # solo_basic + savings account + 3 trailing full months + current month, calibrated
     # (see .plans/e2e/02 §3): Mercado 88,3% warn · Restaurantes 108% breach ·
     # Transporte exactly 80% · Lazer 79,997% (no warn) · Vestuário median R$ 420,00 ·
     # guardado R$ 300,00/month. Self-checks at build time.
     def history_calibrated(**)
       solo_basic
-      add_caixinha!
+      add_savings_account!
 
       { "Mercado" => 150_000, "Restaurantes" => 60_000, "Transporte" => 45_000,
         "Lazer" => 35_000 }.each { |name, cents| category(name).update!(monthly_budget_cents: cents) }
@@ -130,7 +130,7 @@ module E2E
       stash(30_000, on: this_month)
 
       itau.update!(balance_cents: 250_000)
-      caixinha.update!(balance_cents: 520_000)
+      savings_account.update!(balance_cents: 520_000)
       verify_calibration!
       self
     end
@@ -193,7 +193,7 @@ module E2E
     # the anchor month (already past due at the anchor — due day 10, anchor the 20th) plus
     # the frozen BCB rates rows (rotativo 15,09 / parcelamento 9,26 — tests NEVER call the
     # API). Itaú balance R$ 4.000,00.
-    def bill_rotativo(**)
+    def bill_revolving(**)
       solo_basic
       seed_bcb_rates!
       expense(merchant: "Compra Grande", category: "Outros", instrument: nubank_card,
@@ -201,7 +201,7 @@ module E2E
       itau.update!(balance_cents: 400_000)
       bills = CardBills::CloseScan.ensure_for(nubank_card)
       unless bills.size == 1 && bills.last.computed_total_cents == 300_000 && bills.last.overdue?
-        raise "bill_rotativo pack lost its calibration: #{bills.map { |b| [ b.billing_month, b.computed_total_cents ] }.inspect}"
+        raise "bill_revolving pack lost its calibration: #{bills.map { |b| [ b.billing_month, b.computed_total_cents ] }.inspect}"
       end
       self
     end
@@ -249,13 +249,13 @@ module E2E
       self
     end
 
-    # solo_basic + caixinha + commitments arranged around the traveled "today"
+    # solo_basic + savings account + commitments arranged around the traveled "today"
     # (see .plans/e2e/02 §3): Condomínio due today+1 (default lead) · Luz due today−2 unpaid
     # (inside 3-day overdue grace) · Água due today−5 unpaid (outside grace) · card closing
     # tomorrow · Freela income expected today+1. Two months of paid history behind them.
     def reminders_due(**)
       solo_basic
-      add_caixinha!
+      add_savings_account!
       start = this_month << 2
       day = ->(date) { date.day }
 
@@ -290,23 +290,23 @@ module E2E
 
     def bill(name) = @bills.fetch(name)
 
-    # solo_basic + caixinha + one ACTIVE purchase goal activated 2 months ago through the
+    # solo_basic + savings account + one ACTIVE purchase goal activated 2 months ago through the
     # REAL Goals::Activate (then backdated, DemoSeed-style). `paid` gives the fraction of
     # each month's parcel saved, oldest→current — [1, 1, 1] on-track, [1, 1, 0.8] ≈93%
     # at-risk, [1, 0.5, 0] =50% off-track. Payday is the salary's day 5, so by mid-month
     # expected = 3 × monthly.
     def goal_active(paid: [ 1, 1, 1 ], **)
       solo_basic
-      add_caixinha!
+      add_savings_account!
       @goal = add_active_goal!(name: "Carro", paid: paid)
       self
     end
 
     attr_reader :goal
 
-    # into: each goal needs its OWN caixinha — goals sharing one count each other's
+    # into: each goal needs its OWN savings_account — goals sharing one count each other's
     # transfers as their own progress.
-    def add_active_goal!(name:, paid: [ 1, 1, 1 ], target_cents: 2_000_000, into: caixinha)
+    def add_active_goal!(name:, paid: [ 1, 1, 1 ], target_cents: 2_000_000, into: savings_account)
       ensure_income_history!
       goal = account.goals.new(kind: "purchase", name: name, target_cents: target_cents,
                                initial_saved_cents: 0, target_date: this_month >> 12,
@@ -335,7 +335,7 @@ module E2E
       goal
     end
 
-    # solo_basic + caixinha + income history + an ACTIVE purchase goal whose frozen plan trims
+    # solo_basic + savings account + income history + an ACTIVE purchase goal whose frozen plan trims
     # Restaurantes to R$ 400,00 — below the member's R$ 600,00 standing budget. ApplyBudgetCuts
     # writes the trim into the category (goals 06 §3); the member then bumps the budget back to
     # 600 mid-goal, so the goal cap (400) stays the tighter binding limit. Current-month
@@ -344,7 +344,7 @@ module E2E
     # scenario_packs_test (NT-B-05).
     def goal_cuts(**)
       solo_basic
-      add_caixinha!
+      add_savings_account!
       ensure_income_history!
       rest  = category("Restaurantes")
       rest.update!(monthly_budget_cents: 60_000)
@@ -352,7 +352,7 @@ module E2E
       @goal = account.goals.create!(
         kind: "purchase", name: "Carro", target_cents: 2_000_000, target_date: this_month >> 10,
         status: "active", monthly_target_cents: 150_000, starts_on: start,
-        activated_at: start.in_time_zone, bank_account: caixinha, created_by: owner, baseline: {},
+        activated_at: start.in_time_zone, bank_account: savings_account, created_by: owner, baseline: {},
         plan: { "cuts" => [ { "category_id" => rest.id, "cap_cents" => 40_000 } ] })
       Goals::ApplyBudgetCuts.call(@goal)                   # 60_000 → 40_000, previous snapshotted
       rest.reload.update!(monthly_budget_cents: 60_000)    # member raises it back; the goal cap still pins alerts
@@ -389,7 +389,7 @@ module E2E
         merchant: "Guardado do mês", direction: "transfer", status: "posted", source: "manual",
         amount_cents: cents, occurred_on: on, confirmed_at: on.in_time_zone,
         created_at: on.in_time_zone, bank_account: from,
-        transfer_to_bank_account: caixinha, created_by: owner)
+        transfer_to_bank_account: savings_account, created_by: owner)
     end
 
     def receive_income(month, only: nil)

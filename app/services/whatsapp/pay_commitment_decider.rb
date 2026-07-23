@@ -20,7 +20,7 @@ module Whatsapp
       # No identifying words ("paguei a parcela") → a sole candidate self-picks, several
       # get the numbered pick — never commitment_not_found while candidates exist.
       if core_phrase.blank?
-        pool = mentions_parcela? ? candidates.select(&:installment?).presence || candidates : candidates
+        pool = mentions_installment? ? candidates.select(&:installment?).presence || candidates : candidates
         return pool.size == 1 ? proceed(pool.first) : ask_pick(pool)
       end
 
@@ -43,7 +43,7 @@ module Whatsapp
       @core_phrase ||= (Whatsapp.normalize(@extraction.commitment_phrase.to_s).split - GENERIC_WORDS).join(" ")
     end
 
-    def mentions_parcela? = transcript.match?(/parcela|presta[cç]/) ||
+    def mentions_installment? = transcript.match?(/parcela|presta[cç]/) ||
                             Whatsapp.normalize(@extraction.commitment_phrase.to_s).match?(/parcela|prestac/)
 
     def transcript = @transcript ||= Whatsapp.normalize(@extraction.raw.is_a?(Hash) ? @extraction.raw["transcript"].to_s : "")

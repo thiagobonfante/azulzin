@@ -9,7 +9,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
     travel_to Time.utc(2026, 7, 15, 12)
   end
 
@@ -21,7 +21,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
       sufficiency: :ok,
       categories: [ Goals::CategoryStat.new(category_id: 1, name: "Restaurantes", median_cents: 200_000,
                                            trimmable_median_cents: 200_000, months_present: 3, flexibility: "flexible") ],
-      median_income_cents: 900_000, median_capacity_base_cents: 400_000, median_guardado_cents: 0,
+      median_income_cents: 900_000, median_capacity_base_cents: 400_000, median_saved_cents: 0,
       income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
       window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ]
     )
@@ -32,13 +32,13 @@ class Goals::ActivateTest < ActiveSupport::TestCase
 
   test "activating a feasible draft flips it active and creates the savings commitment" do
     g = draft
-    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     assert result.ok?
     g.reload
     assert g.active?
     assert_equal Date.new(2026, 8, 1), g.starts_on          # NEXT month (round 3 decision 3)
     assert_operator g.monthly_target_cents, :>, 0
-    assert_equal @caixinha.id, g.bank_account_id
+    assert_equal @savings_account.id, g.bank_account_id
     assert_equal "recomendado", g.plan["template"]
 
     c = g.savings_commitment
@@ -59,7 +59,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
 
   test "leve's commitment no longer ends before its projected done month (round 3 cutoff fix)" do
     g = draft
-    Goals::Activate.call(g, template: "leve", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    Goals::Activate.call(g, template: "leve", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     g.reload
     c = g.savings_commitment
     done_on = Date.iso8601(g.plan["projected_done_on"])
@@ -70,7 +70,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
   test "a savings_rate goal's commitment stays open-ended (no parcels)" do
     g = @account.goals.create!(name: "Guardar", kind: "savings_rate", target_cents: 150_000,
                                status: "draft", baseline: draft.baseline)
-    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     assert result.ok?
     c = g.reload.savings_commitment
     assert_nil c.ends_on
@@ -80,15 +80,15 @@ class Goals::ActivateTest < ActiveSupport::TestCase
   test "the chosen plan is recomputed from the frozen baseline, not trusted from params" do
     g = draft
     expected = Goals::Recompute.call(g).plans.find { |p| p.template == "recomendado" }
-    Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    Goals::Activate.call(g, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     assert_equal expected.monthly_target_cents, g.reload.monthly_target_cents
     assert_equal expected.to_snapshot, g.plan
   end
 
   test "double activation is a no-op — one commitment, second call reports not_draft" do
     g = draft
-    first  = Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
-    second = Goals::Activate.call(g, template: "acelerado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    first  = Goals::Activate.call(g, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
+    second = Goals::Activate.call(g, template: "acelerado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     assert first.ok?
     refute second.ok?
     assert_equal :not_draft, second.error
@@ -97,24 +97,24 @@ class Goals::ActivateTest < ActiveSupport::TestCase
 
   test "activation refuses over the 5-active cap" do
     5.times { @account.goals.create!(name: "x", kind: "savings_rate", target_cents: 1_000, status: "active") }
-    result = Goals::Activate.call(draft, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    result = Goals::Activate.call(draft, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     refute result.ok?
     assert_equal :too_many_active, result.error
   end
 
   test "an unknown template is refused" do
-    result = Goals::Activate.call(draft, template: "turbo", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    result = Goals::Activate.call(draft, template: "turbo", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     assert_equal :invalid_template, result.error
   end
 
   test "an infeasible draft cannot be activated" do
     poor = draft
     poor.update!(baseline: poor.baseline.merge("median_capacity_base_cents" => -100_000))
-    result = Goals::Activate.call(poor, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    result = Goals::Activate.call(poor, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     assert_equal :infeasible, result.error
   end
 
-  test "rejects a non-savings or cross-account caixinha (update_all can't validate)" do
+  test "rejects a non-savings or cross-account savings account (update_all can't validate)" do
     checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
     assert_equal :not_savings, Goals::Activate.call(draft, template: "recomendado", bank_account_id: checking.id, source_bank_account_id: @checking.id).error
 
@@ -124,7 +124,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
 
   test "rejects a cross-account funding source" do
     stray = Account.create!(name: "B").bank_accounts.create!(institution: @inst, kind: "checking")
-    result = Goals::Activate.call(draft, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: stray.id)
+    result = Goals::Activate.call(draft, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: stray.id)
     assert_equal :invalid_source, result.error
   end
 
@@ -136,37 +136,37 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     refute c.valid?
   end
 
-  test "activation without a caixinha or source is blocked — a goal is ALWAYS linked (round 3)" do
+  test "activation without a savings account or source is blocked — a goal is ALWAYS linked (round 3)" do
     g = draft
     result = Goals::Activate.call(g, template: "recomendado", bank_account_id: nil, source_bank_account_id: nil)
     refute result.ok?
-    assert_equal :missing_caixinha, result.error
+    assert_equal :missing_savings_account, result.error
     assert g.reload.draft?
 
-    assert_equal :missing_caixinha,
-                 Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: nil).error
+    assert_equal :missing_savings_account,
+                 Goals::Activate.call(g, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: nil).error
   end
 
-  test "source == caixinha is blocked — the transfer needs two distinct legs" do
+  test "source == savings account is blocked — the transfer needs two distinct legs" do
     g = draft
-    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @caixinha.id)
-    assert_equal :missing_caixinha, result.error
+    result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @savings_account.id)
+    assert_equal :missing_savings_account, result.error
     assert g.reload.draft?
   end
 
-  test "paying the savings commitment posts a transfer into the caixinha and counts as guardado" do
+  test "paying the savings commitment posts a transfer into the savings account and counts as guardado" do
     g = draft
-    Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id)
+    Goals::Activate.call(g, template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id)
     c = g.savings_commitment
 
     txn = Commitments::MarkPaid.call(c, Date.new(2026, 8, 1))   # the first occurrence (next month)
 
     assert_equal "transfer", txn.direction
-    assert_equal @caixinha.id, txn.transfer_to_bank_account_id
+    assert_equal @savings_account.id, txn.transfer_to_bank_account_id
     assert_equal @checking.id, txn.bank_account_id
     assert_nil txn.category_id
     assert c.paid_in?(Date.new(2026, 8, 1))
-    assert_equal txn.amount_cents, MonthSummary.new(@account, Date.new(2026, 8, 1)).guardado_cents
+    assert_equal txn.amount_cents, MonthSummary.new(@account, Date.new(2026, 8, 1)).saved_cents
     assert_equal g.initial_saved_cents + txn.amount_cents, Goals::Progress.new(g).actual_cents
   end
 end

@@ -73,7 +73,7 @@ module TransactionsHelper
 
   # R2 manual-move options for a card row: current billing_month −1..+3, month names, with the
   # engine's automatic choice suffixed so overrides are visually distinct (02 §5).
-  def fatura_month_options(txn)
+  def bill_month_options(txn)
     auto = txn.credit_card.billing_month_for(txn.occurred_on)
     auto = auto >> (txn.installment_number - 1) if txn.installment_number
     (-1..3).map do |offset|

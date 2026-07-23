@@ -19,7 +19,7 @@ class E2E::ScenarioPacksTest < E2E::PipelineCase
       assert_equal 36_000,  spent(s, "Transporte")
       assert_equal 27_999,  spent(s, "Lazer")
       assert_equal 250_000, s.itau.reload.derived_balance_cents
-      assert_equal 520_000, s.caixinha.reload.derived_balance_cents
+      assert_equal 520_000, s.savings_account.reload.derived_balance_cents
     end
 
     test "reminders_due yields due/overdue material at #{label}" do

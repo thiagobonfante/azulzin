@@ -58,7 +58,7 @@ module Goals
 
       # savings_rate: the effort on top of what the household already puts away (≥ 0 — an
       # already-met target plans as pure habit-keeping, no cuts).
-      def savings_extra = [ @target_cents - @profile.median_guardado_cents, 0 ].max
+      def savings_extra = [ @target_cents - @profile.median_saved_cents, 0 ].max
 
       def remaining_target = [ @target_cents - @initial_saved_cents, 0 ].max
 
@@ -123,7 +123,7 @@ module Goals
         if purchase?
           [ Goals.pct_of(required, LEVE_EASE), 1 ].max
         else
-          @profile.median_guardado_cents + Goals.pct_of(savings_extra, LEVE_EASE)
+          @profile.median_saved_cents + Goals.pct_of(savings_extra, LEVE_EASE)
         end
       end
 

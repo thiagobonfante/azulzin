@@ -53,7 +53,7 @@ module Goals
         payload = { "finding" => finding, "goal" => goals_by_id[goal_id].name,
                     "month" => month.iso8601, "shortfall_cents" => -remaining, "urgent" => true }
         payload["committed_cents"] = committed.values.sum if finding == "red_month"
-        payload["faturas_cents"]   = summary.faturas_cents if finding == "next_month_red"
+        payload["faturas_cents"]   = summary.bills_cents if finding == "next_month_red"
         @findings[goal_id] << payload
       end
 
@@ -110,7 +110,7 @@ module Goals
       def contributions_in(goal, month)
         ids = goal.savings_account_ids
         return 0 if ids.empty?
-        @account.transactions.guardado_into(ids).where(billing_month: month).sum(:amount_cents)
+        @account.transactions.saved_into(ids).where(billing_month: month).sum(:amount_cents)
       end
 
       # "Where things went wrong", deterministically: lower income first (the gentlest truth),
@@ -118,7 +118,7 @@ module Goals
       # the template tone: essential category / income → gentle, flexible → matter-of-fact.
       def cause_for(goal, month)
         base_income = goal.baseline["median_income_cents"].to_i
-        if base_income.positive? && summary_for(month).entradas_cents * 100 < base_income * LOW_INCOME_PCT
+        if base_income.positive? && summary_for(month).incomes_cents * 100 < base_income * LOW_INCOME_PCT
           return { "variant" => "income" }
         end
         category, over = worst_overage(goal, month)

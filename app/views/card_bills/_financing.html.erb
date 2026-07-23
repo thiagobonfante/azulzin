@@ -11,7 +11,7 @@
       <%= t("card_bills.financing.summary", count: fin.installments_count, parcel: brl(fin.installment_cents), total: brl(fin.total_cents)) %>
     </p>
     <p class="mt-0.5 text-xs text-base-content/50">
-      <%= t("card_bills.financing.summary_fees", amount: brl(fin.encargos_total_cents)) %> ·
+      <%= t("card_bills.financing.summary_fees", amount: brl(fin.finance_charges_total_cents)) %> ·
       <%= t("card_bills.financing.summary_span", from: l(fin.first_charge_month, format: :month_name), to: l(fin.last_charge_month, format: :month_name)) %>
     </p>
     <div class="mt-2 flex justify-end">

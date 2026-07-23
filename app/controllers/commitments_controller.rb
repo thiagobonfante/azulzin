@@ -123,7 +123,7 @@ class CommitmentsController < ApplicationController
         c.starts_on = c.starts_on >> 1 if c.due_on(c.starts_on) < Date.current
         c.ends_on = p[:ends_on].presence
       end
-      c.transfer_to_bank_account_id = sanitized_caixinha(p[:transfer_to_bank_account_id]) if p[:kind] == "savings"
+      c.transfer_to_bank_account_id = sanitized_savings_account_id(p[:transfer_to_bank_account_id]) if p[:kind] == "savings"
       c
     end
 
@@ -185,7 +185,7 @@ class CommitmentsController < ApplicationController
 
     # Standalone savings destination: only a kept savings-kind account of THIS account passes
     # (model validation is the backstop; presence 422s when the whitelist drops a junk id).
-    def sanitized_caixinha(id) = (id if id.present? && Current.account.bank_accounts.kept.savings.exists?(id))
+    def sanitized_savings_account_id(id) = (id if id.present? && Current.account.bank_accounts.kept.savings.exists?(id))
 
     def parse_month(param)
       return nil unless param.to_s.match?(/\A\d{4}-(0[1-9]|1[0-2])\z/)

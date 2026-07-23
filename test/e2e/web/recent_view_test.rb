@@ -35,7 +35,7 @@ class E2E::WebRecentViewTest < E2E::PipelineCase
   # in the list but out of gastos.
   test "days separate, recents render first, incomes and transfers stay out of gastos" do
     s = E2E::Scenario.build(:recent_days)
-    s.add_caixinha!
+    s.add_savings_account!
     s.stash(30_000, on: Date.current)   # transfer: visible, in NO figure
     s.account.transactions.create!(
       merchant: "Reembolso", direction: "income", status: "posted", source: "manual",

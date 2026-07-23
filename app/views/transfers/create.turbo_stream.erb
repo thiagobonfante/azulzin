@@ -16,7 +16,7 @@
   <% if @to_savings %>
     <%= turbo_stream.prepend "toasts" do %>
       <%= render "shared/toast", variant: :success,
-            message: t("transfers.saved_celebration", amount: brl(@transactions.sum(&:amount_cents)), total: brl(summary.guardado_cents)) %>
+            message: t("transfers.saved_celebration", amount: brl(@transactions.sum(&:amount_cents)), total: brl(summary.saved_cents)) %>
     <% end %>
     <%# Goal boost (round 3 P3): the money landed in a goal's caixinha — confirm the
         acceleration (purchase: fresh derived forecast) with a click-through to the goal. %>

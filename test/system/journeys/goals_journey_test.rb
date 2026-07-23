@@ -1,7 +1,7 @@
 require "test_helpers/e2e/browser_case"
 
 # WEB-GOAL P0 browser residue (.plans/e2e/05 §5): the create form → 3 plan cards → choose a
-# template from a click → the goal goes active, with the caixinha/source pickers driven the
+# template from a click → the goal goes active, with the savings_account/source pickers driven the
 # real way (the plan math itself is owned by goals_flow_test.rb — ~30 request tests).
 class JourneysGoalsTest < E2E::BrowserCase
   test "create a purchase goal, choose recomendado, and activate it" do
@@ -19,15 +19,15 @@ class JourneysGoalsTest < E2E::BrowserCase
     assert_text I18n.t("goals.plans.labels.recomendado")
     assert_text I18n.t("goals.plans.labels.acelerado")
 
-    # recomendado is the pre-checked template; pick the caixinha + source and activate
-    pick_account "bank_account_id", s.caixinha.display_name
+    # recomendado is the pre-checked template; pick the savings_account + source and activate
+    pick_account "bank_account_id", s.savings_account.display_name
     pick_account "source_bank_account_id", s.itau.display_name
     click_button I18n.t("goals.confirm.activate")
     assert_text I18n.t("goals.choose.activated")   # wait for the redirect before touching the DB
 
     goal = s.account.goals.sole
     assert goal.active?, "choosing a template and clicking Ativar activates the goal"
-    assert_equal s.caixinha.id, goal.bank_account_id
+    assert_equal s.savings_account.id, goal.bank_account_id
     assert_equal "recomendado", goal.plan["template"]
     assert s.account.commitments.where(kind: "savings", goal: goal).exists?
   end

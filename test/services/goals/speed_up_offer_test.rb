@@ -10,12 +10,12 @@ class Goals::SpeedUpOfferTest < ActiveSupport::TestCase
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
     @month    = Date.new(2026, 7, 1)
     @goal = @account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
                                    target_date: Date.new(2027, 12, 1), status: "active",
                                    monthly_target_cents: 300_000, starts_on: @month,
-                                   bank_account: @caixinha)
+                                   bank_account: @savings_account)
     @commitment = @account.commitments.create!(kind: "savings", name: "Carro", goal: @goal,
                                                bank_account: @checking, amount_cents: 300_000,
                                                starts_on: @month, schedule_day: 5, schedule_kind: "fixed_day")
@@ -34,9 +34,9 @@ class Goals::SpeedUpOfferTest < ActiveSupport::TestCase
     Commitments::MarkPaid.call(@commitment, @month)
     offer = Goals::SpeedUpOffer.for(@goal)
     assert offer
-    assert_equal 600_000, offer.sobra_cents                       # 900_000 − 300_000 guardado
+    assert_equal 600_000, offer.surplus_cents                       # 900_000 − 300_000 guardado
     assert_equal @checking.id, offer.source_bank_account_id
-    assert_equal @caixinha.id, offer.destination_bank_account_id
+    assert_equal @savings_account.id, offer.destination_bank_account_id
   end
 
   test "boundary: sobra × 5 == parcel passes; one cent below fails" do
@@ -65,7 +65,7 @@ class Goals::SpeedUpOfferTest < ActiveSupport::TestCase
 
     sr = @account.goals.create!(name: "Guardar", kind: "savings_rate", target_cents: 100_000,
                                 status: "active", monthly_target_cents: 100_000,
-                                starts_on: @month, bank_account: @caixinha)
+                                starts_on: @month, bank_account: @savings_account)
     assert_nil Goals::SpeedUpOffer.for(sr)
   end
 

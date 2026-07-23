@@ -24,11 +24,11 @@ class E2E::WhatsappGoalsChatTest < E2E::PipelineCase
     offer = assert_wa_reply(s.jid)
     assert_includes offer, goal.name
 
-    say s, "sim"          # accept → single caixinha + single source resolve automatically
+    say s, "sim"          # accept → single savings account + single source resolve automatically
 
     goal.reload
     assert goal.active?, "sim on the offer must activate the goal"
-    assert_equal s.caixinha.id, goal.bank_account_id, "the goal links its caixinha"
+    assert_equal s.savings_account.id, goal.bank_account_id, "the goal links its caixinha"
     commitment = s.account.commitments.where(kind: "savings").sole
     assert_equal goal, commitment.goal
     assert_equal s.itau, commitment.bank_account, "the commitment debits the source account"
@@ -142,7 +142,7 @@ class E2E::WhatsappGoalsChatTest < E2E::PipelineCase
   # WA-GOAL-07 — a non-owner member creates a goal via WhatsApp: the goal is scoped to the
   # SHARED account and attributed to that member (not the owner). Spec 03 §4.
   test "a member (not owner) creates a goal: account-scoped, attribution = the member" do
-    s = E2E::Scenario.build(:couple) { |sc| sc.add_caixinha!; sc.ensure_income_history! }
+    s = E2E::Scenario.build(:couple) { |sc| sc.add_savings_account!; sc.ensure_income_history! }
     member = s.partner
     jid = s.jid(member)
 
@@ -171,13 +171,13 @@ class E2E::WhatsappGoalsChatTest < E2E::PipelineCase
   # far past the promise, so ReplanOffer surfaces an extend option. Built like the service twin
   # but with REAL transfers so actual_cents is a live, asserted number.
   def slipped_goal_scenario
-    s = E2E::Scenario.build(:solo_basic) { |sc| sc.add_caixinha!; sc.ensure_income_history! }.wa_verified!
+    s = E2E::Scenario.build(:solo_basic) { |sc| sc.add_savings_account!; sc.ensure_income_history! }.wa_verified!
     start = Date.current.beginning_of_month << 2
     goal = s.account.goals.create!(
       name: "Carro", kind: "purchase", target_cents: 6_000_000,
       target_date: Date.current.beginning_of_month >> 7, status: "active",
       monthly_target_cents: 300_000, starts_on: start, activated_at: start.in_time_zone,
-      bank_account: s.caixinha, created_by: s.owner, baseline: {},
+      bank_account: s.savings_account, created_by: s.owner, baseline: {},
       plan: { "projected_done_on" => (Date.current.beginning_of_month >> 7).iso8601 })
     s.account.commitments.create!(kind: "savings", goal: goal, bank_account: s.itau,
       amount_cents: 300_000, name: "Carro", starts_on: start, schedule_day: 5,

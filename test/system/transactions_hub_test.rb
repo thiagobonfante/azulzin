@@ -106,7 +106,7 @@ class TransactionsHubTest < ApplicationSystemTestCase
                                        billing_month: Date.current.beginning_of_month, merchant: "Salário")
 
     visit transactions_path
-    find("button[data-action*='sobra-cta#open']").click
+    find("button[data-action*='surplus-cta#open']").click
 
     within "#save_money_form" do
       source = find("input[name='sources[#{@account.id}]']")

@@ -125,11 +125,11 @@ class Summaries::BuildTest < ActiveSupport::TestCase
     payload = result[:payload]
     hub     = MonthSummary.new(@account, Date.new(2026, 7, 1))
     assert_equal "2026-07-01", payload[:month]
-    assert_equal hub.entradas_cents,  payload[:in_cents]
-    assert_equal hub.saidas_cents,    payload[:out_cents]
-    assert_equal hub.faturas_cents,   payload[:bills_cents]
+    assert_equal hub.incomes_cents,  payload[:in_cents]
+    assert_equal hub.expenses_cents,    payload[:out_cents]
+    assert_equal hub.bills_cents,   payload[:bills_cents]
     assert_equal hub.remaining_cents, payload[:sobra_cents]
-    assert_equal hub.guardado_cents,  payload[:saved_cents]
+    assert_equal hub.saved_cents,  payload[:saved_cents]
     assert_equal 400_000, payload[:sobra_cents], "850 in − 300 out − 50 fatura − 100 saved"
 
     assert_equal [ { "name" => "Mercado", "cents" => 230_000 },       # card spend at billing_month (D4)

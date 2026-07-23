@@ -7,7 +7,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
       <% end %>
     </h2>
-    <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.faturas_cents) %></span>
+    <span class="font-display text-lg font-bold tabular-nums"><%= brl(summary.bills_cents) %></span>
   </header>
 
   <% cards = Current.account.credit_cards.kept.roots.includes(:institution).order(:created_at) %>
