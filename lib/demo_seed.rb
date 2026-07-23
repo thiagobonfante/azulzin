@@ -262,6 +262,7 @@ module DemoSeed
     open_month = cartoes[:nubank].current_open_bill_month
     recent     = open_month << 1
     older      = open_month << 2
+    older2     = open_month << 3   # extra Itaú cycle: the parcelamento-de-fatura demo
     edge_cents = 18_990
 
     # Sub-cards under Rafael's Nubank (04): nicknames ARE the feature. A couple of rows
@@ -283,6 +284,7 @@ module DemoSeed
     add_expense.call("Loja na Véspera do Corte", "Outros", cartoes[:itau], edge_cents,
                      cartoes[:itau].closing_date(recent))   # ON the closing date → `recent`'s bill
 
+    CardBills::CloseScan.close(cartoes[:itau], older2)   # the cycle the bank parceled
     cartoes.each_value do |card|
       CardBills::CloseScan.close(card, older)
       CardBills::CloseScan.ensure_for(card)   # fills `recent`; the open month stays a query
@@ -292,6 +294,26 @@ module DemoSeed
     nubank_recent = cartoes[:nubank].card_bills.find_by!(billing_month: recent)
     itau_older    = cartoes[:itau].card_bills.find_by!(billing_month: older)
     itau_recent   = cartoes[:itau].card_bills.find_by!(billing_month: recent)
+    itau_financed = cartoes[:itau].card_bills.find_by!(billing_month: older2)
+
+    # Parcelamento de fatura (f6f3013): entrada ~25% via the form's flow, remainder split
+    # into 3 fixed parcels (+6% juros, whole reais) riding `older`, `recent` and the open
+    # month — bills history shows "parcelada", the hub tile a parcel line. Created BEFORE
+    # the later bills are paid/stated so their derived totals already include the parcels.
+    entrada_cents  = itau_financed.our_total_cents / 4 / 100 * 100
+    financed_cents = itau_financed.our_total_cents - entrada_cents
+    parcel_cents   = (financed_cents * 106 / 100 / 3 / 100 + 1) * 100
+    financing = itau_financed.create_financing!(
+      account: account, created_by: marina, installments_count: 3,
+      installment_cents: parcel_cents, financed_cents: financed_cents,
+      first_charge_month: older2 >> 1)
+    entrada_payment = CardBills::Pay.call(itau_financed, amount_cents: entrada_cents,
+      paid_on: itau_financed.due_on, bank_account: contas[:itau], created_by: marina)
+    entrada_payment.update_columns(created_at: itau_financed.due_on.in_time_zone)
+    financing.update!(entrada_transaction: entrada_payment)
+    # computing entrada from our_total above cached bill_financings EMPTY on the card —
+    # reload so the later pays/stated see the parcels (the per-instance-cache gotcha).
+    cartoes[:itau].bill_financings.reload
 
     pay_bill = lambda do |bill, amount, source, payer|
       CardBills::Pay.call(bill, amount_cents: amount, paid_on: bill.due_on,
@@ -373,6 +395,10 @@ module DemoSeed
       itau_recent.reload.computed_total_cents - itau_recent.stated_total_cents == edge_cents
     abort "FAIL: Nubank #{older.strftime('%m/%Y')} must read parcialmente paga." unless nubank_older.reload.status == "partially_paid"
     abort "FAIL: Itaú #{older.strftime('%m/%Y')} must read paga." unless itau_older.reload.status == "paid"
+    abort "FAIL: Itaú #{older2.strftime('%m/%Y')} must read parcelada." unless itau_financed.reload.display_status == "financed"
+    abort "FAIL: expected the Itaú parcel riding #{recent.strftime('%m/%Y')}." unless
+      cartoes[:itau].financing_parcels_cents(recent) == parcel_cents
+    puts "  • parcelamento: Itaú #{older2.strftime('%m/%Y')} — entrada #{brl.(entrada_cents)} + 3 × #{brl.(parcel_cents)}"
     abort "FAIL: expected the pay-CTA notification for both members." unless
       Notification.where(account: account, kind: %w[card_due card_overdue]).count == 2
     # Count-once invariant on the seeded family: sub-card rows ride the ROOT's recent bill.
