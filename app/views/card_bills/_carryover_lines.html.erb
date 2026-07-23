@@ -9,10 +9,10 @@
     <span><%= t("card_bills.carryover.from_bill", month: l(carry[:from_month], format: :month_name)) %></span>
     <span class="tabular-nums"><%= brl(carry[:carryover_cents]) %></span>
   </li>
-  <% if carry[:encargos_cents].positive? %>
+  <% if carry[:finance_charges_cents].positive? %>
     <li class="flex items-center justify-between text-xs text-orange-600 dark:text-orange-400">
       <span><%= t("card_bills.carryover.estimated_charges") %></span>
-      <span class="tabular-nums"><%= brl(carry[:encargos_cents]) %></span>
+      <span class="tabular-nums"><%= brl(carry[:finance_charges_cents]) %></span>
     </li>
     <% if carry[:rate_month] %>
       <li class="text-[10px] text-base-content/40">

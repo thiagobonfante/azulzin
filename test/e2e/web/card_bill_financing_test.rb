@@ -80,7 +80,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
     assert_equal 0, bill.paid_cents, "the form's entrada is reversed with the plan"
     summary = MonthSummary.new(s.account, next_month)
     assert_equal 300_000, summary.card_carryovers[s.nubank_card][:carryover_cents]
-    assert_equal 47_148,  summary.card_carryovers[s.nubank_card][:encargos_cents]
+    assert_equal 47_148,  summary.card_carryovers[s.nubank_card][:finance_charges_cents]
     assert_equal 347_148, summary.bill_totals[s.nubank_card]
   end
 
@@ -98,7 +98,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
     assert_equal 45_000, bill.paid_cents, "a Pagar payment is not the form's to undo"
     summary = MonthSummary.new(s.account, bill.billing_month >> 1)
     assert_equal 255_000, summary.card_carryovers[s.nubank_card][:carryover_cents]
-    assert_equal 40_076,  summary.card_carryovers[s.nubank_card][:encargos_cents]
+    assert_equal 40_076,  summary.card_carryovers[s.nubank_card][:finance_charges_cents]
   end
 
   test "ROT-02: the financed amount holds limit, released as parcels are billed" do
@@ -121,10 +121,10 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
     fin = s.closed_bill.build_financing(
       account: s.account, installments_count: 7, installment_cents: 40_000,
       financed_cents: 255_000, first_charge_month: s.closed_bill.billing_month >> 1)
-    assert_equal 25_000, fin.encargos_total_cents
-    assert_equal 3_574, fin.encargos_for(1)   # 25.000 = 7×3.571 + 3 → the 3 land on parcel 1
-    assert_equal 3_571, fin.encargos_for(2)
-    assert_equal 25_000, (1..7).sum { |n| fin.encargos_for(n) }, "split is exact"
+    assert_equal 25_000, fin.finance_charges_total_cents
+    assert_equal 3_574, fin.finance_charges_for(1)   # 25.000 = 7×3.571 + 3 → the 3 land on parcel 1
+    assert_equal 3_571, fin.finance_charges_for(2)
+    assert_equal 25_000, (1..7).sum { |n| fin.finance_charges_for(n) }, "split is exact"
   end
 
   test "ROT-02: a financed bill leaves the rotativo — warning panel and overdue banner stop" do

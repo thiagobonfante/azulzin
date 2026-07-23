@@ -56,16 +56,16 @@ module RevolvingCredit
 
     cap        = financed
     total_cost = paid_cents + (pmt * count).round.to_i
-    encargos   = total_cost - bill_cents
-    if encargos > cap                             # Lei 14.690/2023: the debt at most doubles
-      encargos   = cap
+    finance_charges   = total_cost - bill_cents
+    if finance_charges > cap                             # Lei 14.690/2023: the debt at most doubles
+      finance_charges   = cap
       total_cost = bill_cents + cap
     end
 
     { financed_cents: financed, next_bill_add_cents: cost[:total_cents],
       juros_cents: cost[:juros_cents], iof_cents: cost[:iof_cents],
       parcel_cents: pmt.round.to_i, schedule: schedule,
-      total_cost_cents: total_cost, encargos_cents: encargos,
+      total_cost_cents: total_cost, finance_charges_cents: finance_charges,
       cap_cents: cap, months_to_cap: months_to_cap(financed, revolving_monthly_rate) }
   end
 

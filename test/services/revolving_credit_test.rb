@@ -25,9 +25,9 @@ class RotativoTest < ActiveSupport::TestCase
     assert_equal 185_839, p[:schedule][5]                                # after 6 parcels
     assert_equal 0,       p[:schedule].last
     assert_equal 545_986, p[:total_cost_cents]                           # custo até quitar
-    assert_equal 245_986, p[:encargos_cents]
+    assert_equal 245_986, p[:finance_charges_cents]
     assert_equal 255_000, p[:cap_cents]                                  # Lei 14.690: 100%
-    assert p[:encargos_cents] < p[:cap_cents]
+    assert p[:finance_charges_cents] < p[:cap_cents]
     assert_equal 5, p[:months_to_cap]                                    # "dobra em ~5 meses"
   end
 
@@ -41,7 +41,7 @@ class RotativoTest < ActiveSupport::TestCase
   end
 
   # Property tests across a matrix of bills, payments and plausible rates.
-  test "properties: schedule strictly decreasing, parcels-minus-financed equals encargos, cap never exceeded" do
+  test "properties: schedule strictly decreasing, parcels-minus-financed equals finance_charges, cap never exceeded" do
     [ [ 300_000, 45_000 ], [ 125_000, 1 ], [ 1_000_000, 150_000 ], [ 8_35, 1_00 ], [ 54_321, 12_345 ] ].each do |bill, paid|
       [ [ ROT, PARC ], [ BigDecimal("20"), BigDecimal("12") ], [ BigDecimal("9"), BigDecimal("5") ] ].each do |rot, parc|
         p = RevolvingCredit.projection(bill, paid, revolving_monthly_rate: rot, installment_monthly_rate: parc)
@@ -51,21 +51,21 @@ class RotativoTest < ActiveSupport::TestCase
         assert_equal p[:schedule].uniq, p[:schedule], "strictly (#{label})"
         assert_equal 0, p[:schedule].last, "Price zeroes the debt (#{label})"
 
-        unless p[:encargos_cents] == p[:cap_cents]   # unclamped ⇒ the identity holds exactly
+        unless p[:finance_charges_cents] == p[:cap_cents]   # unclamped ⇒ the identity holds exactly
           parcels_total = p[:total_cost_cents] - paid
-          assert_equal p[:encargos_cents], parcels_total - p[:financed_cents],
-                       "Σ parcels − financed = encargos (#{label})"
+          assert_equal p[:finance_charges_cents], parcels_total - p[:financed_cents],
+                       "Σ parcels − financed = finance_charges (#{label})"
         end
-        assert p[:encargos_cents] <= p[:cap_cents], "encargos never exceed the 100% cap (#{label})"
+        assert p[:finance_charges_cents] <= p[:cap_cents], "finance_charges never exceed the 100% cap (#{label})"
         assert p[:months_to_cap].positive?, label
       end
     end
   end
 
   # The cap CLAMP engages under stress rates (regulated ceiling, .plans/credit-cards 02 §1).
-  test "encargos clamp at 100% of the financed remainder under stress rates" do
+  test "finance_charges clamp at 100% of the financed remainder under stress rates" do
     p = RevolvingCredit.projection(100_000, 1_000, revolving_monthly_rate: BigDecimal("25"), installment_monthly_rate: BigDecimal("20"))
-    assert_equal p[:cap_cents], p[:encargos_cents]
+    assert_equal p[:cap_cents], p[:finance_charges_cents]
     assert_equal 100_000 + p[:cap_cents], p[:total_cost_cents], "the debt at most doubles"
   end
 end

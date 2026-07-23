@@ -8,7 +8,7 @@
       <span><%= t("card_bills.financing.line", month: l(fin.card_bill.billing_month, format: :month_name), no: n, count: fin.installments_count) %></span>
       <span class="tabular-nums"><%= brl(fin.installment_cents) %></span>
     </li>
-    <% if (enc = fin.encargos_for(n)).positive? %>
+    <% if (enc = fin.finance_charges_for(n)).positive? %>
       <li class="text-[10px] text-base-content/40"><%= t("card_bills.financing.line_fees", amount: brl(enc)) %></li>
     <% end %>
   <% end %>

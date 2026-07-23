@@ -45,8 +45,8 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     summary = MonthSummary.new(s.account, next_month)
     carry = summary.card_carryovers[s.nubank_card]
     assert_equal 255_000, carry[:carryover_cents]
-    assert_equal 40_076,  carry[:encargos_cents]
-    assert_equal 295_076, summary.bill_totals[s.nubank_card], "next month's fatura figure = carryover + encargos"
+    assert_equal 40_076,  carry[:finance_charges_cents]
+    assert_equal 295_076, summary.bill_totals[s.nubank_card], "next month's fatura figure = carryover + finance_charges"
 
     assert_equal rows_before + 1, s.account.transactions.count, "ONLY the payment row exists — projections are never rows"
     assert_equal 400_000, s.itau.reload.balance_cents, "stored balance never written"
@@ -91,7 +91,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     assert_equal 295_000, summary.bill_totals[s.nubank_card], "the bank's number IS the figure now"
   end
 
-  test "ROT-01: overpay yields a negative carryover that reduces the next figure, no encargos" do
+  test "ROT-01: overpay yields a negative carryover that reduces the next figure, no finance_charges" do
     s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
@@ -101,7 +101,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     summary = MonthSummary.new(s.account, bill.billing_month >> 1)
     carry = summary.card_carryovers[s.nubank_card]
     assert_equal(-10_000, carry[:carryover_cents])
-    assert_equal 0, carry[:encargos_cents], "a credit charges nothing"
+    assert_equal 0, carry[:finance_charges_cents], "a credit charges nothing"
     assert_equal(-10_000, summary.bill_totals[s.nubank_card])
   end
 
