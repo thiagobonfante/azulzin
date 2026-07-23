@@ -40,7 +40,7 @@ module Summaries
       summary = MonthSummary.new(@account, @today.beginning_of_month)
       { period_key: @today.beginning_of_week(:monday),
         payload: { spent_cents: spend.values.sum,
-                   sobra_cents: summary.remaining_cents,
+                   surplus_cents: summary.remaining_cents,
                    upcoming: upcoming }.merge(category_snapshot(spend)) }
     end
 
@@ -58,7 +58,7 @@ module Summaries
                    in_cents:    summary.incomes_cents,
                    out_cents:   summary.expenses_cents,
                    bills_cents: summary.bills_cents,
-                   sobra_cents: summary.remaining_cents,
+                   surplus_cents: summary.remaining_cents,
                    saved_cents: summary.saved_cents }
                  .merge(category_snapshot(spend)).merge(budget_counts(spend)) }
     end

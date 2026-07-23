@@ -93,7 +93,7 @@
 <% if @speed_up %>
   <section class="mb-6 rounded-box border border-primary/40 bg-primary/5 p-5">
     <h2 class="font-display text-lg font-bold"><%= t("goals.show.speed_up_title") %></h2>
-    <p class="mt-1 text-sm text-base-content/70"><%= t("goals.show.speed_up_body", amount: brl_whole(@speed_up.sobra_cents, mode: :floor)) %></p>
+    <p class="mt-1 text-sm text-base-content/70"><%= t("goals.show.speed_up_body", amount: brl_whole(@speed_up.surplus_cents, mode: :floor)) %></p>
     <%= form_with url: contribute_goal_path(@goal), method: :post, class: "mt-3 flex flex-wrap items-center gap-2" do %>
       <label class="input input-bordered input-sm flex w-36 items-center gap-2">
         <span class="text-base-content/50"><%= t("money.symbol") %></span>

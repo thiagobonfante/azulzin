@@ -46,7 +46,7 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
     @user.account.transactions.create!(amount_cents: 500_00, occurred_on: Date.current, status: "posted",
                                direction: "income", bank_account: @checking)
     get transactions_url
-    assert_select "section#hero[data-controller=?]", "sobra-cta"
+    assert_select "section#hero[data-controller=?]", "surplus-cta"
     assert_select "#save_money_form"
   end
 

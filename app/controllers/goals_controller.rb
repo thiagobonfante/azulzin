@@ -71,7 +71,7 @@ class GoalsController < AppController
   def contribute
     offer = Goals::SpeedUpOffer.for(@goal)
     cents = Money.to_cents(params[:amount_reais])
-    if offer && cents.to_i.positive? && cents <= offer.sobra_cents
+    if offer && cents.to_i.positive? && cents <= offer.surplus_cents
       Current.account.transactions.create!(
         direction: "transfer", status: "posted", confirmed_at: Time.current, source: "manual",
         amount_cents: cents, occurred_on: sp_today,

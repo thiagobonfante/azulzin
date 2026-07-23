@@ -34,7 +34,7 @@ class Goals::SpeedUpOfferTest < ActiveSupport::TestCase
     Commitments::MarkPaid.call(@commitment, @month)
     offer = Goals::SpeedUpOffer.for(@goal)
     assert offer
-    assert_equal 600_000, offer.sobra_cents                       # 900_000 − 300_000 guardado
+    assert_equal 600_000, offer.surplus_cents                       # 900_000 − 300_000 guardado
     assert_equal @checking.id, offer.source_bank_account_id
     assert_equal @caixinha.id, offer.destination_bank_account_id
   end

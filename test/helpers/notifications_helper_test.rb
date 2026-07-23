@@ -28,7 +28,7 @@ class NotificationsHelperTest < ActionView::TestCase
     user = users(:confirmed)
     row = Notification.record!(user: user, account: user.account, kind: "weekly_summary",
                                period_key: Date.new(2026, 7, 6),
-                               payload: { spent_cents: 0, sobra_cents: 41_000, other_cents: 0,
+                               payload: { spent_cents: 0, surplus_cents: 41_000, other_cents: 0,
                                           top_categories: [],
                                           upcoming: [ { "name" => "Luz", "cents" => 18_240 } ] })
 
@@ -39,7 +39,7 @@ class NotificationsHelperTest < ActionView::TestCase
     # A week with real spend keeps the regular copy.
     spent = Notification.record!(user: user, account: user.account, kind: "weekly_summary",
                                  period_key: Date.new(2026, 7, 13),
-                                 payload: { spent_cents: 92_000, sobra_cents: 41_000, other_cents: 0,
+                                 payload: { spent_cents: 92_000, surplus_cents: 41_000, other_cents: 0,
                                             top_categories: [ { "name" => "Mercado", "cents" => 92_000 } ],
                                             upcoming: [] })
     assert_match(/R\$\s*920,00/, I18n.with_locale(:"pt-BR") { notification_message(spent) })
