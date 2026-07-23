@@ -591,8 +591,9 @@ en:
       set: "Use as default"
     make_default:
       set: "%{card} is now your default card."
+    recent_bills:
+      title: "Latest bills"
     bills:
-      link: "See bills"
       title: "Bills"
       subtitle: "Closed-bill history — each month's status and payments."
       paid: "Paid %{amount}"
@@ -625,8 +626,6 @@ en:
       overdue: "overdue"
       rolled: "remainder on the next bill"
       financed: "split into installments"
-    badge:
-      closed: "Bill closed — %{amount}"
     pay_modal:
       title: "Pay bill"
       subtitle: "%{card} bill — %{amount}"

@@ -16,14 +16,15 @@
       <% cards.each do |card| %>
         <li>
           <% lines = card.billing_configured? ? card.family_transactions.posted.kept.where(billing_month: month).includes(credit_card: :institution).order(:occurred_on).to_a : [] %>
-          <%# The card block itself toggles its fatura lines (no separate "Ver fatura" link);
-              the chevron by the name signals it. Shared header so both branches stay identical. %>
+          <% bill = card.billing_configured? ? card.card_bills.find_by(billing_month: month) : nil %>
+          <%# A CLOSED month's card block navigates to its bill page; an open month (no bill
+              row yet) toggles its fatura lines inline. Shared header so branches stay identical. %>
           <% header = capture do %>
             <div class="flex items-center gap-2">
               <%= institution_avatar(card.institution, size: 28) %>
               <span class="flex min-w-0 flex-1 items-center gap-1 truncate text-sm">
                 <span class="truncate"><%= card.display_name %></span>
-                <% if lines.any? %>
+                <% if lines.any? || bill %>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 shrink-0 text-base-content/40 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
                 <% end %>
               </span>
@@ -44,7 +45,11 @@
             <% end %>
           <% end %>
 
-          <% if lines.any? %>
+          <% if bill %>
+            <%= link_to card_bill_path(bill), class: "block hover:text-primary" do %>
+              <%= header %>
+            <% end %>
+          <% elsif lines.any? %>
             <details class="group">
               <summary class="cursor-pointer list-none"><%= header %></summary>
               <div class="mt-2 ml-9">

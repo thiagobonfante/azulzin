@@ -592,8 +592,9 @@ pt-BR:
       set: "Usar como padrão"
     make_default:
       set: "%{card} agora é seu cartão padrão."
+    recent_bills:
+      title: "Últimas faturas"
     bills:
-      link: "Ver faturas"
       title: "Faturas"
       subtitle: "Histórico de faturas fechadas — status e pagamentos de cada mês."
       paid: "Pago %{amount}"
@@ -626,8 +627,6 @@ pt-BR:
       overdue: "vencida"
       rolled: "restante na fatura seguinte"
       financed: "parcelada"
-    badge:
-      closed: "Fatura fechada — %{amount}"
     pay_modal:
       title: "Pagar fatura"
       subtitle: "Fatura do %{card} — %{amount}"

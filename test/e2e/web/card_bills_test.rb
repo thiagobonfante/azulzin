@@ -180,10 +180,15 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     assert bill.rolled?
     assert_equal "rolled", bill.display_status
 
+    # Founder 2026-07-23 re-pin: the index shows the last 3 bills ("Últimas faturas"),
+    # so the rolled bill IS listed — but wearing its rolled status, never as payable debt
+    # (its remainder was carried into the newest bill; Pagar lives on the bill page).
     sign_in_as s.owner
     get credit_cards_url
     assert_select "a[href='#{card_bill_path(newest)}']"
-    assert_select "a[href='#{card_bill_path(bill)}']", count: 0, message: "old rolled bill is not the pay entry"
+    assert_select "a[href='#{card_bill_path(bill)}']" do
+      assert_select ".badge", text: I18n.t("card_bills.status.rolled", locale: :"pt-BR")
+    end
 
     travel 1.minute
     CardBills::Pay.call(bill, amount_cents: 200_000, paid_on: Date.current,
@@ -204,6 +209,20 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     assert_select "a[href='#{card_bill_path(s.closed_bill)}']"
     assert_includes response.body, I18n.t("card_bills.status.overdue", locale: :"pt-BR")
     assert_includes response.body, I18n.t("credit_cards.bills.paid", amount: brl(50_000), locale: :"pt-BR")
+  end
+
+  # Founder 2026-07-23: the hub tile's card row goes straight to the closed month's bill
+  # page; the open month (no bill row yet) keeps the inline lines toggle.
+  test "bills tile links a closed month's card row to its bill page" do
+    s = E2E::Scenario.build(:bill_closed)
+    sign_in_as s.owner
+
+    get transactions_url
+    assert_response :success
+    assert_select "#bills_tile a[href='#{card_bill_path(s.closed_bill)}']"
+
+    get transactions_url(month: s.nubank_card.current_open_bill_month.strftime("%Y-%m"))
+    assert_select "#bills_tile a[href^='/card_bills/']", count: 0
   end
 
   # LGPD: the account cascade must erase bills, payment transfers AND reconciliation
