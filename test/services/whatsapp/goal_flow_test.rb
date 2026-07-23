@@ -259,7 +259,7 @@ class Whatsapp::GoalFlowTest < ActiveSupport::TestCase
     assert_includes @sent.last, "poupança"
   end
 
-  test "2 caixinhas and 3 sources: numbered picks in prompt order, then activation" do
+  test "2 savings_accounts and 3 sources: numbered picks in prompt order, then activation" do
     caixinha2 = @account.bank_accounts.create!(institution: @inst, nickname: "Sonhos", kind: "savings")
     checking2 = @account.bank_accounts.create!(institution: @inst, nickname: "Itaú", kind: "checking")
     reach_offer

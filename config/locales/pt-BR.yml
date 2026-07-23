@@ -436,7 +436,7 @@ pt-BR:
         infeasible: "Essa meta não fecha ainda — veja as opções."
         not_savings: "Escolha uma conta poupança válida."
         invalid_source: "Escolha de onde o dinheiro vai sair."
-        missing_caixinha: "Para ativar, escolha uma poupança e uma conta de origem diferente."
+        missing_savings_account: "Para ativar, escolha uma poupança e uma conta de origem diferente."
     contribute:
       contributed: "Boa! Agora a previsão é %{month} 💙"
       rejected: "Não deu — o valor precisa ser positivo e caber na sobra do mês."

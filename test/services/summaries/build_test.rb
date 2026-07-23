@@ -68,7 +68,7 @@ class Summaries::BuildTest < ActiveSupport::TestCase
     assert_equal [ { "name" => "Luz", "cents" => 18_240 },
                    { "name" => "Internet", "cents" => 12_000 } ], payload[:upcoming]
     assert_equal MonthSummary.new(@account, Date.new(2026, 7, 1)).remaining_cents,
-                 payload[:surplus_cents], "hub parity: sobra is THE hub number, not a re-derivation"
+                 payload[:sobra_cents], "hub parity: sobra is THE hub number, not a re-derivation"
   end
 
   test "weekly: a fatura due in the window is an upcoming bill; its closing is not" do
@@ -128,9 +128,9 @@ class Summaries::BuildTest < ActiveSupport::TestCase
     assert_equal hub.incomes_cents,  payload[:in_cents]
     assert_equal hub.expenses_cents,    payload[:out_cents]
     assert_equal hub.bills_cents,   payload[:bills_cents]
-    assert_equal hub.remaining_cents, payload[:surplus_cents]
+    assert_equal hub.remaining_cents, payload[:sobra_cents]
     assert_equal hub.saved_cents,  payload[:saved_cents]
-    assert_equal 400_000, payload[:surplus_cents], "850 in − 300 out − 50 fatura − 100 saved"
+    assert_equal 400_000, payload[:sobra_cents], "850 in − 300 out − 50 fatura − 100 saved"
 
     assert_equal [ { "name" => "Mercado", "cents" => 230_000 },       # card spend at billing_month (D4)
                    { "name" => "Restaurantes", "cents" => 60_000 } ], payload[:top_categories]

@@ -36,11 +36,11 @@
   </div>
 
   <div class="form-control" data-commitment-form-target="savings">
-    <% caixinhas = Current.account.bank_accounts.kept.savings.includes(:institution).order(:created_at) %>
+    <% savings_accounts = Current.account.bank_accounts.kept.savings.includes(:institution).order(:created_at) %>
     <%= f.label :transfer_to_bank_account_id, t("commitments.form.transfer_to"), class: "mb-1 block text-sm font-medium" %>
-    <% if caixinhas.any? %>
+    <% if savings_accounts.any? %>
       <%# No blank option: a single caixinha comes pre-selected; with several the first is the default. %>
-      <%= f.select :transfer_to_bank_account_id, caixinhas.map { |a| [ a.display_name, a.id ] }, {},
+      <%= f.select :transfer_to_bank_account_id, savings_accounts.map { |a| [ a.display_name, a.id ] }, {},
             class: "select select-bordered w-full" %>
     <% else %>
       <span class="text-xs text-base-content/50"><%= t("commitments.form.no_caixinha_hint") %></span>

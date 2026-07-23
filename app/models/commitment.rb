@@ -40,7 +40,7 @@ class Commitment < ApplicationRecord
   validate  :savings_is_bank_sourced         # paying savings posts a bank→caixinha transfer; a card has no leg
   # A goal-less savings commitment must say WHERE to guardar (goal-backed rows carry it on the goal).
   validates :transfer_to_bank_account, presence: true, if: -> { savings? && goal_id.nil? }
-  validate  :transfer_to_is_a_savings_caixinha
+  validate  :transfer_to_is_a_savings_account
   validates :installments_count, numericality: { only_integer: true, greater_than: 0 }, if: :installment?
   validates :installments_count, absence: true, unless: :installment?
   validates :schedule_day, presence: true, if: :fixed?   # subscription: unknown; installment: posted parcels
@@ -168,7 +168,7 @@ class Commitment < ApplicationRecord
 
     # Money correctness: saved_cents only counts transfers INTO savings-kind accounts
     # (MonthSummary §7.5) — a checking destination would make sobra jump at pay time.
-    def transfer_to_is_a_savings_caixinha
+    def transfer_to_is_a_savings_account
       return if transfer_to_bank_account.nil?
       errors.add(:transfer_to_bank_account, :not_savings)  unless transfer_to_bank_account.savings?
       errors.add(:transfer_to_bank_account, :wrong_account) if transfer_to_bank_account.account_id != account_id

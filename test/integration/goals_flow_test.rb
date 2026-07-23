@@ -167,7 +167,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     get goal_path(goal)   # populate baseline
     patch choose_goal_path(goal), params: { template: "recomendado" }
     assert_redirected_to goal_path(goal)
-    assert_equal I18n.t("goals.choose.errors.missing_caixinha"), flash[:alert]
+    assert_equal I18n.t("goals.choose.errors.missing_savings_account"), flash[:alert]
     assert goal.reload.draft?
     assert_nil goal.savings_commitment
   end

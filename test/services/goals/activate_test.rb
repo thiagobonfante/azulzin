@@ -140,17 +140,17 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     g = draft
     result = Goals::Activate.call(g, template: "recomendado", bank_account_id: nil, source_bank_account_id: nil)
     refute result.ok?
-    assert_equal :missing_caixinha, result.error
+    assert_equal :missing_savings_account, result.error
     assert g.reload.draft?
 
-    assert_equal :missing_caixinha,
+    assert_equal :missing_savings_account,
                  Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: nil).error
   end
 
   test "source == caixinha is blocked — the transfer needs two distinct legs" do
     g = draft
     result = Goals::Activate.call(g, template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @caixinha.id)
-    assert_equal :missing_caixinha, result.error
+    assert_equal :missing_savings_account, result.error
     assert g.reload.draft?
   end
 

@@ -435,7 +435,7 @@ en:
         infeasible: "This goal doesn't close yet — see the options."
         not_savings: "Pick a valid savings pot."
         invalid_source: "Pick where the money comes from."
-        missing_caixinha: "To activate, pick a savings pot and a different source account."
+        missing_savings_account: "To activate, pick a savings pot and a different source account."
     contribute:
       contributed: "Nice! The new forecast is %{month} 💙"
       rejected: "That didn't work — the amount must be positive and fit this month's leftover."
