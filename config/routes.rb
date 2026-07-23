@@ -77,12 +77,17 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :bank_accounts, only: %i[index create edit update destroy]  # edit/update: nickname, kind & balance
+    resources :bank_accounts, only: %i[index create edit update destroy] do  # edit/update: nickname & kind; saldo inicial on create
+      patch :adjust_balance, on: :member   # the informed saldo becomes a ledger delta row (deletable = rollback)
+    end
     resources :incomes,       only: %i[index create edit update destroy] do  # R1 — recurring income schedules
       member { patch :receive }   # mark this month's expected deposit as received (hub card)
     end
     resources :credit_cards,  only: %i[index create edit update destroy] do  # edit/update: billing config (R2)
-      member { patch :make_default }   # the per-member default plastic (.plans/credit-cards 04 §5)
+      member do
+        patch :make_default   # the per-member default plastic (.plans/credit-cards 04 §5)
+        get   :bills          # closed-faturas history (root cards only)
+      end
     end
 
     # Closed faturas (.plans/credit-cards 01+03): the bill page, Pagar/unpay, the bank's
@@ -92,6 +97,10 @@ Rails.application.routes.draw do
         post  :pay
         patch :unpay
         patch :carry_over
+        get   :review         # focused divergence-resolution page (founder round 2026-07-22)
+        post  :adjust         # one-click delta row so computed == stated (deletable = rollback)
+        post  :add_line       # a missed purchase found during the review, clamped to the bill window
+        patch :clear_stated   # cancel the conferência — forget the informed bank value
         get   :projection   # live rotativo warning panel for the Pagar modal
       end
     end

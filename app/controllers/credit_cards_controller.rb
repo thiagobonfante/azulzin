@@ -24,10 +24,14 @@ class CreditCardsController < ApplicationController
       # (the create.turbo_stream branches on persisted? to append the row or show errors).
       format.turbo_stream { render :create, status: (saved ? :ok : :unprocessable_entity) }
       format.html do
+        # A sub-card is created FROM its root's edit page — land back there (banner on
+        # top), never on the cards index (founder round 2026-07-22).
+        parent_id = @credit_card.parent_card_id || params.dig(:credit_card, :parent_card_id).presence
+        back = parent_id ? edit_credit_card_path(parent_id) : after_change_path
         if saved
-          redirect_to after_change_path, notice: t(".created")
+          redirect_to back, notice: t(".created")
         else
-          redirect_to after_change_path, alert: @credit_card.errors.full_messages.to_sentence
+          redirect_to back, alert: @credit_card.errors.full_messages.to_sentence
         end
       end
     end
@@ -64,10 +68,25 @@ class CreditCardsController < ApplicationController
   end
 
   # The per-member default plastic (04 §5): a star on the cards page, root or sub-card.
+  # Turbo swaps ONLY the two affected stars — a full redirect would collapse the sub-cards
+  # expansion the tap came from (founder complaint, 2026-07-22). HTML stays the fallback.
   def make_default
     card = Current.account.credit_cards.kept.find(params[:id])
+    previous = Current.user.default_credit_card
     Current.user.update!(default_credit_card_id: card.id)
-    redirect_to credit_cards_path, notice: t(".set", card: card.display_name)
+    respond_to do |format|
+      format.turbo_stream { @stars = [ previous, card ].compact.uniq }
+      format.html { redirect_to credit_cards_path, notice: t(".set", card: card.display_name) }
+    end
+  end
+
+  # Closed-faturas history for a ROOT card (founder ask, 2026-07-22): every bill, its
+  # status and what was paid, newest first — each row links to the bill page (where Pagar
+  # lives). Sub-cards have no bills (04 §1), so they get no history.
+  def bills
+    @credit_card = Current.account.credit_cards.kept.roots.find(params[:id])
+    CardBills::CloseScan.ensure_for(@credit_card)   # same lazy-close as the index
+    @bills = @credit_card.card_bills.order(billing_month: :desc)
   end
 
   private

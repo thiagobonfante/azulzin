@@ -17,22 +17,14 @@
   </div>
 
   <div class="lg:col-span-2">
-    <%# Post-onboarding import surface (D1): same uploader as the wizard accounts step.
-        Collapsed behind a subtle button on mobile (reveal), like the add card below —
-        onboarding renders the partial directly and stays always-open. %>
-    <div class="mb-4 lg:mb-0" data-controller="reveal">
-      <button type="button" data-action="reveal#toggle" data-reveal-target="button" aria-expanded="false"
-              class="btn w-full border border-base-300/70 bg-base-100 font-medium text-base-content/70 shadow-sm hover:border-primary/40 hover:text-primary lg:hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 7.5L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
-        <%= t("document_imports.hero_title") %>
-      </button>
-      <div data-reveal-target="content" class="mt-4 hidden lg:mt-0 lg:block">
-        <%= render "document_imports/uploader", title: t("document_imports.hero_title") %>
-      </div>
-    </div>
-
+    <%# One card: the manual form, or import an extrato and let the review create the
+        account + entries (post-onboarding surface of D1 — same uploader as the wizard
+        step, which keeps its own hero + trailing divider). %>
     <%= render layout: "shared/add_card", locals: { title: t("bank_accounts.add_title") } do %>
       <%= render "bank_accounts/form", bank_account: @bank_account %>
+      <div class="divider text-xs text-base-content/50"><%= t("bank_accounts.import.divider") %></div>
+      <%= render "document_imports/uploader", title: t("bank_accounts.import.title"),
+            tooltip: t("bank_accounts.import.tooltip"), trailing_divider: false %>
     <% end %>
   </div>
 </div>

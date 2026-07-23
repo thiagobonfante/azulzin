@@ -12,11 +12,13 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     get projection_card_bill_url(s.closed_bill), params: { amount_reais: "450,00" }
     assert_response :success
 
-    assert_includes response.body, I18n.t("card_bills.rotativo.below_total", rate: "15,1", locale: :"pt-BR")
-    assert_brl 255_000, response.body, "fica p/ trás"
-    assert_brl 40_076,  response.body, "próx. fatura gains exactly the cycle cost"
-    assert_brl 185_839, response.body, "em 6 meses ainda deve"
-    assert_brl 545_986, response.body, "custo total até quitar"
+    assert_includes response.body, I18n.t("card_bills.rotativo.below_total", locale: :"pt-BR")
+    assert_includes response.body, I18n.t("card_bills.rotativo.below_total_rate", rate: "15,1", locale: :"pt-BR")
+    assert_brl 255_000, response.body, "fica devendo"
+    assert_brl 295_076, response.body, "vem na próxima fatura = financed + cycle cost"
+    assert_includes response.body,
+                    I18n.t("card_bills.rotativo.next_bill_fees", amount: brl(40_076), locale: :"pt-BR")
+    assert_includes response.body, I18n.t("card_bills.rotativo.parcelamento_hint", locale: :"pt-BR")
     assert_includes response.body, I18n.t("card_bills.rotativo.cap_reassurance", months: 5, locale: :"pt-BR")
     assert_not_includes response.body, I18n.t("card_bills.rotativo.assumed_minimum", locale: :"pt-BR"),
                         "450,00 IS the 15% assumed minimum — the atraso band stays off"
@@ -57,7 +59,10 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     assert_brl 40_076, response.body
   end
 
-  test "ROT-01: informing the NEXT bill's stated_total drops the estimate lines (pinned rule)" do
+  # Pinned rule, refined 2026-07-22: the NEXT bill's stated_total rules — and drops our
+  # estimate lines — only once the conferência RESOLVES. While pending, our figure
+  # (rows + carryover estimate) keeps ruling every surface.
+  test "ROT-01: NEXT bill's stated rules only after the check resolves" do
     s = E2E::Scenario.build(:bill_rotativo)
     sign_in_as s.owner
     bill = s.closed_bill
@@ -65,13 +70,22 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     travel 1.minute
     post pay_card_bill_url(bill), params: { amount_reais: "450,00", bank_account_id: s.itau.id }
 
-    s.nubank_card.card_bills.create!(
+    next_bill = s.nubank_card.card_bills.create!(
       account: s.account, billing_month: next_month,
       closed_on: s.nubank_card.closing_date(next_month), due_on: s.nubank_card.due_date(next_month),
       stated_total_cents: 295_000, created_by: s.owner)
 
+    # Bank says 295.000; our estimate is 255.000 carry + 40.076 encargos = 295.076 → pending.
+    assert next_bill.divergence_pending?
     summary = MonthSummary.new(s.account, next_month)
-    assert_nil summary.card_carryovers[s.nubank_card], "estimates never coexist with a stated_total"
+    assert_not_nil summary.card_carryovers[s.nubank_card], "estimates keep showing while pending"
+    assert_equal 295_076, summary.bill_totals[s.nubank_card], "our figure rules until resolved"
+
+    # Resolve via the adjustment (the 76¢ estimate gap) → the bank's number IS the figure.
+    post adjust_card_bill_url(next_bill)
+    assert_not next_bill.reload.divergence_pending?
+    summary = MonthSummary.new(s.account, next_month)
+    assert_nil summary.card_carryovers[s.nubank_card], "estimates never coexist with an ACCEPTED stated"
     assert_equal 295_000, summary.bill_totals[s.nubank_card], "the bank's number IS the figure now"
   end
 

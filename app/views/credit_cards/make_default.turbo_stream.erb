@@ -1,0 +1,7 @@
+<%# Swap just the previous and the new default's stars — everything else on the page
+    (sub-card expansions included) stays exactly where the user left it. %>
+<% @stars.each do |card| %>
+  <%= turbo_stream.replace dom_id(card, :default_star) do %>
+    <%= render "credit_cards/default_star", card: card %>
+  <% end %>
+<% end %>

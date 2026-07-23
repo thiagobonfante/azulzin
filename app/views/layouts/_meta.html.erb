@@ -28,6 +28,11 @@
 <link rel="preload" href="/fonts/bricolage-grotesque-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/inter-variable.woff2" as="font" type="font/woff2" crossorigin>
 
+<%# Theme override chosen in the picker (controllers/theme_controller.js). Runs before
+    first paint so a saved choice never flashes the OS theme. No key = auto (daisyUI
+    prefersdark follows the system). %>
+<script>try { var t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t } catch (e) {}</script>
+
 <%# Includes all stylesheet files in app/assets/stylesheets %>
 <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
 <%= javascript_importmap_tags %>

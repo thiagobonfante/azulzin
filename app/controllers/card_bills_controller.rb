@@ -41,12 +41,77 @@ class CardBillsController < ApplicationController
            locals: { bill: @bill, paid_cents: @bill.paid_cents + [ typed, 0 ].max }, layout: false
   end
 
-  # Informing (or correcting) the bank's number from the bill page (.plans/credit-cards 03 §1).
+  # Informing (or correcting) the bank's number (.plans/credit-cards 03 §1). A number that
+  # already matches just confirms on the bill page; a divergence opens the focused
+  # conferir page (founder round 2026-07-22: resolution needs full attention, not a card
+  # mutating ad-hoc under the bill).
   def update
     stated = Money.to_cents(params[:stated_total_reais]).to_i
     return redirect_to card_bill_path(@bill), alert: t("card_bills.pay.invalid_amount") unless stated.positive?
     @bill.update!(stated_total_cents: stated)
-    redirect_to card_bill_path(@bill), notice: t(".stated_saved")
+    if @bill.our_total_cents == stated
+      redirect_to card_bill_path(@bill), notice: t(".stated_saved")
+    else
+      redirect_to review_card_bill_path(@bill)
+    end
+  end
+
+  # The divergence-resolution page: move closing-edge rows forward / add a missed
+  # purchase / register an adjustment / cancel. Only exists while UNRESOLVED — a matched
+  # or value-less bill goes home.
+  def review
+    return redirect_to card_bill_path(@bill) unless @bill.divergence_pending?
+    # Only plausible left-behind candidates: rows within 2 days of closing (founder call
+    # 2026-07-22 — anything older isn't "o banco jogou pra frente").
+    @edge_lines = @bill.credit_card.family_transactions.posted.kept
+                       .where(billing_month: @bill.billing_month,
+                              occurred_on: (@bill.closed_on - 2)..@bill.closed_on)
+                       .includes(:commitment, credit_card: :institution).order(:occurred_on, :id)
+  end
+
+  # A purchase the user found missing during the review: a normal card expense, its date
+  # clamped to THIS bill's window (previous closing + 1 .. closing) and pinned here.
+  def add_line
+    return redirect_to card_bill_path(@bill) unless @bill.divergence_pending?
+    amount = Money.to_cents(params[:amount_reais]).to_i
+    return redirect_to review_card_bill_path(@bill), alert: t("card_bills.pay.invalid_amount") unless amount.positive?
+    window_start = @bill.credit_card.closing_date(@bill.billing_month << 1) + 1
+    occurred = begin
+      Date.iso8601(params[:occurred_on].to_s)
+    rescue Date::Error
+      @bill.closed_on
+    end.clamp(window_start, @bill.closed_on)
+    Current.account.transactions.create!(
+      created_by: Current.user, credit_card: @bill.credit_card,
+      merchant: params[:merchant].to_s.strip.presence || t("card_bills.review.add_line.default_merchant"),
+      direction: "expense", status: "posted", confirmed_at: Time.current, source: "manual",
+      amount_cents: amount, occurred_on: occurred,
+      billing_month: @bill.billing_month, billing_month_manual: true)
+    redirect_to review_card_bill_path(@bill), notice: t(".added")
+  end
+
+  # Cancel the conferência: forget the informed value, back to the plain bill page.
+  def clear_stated
+    @bill.update!(stated_total_cents: nil)
+    redirect_to card_bill_path(@bill), notice: t(".cleared")
+  end
+
+  # One-click delta row so computed == stated — a normal, DELETABLE card transaction
+  # (deleting it is the rollback; same philosophy as the bank-account saldo adjustment).
+  # Bank higher → an expense the user missed; bank lower → a credit weighing negative.
+  def adjust
+    return redirect_to card_bill_path(@bill) if @bill.stated_total_cents.nil?
+    delta = @bill.stated_total_cents - @bill.our_total_cents
+    return redirect_to card_bill_path(@bill) if delta.zero?
+    Current.account.transactions.create!(
+      created_by: Current.user, credit_card: @bill.credit_card,
+      merchant: t("card_bills.review.adjustment_merchant"),
+      direction: (delta.positive? ? "expense" : "income"),
+      status: "posted", confirmed_at: Time.current, source: "manual",
+      amount_cents: delta.abs, occurred_on: @bill.closed_on,
+      billing_month: @bill.billing_month, billing_month_manual: true)
+    signed = "#{delta.positive? ? "+" : "−"}#{helpers.brl(delta.abs)}"
+    redirect_to card_bill_path(@bill), notice: t(".adjusted", amount: signed)
   end
 
   # The left-behind batch move: each picked row goes to the NEXT fatura via the existing

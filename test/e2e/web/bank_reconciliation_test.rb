@@ -72,6 +72,41 @@ class E2E::WebBankReconciliationTest < E2E::PipelineCase
     assert_equal 2, s.account.document_imports.reconciliation.count, "CSV never consumed the LLM slot"
   end
 
+  # The conferir entry lives on the account EDIT page (not the index rows); the create
+  # form carries "saldo inicial" but the edit form does not — a persisted account's
+  # balance changes only through Ajustar saldo, which records the delta as a visible
+  # ledger row (income up / expense down). Deleting that row IS the rollback.
+  test "conferir on edit page, saldo inicial create-only, ajustar saldo is a ledger delta" do
+    s = E2E::Scenario.build(:solo_basic)
+    sign_in_as s.owner
+    s.itau.update!(balance_cents: 50_000)
+
+    get bank_accounts_url
+    assert_select "form[action=?]", reconciliations_path, count: 0
+    assert_select "#bank_account_form input[name='bank_account[balance_reais]']"
+
+    get edit_bank_account_url(s.itau)
+    assert_select "form[action=?]", reconciliations_path
+    assert_select "#bank_account_form input[name='bank_account[balance_reais]']", count: 0
+
+    travel 1.minute
+    patch adjust_balance_bank_account_url(s.itau), params: { balance_reais: "600,00" }
+    up = s.itau.transactions.order(:id).last
+    assert up.income?, "raising the balance records an income delta"
+    assert_equal 10_000, up.amount_cents
+    assert_equal I18n.t("bank_accounts.adjust.transaction_merchant", locale: :"pt-BR"), up.merchant
+    assert_equal 60_000, s.itau.derived_balance_cents
+
+    patch adjust_balance_bank_account_url(s.itau), params: { balance_reais: "450,00" }
+    down = s.itau.transactions.order(:id).last
+    assert down.expense?, "lowering the balance records an expense delta"
+    assert_equal 15_000, down.amount_cents
+    assert_equal 45_000, s.itau.derived_balance_cents
+
+    down.soft_delete!(by: s.owner)   # the promised rollback: delete the adjustment row
+    assert_equal 60_000, s.itau.derived_balance_cents, "deleting the adjustment reverts the balance"
+  end
+
   private
 
   # The bank's April: both our rows as debits (the transfer leg is just a debit to the

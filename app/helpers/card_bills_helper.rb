@@ -2,9 +2,11 @@ module CardBillsHelper
   # display_status → daisyUI badge tone: blue family while open, error only past due.
   CARD_BILL_BADGE_CLASSES = {
     "paid"           => "badge-success",
+    "paid_late"      => "badge-success badge-outline",
     "partially_paid" => "badge-info",
     "unpaid"         => "badge-primary badge-outline",
-    "overdue"        => "badge-error"
+    "overdue"        => "badge-error",
+    "rolled"         => "badge-ghost"
   }.freeze
 
   def card_bill_badge_class(bill)

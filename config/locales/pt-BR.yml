@@ -235,6 +235,11 @@ pt-BR:
       invite: "Convidar amigos"
       open_menu: "Abrir menu"
       close_menu: "Fechar menu"
+    theme:
+      label: "Tema"
+      auto: "Automático"
+      light: "Claro"
+      dark: "Escuro"
   chat:
     show:
       title: "Chat"
@@ -491,7 +496,7 @@ pt-BR:
     nickname: "Apelido"
     nickname_placeholder: "Ex.: Conta salário"
     optional_details: "Detalhes opcionais"
-    balance: "Saldo atual"
+    balance: "Saldo inicial"
     agency: "Agência"
     agency_placeholder: "0000"
     account_number: "Número da conta"
@@ -504,8 +509,22 @@ pt-BR:
     empty: "Nenhuma conta adicionada ainda."
     remove: "Remover conta"
     confirm_remove: "Remover esta conta?"
+    adjust:
+      title: "Ajustar saldo"
+      current: "Saldo atual: %{amount}"
+      submit: "Salvar saldo"
+      hint: "Informe o saldo de hoje no app do banco — a diferença entra como um lançamento de ajuste, que dá pra apagar se mudar de ideia."
+      transaction_merchant: "Ajuste de saldo"
+      adjusted: "Ajuste de %{amount} registrado."
+      no_change: "O saldo já confere — nada a ajustar."
+      invalid: "Valor inválido — informe o saldo em reais."
+    import:
+      divider: "ou"
+      title: "Importar extrato e criar"
+      tooltip: "Envie o extrato em PDF, CSV ou OFX e o azulzin cria a conta e traz os lançamentos pra você revisar."
     reconcile:
-      cta: "Conferir extrato"
+      cta: "Conferir com extrato do banco"
+      hint: "Envie o extrato do mês e compare com o que está registrado aqui."
       month: "Mês do extrato"
       submit: "Enviar e conferir"
     index:
@@ -559,10 +578,11 @@ pt-BR:
     sub_cards:
       title: "Cartões adicionais e virtuais"
       subtitle: "Cópias virtuais e adicionais da família — a fatura e o limite ficam no cartão principal."
-      chip:
-        one: "+1 cartão"
-        other: "+%{count} cartões"
+      footer:
+        one: "1 cartão adicional"
+        other: "%{count} cartões adicionais"
       add: "+ cartão adicional ou virtual"
+      save: "Adicionar"
       edit: "editar"
       nickname: "Apelido"
       nickname_placeholder: "Ex.: virtual iFood, cartão da filha"
@@ -572,6 +592,12 @@ pt-BR:
       set: "Usar como padrão"
     make_default:
       set: "%{card} agora é seu cartão padrão."
+    bills:
+      link: "Ver faturas"
+      title: "Faturas"
+      subtitle: "Histórico de faturas fechadas — status e pagamentos de cada mês."
+      paid: "Pago %{amount}"
+      empty: "Nenhuma fatura fechada ainda."
     create:
       created: "Cartão adicionado."
     update:
@@ -594,9 +620,11 @@ pt-BR:
       unpay: "Desfazer"
     status:
       paid: "paga"
+      paid_late: "paga em atraso"
       partially_paid: "parcialmente paga"
       unpaid: "em aberto"
       overdue: "vencida"
+      rolled: "restante na fatura seguinte"
     badge:
       closed: "Fatura fechada — %{amount}"
     pay_modal:
@@ -621,7 +649,6 @@ pt-BR:
       hint: "O valor calculado pode diferir do banco — compras perto do fechamento às vezes ficam para a fatura seguinte."
       inform_label: "Valor no banco"
       inform_submit: "Conferir"
-      correct_cta: "Corrigir o valor do banco"
       matches: "Bate com o banco 💙"
       ours_higher: "%{amount} a mais que o banco"
       bank_higher: "%{amount} a menos que o banco"
@@ -631,10 +658,33 @@ pt-BR:
       running_ours: "Nosso total sem as marcadas"
       running_stated: "Valor no banco"
       move_submit: "Mover para a próxima fatura"
+      divider: "ou"
       pdf_cta: "Conferir com o PDF da fatura"
-      pdf_submit: "Enviar e conferir"
     update:
       stated_saved: "Valor do banco registrado."
+    review:
+      our_total: "Nosso total"
+      resolve_cta: "Resolver diferença"
+      pending_warning: "Você apontou um valor diferente do que calculamos — continue a verificação."
+      adjust_title: "Não achou a diferença?"
+      adjust_hint: "Registra a diferença como um lançamento de ajuste na fatura — vira um lançamento normal, dá pra apagar se mudar de ideia."
+      adjust_cta: "Registrar ajuste de %{amount}"
+      adjustment_merchant: "Ajuste da fatura"
+      cancel_cta: "Cancelar conferência"
+      add_line:
+        title: "Achou a compra que faltava?"
+        hint: "Entra como um lançamento normal deste cartão, dentro do período desta fatura."
+        merchant: "Onde foi"
+        amount: "Valor"
+        date: "Data"
+        submit: "Adicionar à fatura"
+        default_merchant: "Compra do cartão"
+    clear_stated:
+      cleared: "Conferência cancelada — valor do banco esquecido."
+    adjust:
+      adjusted: "Ajuste de %{amount} registrado na fatura."
+    add_line:
+      added: "Lançamento adicionado à fatura."
     carry_over:
       moved:
         one: "1 lançamento movido para a próxima fatura."
@@ -645,19 +695,16 @@ pt-BR:
       estimated_charges: "encargos estimados"
       estimate_label: "estimativa (taxas médias do Banco Central, %{month})"
     rotativo:
-      below_total: "Pagar menos que o total liga o rotativo — hoje isso custa em média %{rate}% ao mês."
-      below_total_generic: "Pagar menos que o total liga o rotativo — os juros do cartão são dos mais caros que existem."
+      below_total: "Pagar menos que o total liga o rotativo."
+      below_total_rate: "Hoje isso custa em média %{rate}% ao mês."
+      below_total_generic: "Os juros do cartão são dos mais caros que existem."
       below_minimum: "Abaixo do pagamento mínimo (%{minimum}%{label}) vira atraso: multa de 2%, mora de 1% ao mês, e o cartão pode ser bloqueado e o nome negativado."
       assumed_minimum: ", estimado em 15%"
       panel_title: "Se pagar %{amount} hoje:"
-      left_behind: "fica p/ trás"
-      next_bill: "próx. fatura"
-      after_six: "em 6 meses ainda deve"
-      total_cost: "custo total até quitar"
-      bill_was: "(fatura era %{amount})"
-      schedule_cta: "ver mês a mês"
-      schedule_row: "parcela %{number} de %{parcel}"
-      schedule_remaining: "restam %{amount}"
+      left_behind: "fica devendo"
+      next_bill_total: "vem na próxima fatura"
+      next_bill_fees: "sendo %{amount} de juros e IOF"
+      parcelamento_hint: "Dependendo do valor, considere o parcelamento do cartão."
       cap_reassurance: "A lei limita os encargos a 100% do valor que ficou — sua dívida pode no máximo dobrar. Mas dobra em ~%{months} meses."
   reconciliations:
     show:
@@ -1132,7 +1179,6 @@ pt-BR:
       by_category: "Totais por categoria"
       net_total: "Resultado do período: %{amount}"
   document_imports:
-    hero_title: "Importar extrato"
     choose_files: "Escolher arquivos…"
     submit: "Enviar"
     review_button: "Revisar e criar"

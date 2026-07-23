@@ -23,9 +23,24 @@ class CardBill < ApplicationRecord
   # drift — one of the reasons the bank's number differs; phase 2 handles it).
   def computed_total_cents = credit_card.bill_cents(billing_month)
 
-  # THE closed-bill figure every surface shows: the bank's number when informed, ours
-  # otherwise (same one-figure discipline as bill_cents).
-  def effective_total_cents = stated_total_cents || computed_total_cents
+  # What WE think this fatura amounts to: posted rows plus the live carryover estimate
+  # (rows can never contain encargos, so a rotativo-carrying bill must be compared
+  # against this, never against raw computed). Ignores stated on purpose — this is the
+  # comparison baseline for the conferência.
+  def our_total_cents
+    computed_total_cents + (CardBills::Carryover.estimate(credit_card, billing_month)&.dig(:total_cents) || 0)
+  end
+
+  # A conferência is UNRESOLVED while the informed bank number disagrees with our figure.
+  def divergence_pending? = stated_total_cents.present? && stated_total_cents != our_total_cents
+
+  # THE closed-bill figure every surface shows. While a conferência is pending the bank's
+  # number does NOT replace ours anywhere (founder round 2026-07-22) — the user keeps
+  # seeing OUR total plus a warning until the check concludes (move/adjust/cancel), at
+  # which point stated == our figure anyway.
+  def effective_total_cents
+    divergence_pending? ? computed_total_cents : (stated_total_cents || computed_total_cents)
+  end
 
   def paid_cents = payments.posted.kept.sum(:amount_cents)
 
@@ -41,8 +56,29 @@ class CardBill < ApplicationRecord
   def paid?    = status == "paid"
   def overdue? = !paid? && due_on < Date.current
 
-  # Status as the UI names it — overdue styling only after due_on (01 §4.1).
-  def display_status = overdue? ? "overdue" : status
+  # Fully paid, but the last payment landed after the due date — the badge says so
+  # ("paga em atraso") instead of pretending it was on time (founder ask, 2026-07-22).
+  def paid_late?
+    return false unless paid?
+    (last = payments.posted.kept.maximum(:occurred_on)) ? last > due_on : false
+  end
+
+  # The unpaid remainder was carried into a NEWER closed bill (CardBills::Carryover), so
+  # the debt lives there now — this bill must not keep reading "vencida" forever nor stay
+  # the pay entry point (the newest bill is, carryover included).
+  def rolled?
+    !paid? && credit_card.card_bills.where("billing_month > ?", billing_month).exists?
+  end
+
+  # Status as the UI names it — overdue styling only after due_on (01 §4.1); paid-late and
+  # rolled refine it so a settled or carried-forward bill never screams "vencida".
+  def display_status
+    if paid? then paid_late? ? "paid_late" : "paid"
+    elsif rolled? then "rolled"
+    elsif overdue? then "overdue"
+    else status
+    end
+  end
 
   # What's left after the due date — feeds the rotativo projection (02 §5). Signed:
   # overpayment yields a NEGATIVE carryover (credit on the next bill), never clamped.

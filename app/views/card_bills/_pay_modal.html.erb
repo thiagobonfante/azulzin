@@ -18,7 +18,7 @@
                   rotativo_warning_url_value: projection_card_bill_path(bill) } do %>
       <div class="form-control">
         <label class="mb-1 text-xs text-base-content/60" for="pay_amount_reais"><%= t("card_bills.pay_modal.amount") %></label>
-        <label class="input input-bordered input-sm flex items-center gap-1">
+        <label class="input input-bordered input-sm flex w-full items-center gap-1">
           <span class="text-base-content/50"><%= t("money.symbol") %></span>
           <%= text_field_tag :amount_reais, MoneyColumns.prefill([ bill.effective_total_cents - bill.paid_cents, 0 ].max),
                 id: "pay_amount_reais", inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",

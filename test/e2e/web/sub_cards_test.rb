@@ -138,7 +138,7 @@ class E2E::WebSubCardsTest < E2E::PipelineCase
 
     get credit_cards_url
     assert_response :success
-    assert_not_includes response.body, I18n.t("credit_cards.sub_cards.chip.one", locale: :"pt-BR")
+    assert_not_includes response.body, I18n.t("credit_cards.sub_cards.footer.one", locale: :"pt-BR")
     assert_not_includes response.body, I18n.t("credit_cards.default.set", locale: :"pt-BR")
   end
 
@@ -157,6 +157,38 @@ class E2E::WebSubCardsTest < E2E::PipelineCase
     get credit_cards_url
     assert_select "form[action='#{make_default_credit_card_path(s.partner_card)}'] svg[fill='currentColor']"
     assert_select "form[action='#{make_default_credit_card_path(s.nubank_card)}'] svg[fill='none']"
+  end
+
+  # Founder round (2026-07-22): starring must not refresh the page (it collapsed the
+  # sub-cards expansion) — the response swaps ONLY the two affected stars.
+  test "make_default answers turbo streams targeting just the two stars" do
+    s = E2E::Scenario.build(:couple)
+    s.owner.update!(default_credit_card_id: s.nubank_card.id)
+    sign_in_as s.owner
+
+    patch make_default_credit_card_url(s.partner_card),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    assert_equal "text/vnd.turbo-stream.html", response.media_type
+    assert_select "turbo-stream[action=replace][target=?]",
+                  "default_star_#{ActionView::RecordIdentifier.dom_id(s.partner_card)}"
+    assert_select "turbo-stream[action=replace][target=?]",
+                  "default_star_#{ActionView::RecordIdentifier.dom_id(s.nubank_card)}"
+    assert_equal s.partner_card.id, s.owner.reload.default_credit_card_id
+  end
+
+  # Founder round (2026-07-22): adding a sub-card returns to the ROOT's edit page (banner
+  # on top), never the cards index.
+  test "creating a sub-card redirects back to the root's edit page" do
+    s = E2E::Scenario.build(:solo_basic)
+    sign_in_as s.owner
+
+    post credit_cards_url, params: { credit_card: {
+      parent_card_id: s.nubank_card.id, institution_id: s.nubank_card.institution_id,
+      nickname: "virtual mercado", card_type: "virtual" } }
+
+    assert_redirected_to edit_credit_card_path(s.nubank_card)
+    assert_equal "virtual mercado", s.nubank_card.children.kept.sole.nickname
   end
 
   # In-app form precedence: explicit pick > member default > lone card.

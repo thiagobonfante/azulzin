@@ -132,6 +132,80 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     assert_equal 250_000 - 125_000, s.itau.derived_balance_cents
   end
 
+  # The dashboard card banner derives from the bill, never the row: pay → banner gone,
+  # undo → banner back. The notification is NOT dismissed on pay (payment is reversible),
+  # the render simply skips a paid bill's card_due/card_overdue alert.
+  test "overdue banner hides once the bill is paid and returns on undo" do
+    s = E2E::Scenario.build(:bill_rotativo)
+    dispatch_reminders!
+    notification = Notification.find_by!(user: s.owner, kind: "card_overdue")
+    sign_in_as s.owner
+
+    get dashboard_url
+    assert_select "#notification_#{notification.id}"
+
+    travel 1.minute
+    post pay_card_bill_url(s.closed_bill), params: {
+      amount_reais: "3.000,00", bank_account_id: s.itau.id
+    }
+    assert s.closed_bill.reload.paid?
+    get dashboard_url
+    assert_select "#notification_#{notification.id}", count: 0
+    assert_nil notification.reload.dismissed_at, "derived, never dismissed"
+
+    patch unpay_card_bill_url(s.closed_bill, payment_id: s.closed_bill.payments.sole.id)
+    get dashboard_url
+    assert_select "#notification_#{notification.id}"
+  end
+
+  # Founder round (2026-07-22): a bill never reads "vencida" forever — an unpaid remainder
+  # absorbed by a NEWER closed bill (Carryover) reads "na fatura seguinte" and the cards
+  # page badges only the newest bill (same debt never announced twice); once fully paid
+  # after due, the badge says "paga em atraso".
+  test "rolled and paid_late refine display_status; cards badge probes only the newest bill" do
+    s = E2E::Scenario.build(:bill_rotativo)
+    bill = s.closed_bill                        # due day 10, anchor the 20th → past due
+    travel 1.minute
+    CardBills::Pay.call(bill, amount_cents: 100_000, paid_on: Date.current,
+                        bank_account: s.itau, created_by: s.owner)
+    assert_equal "overdue", bill.display_status, "partial past due is still vencida"
+
+    # Next cycle: new spend closes into a NEW bill — the remainder rolls forward.
+    travel 1.month
+    s.expense(merchant: "Mercado Novo", category: "Outros", instrument: s.nubank_card,
+              cents: 5_000, on: Date.current.beginning_of_month + 1)   # pre-closing → this month's bill
+    CardBills::CloseScan.ensure_for(s.nubank_card)
+    newest = s.nubank_card.card_bills.order(:billing_month).last
+    assert_not_equal bill.id, newest.id, "the next month's bill materialized"
+    assert bill.rolled?
+    assert_equal "rolled", bill.display_status
+
+    sign_in_as s.owner
+    get credit_cards_url
+    assert_select "a[href='#{card_bill_path(newest)}']"
+    assert_select "a[href='#{card_bill_path(bill)}']", count: 0, message: "old rolled bill is not the pay entry"
+
+    travel 1.minute
+    CardBills::Pay.call(bill, amount_cents: 200_000, paid_on: Date.current,
+                        bank_account: s.itau, created_by: s.owner)
+    assert_equal "paid_late", bill.display_status
+  end
+
+  # Closed-faturas history (founder ask, 2026-07-22): every bill with status + what was
+  # paid, rows linking to the bill page where Pagar lives. Root cards only.
+  test "bills history lists closed bills with status and paid amount" do
+    s = E2E::Scenario.build(:bill_closed)
+    sign_in_as s.owner
+    travel 1.minute
+    post pay_card_bill_url(s.closed_bill), params: { amount_reais: "500,00", bank_account_id: s.itau.id }
+
+    get bills_credit_card_url(s.nubank_card)
+    assert_response :success
+    assert_select "a[href='#{card_bill_path(s.closed_bill)}']"
+    assert_includes response.body, I18n.t("card_bills.status.overdue", locale: :"pt-BR")
+    assert_includes response.body, I18n.t("credit_cards.bills.paid", amount: brl(50_000), locale: :"pt-BR")
+  end
+
   # LGPD: the account cascade must erase bills, payment transfers AND reconciliation
   # imports without FK trips (found twice by the demo-seed wipe / exploratory walk:
   # card_bills and document_imports both referenced instruments mid-cascade).

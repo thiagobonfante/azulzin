@@ -18,21 +18,23 @@
 
   <%= render "shared/institution_select", form: f, institutions: Institution.for_cards %>
 
-  <div class="form-control">
-    <%= f.label :nickname, t("credit_cards.nickname"), class: "mb-1 block text-sm font-medium" %>
-    <%= f.text_field :nickname, placeholder: t("credit_cards.nickname_placeholder"), class: "input input-bordered w-full" %>
-  </div>
-
-  <%# Physical vs virtual — identification only, no billing effect. %>
-  <div class="form-control">
-    <label class="mb-1 block text-sm font-medium"><%= t("credit_cards.card_type") %></label>
-    <div class="join">
-      <% CreditCard.card_types.each_key do |ct| %>
-        <label class="join-item btn btn-sm font-normal has-checked:btn-primary">
-          <%= f.radio_button :card_type, ct, class: "hidden", checked: (credit_card.card_type == ct) %>
-          <%= t("credit_cards.card_types.#{ct}") %>
-        </label>
-      <% end %>
+  <%# Apelido + tipo share a row on sm+ (founder ask) — the type is identification only,
+      no billing effect. Stacks back to one column on phones. %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="form-control">
+      <%= f.label :nickname, t("credit_cards.nickname"), class: "mb-1 block text-sm font-medium" %>
+      <%= f.text_field :nickname, placeholder: t("credit_cards.nickname_placeholder"), class: "input input-bordered w-full" %>
+    </div>
+    <div class="form-control">
+      <label class="mb-1 block text-sm font-medium"><%= t("credit_cards.card_type") %></label>
+      <div class="join">
+        <% CreditCard.card_types.each_key do |ct| %>
+          <label class="join-item btn btn-sm font-normal has-checked:btn-primary">
+            <%= f.radio_button :card_type, ct, class: "hidden", checked: (credit_card.card_type == ct) %>
+            <%= t("credit_cards.card_types.#{ct}") %>
+          </label>
+        <% end %>
+      </div>
     </div>
   </div>
 

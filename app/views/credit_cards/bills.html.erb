@@ -1,0 +1,45 @@
+<% content_for :title, t(".title") %>
+
+<div class="mx-auto max-w-2xl">
+  <header class="mb-6 flex items-stretch gap-3">
+    <%= render "shared/back_button", path: credit_cards_path, label: t("app.nav.cards") %>
+    <div class="min-w-0 flex-1">
+      <h1 data-native-dup class="font-display text-2xl font-extrabold tracking-tight"><%= t(".title") %></h1>
+      <p class="flex items-center gap-1.5 truncate text-sm text-base-content/60">
+        <%= institution_avatar(@credit_card.institution, size: 20) %>
+        <%= @credit_card.display_name %>
+      </p>
+    </div>
+  </header>
+
+  <% if @bills.any? %>
+    <div class="flex flex-col gap-2">
+      <% @bills.each do |bill| %>
+        <div class="flex items-center gap-3 rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
+          <%= link_to card_bill_path(bill), class: "flex min-w-0 flex-1 items-center gap-3" do %>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold"><%= t("card_bills.show.title", month: l(bill.billing_month, format: :month_name)) %></p>
+              <p class="text-xs text-base-content/50">
+                <%= t("card_bills.show.due_on", date: l(bill.due_on, format: :short)) %>
+                <% if bill.paid_cents.positive? %>
+                  · <span class="text-success"><%= t(".paid", amount: brl(bill.paid_cents)) %></span>
+                <% end %>
+              </p>
+            </div>
+            <span class="flex shrink-0 items-center gap-2">
+              <span class="badge badge-sm <%= card_bill_badge_class(bill) %>"><%= t("card_bills.status.#{bill.display_status}") %></span>
+              <span class="text-right font-display text-sm font-bold tabular-nums"><%= brl(bill.effective_total_cents) %></span>
+            </span>
+          <% end %>
+          <%# A rolled bill is settled HERE — its remainder (plus encargos) is payable on
+              the next bill, so no pay CTA (founder round 2026-07-22). %>
+          <% unless bill.paid? || bill.rolled? %>
+            <%= link_to t("card_bills.show.pay"), card_bill_path(bill), class: "btn btn-primary btn-xs shrink-0" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="rounded-box border border-base-300/70 bg-base-100 p-6 text-center text-sm text-base-content/50"><%= t(".empty") %></p>
+  <% end %>
+</div>

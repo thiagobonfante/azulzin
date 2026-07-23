@@ -1,99 +1,59 @@
 <%# locals: bill, lines — "conferir com o banco" (.plans/credit-cards 03 §1). No stated
-    value yet → the honest hint + the inform form. Stated present → match / ours-higher
-    (picker) / bank-higher (copy pointing at a manual add). %>
+    value yet → ONE form, two inputs (typed value — ou — the PDF) and a single Conferir
+    button; the conferir-form controller routes the submit (file → reconciliation POST,
+    value → stated-total PATCH, which opens the focused conferir page on divergence).
+    Stated present → just the status here; resolution lives on the conferir page
+    (founder round 2026-07-22: no ad-hoc card mutating under the bill). %>
 <section id="divergence" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
   <h2 class="mb-2 text-sm font-semibold"><%= t("card_bills.divergence.title") %></h2>
 
   <% if bill.stated_total_cents.nil? %>
     <p class="text-xs text-base-content/50"><%= t("card_bills.divergence.hint") %></p>
-    <%= form_with url: card_bill_path(bill), method: :patch, class: "mt-2 flex items-end gap-2", data: { turbo: false } do %>
-      <div class="form-control">
-        <label class="mb-1 text-xs text-base-content/60" for="divergence_stated_total"><%= t("card_bills.divergence.inform_label") %></label>
-        <label class="input input-bordered input-sm flex items-center gap-1">
-          <span class="text-base-content/50"><%= t("money.symbol") %></span>
-          <%= text_field_tag :stated_total_reais, nil, id: "divergence_stated_total",
-                inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
-                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
-        </label>
-      </div>
-      <%= submit_tag t("card_bills.divergence.inform_submit"), class: "btn btn-primary btn-sm" %>
-    <% end %>
-  <% else %>
-    <% diff = bill.computed_total_cents - bill.stated_total_cents %>
-    <% if diff.zero? %>
-      <div role="status" class="alert alert-success py-2 text-sm"><span><%= t("card_bills.divergence.matches") %></span></div>
-    <% elsif diff.positive? %>
-      <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.divergence.ours_higher", amount: brl(diff)) %></span></div>
-
-      <%# The left-behind picker: closest to closing first (the likely culprits float up);
-          estornos ride with a negative weight so the running sum stays honest. %>
-      <%= form_with url: carry_over_card_bill_path(bill), method: :patch, class: "mt-3",
-            data: { controller: "carry-over",
-                    carry_over_computed_value: bill.computed_total_cents,
-                    carry_over_stated_value: bill.stated_total_cents, turbo: false } do %>
-        <p class="mb-1 text-sm font-medium"><%= t("card_bills.divergence.picker_title") %></p>
-        <p class="mb-2 text-xs text-base-content/50"><%= t("card_bills.divergence.picker_hint") %></p>
-        <ul class="flex max-h-64 flex-col gap-1 overflow-y-auto">
-          <% lines.sort_by { |l| [ l.occurred_on, l.id ] }.reverse.each do |line| %>
-            <li>
-              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
-                <input type="checkbox" name="transaction_ids[]" value="<%= line.id %>"
-                       class="checkbox checkbox-xs"
-                       data-carry-over-target="checkbox" data-action="carry-over#recount"
-                       data-amount="<%= line.income? ? -line.amount_cents : line.amount_cents %>">
-                <span class="min-w-0 flex-1 truncate">
-                  <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
-                  · <%= l(line.occurred_on, format: :short) %>
-                </span>
-                <span class="tabular-nums"><%= brl(line.amount_cents) %></span>
-              </label>
-            </li>
-          <% end %>
-        </ul>
-        <div class="mt-2 flex flex-wrap items-baseline justify-between gap-2 rounded-box bg-base-200/60 px-3 py-2 text-xs">
-          <span>
-            <%= t("card_bills.divergence.running_ours") %>:
-            <span class="font-medium tabular-nums"><%= t("money.symbol") %> <span data-carry-over-target="remaining"></span></span>
-            · <%= t("card_bills.divergence.running_stated") %>:
-            <span class="font-medium tabular-nums"><%= brl(bill.stated_total_cents) %></span>
-          </span>
-          <span data-carry-over-target="match" class="hidden font-medium text-success"><%= t("card_bills.divergence.matches") %></span>
-        </div>
-        <%= submit_tag t("card_bills.divergence.move_submit"), class: "btn btn-primary btn-sm mt-2" %>
-      <% end %>
-    <% else %>
-      <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.divergence.bank_higher", amount: brl(-diff)) %></span></div>
-      <p class="mt-2 text-xs text-base-content/50"><%= t("card_bills.divergence.bank_higher_hint") %></p>
-    <% end %>
-
-    <%# Correcting a typo'd bank value stays one small disclosure away. %>
-    <details class="mt-3">
-      <summary class="cursor-pointer text-xs text-base-content/50"><%= t("card_bills.divergence.correct_cta") %></summary>
-      <%= form_with url: card_bill_path(bill), method: :patch, class: "mt-2 flex items-end gap-2", data: { turbo: false } do %>
-        <label class="input input-bordered input-sm flex items-center gap-1">
-          <span class="text-base-content/50"><%= t("money.symbol") %></span>
-          <%= text_field_tag :stated_total_reais, MoneyColumns.prefill(bill.stated_total_cents),
-                inputmode: "decimal", required: true, class: "grow", aria: { label: t("card_bills.divergence.inform_label") },
-                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
-        </label>
-        <%= submit_tag t("card_bills.divergence.inform_submit"), class: "btn btn-ghost btn-sm" %>
-      <% end %>
-    </details>
-  <% end %>
-
-  <%# The PDF path (.plans/credit-cards 03 §3): same import pipeline, reconciliation
-      purpose; CSV/OFX ride free, PDFs consume the monthly slot. %>
-  <details class="mt-3">
-    <summary class="cursor-pointer text-xs font-medium text-base-content/60"><%= t("card_bills.divergence.pdf_cta") %></summary>
-    <%= form_with url: reconciliations_path, method: :post, multipart: true,
-          class: "mt-2 flex flex-wrap items-center gap-2", data: { turbo: false } do %>
+    <%= form_with url: card_bill_path(bill), method: :patch, multipart: true, class: "mt-3",
+          data: { turbo: false, controller: "conferir-form",
+                  conferir_form_recon_url_value: reconciliations_path,
+                  action: "submit->conferir-form#route" } do %>
       <%= hidden_field_tag :credit_card_id, bill.credit_card_id %>
       <%= hidden_field_tag :period, bill.billing_month.iso8601 %>
-      <%# MIME types first — Android's chooser can't resolve extension-only accepts. %>
-      <input type="file" name="file" accept="application/pdf,text/csv,text/plain,application/x-ofx,.pdf,.csv,.ofx,.txt" required
-             class="file-input file-input-bordered file-input-sm"
-             aria-label="<%= t("card_bills.divergence.pdf_cta") %>">
-      <%= submit_tag t("card_bills.divergence.pdf_submit"), class: "btn btn-primary btn-sm" %>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div class="form-control sm:flex-1">
+          <label class="mb-1 text-xs text-base-content/60" for="divergence_stated_total"><%= t("card_bills.divergence.inform_label") %></label>
+          <label class="input input-bordered input-sm flex items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= text_field_tag :stated_total_reais, nil, id: "divergence_stated_total",
+                  inputmode: "decimal", placeholder: "0,00", class: "grow",
+                  data: { controller: "money-mask", money_mask_cents_value: true,
+                          action: "input->money-mask#format", conferir_form_target: "value" } %>
+          </label>
+        </div>
+        <%# Just the word, centered on the input row — no divider lines (founder round). %>
+        <span class="self-center text-xs text-base-content/50 sm:self-end sm:pb-2"><%= t("card_bills.divergence.divider") %></span>
+        <div class="form-control sm:flex-1">
+          <label class="mb-1 text-xs text-base-content/60" for="divergence_pdf"><%= t("card_bills.divergence.pdf_cta") %></label>
+          <%# MIME types first — Android's chooser can't resolve extension-only accepts. %>
+          <input type="file" id="divergence_pdf" name="file"
+                 accept="application/pdf,text/csv,text/plain,application/x-ofx,.pdf,.csv,.ofx,.txt"
+                 class="file-input file-input-bordered file-input-sm w-full"
+                 data-conferir-form-target="file">
+        </div>
+      </div>
+      <div class="mt-3 flex justify-end">
+        <%= submit_tag t("card_bills.divergence.inform_submit"), class: "btn btn-primary btn-sm" %>
+      </div>
     <% end %>
-  </details>
+  <% elsif bill.divergence_pending? %>
+    <%# No numbers here (founder round 2026-07-22b): the difference lives on the review
+        page — this card only says the check is waiting. %>
+    <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.review.pending_warning") %></span></div>
+    <div class="mt-2 flex justify-end">
+      <%= link_to t("card_bills.review.resolve_cta"), review_card_bill_path(bill),
+            class: "btn btn-primary btn-sm" %>
+    </div>
+  <% else %>
+    <div role="status" class="alert alert-success py-2 text-sm"><span><%= t("card_bills.divergence.matches") %></span></div>
+    <div class="mt-2 flex justify-end">
+      <%= button_to t("card_bills.review.cancel_cta"), clear_stated_card_bill_path(bill),
+            method: :patch, class: "text-xs text-base-content/40 hover:underline" %>
+    </div>
+  <% end %>
 </section>

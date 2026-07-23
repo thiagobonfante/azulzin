@@ -234,6 +234,11 @@ en:
       invite: "Invite friends"
       open_menu: "Open menu"
       close_menu: "Close menu"
+    theme:
+      label: "Theme"
+      auto: "Auto"
+      light: "Light"
+      dark: "Dark"
   chat:
     show:
       title: "Chat"
@@ -490,7 +495,7 @@ en:
     nickname: "Nickname"
     nickname_placeholder: "e.g. Salary account"
     optional_details: "Optional details"
-    balance: "Current balance"
+    balance: "Starting balance"
     agency: "Branch"
     agency_placeholder: "0000"
     account_number: "Account number"
@@ -503,8 +508,22 @@ en:
     empty: "No accounts added yet."
     remove: "Remove account"
     confirm_remove: "Remove this account?"
+    adjust:
+      title: "Adjust balance"
+      current: "Current balance: %{amount}"
+      submit: "Save balance"
+      hint: "Enter today's balance at your bank — the difference is recorded as an adjustment entry, which you can delete to undo."
+      transaction_merchant: "Balance adjustment"
+      adjusted: "Adjustment of %{amount} recorded."
+      no_change: "Your balance already matches — nothing to adjust."
+      invalid: "Invalid amount — enter the balance in reais."
+    import:
+      divider: "or"
+      title: "Import a statement & create"
+      tooltip: "Upload a PDF, CSV or OFX statement and azulzin creates the account and brings in the entries for you to review."
     reconcile:
-      cta: "Check statement"
+      cta: "Check against your bank statement"
+      hint: "Upload the month's statement and compare it with what's recorded here."
       month: "Statement month"
       submit: "Upload and check"
     index:
@@ -558,10 +577,11 @@ en:
     sub_cards:
       title: "Extra and virtual cards"
       subtitle: "The family's virtual copies and extra cards — the bill and the limit live on the main card."
-      chip:
-        one: "+1 card"
-        other: "+%{count} cards"
+      footer:
+        one: "1 extra card"
+        other: "%{count} extra cards"
       add: "+ extra or virtual card"
+      save: "Add"
       edit: "edit"
       nickname: "Nickname"
       nickname_placeholder: "e.g. iFood virtual, daughter's card"
@@ -571,6 +591,12 @@ en:
       set: "Use as default"
     make_default:
       set: "%{card} is now your default card."
+    bills:
+      link: "See bills"
+      title: "Bills"
+      subtitle: "Closed-bill history — each month's status and payments."
+      paid: "Paid %{amount}"
+      empty: "No closed bills yet."
     create:
       created: "Card added."
     update:
@@ -593,9 +619,11 @@ en:
       unpay: "Undo"
     status:
       paid: "paid"
+      paid_late: "paid late"
       partially_paid: "partially paid"
       unpaid: "open"
       overdue: "overdue"
+      rolled: "remainder on the next bill"
     badge:
       closed: "Bill closed — %{amount}"
     pay_modal:
@@ -620,7 +648,6 @@ en:
       hint: "The computed total can differ from the bank's — purchases near closing sometimes roll to the next bill."
       inform_label: "Bank's total"
       inform_submit: "Check"
-      correct_cta: "Correct the bank's total"
       matches: "Matches the bank 💙"
       ours_higher: "%{amount} above the bank"
       bank_higher: "%{amount} below the bank"
@@ -630,10 +657,33 @@ en:
       running_ours: "Our total minus the checked"
       running_stated: "Bank's total"
       move_submit: "Move to the next bill"
+      divider: "or"
       pdf_cta: "Check against the bill PDF"
-      pdf_submit: "Upload and check"
     update:
       stated_saved: "Bank's total recorded."
+    review:
+      our_total: "Our total"
+      resolve_cta: "Resolve the difference"
+      pending_warning: "You reported a value different from what we calculated — finish the check."
+      adjust_title: "Can't find the difference?"
+      adjust_hint: "Records the difference as an adjustment entry on the bill — a normal entry you can delete if you change your mind."
+      adjust_cta: "Record a %{amount} adjustment"
+      adjustment_merchant: "Bill adjustment"
+      cancel_cta: "Cancel the check"
+      add_line:
+        title: "Found the missing purchase?"
+        hint: "Added as a normal entry on this card, inside this bill's window."
+        merchant: "Where"
+        amount: "Amount"
+        date: "Date"
+        submit: "Add to the bill"
+        default_merchant: "Card purchase"
+    clear_stated:
+      cleared: "Check canceled — bank value forgotten."
+    adjust:
+      adjusted: "%{amount} adjustment recorded on the bill."
+    add_line:
+      added: "Entry added to the bill."
     carry_over:
       moved:
         one: "1 entry moved to the next bill."
@@ -644,19 +694,16 @@ en:
       estimated_charges: "estimated charges"
       estimate_label: "estimate (Central Bank average rates, %{month})"
     rotativo:
-      below_total: "Paying less than the total starts revolving credit — today it costs an average of %{rate}% a month."
-      below_total_generic: "Paying less than the total starts revolving credit — card interest is among the most expensive there is."
+      below_total: "Paying less than the total starts revolving credit."
+      below_total_rate: "Today it costs an average of %{rate}% a month."
+      below_total_generic: "Card interest is among the most expensive there is."
       below_minimum: "Below the minimum payment (%{minimum}%{label}) it becomes a late payment: 2% fine, 1% monthly interest, and the card can be blocked and your name sent to collections."
       assumed_minimum: ", estimated at 15%"
       panel_title: "If you pay %{amount} today:"
-      left_behind: "left behind"
-      next_bill: "next bill"
-      after_six: "still owed in 6 months"
-      total_cost: "total cost to pay off"
-      bill_was: "(the bill was %{amount})"
-      schedule_cta: "see month by month"
-      schedule_row: "installment %{number} of %{parcel}"
-      schedule_remaining: "%{amount} left"
+      left_behind: "still owed"
+      next_bill_total: "lands on the next bill"
+      next_bill_fees: "%{amount} of it in interest and IOF"
+      parcelamento_hint: "Depending on the amount, consider the card's installment plan."
       cap_reassurance: "The law caps charges at 100% of what was left — your debt can at most double. But it doubles in ~%{months} months."
   reconciliations:
     show:
@@ -1131,7 +1178,6 @@ en:
       by_category: "Totals by category"
       net_total: "Net for the period: %{amount}"
   document_imports:
-    hero_title: "Import a statement"
     choose_files: "Choose files…"
     submit: "Upload"
     review_button: "Review and create"

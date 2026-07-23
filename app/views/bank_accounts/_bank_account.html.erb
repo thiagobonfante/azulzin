@@ -36,20 +36,3 @@
     <% end %>
   </div>
 </div>
-
-<%# "Conferir extrato" (.plans/credit-cards 03 §4): month picker + uploader → the
-    BankPeriodScope review. CSV/OFX parse free; a PDF consumes the monthly slot. %>
-<details class="-mt-2 px-3 pb-1">
-  <summary class="cursor-pointer text-xs font-medium text-base-content/50"><%= t("bank_accounts.reconcile.cta") %></summary>
-  <%= form_with url: reconciliations_path, method: :post, multipart: true,
-        class: "mt-2 flex flex-wrap items-center gap-2", data: { turbo: false } do %>
-    <%= hidden_field_tag :bank_account_id, bank_account.id, id: "recon_account_#{bank_account.id}" %>
-    <input type="month" name="period" required value="<%= (Date.current << 1).strftime("%Y-%m") %>"
-           class="input input-bordered input-sm" aria-label="<%= t("bank_accounts.reconcile.month") %>">
-    <%# MIME types first — Android's chooser can't resolve extension-only accepts. %>
-    <input type="file" name="file" accept="application/pdf,text/csv,text/plain,application/x-ofx,.pdf,.csv,.ofx,.txt" required
-           class="file-input file-input-bordered file-input-sm"
-           aria-label="<%= t("bank_accounts.reconcile.cta") %>">
-    <%= submit_tag t("bank_accounts.reconcile.submit"), class: "btn btn-primary btn-sm" %>
-  <% end %>
-</details>

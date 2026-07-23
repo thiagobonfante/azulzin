@@ -74,6 +74,14 @@ module NotificationsHelper
     "notifications.dashboard.#{key}"
   end
 
+  # card_due/card_overdue relevance is derived at render, never synced: paying is a
+  # reversible transfer (Desfazer), so the pay action must not dismiss the row — a paid
+  # bill's banner simply doesn't render, and undoing the payment brings it back.
+  def stale_card_bill_notification?(notification)
+    return false unless %w[card_due card_overdue].include?(notification.kind)
+    !!Current.account.card_bills.find_by(id: notification.payload["card_bill_id"])&.paid?
+  end
+
   # The bill banner's mark-paid target (01 §4): subject (the Commitment) + period_key (the
   # due date) name the hub's own CommitmentOccurrence. nil — no button, text + dismiss
   # only — when the commitment is gone/deleted or the occurrence was already paid elsewhere.

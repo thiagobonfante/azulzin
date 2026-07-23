@@ -3,18 +3,26 @@ module CardBills
   # date, the NEXT month's fatura surfaces gain two labeled lines — "veio da fatura de X"
   # and "encargos estimados" (one rotativo cycle at the BCB average). NEVER transaction
   # rows, never balance writes; everything here is derived live, so paying the old bill
-  # (or informing the new bill's stated_total) makes the lines vanish on their own.
+  # (or accepting the new bill's stated_total) makes the lines vanish on their own.
   module Carryover
     module_function
 
-    # → { from_month:, carryover_cents:, encargos_cents:, total_cents:, rate_month: } | nil
-    # Overpayment carries NEGATIVE (a credit on the next bill) with zero encargos.
+    # The display lines. Pinned rule, refined 2026-07-22: a stated_total suppresses the
+    # estimate only once it's AUTHORITATIVE (conferência resolved — the bank's encargos
+    # are inside its number). While the check is pending, our estimate keeps showing.
     def for(card, month)
+      bill = card.card_bills.find_by(billing_month: month)
+      return nil if bill&.stated_total_cents && !bill.divergence_pending?
+      estimate(card, month)
+    end
+
+    # → { from_month:, carryover_cents:, encargos_cents:, total_cents:, rate_month: } | nil
+    # The raw estimate, ignoring any stated_total on `month` — CardBill#our_total_cents
+    # compares the bank's number against THIS (rows alone can never contain encargos).
+    # Overpayment carries NEGATIVE (a credit on the next bill) with zero encargos.
+    def estimate(card, month)
       prev = card.card_bills.find_by(billing_month: month << 1)
       return nil unless prev && Date.current > prev.due_on
-      # Pinned rule: estimates never coexist with a stated_total on the same bill —
-      # once the bank's number is in, its encargos are inside it.
-      return nil if card.card_bills.find_by(billing_month: month)&.stated_total_cents
 
       carry = prev.carryover_cents
       return nil if carry.zero?
