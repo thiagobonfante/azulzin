@@ -71,7 +71,7 @@ recognized per parcel, split evenly with the remainder on parcel 1. **Limit hold
 the banks:** `used_cents` += `held_cents` — the financed principal keeps consuming limit,
 released proportionally as parcel months are billed; the card is NOT blocked (CMN 4.549 /
 Lei 14.690). The optional entrada rides the financing form as a normal Pay transfer posted in
-the same transaction, journaled via the `entrada_transaction` FK. **Destroying the financing is
+the same transaction, journaled via the `down_payment_transaction` FK. **Destroying the financing is
 the whole rollback:** parcels and limit hold vanish (they were derived), plain carryover returns
 on its own, and the form's entrada is `reverse!`d in the destroy transaction — a payment
 recorded via Pagar beforehand is not the form's and survives cancel.

@@ -860,7 +860,7 @@ Seed: `exploratory:seed[10]` · AI: deterministic (plan numbers; NarrativeJob po
 
 **Variants:**
 - Refresh the draft page after adding a new income → plans re-scored in-request (`analyze!` on every draft view).
-- Choose without picking a source, or source == caixinha → alert `t('goals.choose.errors.missing_caixinha')`.
+- Choose without picking a source, or source == caixinha → alert `t('goals.choose.errors.missing_savings_account')`.
 
 Pins: `app/controllers/goals_controller.rb:21-35,99-110`, `app/services/goals/activate.rb:25-95`, `app/views/goals/draft.html.erb`
 
@@ -2063,7 +2063,7 @@ Seed: dev:seed_demo (UNTOUCHED — re-run the seed to reset drift) · AI: determ
 1. Sign in as marina and open `/transactions` for the current month (incomes: Salário Marina `R$ 6.500,00` + Salário Rafael `R$ 4.200,00`, day 5; guardado `R$ 300,00`/month into Caixinha).
 2. Cross-check the hero tiles against a runner probe:
 ```
-bin/rails runner 'a=User.find_by!(email_address:"marina@azulzin.dev").account_membership.account; s=MonthSummary.new(a, Date.current.beginning_of_month); puts({entradas: s.entradas_cents, saidas: s.saidas_cents, faturas: s.faturas_cents, guardado: s.guardado_cents})'
+bin/rails runner 'a=User.find_by!(email_address:"marina@azulzin.dev").account_membership.account; s=MonthSummary.new(a, Date.current.beginning_of_month); puts({entradas: s.incomes_cents, saidas: s.expenses_cents, faturas: s.bills_cents, guardado: s.saved_cents})'
 ```
 
 **Expect:** Every on-screen R$ figure equals the runner output formatted pt-BR (`R$ 1.234,56`); entradas includes expected-but-unreceived income; saídas includes projected debit commitments; faturas sums per-card open bills.

@@ -3,7 +3,7 @@ require "test_helper"
 # The canonical worked example (.plans/credit-cards 02 §6), verbatim to the centavo, plus
 # the property tests. Rates frozen at the May/2026 SGS aggregates: rotativo 15,09% a.m.,
 # parcelamento 9,26% a.m. — tests NEVER call the BCB API.
-class RotativoTest < ActiveSupport::TestCase
+class RevolvingCreditTest < ActiveSupport::TestCase
   ROT  = BigDecimal("15.09")
   PARC = BigDecimal("9.26")
 

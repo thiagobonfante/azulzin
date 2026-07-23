@@ -5,13 +5,13 @@ require "test_helper"
 # recompute determinism.
 class Goals::PlanBuilderTest < ActiveSupport::TestCase
   # profile with the given capacity and flexible trimmable categories (all trimmable == median).
-  def profile(capacity:, guardado: 0, income: 920_000, trimmables: {}, sufficiency: :ok)
+  def profile(capacity:, saved: 0, income: 920_000, trimmables: {}, sufficiency: :ok)
     cats = trimmables.map.with_index do |(name, cents), i|
       Goals::CategoryStat.new(category_id: i + 1, name: name, median_cents: cents,
                               trimmable_median_cents: cents, months_present: 3, flexibility: "flexible")
     end
     Goals::Profile.new(sufficiency:, categories: cats, median_income_cents: income,
-                       median_capacity_base_cents: capacity, median_saved_cents: guardado,
+                       median_capacity_base_cents: capacity, median_saved_cents: saved,
                        income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
                        window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ])
   end
@@ -88,7 +88,7 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
   end
 
   test "savings_rate required IS the desired monthly total; leve eases only the extra" do
-    r = Goals::PlanBuilder.call(profile: profile(capacity: 320_000, guardado: 100_000),
+    r = Goals::PlanBuilder.call(profile: profile(capacity: 320_000, saved: 100_000),
                                 kind: "savings_rate", target_cents: 150_000, starts_on: Date.new(2026, 7, 1))
     assert r.feasible?
     assert_equal 150_000, r.required_monthly_cents                # the total asked, not guardado + extra
@@ -99,7 +99,7 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
   end
 
   test "savings_rate counter-offer is the achievable monthly TOTAL" do
-    r = Goals::PlanBuilder.call(profile: profile(capacity: 100_000, guardado: 80_000),
+    r = Goals::PlanBuilder.call(profile: profile(capacity: 100_000, saved: 80_000),
                                 kind: "savings_rate", target_cents: 300_000, starts_on: Date.new(2026, 7, 1))
     refute r.feasible?
     assert_equal 100_000, r.counter_offers.feasible_target_cents   # capacity, no trims

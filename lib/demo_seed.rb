@@ -77,7 +77,7 @@ module DemoSeed
     }
     # Both cards billing-configured: due day 10, default closing offset 7 ⇒ fatura closes on
     # the 3rd, so purchases dated day ≥ 4 of month M−1 land on M's bill.
-    cartoes = {
+    cards = {
       nubank: account.credit_cards.create!(institution: inst[:nubank], bill_due_day: 10, credit_limit_cents: 650_000, created_by: rafael),
       itau:   account.credit_cards.create!(institution: inst[:itau],   bill_due_day: 10, credit_limit_cents: 800_000, created_by: marina)
     }
@@ -123,12 +123,12 @@ module DemoSeed
       [ "iCloud",  :itau,     490, marina ]
     ].each do |name, card, cents, owner|
       account.commitments.create!(
-        kind: "subscription", name: name, credit_card: cartoes[card],
+        kind: "subscription", name: name, credit_card: cards[card],
         category: categories.fetch("Assinaturas"), amount_cents: cents, starts_on: start,
         created_by: owner, created_at: start.in_time_zone)
     end
     account.commitments.create!(   # card installment: 10× R$ 349,90 riding the Itaú fatura
-      kind: "installment", name: "Notebook", credit_card: cartoes[:itau],
+      kind: "installment", name: "Notebook", credit_card: cards[:itau],
       category: categories.fetch("Outros"), amount_cents: 34_990, total_cents: 349_900,
       installments_count: 10, starts_on: start, created_by: rafael, created_at: start.in_time_zone)
     account.commitments.create!(   # debit installment: 6× R$ 280,00 from the Itaú account
@@ -166,12 +166,12 @@ module DemoSeed
       [ "Lojas Vida & Moda",       "Vestuário",    bank_accounts[:nubank], 15_800 ]
     ]
     card_history = [
-      [ "Mercado Pague Menos",     "Mercado",      cartoes[:itau],   23_500 ],
-      [ "Sushi Tanaka",            "Restaurantes", cartoes[:nubank], 13_800 ],
-      [ "Amazonia Store",          "Outros",       cartoes[:nubank], 11_600 ],
-      [ "Livraria Página Viva",    "Educação",     cartoes[:itau],    9_700 ],
-      [ "Petshop Rabo Feliz",      "Outros",       cartoes[:nubank], 13_900 ],
-      [ "Posto Andorinha",         "Transporte",   cartoes[:itau],   18_600 ]
+      [ "Mercado Pague Menos",     "Mercado",      cards[:itau],   23_500 ],
+      [ "Sushi Tanaka",            "Restaurantes", cards[:nubank], 13_800 ],
+      [ "Amazonia Store",          "Outros",       cards[:nubank], 11_600 ],
+      [ "Livraria Página Viva",    "Educação",     cards[:itau],    9_700 ],
+      [ "Petshop Rabo Feliz",      "Outros",       cards[:nubank], 13_900 ],
+      [ "Posto Andorinha",         "Transporte",   cards[:itau],   18_600 ]
     ]
 
     # ── Past months: incomes received, every occurrence paid, one-offs spread around ─────
@@ -234,9 +234,9 @@ module DemoSeed
     # Card spend on the CURRENT billing month too (dated day 6–8 of last month ⇒ this fatura);
     # unbudgeted categories only, to keep the calibration above exact.
     [
-      [ "Farmácia Preço Justo", "Saúde",  cartoes[:nubank], 6_450 ],
-      [ "Petshop Rabo Feliz",   "Outros", cartoes[:itau],  14_200 ],
-      [ "Amazonia Store",       "Outros", cartoes[:nubank], 8_760 ]
+      [ "Farmácia Preço Justo", "Saúde",  cards[:nubank], 6_450 ],
+      [ "Petshop Rabo Feliz",   "Outros", cards[:itau],  14_200 ],
+      [ "Amazonia Store",       "Outros", cards[:nubank], 8_760 ]
     ].each_with_index do |(merchant, cat, card, cents), i|
       add_expense.call(merchant, cat, card, cents, (this_month << 1) + 5 + i)
     end
@@ -259,7 +259,7 @@ module DemoSeed
       end
     end
 
-    open_month = cartoes[:nubank].current_open_bill_month
+    open_month = cards[:nubank].current_open_bill_month
     recent     = open_month << 1
     older      = open_month << 2
     older2     = open_month << 3   # extra Itaú cycle: the parcelamento-de-fatura demo
@@ -269,32 +269,32 @@ module DemoSeed
     # each — one on the recently closed bill (sub-card chips on the bill page), one on the
     # open bill. Default card per member: each spouse's own plastic.
     subs = {
-      ifood: account.credit_cards.create!(institution: inst[:nubank], parent_card: cartoes[:nubank],
+      ifood: account.credit_cards.create!(institution: inst[:nubank], parent_card: cards[:nubank],
                                           nickname: "virtual iFood", card_type: "virtual", last4: "7001", created_by: rafael),
-      filha: account.credit_cards.create!(institution: inst[:nubank], parent_card: cartoes[:nubank],
+      filha: account.credit_cards.create!(institution: inst[:nubank], parent_card: cards[:nubank],
                                           nickname: "cartão da filha", last4: "7002", created_by: rafael)
     }
-    closing_recent = cartoes[:nubank].closing_date(recent)
+    closing_recent = cards[:nubank].closing_date(recent)
     add_expense.call("iFood",             "Restaurantes", subs[:ifood], 3_490, closing_recent - 2)
     add_expense.call("iFood",             "Restaurantes", subs[:ifood], 5_690, closing_recent + 1)
     add_expense.call("Lanchonete Escola", "Restaurantes", subs[:filha], 2_500, closing_recent - 5)
     add_expense.call("Papelaria Central", "Educação",     subs[:filha], 4_200, closing_recent + 1)
-    marina.update!(default_credit_card_id: cartoes[:itau].id)
-    rafael.update!(default_credit_card_id: cartoes[:nubank].id)
-    add_expense.call("Loja na Véspera do Corte", "Outros", cartoes[:itau], edge_cents,
-                     cartoes[:itau].closing_date(recent))   # ON the closing date → `recent`'s bill
+    marina.update!(default_credit_card_id: cards[:itau].id)
+    rafael.update!(default_credit_card_id: cards[:nubank].id)
+    add_expense.call("Loja na Véspera do Corte", "Outros", cards[:itau], edge_cents,
+                     cards[:itau].closing_date(recent))   # ON the closing date → `recent`'s bill
 
-    CardBills::CloseScan.close(cartoes[:itau], older2)   # the cycle the bank parceled
-    cartoes.each_value do |card|
+    CardBills::CloseScan.close(cards[:itau], older2)   # the cycle the bank parceled
+    cards.each_value do |card|
       CardBills::CloseScan.close(card, older)
       CardBills::CloseScan.ensure_for(card)   # fills `recent`; the open month stays a query
     end
 
-    nubank_older  = cartoes[:nubank].card_bills.find_by!(billing_month: older)
-    nubank_recent = cartoes[:nubank].card_bills.find_by!(billing_month: recent)
-    itau_older    = cartoes[:itau].card_bills.find_by!(billing_month: older)
-    itau_recent   = cartoes[:itau].card_bills.find_by!(billing_month: recent)
-    itau_financed = cartoes[:itau].card_bills.find_by!(billing_month: older2)
+    nubank_older  = cards[:nubank].card_bills.find_by!(billing_month: older)
+    nubank_recent = cards[:nubank].card_bills.find_by!(billing_month: recent)
+    itau_older    = cards[:itau].card_bills.find_by!(billing_month: older)
+    itau_recent   = cards[:itau].card_bills.find_by!(billing_month: recent)
+    itau_financed = cards[:itau].card_bills.find_by!(billing_month: older2)
 
     # Parcelamento de fatura (f6f3013): entrada ~25% via the form's flow, remainder split
     # into 3 fixed parcels (+6% juros, whole reais) riding `older`, `recent` and the open
@@ -313,7 +313,7 @@ module DemoSeed
     financing.update!(down_payment_transaction: down_payment)
     # computing entrada from our_total above cached bill_financings EMPTY on the card —
     # reload so the later pays/stated see the parcels (the per-instance-cache gotcha).
-    cartoes[:itau].bill_financings.reload
+    cards[:itau].bill_financings.reload
 
     pay_bill = lambda do |bill, amount, source, payer|
       CardBills::Pay.call(bill, amount_cents: amount, paid_on: bill.due_on,
@@ -330,16 +330,16 @@ module DemoSeed
     if nubank_recent.due_on >= today
       [ marina, rafael ].each do |member|
         Notification.record!(user: member, account: account, kind: "card_due",
-          subject: cartoes[:nubank], period_key: nubank_recent.due_on,
-          payload: { card: cartoes[:nubank].display_name, amount_cents: nubank_recent.effective_total_cents,
+          subject: cards[:nubank], period_key: nubank_recent.due_on,
+          payload: { card: cards[:nubank].display_name, amount_cents: nubank_recent.effective_total_cents,
                      date: nubank_recent.due_on.iso8601, days_until: (nubank_recent.due_on - today).to_i,
                      card_bill_id: nubank_recent.id })
       end
     else
       [ marina, rafael ].each do |member|
         Notification.record!(user: member, account: account, kind: "card_overdue",
-          subject: cartoes[:nubank], period_key: nubank_recent.billing_month,
-          payload: { card: cartoes[:nubank].display_name,
+          subject: cards[:nubank], period_key: nubank_recent.billing_month,
+          payload: { card: cards[:nubank].display_name,
                      amount_cents: nubank_recent.effective_total_cents - nubank_recent.paid_cents,
                      due_on: nubank_recent.due_on.iso8601, card_bill_id: nubank_recent.id })
       end
@@ -387,7 +387,7 @@ module DemoSeed
     account.card_bills.includes(credit_card: :institution).order(:billing_month, :credit_card_id).each do |b|
       puts "  • #{b.credit_card.display_name} #{b.billing_month.strftime('%m/%Y')}: #{brl.(b.effective_total_cents)} — #{b.display_status}"
     end
-    carry = CardBills::Carryover.estimate(cartoes[:nubank], recent)
+    carry = CardBills::Carryover.estimate(cards[:nubank], recent)
     abort "FAIL: expected carryover + encargos on the Nubank #{recent.strftime('%m/%Y')} bill." unless
       carry && carry[:carryover_cents].positive? && carry[:finance_charges_cents].positive?
     puts "  • carryover onto Nubank #{recent.strftime('%m/%Y')}: #{brl.(carry[:carryover_cents])} + encargos estimados #{brl.(carry[:finance_charges_cents])}"
@@ -397,7 +397,7 @@ module DemoSeed
     abort "FAIL: Itaú #{older.strftime('%m/%Y')} must read paga." unless itau_older.reload.status == "paid"
     abort "FAIL: Itaú #{older2.strftime('%m/%Y')} must read parcelada." unless itau_financed.reload.display_status == "financed"
     abort "FAIL: expected the Itaú parcel riding #{recent.strftime('%m/%Y')}." unless
-      cartoes[:itau].financing_parcels_cents(recent) == parcel_cents
+      cards[:itau].financing_parcels_cents(recent) == parcel_cents
     puts "  • parcelamento: Itaú #{older2.strftime('%m/%Y')} — entrada #{brl.(down_payment_cents)} + 3 × #{brl.(parcel_cents)}"
     abort "FAIL: expected the pay-CTA notification for both members." unless
       Notification.where(account: account, kind: %w[card_due card_overdue]).count == 2

@@ -4,7 +4,7 @@ require "test_helpers/e2e/pipeline_case"
 # panel to the centavo, the carryover + estimated-encargos projection lines (NEVER rows),
 # the estimates-never-coexist-with-stated rule, the negative carryover, and the
 # card_overdue escalation with its golden body.
-class E2E::WebCardBillRotativoTest < E2E::PipelineCase
+class E2E::WebCardBillRevolvingTest < E2E::PipelineCase
   test "ROT-01: partial payment warning panel renders the canonical figures" do
     s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
