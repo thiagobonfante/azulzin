@@ -20,8 +20,6 @@ class CardBillsController < ApplicationController
       amount_cents:         amount,
       paid_on:              paid_on,
       bank_account:         source_account,
-      stated_total_cents:   optional_cents(:stated_total_reais),
-      stated_minimum_cents: optional_cents(:stated_minimum_reais),
       created_by:           Current.user)
     dismiss_notification
     redirect_to card_bill_path(@bill), notice: t(".paid")
@@ -48,7 +46,8 @@ class CardBillsController < ApplicationController
   def update
     stated = Money.to_cents(params[:stated_total_reais]).to_i
     return redirect_to card_bill_path(@bill), alert: t("card_bills.pay.invalid_amount") unless stated.positive?
-    @bill.update!(stated_total_cents: stated)
+    # A fresh conferência — whatever an older one did is settled history now.
+    @bill.update!(stated_total_cents: stated, review_log: [])
     if @bill.our_total_cents == stated
       redirect_to card_bill_path(@bill), notice: t(".stated_saved")
     else
@@ -69,30 +68,36 @@ class CardBillsController < ApplicationController
                        .includes(:commitment, credit_card: :institution).order(:occurred_on, :id)
   end
 
-  # A purchase the user found missing during the review: a normal card expense, its date
-  # clamped to THIS bill's window (previous closing + 1 .. closing) and pinned here.
+  # Purchases the user found missing during the review (one or more rows): normal card
+  # expenses, dates clamped to THIS bill's window (previous closing + 1 .. closing).
+  # NOT review-logged — real spending survives a cancelled conferência.
   def add_line
     return redirect_to card_bill_path(@bill) unless @bill.divergence_pending?
-    amount = Money.to_cents(params[:amount_reais]).to_i
-    return redirect_to review_card_bill_path(@bill), alert: t("card_bills.pay.invalid_amount") unless amount.positive?
     window_start = @bill.credit_card.closing_date(@bill.billing_month << 1) + 1
-    occurred = begin
-      Date.iso8601(params[:occurred_on].to_s)
-    rescue Date::Error
-      @bill.closed_on
-    end.clamp(window_start, @bill.closed_on)
-    Current.account.transactions.create!(
-      created_by: Current.user, credit_card: @bill.credit_card,
-      merchant: params[:merchant].to_s.strip.presence || t("card_bills.review.add_line.default_merchant"),
-      direction: "expense", status: "posted", confirmed_at: Time.current, source: "manual",
-      amount_cents: amount, occurred_on: occurred,
-      billing_month: @bill.billing_month, billing_month_manual: true)
+    created = Array(params[:merchants]).zip(Array(params[:amounts_reais]), Array(params[:occurred_ons])).count do |merchant, amount_reais, occurred_str|
+      amount = Money.to_cents(amount_reais).to_i
+      next false unless amount.positive?
+      occurred = begin
+        Date.iso8601(occurred_str.to_s)
+      rescue Date::Error
+        @bill.closed_on
+      end.clamp(window_start, @bill.closed_on)
+      Current.account.transactions.create!(
+        created_by: Current.user, credit_card: @bill.credit_card,
+        merchant: merchant.to_s.strip.presence || t("card_bills.review.add_line.default_merchant"),
+        direction: "expense", status: "posted", confirmed_at: Time.current, source: "manual",
+        amount_cents: amount, occurred_on: occurred,
+        billing_month: @bill.billing_month, billing_month_manual: true)
+      true
+    end
+    return redirect_to review_card_bill_path(@bill), alert: t("card_bills.pay.invalid_amount") if created.zero?
     redirect_to review_card_bill_path(@bill), notice: t(".added")
   end
 
-  # Cancel the conferência: forget the informed value, back to the plain bill page.
+  # Cancel the conferência: roll back everything the review did (moves return, adjustment
+  # rows are deleted — founder rule 2026-07-22c), forget the informed value, back home.
   def clear_stated
-    @bill.update!(stated_total_cents: nil)
+    @bill.rollback_review!
     redirect_to card_bill_path(@bill), notice: t(".cleared")
   end
 
@@ -103,25 +108,31 @@ class CardBillsController < ApplicationController
     return redirect_to card_bill_path(@bill) if @bill.stated_total_cents.nil?
     delta = @bill.stated_total_cents - @bill.our_total_cents
     return redirect_to card_bill_path(@bill) if delta.zero?
-    Current.account.transactions.create!(
+    row = Current.account.transactions.create!(
       created_by: Current.user, credit_card: @bill.credit_card,
       merchant: t("card_bills.review.adjustment_merchant"),
       direction: (delta.positive? ? "expense" : "income"),
       status: "posted", confirmed_at: Time.current, source: "manual",
       amount_cents: delta.abs, occurred_on: @bill.closed_on,
       billing_month: @bill.billing_month, billing_month_manual: true)
+    @bill.log_review!("kind" => "adjust", "id" => row.id)
     signed = "#{delta.positive? ? "+" : "−"}#{helpers.brl(delta.abs)}"
     redirect_to card_bill_path(@bill), notice: t(".adjusted", amount: signed)
   end
 
   # The left-behind batch move: each picked row goes to the NEXT fatura via the existing
-  # sticky manual-move (recompute passes already respect billing_month_manual).
+  # sticky manual-move (recompute passes already respect billing_month_manual). A partial
+  # move lands back on the review page — the remaining difference is still resolvable
+  # there (move some AND adjust the rest, founder rule 2026-07-22c).
   def carry_over
     rows = @bill.credit_card.family_transactions.posted.kept
                 .where(billing_month: @bill.billing_month, id: Array(params[:transaction_ids]))
     return redirect_to card_bill_path(@bill), alert: t(".none") if rows.none?
+    moved = rows.map { |row| { "id" => row.id, "manual_was" => row.billing_month_manual } }
     rows.each { |row| row.update!(billing_month: @bill.billing_month >> 1, billing_month_manual: true) }
-    redirect_to card_bill_path(@bill), notice: t(".moved", count: rows.size)
+    @bill.log_review!("kind" => "move", "rows" => moved)
+    destination = @bill.divergence_pending? ? review_card_bill_path(@bill) : card_bill_path(@bill)
+    redirect_to destination, notice: t(".moved", count: rows.size)
   end
 
   private
@@ -138,13 +149,6 @@ class CardBillsController < ApplicationController
       Date.iso8601(params[:paid_on].to_s)
     rescue Date::Error
       Date.current
-    end
-
-    # The collapsed "valor no banco" disclosure — stored silently in phase 1 (P1 note:
-    # divergence actions arrive in phase 2). Blank input never clears a stored value.
-    def optional_cents(key)
-      cents = Money.to_cents(params[key])
-      cents if cents.to_i.positive?
     end
 
     # Paying from the card_due banner dismisses it in the same tap (the occurrences idiom).

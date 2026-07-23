@@ -7,16 +7,10 @@ module CardBills
   module Carryover
     module_function
 
-    # The display lines. Pinned rule, refined 2026-07-22: a stated_total suppresses the
-    # estimate only once it's AUTHORITATIVE (conferência resolved — the bank's encargos
-    # are inside its number). While the check is pending, our estimate keeps showing.
-    def for(card, month)
-      bill = card.card_bills.find_by(billing_month: month)
-      return nil if bill&.stated_total_cents && !bill.divergence_pending?
-      estimate(card, month)
-    end
-
     # → { from_month:, carryover_cents:, encargos_cents:, total_cents:, rate_month: } | nil
+    # These ARE the display lines too — always shown as the figure's breakdown, even
+    # after a stated_total is accepted (founder rule 2026-07-22c: resolving equalizes
+    # our figure with the bank's, so the lines keep summing to the total).
     # The raw estimate, ignoring any stated_total on `month` — CardBill#our_total_cents
     # compares the bank's number against THIS (rows alone can never contain encargos).
     # Overpayment carries NEGATIVE (a credit on the next bill) with zero encargos.

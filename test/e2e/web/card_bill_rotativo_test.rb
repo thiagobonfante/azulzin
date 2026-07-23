@@ -81,11 +81,13 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     assert_not_nil summary.card_carryovers[s.nubank_card], "estimates keep showing while pending"
     assert_equal 295_076, summary.bill_totals[s.nubank_card], "our figure rules until resolved"
 
-    # Resolve via the adjustment (the 76¢ estimate gap) → the bank's number IS the figure.
+    # Resolve via the adjustment (the 76¢ estimate gap) → the bank's number IS the figure,
+    # and the carryover lines STAY as its breakdown (founder 2026-07-22c — resolution
+    # equalized our figure with the bank's, so the lines keep summing to the total).
     post adjust_card_bill_url(next_bill)
     assert_not next_bill.reload.divergence_pending?
     summary = MonthSummary.new(s.account, next_month)
-    assert_nil summary.card_carryovers[s.nubank_card], "estimates never coexist with an ACCEPTED stated"
+    assert_not_nil summary.card_carryovers[s.nubank_card], "the breakdown lines persist after accepting"
     assert_equal 295_000, summary.bill_totals[s.nubank_card], "the bank's number IS the figure now"
   end
 

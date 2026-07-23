@@ -226,6 +226,29 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
     assert_equal 0, CardBill.where(id: bill_id).count
   end
 
+  # Founder 2026-07-22c: bill lines are editable in place like Movimentos — rows link
+  # into the shared entry sheet; save/delete responds with a full-page refresh stream
+  # (the total, conferência state and carryover lines shift with the row).
+  test "bill lines edit/delete in place via the shared entry sheet" do
+    s = E2E::Scenario.build(:bill_closed)
+    sign_in_as s.owner
+    bill = s.closed_bill
+    line = s.account.transactions.find_by!(merchant: "Na Borda do Corte")
+
+    get card_bill_url(bill)
+    assert_select "a[href=?]", edit_transaction_path(line, context: "bill")
+
+    patch transaction_path(line), as: :turbo_stream,
+          params: { from: "ledger", context: "bill", transaction: { merchant: "Corte Novo" } }
+    assert_includes response.body, %(<turbo-stream action="refresh">)
+    assert_equal "Corte Novo", line.reload.merchant
+
+    delete transaction_path(line), as: :turbo_stream, params: { from: "ledger", context: "bill" }
+    assert_includes response.body, %(<turbo-stream action="refresh">)
+    assert line.reload.soft_deleted?
+    assert_equal 110_000, bill.reload.computed_total_cents, "the erased line left the bill"
+  end
+
   private
 
   def push_ready(s)

@@ -34,12 +34,13 @@ class CardBill < ApplicationRecord
   # A conferência is UNRESOLVED while the informed bank number disagrees with our figure.
   def divergence_pending? = stated_total_cents.present? && stated_total_cents != our_total_cents
 
-  # THE closed-bill figure every surface shows. While a conferência is pending the bank's
-  # number does NOT replace ours anywhere (founder round 2026-07-22) — the user keeps
-  # seeing OUR total plus a warning until the check concludes (move/adjust/cancel), at
-  # which point stated == our figure anyway.
+  # THE closed-bill figure every surface shows: OUR figure (rows + carryover estimate —
+  # a rotativo-carrying bill is never just its rows, founder round 2026-07-22b), replaced
+  # by the bank's number only once a conferência RESOLVES. While pending the bank's
+  # number does NOT replace ours anywhere — the user keeps seeing OUR total plus a
+  # warning until the check concludes (move/adjust/cancel).
   def effective_total_cents
-    divergence_pending? ? computed_total_cents : (stated_total_cents || computed_total_cents)
+    divergence_pending? ? our_total_cents : (stated_total_cents || our_total_cents)
   end
 
   def paid_cents = payments.posted.kept.sum(:amount_cents)
@@ -83,6 +84,27 @@ class CardBill < ApplicationRecord
   # What's left after the due date — feeds the rotativo projection (02 §5). Signed:
   # overpayment yields a NEGATIVE carryover (credit on the next bill), never clamped.
   def carryover_cents = effective_total_cents - paid_cents
+
+  # Conferência action journal: informing a value starts a fresh log; moves and
+  # adjustments append; cancel replays it BACKWARDS (founder rule 2026-07-22c — cancel
+  # rolls back everything the review did). Added missing purchases are NOT logged: they
+  # are real spending the user found, not review bookkeeping.
+  def log_review!(entry) = update!(review_log: review_log + [ entry ])
+
+  def rollback_review!
+    review_log.reverse_each do |entry|
+      case entry["kind"]
+      when "move"
+        entry["rows"].each do |r|
+          credit_card.family_transactions.kept.find_by(id: r["id"])
+                     &.update!(billing_month: billing_month, billing_month_manual: r["manual_was"])
+        end
+      when "adjust"
+        credit_card.family_transactions.kept.find_by(id: entry["id"])&.soft_delete!
+      end
+    end
+    update!(review_log: [], stated_total_cents: nil)
+  end
 
   private
     def billing_month_is_first_of_month

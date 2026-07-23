@@ -39,18 +39,22 @@
                 class: "font-medium text-primary hover:underline" %>
         <% end %>
       </div>
-      <%# The pay entry point (.plans/credit-cards 01 §4.2): the NEWEST closed bill, and
-          only while unpaid — older unpaid remainders were carried into it (Carryover), so
-          probing further back would double-announce the same debt. %>
-      <% if (latest = credit_card.card_bills.order(billing_month: :desc).first) && !latest.paid? %>
-        <%= link_to card_bill_path(latest), class: "mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline" do %>
-          <span class="badge badge-sm <%= card_bill_badge_class(latest) %>"><%= t("card_bills.status.#{latest.display_status}") %></span>
-          <%= t("card_bills.badge.closed", amount: brl(latest.effective_total_cents)) %>
-        <% end %>
-      <% end %>
     <% else %>
       <%= link_to t("transactions.bills.setup_billing"), edit_credit_card_path(credit_card),
             class: "mt-2 inline-block text-xs font-medium text-primary hover:underline" %>
+    <% end %>
+
+    <%# The pay entry point (.plans/credit-cards 01 §4.2): the NEWEST closed bill, and
+        only while unpaid — older unpaid remainders were carried into it (Carryover), so
+        probing further back would double-announce the same debt. Rendered on the limit
+        bar's bottom row, opposite "Disponível" (founder: mid-card placement looked odd). %>
+    <% if credit_card.billing_configured? && (latest = credit_card.card_bills.order(billing_month: :desc).first) && !latest.paid? %>
+      <% pay_entry = capture do %>
+        <%= link_to card_bill_path(latest), class: "inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline" do %>
+          <span class="badge badge-xs <%= card_bill_badge_class(latest) %>"><%= t("card_bills.status.#{latest.display_status}") %></span>
+          <%= t("card_bills.badge.closed", amount: brl(latest.effective_total_cents)) %>
+        <% end %>
+      <% end %>
     <% end %>
 
     <% if credit_card.limit_informed? %>
@@ -64,10 +68,16 @@
         <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-base-200">
           <div class="h-full rounded-full <%= bar %>" style="width: <%= (ratio * 100).round %>%"></div>
         </div>
-        <p class="mt-1.5 text-right text-xs text-base-content/50"><%= t("credit_cards.available") %> <span class="font-semibold text-success tabular-nums"><%= brl(credit_card.available_cents) %></span></p>
+        <div class="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-xs">
+          <span><%= pay_entry %></span>
+          <span class="text-base-content/50"><%= t("credit_cards.available") %> <span class="font-semibold text-success tabular-nums"><%= brl(credit_card.available_cents) %></span></span>
+        </div>
       </div>
     <% else %>
       <p class="mt-2 text-xs text-base-content/40"><%= t("credit_cards.no_limit") %></p>
+      <% if pay_entry %>
+        <p class="mt-1.5"><%= pay_entry %></p>
+      <% end %>
     <% end %>
   </div>
 

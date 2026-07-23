@@ -96,30 +96,54 @@
     <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
       <p class="text-sm font-medium"><%= t("card_bills.review.add_line.title") %></p>
       <p class="mt-1 text-xs text-base-content/50"><%= t("card_bills.review.add_line.hint") %></p>
-      <%= form_with url: add_line_card_bill_path(@bill), method: :post, class: "mt-2 flex flex-col gap-2", data: { turbo: false } do %>
-        <div class="grid gap-2 sm:grid-cols-3">
-          <div class="form-control">
-            <label class="mb-1 text-xs text-base-content/60" for="add_line_merchant"><%= t("card_bills.review.add_line.merchant") %></label>
-            <%= text_field_tag :merchant, nil, id: "add_line_merchant", required: true,
-                  class: "input input-bordered input-sm w-full" %>
-          </div>
-          <div class="form-control">
-            <label class="mb-1 text-xs text-base-content/60" for="add_line_amount"><%= t("card_bills.review.add_line.amount") %></label>
-            <label class="input input-bordered input-sm flex items-center gap-1">
-              <span class="text-base-content/50"><%= t("money.symbol") %></span>
-              <%= text_field_tag :amount_reais, nil, id: "add_line_amount", required: true,
-                    inputmode: "decimal", placeholder: "0,00", class: "grow",
-                    data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
-            </label>
-          </div>
-          <div class="form-control">
-            <label class="mb-1 text-xs text-base-content/60" for="add_line_date"><%= t("card_bills.review.add_line.date") %></label>
-            <input type="date" id="add_line_date" name="occurred_on" value="<%= @bill.closed_on.iso8601 %>"
-                   min="<%= window_start.iso8601 %>" max="<%= @bill.closed_on.iso8601 %>"
-                   class="input input-bordered input-sm w-full">
+      <%= form_with url: add_line_card_bill_path(@bill), method: :post, class: "mt-2 flex flex-col gap-2",
+            data: { turbo: false, controller: "clone" } do %>
+        <div class="flex flex-col gap-2" data-clone-target="container">
+          <div class="grid gap-2 sm:grid-cols-3">
+            <div class="form-control">
+              <label class="mb-1 text-xs text-base-content/60" for="add_line_merchant"><%= t("card_bills.review.add_line.merchant") %></label>
+              <%= text_field_tag "merchants[]", nil, id: "add_line_merchant", required: true,
+                    class: "input input-bordered input-sm w-full" %>
+            </div>
+            <div class="form-control">
+              <label class="mb-1 text-xs text-base-content/60" for="add_line_amount"><%= t("card_bills.review.add_line.amount") %></label>
+              <label class="input input-bordered input-sm flex items-center gap-1">
+                <span class="text-base-content/50"><%= t("money.symbol") %></span>
+                <%= text_field_tag "amounts_reais[]", nil, id: "add_line_amount", required: true,
+                      inputmode: "decimal", placeholder: "0,00", class: "grow",
+                      data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="mb-1 text-xs text-base-content/60" for="add_line_date"><%= t("card_bills.review.add_line.date") %></label>
+              <input type="date" id="add_line_date" name="occurred_ons[]" value="<%= @bill.closed_on.iso8601 %>"
+                     min="<%= window_start.iso8601 %>" max="<%= @bill.closed_on.iso8601 %>"
+                     class="input input-bordered input-sm w-full">
+            </div>
           </div>
         </div>
-        <div class="flex justify-end">
+        <%# Extra rows are optional (blank ones are skipped server-side) — no ids/labels,
+            the first row's column headers cover them. %>
+        <template data-clone-target="template">
+          <div class="grid gap-2 sm:grid-cols-3">
+            <%= text_field_tag "merchants[]", nil, id: nil, class: "input input-bordered input-sm w-full",
+                  aria: { label: t("card_bills.review.add_line.merchant") } %>
+            <label class="input input-bordered input-sm flex items-center gap-1">
+              <span class="text-base-content/50"><%= t("money.symbol") %></span>
+              <%= text_field_tag "amounts_reais[]", nil, id: nil, inputmode: "decimal", placeholder: "0,00", class: "grow",
+                    aria: { label: t("card_bills.review.add_line.amount") },
+                    data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+            </label>
+            <input type="date" name="occurred_ons[]" value="<%= @bill.closed_on.iso8601 %>"
+                   min="<%= window_start.iso8601 %>" max="<%= @bill.closed_on.iso8601 %>"
+                   aria-label="<%= t("card_bills.review.add_line.date") %>"
+                   class="input input-bordered input-sm w-full">
+          </div>
+        </template>
+        <div class="flex justify-between gap-2">
+          <button type="button" class="btn btn-ghost btn-sm text-primary" data-action="clone#add">
+            + <%= t("card_bills.review.add_line.more") %>
+          </button>
           <%= submit_tag t("card_bills.review.add_line.submit"), class: "btn btn-primary btn-sm" %>
         </div>
       <% end %>

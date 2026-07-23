@@ -365,7 +365,7 @@ module DemoSeed
     account.card_bills.includes(credit_card: :institution).order(:billing_month, :credit_card_id).each do |b|
       puts "  • #{b.credit_card.display_name} #{b.billing_month.strftime('%m/%Y')}: #{brl.(b.effective_total_cents)} — #{b.display_status}"
     end
-    carry = CardBills::Carryover.for(cartoes[:nubank], recent)
+    carry = CardBills::Carryover.estimate(cartoes[:nubank], recent)
     abort "FAIL: expected carryover + encargos on the Nubank #{recent.strftime('%m/%Y')} bill." unless
       carry && carry[:carryover_cents].positive? && carry[:encargos_cents].positive?
     puts "  • carryover onto Nubank #{recent.strftime('%m/%Y')}: #{brl.(carry[:carryover_cents])} + encargos estimados #{brl.(carry[:encargos_cents])}"

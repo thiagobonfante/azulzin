@@ -634,9 +634,6 @@ pt-BR:
       date: "Data"
       source: "Conta de origem"
       untracked_source: "Outra conta (não cadastrada)"
-      bank_differs: "O valor do banco é diferente?"
-      stated_total: "Valor no banco"
-      stated_minimum: "Pagamento mínimo"
       submit: "Pagar"
       cancel: "Cancelar"
     pay:
@@ -678,6 +675,7 @@ pt-BR:
         amount: "Valor"
         date: "Data"
         submit: "Adicionar à fatura"
+        more: "Adicionar outra linha"
         default_merchant: "Compra do cartão"
     clear_stated:
       cleared: "Conferência cancelada — valor do banco esquecido."

@@ -10,10 +10,9 @@
           class: "grid gap-2 p-2 sm:grid-cols-2" do |f| %>
       <%= hidden_field_tag :from, "ledger" %>
       <%= hidden_field_tag :month, params[:month] %>
-      <% if params[:context] == "recent" %>
-        <%= hidden_field_tag :context, "recent" %>
-        <%= hidden_field_tag :category, params[:category] if params[:category].present? %>
-      <% end %>
+      <%# Context thread ("recent" | "bill") — tells update/destroy which page to refresh. %>
+      <%= hidden_field_tag :context, params[:context] if params[:context].present? %>
+      <%= hidden_field_tag :category, params[:category] if params[:context] == "recent" && params[:category].present? %>
       <% if transaction.errors.any? %>
         <div class="alert alert-error col-span-full py-1 text-xs" role="alert"><span><%= transaction.errors.full_messages.to_sentence %></span></div>
       <% end %>

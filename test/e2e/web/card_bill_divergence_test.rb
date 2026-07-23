@@ -56,24 +56,56 @@ class E2E::WebCardBillDivergenceTest < E2E::PipelineCase
     assert_not_includes response.body, I18n.t("card_bills.divergence.picker_title", locale: :"pt-BR")
   end
 
-  # The missed-purchase form (founder round 2026-07-22b): a normal card expense, its date
-  # CLAMPED to this bill's window, pinned to this bill.
-  test "add_line records the found purchase clamped to the bill window" do
+  # The missed-purchase form (founder rounds 2026-07-22b/c): one or MORE normal card
+  # expenses in one submit, dates CLAMPED to this bill's window, pinned to this bill.
+  test "add_line records the found purchases (multiple rows) clamped to the bill window" do
     s = E2E::Scenario.build(:bill_closed)
     sign_in_as s.owner
     bill = s.closed_bill
     patch card_bill_url(bill), params: { stated_total_reais: "1.400,00" }
 
     post add_line_card_bill_url(bill), params: {
-      merchant: "Compra Esquecida", amount_reais: "150,00", occurred_on: Date.current.iso8601 }
+      merchants: [ "Compra Esquecida", "Outra Esquecida", "" ],
+      amounts_reais: [ "100,00", "50,00", "" ],
+      occurred_ons: [ Date.current.iso8601, Date.current.iso8601, "" ] }
 
     line = s.account.transactions.find_by!(merchant: "Compra Esquecida")
-    assert_equal 15_000, line.amount_cents
+    assert_equal 10_000, line.amount_cents
     assert_equal bill.closed_on, line.occurred_on, "today is past closing — clamped to the closing date"
     assert_equal bill.billing_month, line.billing_month
     assert line.billing_month_manual?
-    assert_equal 140_000, bill.reload.computed_total_cents
-    assert_not bill.divergence_pending?, "the found purchase closes the check"
+    assert_equal 5_000, s.account.transactions.find_by!(merchant: "Outra Esquecida").amount_cents
+    assert_equal 140_000, bill.reload.computed_total_cents, "both rows land; the blank third is skipped"
+    assert_not bill.divergence_pending?, "the found purchases close the check"
+  end
+
+  # Founder rule 2026-07-22c: a conferência can combine a partial move AND an adjustment
+  # (a still-pending move lands back on the review page), and CANCEL rolls back everything
+  # the review did — moved rows return, adjustment rows are deleted.
+  test "move and adjust combine; cancel rolls the whole conferência back" do
+    s = E2E::Scenario.build(:bill_closed)
+    sign_in_as s.owner
+    bill = s.closed_bill
+    edge = s.account.transactions.find_by!(merchant: "Na Borda do Corte")
+
+    patch card_bill_url(bill), params: { stated_total_reais: "1.050,00" }
+    patch carry_over_card_bill_url(bill), params: { transaction_ids: [ edge.id ] }
+    assert_redirected_to review_card_bill_url(bill), "a partial move stays in the review"
+
+    post adjust_card_bill_url(bill)   # the remaining −R$ 50,00
+    adjustment = s.account.transactions.order(:id).last
+    assert_equal 5_000, adjustment.amount_cents
+    assert_not bill.reload.divergence_pending?, "move + adjust together settle the check"
+
+    patch clear_stated_card_bill_url(bill)
+    bill.reload
+    assert_nil bill.stated_total_cents
+    assert_equal [], bill.review_log
+    assert adjustment.reload.soft_deleted?, "cancel deletes the adjustment row"
+    edge.reload
+    assert_equal bill.billing_month, edge.billing_month, "cancel brings the moved row back"
+    assert_not edge.billing_month_manual?, "the original auto-bucketing returns"
+    assert_equal 125_000, bill.computed_total_cents, "everything is back where it started"
   end
 
   # Founder round 2026-07-22: resolution lives on the FOCUSED review page — a diverging

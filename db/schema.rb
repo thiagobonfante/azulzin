@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_030001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_23_011206) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -101,6 +101,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_030001) do
     t.bigint "created_by_id"
     t.bigint "credit_card_id", null: false
     t.date "due_on", null: false
+    t.jsonb "review_log", default: [], null: false
     t.bigint "stated_minimum_cents"
     t.bigint "stated_total_cents"
     t.datetime "updated_at", null: false

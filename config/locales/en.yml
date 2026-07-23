@@ -633,9 +633,6 @@ en:
       date: "Date"
       source: "Source account"
       untracked_source: "Another account (not tracked)"
-      bank_differs: "Is the bank's number different?"
-      stated_total: "Bank's total"
-      stated_minimum: "Minimum payment"
       submit: "Pay"
       cancel: "Cancel"
     pay:
@@ -677,6 +674,7 @@ en:
         amount: "Amount"
         date: "Date"
         submit: "Add to the bill"
+        more: "Add another line"
         default_merchant: "Card purchase"
     clear_stated:
       cleared: "Check canceled — bank value forgotten."

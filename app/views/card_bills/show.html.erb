@@ -1,6 +1,7 @@
 <% content_for :title, t(".title_with_card", month: l(@bill.billing_month, format: :month_name), card: @bill.credit_card.display_name) %>
 
-<div class="mx-auto flex max-w-2xl flex-col gap-4" data-controller="modal">
+<div class="mx-auto flex max-w-2xl flex-col gap-4" data-controller="modal entry-modal"
+     data-action="turbo:submit-end@document->entry-modal#submitEnd">
   <header>
     <h1 class="font-display text-xl font-bold" data-native-dup>
       <%= t(".title", month: l(@bill.billing_month, format: :month_name)) %>
@@ -29,7 +30,7 @@
         <span class="tabular-nums font-medium text-success"><%= brl(@bill.paid_cents) %></span>
       </div>
     <% end %>
-    <% if (carry = CardBills::Carryover.for(@bill.credit_card, @bill.billing_month)) %>
+    <% if (carry = CardBills::Carryover.estimate(@bill.credit_card, @bill.billing_month)) %>
       <div class="mt-2 border-t border-base-300/60 pt-2">
         <%= render "card_bills/carryover_lines", carry: carry %>
       </div>
@@ -54,16 +55,20 @@
     <h2 class="mb-2 text-sm font-semibold"><%= t(".lines_title") %></h2>
     <% if @lines.any? %>
       <%# Same rows as Movimentos (founder ask): day-sectioned, category icon + amount via
-          the shared row_display; the sub-card apelido chip rides the caption line. %>
+          the shared row_display; the sub-card apelido chip rides the caption line. And the
+          same edit-in-place (founder 2026-07-22c): tapping a row opens the shared entry
+          sheet; save/delete responds with a page refresh (totals + conferência shift too). %>
       <div class="flex flex-col">
         <% @lines.sort_by { |l| [ l.occurred_on, l.id ] }.reverse.group_by(&:occurred_on).each do |day, day_lines| %>
           <div>
             <div class="bg-base-200 px-2 py-1 text-xs font-medium text-base-content/60 first:rounded-t-lg"><%= l(day, format: :weekday_day) %></div>
             <div class="divide-y divide-base-300/50">
               <% day_lines.each do |line| %>
-                <div class="flex items-center gap-3 px-2 py-2.5">
+                <%= link_to edit_transaction_path(line, context: "bill"),
+                      data: { turbo_frame: "entry_form", action: "click->entry-modal#open" },
+                      class: "flex items-center gap-3 px-2 py-2.5 transition-colors hover:bg-base-300/40" do %>
                   <%= render "transactions/row_display", transaction: line, family_root: @bill.credit_card %>
-                </div>
+                <% end %>
               <% end %>
             </div>
           </div>
@@ -100,4 +105,5 @@
   <% end %>
 
   <%= render "card_bills/pay_modal", bill: @bill %>
+  <%= render "transactions/entry_modal" %>
 </div>
