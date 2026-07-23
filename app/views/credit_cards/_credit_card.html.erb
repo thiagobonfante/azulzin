@@ -1,51 +1,102 @@
 <%# locals: credit_card — the name block links to edit (a pen fades in on hover);
-    attribution + remove live on the edit page, not the row. %>
-<div id="<%= dom_id(credit_card) %>" class="rounded-box border border-base-300/70 bg-base-100 p-3 shadow-sm">
-  <div class="flex items-center gap-3">
-    <%= link_to edit_credit_card_path(credit_card), class: "group flex min-w-0 flex-1 items-center gap-3",
-          aria: { label: t("credit_cards.edit_title") } do %>
-      <%= institution_avatar(credit_card.institution, size: 40) %>
-      <div class="min-w-0 flex-1">
-        <p class="flex items-center gap-1.5 truncate text-sm font-semibold">
-          <span class="truncate"><%= credit_card.display_name %></span>
-          <% if credit_card.virtual? %>
-            <span class="badge badge-info badge-xs"><%= t("credit_cards.card_types.virtual") %></span>
-          <% end %>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-50 group-focus-visible:opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
-        </p>
-        <p class="truncate text-xs text-base-content/50">
-          <%= credit_card.institution.display_name %>
-          <% if credit_card.last4.present? %>· <%= t("credit_cards.ending", last4: credit_card.last4) %><% end %>
-        </p>
+    attribution + remove live on the edit page, not the row. Sub-cards expand from a
+    full-width footer ("N cartões adicionais") into mini-cards; the star swaps via Turbo
+    Stream so tapping it never collapses the expansion. %>
+<div id="<%= dom_id(credit_card) %>" class="rounded-box border border-base-300/70 bg-base-100 shadow-sm">
+  <div class="p-3">
+    <div class="flex items-center gap-3">
+      <%= link_to edit_credit_card_path(credit_card), class: "group flex min-w-0 flex-1 items-center gap-3",
+            aria: { label: t("credit_cards.edit_title") } do %>
+        <%= institution_avatar(credit_card.institution, size: 40) %>
+        <div class="min-w-0 flex-1">
+          <p class="flex items-center gap-1.5 truncate text-sm font-semibold">
+            <span class="truncate"><%= credit_card.display_name %></span>
+            <% if credit_card.virtual? %>
+              <span class="badge badge-info badge-xs"><%= t("credit_cards.card_types.virtual") %></span>
+            <% end %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-50 group-focus-visible:opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
+          </p>
+          <p class="truncate text-xs text-base-content/50">
+            <%= credit_card.institution.display_name %>
+            <% if credit_card.last4.present? %>· <%= t("credit_cards.ending", last4: credit_card.last4) %><% end %>
+          </p>
+        </div>
+      <% end %>
+      <%# The per-member default star (04 §5) sits on the row's right edge — aligned across
+          cards, out of the name block's way. %>
+      <%= render "credit_cards/default_star", card: credit_card %>
+    </div>
+
+    <%# Billing config summary (R2) or a quiet nudge to set it. %>
+    <% if credit_card.billing_configured? %>
+      <p class="mt-2 text-xs text-base-content/50">
+        <%= t("transactions.bills.due_on", day: credit_card.bill_due_day) %> ·
+        <%= t("transactions.bills.closes_on", day: credit_card.closing_date(credit_card.current_open_bill_month).day) %>
+      </p>
+    <% else %>
+      <%= link_to t("transactions.bills.setup_billing"), edit_credit_card_path(credit_card),
+            class: "mt-2 inline-block text-xs font-medium text-primary hover:underline" %>
+    <% end %>
+
+    <% if credit_card.limit_informed? %>
+      <% ratio = credit_card.usage_ratio %>
+      <% bar = ratio >= 0.9 ? "bg-error" : ratio >= 0.7 ? "bg-warning" : "bg-primary" %>
+      <div class="mt-3">
+        <div class="flex items-baseline justify-between text-xs">
+          <span class="text-base-content/50"><%= t("credit_cards.used") %> <span class="font-medium tabular-nums text-base-content/70"><%= brl(credit_card.used_cents) %></span></span>
+          <span class="text-base-content/50"><%= t("credit_cards.limit") %> <span class="font-medium tabular-nums text-base-content/70"><%= brl(credit_card.credit_limit_cents) %></span></span>
+        </div>
+        <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-base-200">
+          <div class="h-full rounded-full <%= bar %>" style="width: <%= (ratio * 100).round %>%"></div>
+        </div>
+        <div class="mt-1.5 flex justify-end text-xs">
+          <span class="text-base-content/50"><%= t("credit_cards.available") %> <span class="font-semibold text-success tabular-nums"><%= brl(credit_card.available_cents) %></span></span>
+        </div>
       </div>
+    <% else %>
+      <p class="mt-2 text-xs text-base-content/40"><%= t("credit_cards.no_limit") %></p>
     <% end %>
   </div>
 
-  <%# Billing config summary (R2) or a quiet nudge to set it. %>
-  <% if credit_card.billing_configured? %>
-    <p class="mt-2 text-xs text-base-content/50">
-      <%= t("transactions.bills.due_on", day: credit_card.bill_due_day) %> ·
-      <%= t("transactions.bills.closes_on", day: credit_card.closing_date(credit_card.current_open_bill_month).day) %>
-    </p>
-  <% else %>
-    <%= link_to t("transactions.bills.setup_billing"), edit_credit_card_path(credit_card),
-          class: "mt-2 inline-block text-xs font-medium text-primary hover:underline" %>
+  <%# Últimas faturas (founder 2026-07-23): the last 3 closed bills inline — month, status,
+      figure — each row opening its bill page (Pagar lives there); "Ver todas" opens the
+      full history. Replaces the old single "Fatura fechada" pay-entry badge. %>
+  <% recent_bills = credit_card.card_bills.order(billing_month: :desc).limit(3).to_a %>
+  <% if recent_bills.any? %>
+    <div class="border-t border-base-300/60 px-3 py-2.5">
+      <%= link_to bills_credit_card_path(credit_card),
+            class: "-mx-1.5 mb-1 flex items-center justify-between gap-2 rounded-lg px-1.5 py-1 hover:bg-base-200/60" do %>
+        <span class="text-[11px] font-semibold uppercase tracking-wide text-base-content/40"><%= t("credit_cards.recent_bills.title") %></span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+      <% end %>
+      <ul>
+        <% recent_bills.each do |bill| %>
+          <li>
+            <%= link_to card_bill_path(bill), class: "-mx-1.5 flex items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-base-200/60" do %>
+              <span class="min-w-0 flex-1 truncate text-xs font-medium capitalize"><%= l(bill.billing_month, format: :month_name) %></span>
+              <span class="badge badge-xs <%= card_bill_badge_class(bill) %>"><%= t("card_bills.status.#{bill.display_status}") %></span>
+              <span class="min-w-24 shrink-0 text-right text-xs font-semibold tabular-nums"><%= brl(bill.effective_total_cents) %></span>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
   <% end %>
 
-  <% if credit_card.limit_informed? %>
-    <% ratio = credit_card.usage_ratio %>
-    <% bar = ratio >= 0.9 ? "bg-error" : ratio >= 0.7 ? "bg-warning" : "bg-primary" %>
-    <div class="mt-3">
-      <div class="flex items-baseline justify-between text-xs">
-        <span class="text-base-content/50"><%= t("credit_cards.used") %> <span class="font-medium tabular-nums text-base-content/70"><%= brl(credit_card.used_cents) %></span></span>
-        <span class="text-base-content/50"><%= t("credit_cards.limit") %> <span class="font-medium tabular-nums text-base-content/70"><%= brl(credit_card.credit_limit_cents) %></span></span>
+  <%# Sub-cards (04 §3): a footer expander only when children exist — the simple case (one
+      plain card) renders no extra UI at all. Creation lives on the edit page. %>
+  <% children = credit_card.children.kept.includes(:institution).order(:created_at).to_a %>
+  <% if children.any? %>
+    <details class="group border-t border-base-300/60">
+      <summary class="flex cursor-pointer select-none list-none items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-primary [&::-webkit-details-marker]:hidden">
+        <%= t("credit_cards.sub_cards.footer", count: children.size) %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+      </summary>
+      <div class="grid gap-2 p-3 pt-0 sm:grid-cols-2">
+        <% children.each do |sub| %>
+          <%= render "credit_cards/sub_card_mini", sub: sub %>
+        <% end %>
       </div>
-      <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-base-200">
-        <div class="h-full rounded-full <%= bar %>" style="width: <%= (ratio * 100).round %>%"></div>
-      </div>
-      <p class="mt-1.5 text-right text-xs text-base-content/50"><%= t("credit_cards.available") %> <span class="font-semibold text-success tabular-nums"><%= brl(credit_card.available_cents) %></span></p>
-    </div>
-  <% else %>
-    <p class="mt-2 text-xs text-base-content/40"><%= t("credit_cards.no_limit") %></p>
+    </details>
   <% end %>
 </div>

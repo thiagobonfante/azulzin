@@ -7,6 +7,7 @@
 <% if notifications.any? %>
   <div id="notifications" class="flex flex-col gap-2">
     <% notifications.each do |notification| %>
+      <% next if stale_card_bill_notification?(notification) %>
       <div id="<%= dom_id(notification) %>" role="alert"
            class="alert <%= notification_alert_class(notification.kind) %> py-2.5">
         <%= notification_icon_tag(notification.kind) %>
@@ -28,6 +29,12 @@
                   pay_commitment_occurrence_path(occurrence, month: params[:month], from: "hub",
                                                  notification_id: notification.id),
                   method: :patch, class: "btn btn-primary btn-xs" %>
+          <% end %>
+        <% elsif %w[card_due card_overdue].include?(notification.kind) && notification.payload["card_bill_id"].present? %>
+          <%# A closed bill exists → deep-link to its page, where the Pagar modal lives
+              (.plans/credit-cards 01 §4.3). Bill gone (card deleted) → find_by nil, no button. %>
+          <% if (bill = Current.account.card_bills.find_by(id: notification.payload["card_bill_id"])) %>
+            <%= link_to t("card_bills.show.pay"), card_bill_path(bill), class: "btn btn-primary btn-xs" %>
           <% end %>
         <% elsif %w[budget_warn budget_breach].include?(notification.kind) %>
           <%# Deep-link to the category (01 §4): the budget field lives on the categories

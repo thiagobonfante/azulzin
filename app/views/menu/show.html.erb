@@ -47,6 +47,9 @@
       <% if Current.user.admin? %>
         <%= render "row", label: t("app.nav.admin"), path: admin_whatsapp_connection_path, icon: icons[:admin] %>
       <% end %>
+      <li class="px-4 py-3.5">
+        <%= render "shared/theme_toggle", group: "menu" %>
+      </li>
     </ul>
 
     <div class="overflow-hidden rounded-box border border-base-300/60 bg-base-100">

@@ -1,0 +1,17 @@
+<%# locals: sub — mini-card for an additional/virtual plastic (04 §3); shared by the
+    cards-index expansion and the root card's edit page. Star + edit are real tap targets. %>
+<div class="flex items-center gap-2 rounded-box border border-base-300/60 bg-base-200/40 p-2.5">
+  <%= render "credit_cards/default_star", card: sub %>
+  <%= institution_avatar(sub.institution, size: 28) %>
+  <div class="min-w-0 flex-1">
+    <p class="truncate text-sm font-medium"><%= sub.display_name %></p>
+    <p class="truncate text-xs text-base-content/50">
+      <%= sub.last4.present? ? t("credit_cards.ending", last4: sub.last4) : t("credit_cards.card_types.#{sub.card_type}") %>
+    </p>
+  </div>
+  <% if sub.virtual? %><span class="badge badge-info badge-xs shrink-0"><%= t("credit_cards.card_types.virtual") %></span><% end %>
+  <%= link_to edit_credit_card_path(sub), class: "btn btn-ghost btn-sm btn-square shrink-0 text-base-content/50",
+        title: t("credit_cards.sub_cards.edit"), aria: { label: t("credit_cards.sub_cards.edit") } do %>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" /></svg>
+  <% end %>
+</div>

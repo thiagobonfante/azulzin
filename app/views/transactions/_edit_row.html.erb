@@ -10,10 +10,9 @@
           class: "grid gap-2 p-2 sm:grid-cols-2" do |f| %>
       <%= hidden_field_tag :from, "ledger" %>
       <%= hidden_field_tag :month, params[:month] %>
-      <% if params[:context] == "recent" %>
-        <%= hidden_field_tag :context, "recent" %>
-        <%= hidden_field_tag :category, params[:category] if params[:category].present? %>
-      <% end %>
+      <%# Context thread ("recent" | "bill") — tells update/destroy which page to refresh. %>
+      <%= hidden_field_tag :context, params[:context] if params[:context].present? %>
+      <%= hidden_field_tag :category, params[:category] if params[:context] == "recent" && params[:category].present? %>
       <% if transaction.errors.any? %>
         <div class="alert alert-error col-span-full py-1 text-xs" role="alert"><span><%= transaction.errors.full_messages.to_sentence %></span></div>
       <% end %>
@@ -35,7 +34,9 @@
         <%= f.date_field :occurred_on, class: "input input-bordered input-sm w-full" %>
       </div>
 
-      <% if transaction.transfer? %>
+      <% if transaction.transfer? && transaction.transfer_to_credit_card_id.nil? %>
+        <%# Fatura payments (card destination) keep their destination — re-pointing one at a
+            bank account is not an edit, it's an unpay + new transfer (bill page owns that). %>
         <div class="form-control">
           <%= f.label :transfer_to_bank_account_id, t("transfers.form.to"), class: "mb-1 text-xs text-base-content/60" %>
           <%= f.collection_select :transfer_to_bank_account_id, Current.account.bank_accounts.kept.includes(:institution).order(:created_at),

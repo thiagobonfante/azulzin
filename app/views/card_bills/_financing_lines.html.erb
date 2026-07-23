@@ -1,0 +1,15 @@
+<%# locals: financings (CardBillFinancings with a parcel on `month`), month — contracted
+    parcelamento-de-fatura parcel lines (founder 2026-07-22d): derived breakdown on the
+    Carryover spine, never rows. Neutral tone — a contract the user chose, not a warning. %>
+<ul class="flex flex-col gap-0.5">
+  <% financings.each do |fin| %>
+    <% n = fin.parcel_no(month) %>
+    <li class="flex items-center justify-between text-xs text-base-content/70">
+      <span><%= t("card_bills.financing.line", month: l(fin.card_bill.billing_month, format: :month_name), no: n, count: fin.installments_count) %></span>
+      <span class="tabular-nums"><%= brl(fin.installment_cents) %></span>
+    </li>
+    <% if (enc = fin.encargos_for(n)).positive? %>
+      <li class="text-[10px] text-base-content/40"><%= t("card_bills.financing.line_fees", amount: brl(enc)) %></li>
+    <% end %>
+  <% end %>
+</ul>

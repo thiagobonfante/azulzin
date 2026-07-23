@@ -16,11 +16,12 @@ class Account < ApplicationRecord
   has_many :commitments,       dependent: :destroy
   has_many :incomes,           dependent: :destroy
   has_many :categories,        dependent: :destroy
+  has_many :document_imports,  dependent: :destroy                 # before the instruments (reconciliation target FKs)
   has_many :bank_accounts,     dependent: :destroy
+  has_many :card_bills,        dependent: :destroy               # before :credit_cards (credit_card_id FK)
   has_many :credit_cards,      dependent: :destroy
   has_many :transactions,      dependent: :destroy
   has_many :whatsapp_messages, dependent: :destroy                 # account-owned audit trail
-  has_many :document_imports,  dependent: :destroy
   has_many :notifications,     dependent: :destroy                 # alerts about this account's data
 
   validates :name, presence: true, length: { maximum: 120 }

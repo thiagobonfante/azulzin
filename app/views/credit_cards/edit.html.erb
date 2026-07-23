@@ -9,10 +9,75 @@
       <h1 data-native-dup class="font-display text-2xl font-extrabold tracking-tight"><%= t("credit_cards.edit_title") %></h1>
       <p class="truncate text-sm text-base-content/60"><%= @credit_card.display_name %></p>
     </div>
-    <div class="flex items-center"><%= render "shared/attribution", record: @credit_card %></div>
+    <div class="flex items-center gap-1">
+      <%# The main card can be favorited here too, not only from the list. %>
+      <%= render "credit_cards/default_star", card: @credit_card if @credit_card.persisted? %>
+      <%= render "shared/attribution", record: @credit_card %>
+    </div>
   </header>
 
   <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
     <%= render "credit_cards/form", credit_card: @credit_card %>
   </div>
+
+  <%# Closed-faturas history entry (root cards with bills only). %>
+  <% if @credit_card.root? && !@credit_card.new_record? && @credit_card.card_bills.exists? %>
+    <%= link_to bills_credit_card_path(@credit_card),
+          class: "mt-4 flex items-center justify-between gap-3 rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm transition-colors hover:border-primary/40" do %>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold"><%= t("credit_cards.bills.title") %></p>
+        <p class="text-xs text-base-content/50"><%= t("credit_cards.bills.subtitle") %></p>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+    <% end %>
+  <% end %>
+
+  <%# Sub-cards (.plans/credit-cards 04 §3): virtual copies / family adicionais under this
+      root — apelido IS the feature; no billing, no limit, nothing to get wrong. Same
+      mini-cards (star included) as the cards-index expansion. %>
+  <% if @credit_card.root? && !@credit_card.new_record? %>
+    <div class="mt-4 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+      <h2 class="text-sm font-semibold"><%= t("credit_cards.sub_cards.title") %></h2>
+      <p class="mt-0.5 text-xs text-base-content/50"><%= t("credit_cards.sub_cards.subtitle") %></p>
+      <% children = @credit_card.children.kept.includes(:institution).order(:created_at) %>
+      <% if children.any? %>
+        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+          <% children.each do |sub| %>
+            <%= render "credit_cards/sub_card_mini", sub: sub %>
+          <% end %>
+        </div>
+      <% end %>
+      <%# Adding lives behind a dashed tile (founder round 2026-07-22): the list stays a
+          calm grid of mini-cards; the form only appears when asked for. %>
+      <details class="mt-2">
+        <summary class="flex cursor-pointer select-none list-none items-center justify-center gap-1.5 rounded-box border border-dashed border-base-300 p-2.5 text-sm font-medium text-primary transition-colors hover:border-primary/40 [&::-webkit-details-marker]:hidden">
+          <%= t("credit_cards.sub_cards.add") %>
+        </summary>
+        <%= form_with model: CreditCard.new, url: credit_cards_path, class: "mt-3 flex flex-col gap-2", data: { turbo: false } do |f| %>
+          <%= f.hidden_field :parent_card_id, value: @credit_card.id %>
+          <%= f.hidden_field :institution_id, value: @credit_card.institution_id %>
+          <div class="grid gap-2 sm:grid-cols-3">
+            <div class="form-control sm:col-span-1">
+              <%= f.label :nickname, t("credit_cards.sub_cards.nickname"), class: "mb-1 text-xs text-base-content/60" %>
+              <%= f.text_field :nickname, required: true, placeholder: t("credit_cards.sub_cards.nickname_placeholder"),
+                    class: "input input-bordered input-sm w-full" %>
+            </div>
+            <div class="form-control">
+              <%= f.label :last4, t("credit_cards.last4"), class: "mb-1 text-xs text-base-content/60" %>
+              <%= f.text_field :last4, placeholder: t("credit_cards.last4_placeholder"), inputmode: "numeric",
+                    maxlength: 4, class: "input input-bordered input-sm w-full" %>
+            </div>
+            <div class="form-control">
+              <%= f.label :card_type, t("credit_cards.card_type"), class: "mb-1 text-xs text-base-content/60" %>
+              <%= f.select :card_type, CreditCard.card_types.keys.map { |k| [ t("credit_cards.card_types.#{k}"), k ] },
+                    { selected: "virtual" }, class: "select select-bordered select-sm w-full" %>
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <%= f.submit t("credit_cards.sub_cards.save"), class: "btn btn-primary btn-sm" %>
+          </div>
+        <% end %>
+      </details>
+    </div>
+  <% end %>
 </div>

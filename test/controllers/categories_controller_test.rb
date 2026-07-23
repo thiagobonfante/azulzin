@@ -79,8 +79,8 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_response :no_content
   end
 
-  test "restore re-seeds the 12 locale defaults, idempotently" do
-    assert_difference -> { @user.account.categories.count }, 12 do
+  test "restore re-seeds the 13 locale defaults, idempotently" do
+    assert_difference -> { @user.account.categories.count }, 13 do
       post restore_categories_url
     end
     assert_no_difference -> { @user.account.categories.count } do

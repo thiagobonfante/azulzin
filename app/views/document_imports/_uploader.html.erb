@@ -1,5 +1,6 @@
-<%# Upload hero (D1) — primary path above the untouched manual form. Reused verbatim by the %>
-<%# onboarding accounts step and the post-onboarding accounts index. `title` overridable. %>
+<%# Upload hero (D1) — primary path above the untouched manual form. Reused by the
+    onboarding accounts step (defaults) and, inside the add-account card, by the accounts
+    index (`title` + `tooltip` set, `trailing_divider: false` — the card owns its own). %>
 <% title ||= t("onboarding.accounts.import.title") %>
 <%# No outer margin — callers own spacing. On the accounts index this sits flush with the
     top of the accounts list; onboarding adds its own gap below the subtitle. %>
@@ -11,14 +12,24 @@
        data-import-upload-max-bytes-value="<%= DocumentImport::MAX_FILE_BYTES %>"
        data-import-upload-accept-value=".pdf,.csv,.ofx,.txt"
        data-action="import-status:busy@window->import-upload#busyChanged">
-    <p class="font-display text-lg font-bold text-primary"><%= title %></p>
+    <p class="flex items-center gap-1.5 font-display text-lg font-bold text-primary">
+      <%= title %>
+      <% if local_assigns[:tooltip] %>
+        <span class="tooltip tooltip-left font-normal" data-tip="<%= tooltip %>" tabindex="0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+        </span>
+      <% end %>
+    </p>
     <p class="mt-1 text-sm text-base-content/70"><%= t("onboarding.accounts.import.hint") %></p>
 
     <%= form_with url: document_imports_path, method: :post, multipart: true,
                   class: "mt-4 flex flex-col gap-3 sm:flex-row sm:items-center" do %>
       <label class="sr-only" for="document_import_files"><%= t("document_imports.choose_files") %></label>
+      <%# MIME types FIRST: Android's file chooser builds its intent from accept, and an
+          extension-only list resolves to no MIME type → "No apps can perform this action"
+          (found on the emulator, .plans/credit-cards walk). Extensions stay for desktop UX. %>
       <input type="file" id="document_import_files" name="document_import[files][]" multiple
-             accept=".pdf,.csv,.ofx,.txt"
+             accept="application/pdf,text/csv,text/plain,application/x-ofx,.pdf,.csv,.ofx,.txt"
              class="file-input file-input-bordered w-full sm:max-w-xs"
              data-import-upload-target="input"
              data-action="import-upload#validate">
@@ -32,5 +43,7 @@
     <%= turbo_frame_tag :import_status, src: status_document_imports_path %>
   </div>
 
-  <div class="divider text-xs text-base-content/50"><%= t("onboarding.accounts.import.divider") %></div>
+  <% if local_assigns.fetch(:trailing_divider, true) %>
+    <div class="divider text-xs text-base-content/50"><%= t("onboarding.accounts.import.divider") %></div>
+  <% end %>
 </div>

@@ -1,0 +1,61 @@
+<%# locals: bill, lines — "conferir com o banco" (.plans/credit-cards 03 §1). No stated
+    value yet → ONE form, two inputs (typed value — ou — the PDF) and a single Conferir
+    button; the conferir-form controller routes the submit (file → reconciliation POST,
+    value → stated-total PATCH, which opens the focused conferir page on divergence).
+    Stated present → just the status here; resolution lives on the conferir page
+    (founder round 2026-07-22: no ad-hoc card mutating under the bill). %>
+<section id="divergence" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+  <h2 class="mb-2 text-sm font-semibold"><%= t("card_bills.divergence.title") %></h2>
+
+  <% if bill.stated_total_cents.nil? %>
+    <p class="text-xs text-base-content/50"><%= t("card_bills.divergence.hint") %></p>
+    <%= form_with url: card_bill_path(bill), method: :patch, multipart: true, class: "mt-3",
+          data: { turbo: false, controller: "conferir-form",
+                  conferir_form_recon_url_value: reconciliations_path,
+                  action: "submit->conferir-form#route" } do %>
+      <%= hidden_field_tag :credit_card_id, bill.credit_card_id %>
+      <%= hidden_field_tag :period, bill.billing_month.iso8601 %>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div class="form-control sm:flex-1">
+          <label class="mb-1 text-xs text-base-content/60" for="divergence_stated_total"><%= t("card_bills.divergence.inform_label") %></label>
+          <label class="input input-bordered input-sm flex w-full items-center gap-1">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= text_field_tag :stated_total_reais, nil, id: "divergence_stated_total",
+                  inputmode: "decimal", placeholder: "0,00", class: "grow",
+                  data: { controller: "money-mask", money_mask_cents_value: true,
+                          action: "input->money-mask#format", conferir_form_target: "value" } %>
+          </label>
+        </div>
+        <%# Just the word, centered on the input row — no divider lines (founder round). %>
+        <span class="self-center text-xs text-base-content/50 sm:self-end sm:pb-2"><%= t("card_bills.divergence.divider") %></span>
+        <div class="form-control sm:flex-1">
+          <label class="mb-1 text-xs text-base-content/60" for="divergence_pdf"><%= t("card_bills.divergence.pdf_cta") %></label>
+          <%# MIME types first — Android's chooser can't resolve extension-only accepts. %>
+          <input type="file" id="divergence_pdf" name="file"
+                 accept="application/pdf,text/csv,text/plain,application/x-ofx,.pdf,.csv,.ofx,.txt"
+                 class="file-input file-input-bordered file-input-sm w-full"
+                 data-conferir-form-target="file">
+        </div>
+      </div>
+      <div class="mt-3 flex justify-end">
+        <%= submit_tag t("card_bills.divergence.inform_submit"), class: "btn btn-primary btn-sm" %>
+      </div>
+    <% end %>
+  <% elsif bill.divergence_pending? %>
+    <%# No numbers here (founder round 2026-07-22b): the difference lives on the review
+        page — this card only says the check is waiting. %>
+    <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.review.pending_warning") %></span></div>
+    <div class="mt-2 flex justify-end">
+      <%= link_to t("card_bills.review.resolve_cta"), review_card_bill_path(bill),
+            class: "btn btn-primary btn-sm" %>
+    </div>
+  <% else %>
+    <%# Soft green (founder: alert-success is too dark) with the cancel escape inside —
+        one row instead of two. %>
+    <div role="status" class="flex flex-wrap items-center justify-between gap-2 rounded-box border border-success/30 bg-success/10 px-3 py-2 text-sm">
+      <span><%= t("card_bills.divergence.matches") %></span>
+      <%= button_to t("card_bills.review.cancel_cta"), clear_stated_card_bill_path(bill),
+            method: :patch, class: "text-xs text-base-content/40 hover:underline" %>
+    </div>
+  <% end %>
+</section>

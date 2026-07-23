@@ -41,9 +41,10 @@ class DocumentImportsController < ApplicationController
     redirect_to after_upload_path, alert: t("document_imports.errors.parse_failed")
   end
 
-  # Turbo Frame polled by import_status_controller every 2s.
+  # Turbo Frame polled by import_status_controller every 2s. Onboarding runs only —
+  # reconciliation runs have their own page (ReconciliationsController#show).
   def status
-    imports = Current.account.document_imports.where.not(status: "dismissed").order(created_at: :desc)
+    imports = Current.account.document_imports.onboarding.where.not(status: "dismissed").order(created_at: :desc)
     render partial: "document_imports/status", locals: { imports: imports }
   end
 

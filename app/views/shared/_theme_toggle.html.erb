@@ -1,0 +1,23 @@
+<%# Three-state theme picker (auto / light / dark), state in localStorage via
+    controllers/theme_controller.js. Icon buttons = labels over hidden radios
+    (a radio input can't hold an SVG); has-checked: paints the active one.
+    `group` keeps radio names unique when the sidebar and the Mais menu are
+    both on the page. Heroicon outline: computer-desktop / sun / moon. %>
+<% group = local_assigns.fetch(:group, "sidebar")
+   options = {
+     ""             => [ t("app.theme.auto"),  "M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" ],
+     "azulzin"      => [ t("app.theme.light"), "M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" ],
+     "azulzin-dark" => [ t("app.theme.dark"),  "M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" ]
+   } %>
+<div data-controller="theme" class="flex w-full items-center justify-between gap-3">
+  <span class="text-sm font-medium"><%= t("app.theme.label") %></span>
+  <div class="join">
+    <% options.each do |value, (label, icon)| %>
+      <label class="btn btn-square join-item btn-xs has-checked:border-primary has-checked:bg-primary has-checked:text-primary-content"
+             title="<%= label %>" aria-label="<%= label %>">
+        <input type="radio" name="theme-<%= group %>" value="<%= value %>" class="hidden" data-action="theme#set">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="<%= icon %>" /></svg>
+      </label>
+    <% end %>
+  </div>
+</div>

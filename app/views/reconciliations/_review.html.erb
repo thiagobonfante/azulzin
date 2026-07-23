@@ -1,0 +1,140 @@
+<%# locals: import, diff (when extracted), scope — the run's current state inside the
+    polled frame. Buckets per .plans/credit-cards 03 §2; NOTHING auto-applies. %>
+<% if %w[uploaded processing].include?(import.status) %>
+  <div class="flex items-center gap-2 text-sm text-base-content/60" data-import-active="true">
+    <span class="loading loading-spinner loading-sm"></span>
+    <%= t("reconciliations.show.processing") %>
+  </div>
+<% elsif import.failed? %>
+  <div role="alert" class="alert alert-error py-2 text-sm"><span><%= t("reconciliations.show.failed") %></span></div>
+  <%= link_to t("reconciliations.show.back_to_bill"), back_link_for(import), class: "btn btn-ghost btn-sm mt-2", data: { turbo_frame: "_top" } %>
+<% elsif import.applied? %>
+  <div role="status" class="alert alert-success py-2 text-sm"><span><%= t("reconciliations.show.applied_state") %></span></div>
+  <%= link_to t("reconciliations.show.back_to_bill"), back_link_for(import), class: "btn btn-ghost btn-sm mt-2", data: { turbo_frame: "_top" } %>
+<% elsif diff %>
+  <%# Bank scope: the extrato's closing balance vs our derived balance as-of that date —
+      the drift headline (03 §2). Advisory; CSV extratos carry no balance and skip it. %>
+  <% meta = import.extraction.is_a?(Hash) ? import.extraction["meta"] : nil %>
+  <% if import.bank_account_id && (closing = meta&.dig("closing_balance_cents")) %>
+    <% as_of = (Date.iso8601(meta["period_end"].to_s) rescue nil) || import.period.end_of_month %>
+    <% if (ours = import.bank_account.derived_balance_cents(as_of: as_of)) %>
+      <% drift = closing - ours %>
+      <div role="status" class="alert <%= drift.zero? ? "alert-success" : "alert-warning" %> py-2 text-sm">
+        <span>
+          <%= drift.zero? ? t("reconciliations.show.balance_matches")
+                          : t("reconciliations.show.balance_drift", amount: brl(drift.abs)) %>
+        </span>
+      </div>
+    <% end %>
+  <% end %>
+  <%= form_with url: apply_reconciliation_path(import), method: :post, class: "flex flex-col gap-4", data: { turbo: false } do %>
+    <% if diff.matched.any? %>
+      <details class="rounded-box border border-base-300/70 bg-base-100 px-4 py-3">
+        <summary class="cursor-pointer text-sm font-medium text-success">
+          <%= t("reconciliations.show.matched", count: diff.matched.size) %>
+        </summary>
+        <ul class="mt-2 flex flex-col gap-1">
+          <% diff.matched.each do |row, txn| %>
+            <li class="flex items-center justify-between text-xs text-base-content/50">
+              <span class="truncate"><%= txn.merchant.presence || row.description %> · <%= l(txn.occurred_on, format: :short) %></span>
+              <span class="tabular-nums"><%= brl(txn.amount_cents) %></span>
+            </li>
+          <% end %>
+        </ul>
+      </details>
+    <% end %>
+
+    <%# Unknown plastics on the fatura ("@FILHA final 9911") → propose sub-cards (04 §3). %>
+    <% if import.credit_card_id && (sections = unknown_card_sections(import)).any? %>
+      <section class="rounded-box border border-base-300/70 bg-base-100 p-4">
+        <h2 class="text-sm font-semibold"><%= t("reconciliations.show.sections") %></h2>
+        <p class="mb-2 text-xs text-base-content/50"><%= t("reconciliations.show.sections_hint") %></p>
+        <ul class="flex flex-col gap-1.5">
+          <% sections.each do |section| %>
+            <li>
+              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
+                <input type="checkbox" name="sections[]" value="<%= section["last4"] %>" checked class="checkbox checkbox-xs">
+                <span class="min-w-0 flex-1 truncate">
+                  <%= section["holder"].to_s.presence || t("credit_cards.sub_cards.imported_name", last4: section["last4"]) %>
+                  · <%= t("credit_cards.ending", last4: section["last4"]) %>
+                </span>
+                <% if section["is_virtual"] %><span class="badge badge-info badge-xs"><%= t("credit_cards.card_types.virtual") %></span><% end %>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+
+    <% if diff.only_in_source.any? %>
+      <section class="rounded-box border border-base-300/70 bg-base-100 p-4">
+        <h2 class="text-sm font-semibold"><%= t("reconciliations.show.only_in_source") %></h2>
+        <p class="mb-2 text-xs text-base-content/50"><%= t("reconciliations.show.only_in_source_hint") %></p>
+        <ul class="flex flex-col gap-1.5">
+          <% diff.only_in_source.each do |row| %>
+            <li>
+              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
+                <input type="checkbox" name="create[]" value="<%= row.digest %>" checked class="checkbox checkbox-xs">
+                <span class="min-w-0 flex-1 truncate">
+                  <%= row.description %><% if row.date %> · <%= l(row.date, format: :short) %><% end %>
+                </span>
+                <span class="tabular-nums"><%= brl(row.direction == "income" ? -row.amount_cents : row.amount_cents) %></span>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+
+    <% if diff.only_in_app.any? %>
+      <section class="rounded-box border border-base-300/70 bg-base-100 p-4">
+        <h2 class="text-sm font-semibold"><%= t("reconciliations.show.only_in_app") %></h2>
+        <p class="mb-2 text-xs text-base-content/50">
+          <%= import.bank_account_id ? t("reconciliations.show.only_in_app_hint_bank")
+                                     : t("reconciliations.show.only_in_app_hint") %>
+        </p>
+        <ul class="flex flex-col gap-1.5">
+          <% diff.only_in_app.each do |txn| %>
+            <li>
+              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
+                <%# Unchecked = manter: the bank's bill isn't always our scope (estorno timing). %>
+                <input type="checkbox" name="move[]" value="<%= txn.id %>" class="checkbox checkbox-xs">
+                <span class="min-w-0 flex-1 truncate"><%= txn.merchant.presence || "—" %> · <%= l(txn.occurred_on, format: :short) %></span>
+                <span class="tabular-nums"><%= brl(txn.amount_cents) %></span>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+
+    <% if diff.amount_mismatch.any? %>
+      <section class="rounded-box border border-base-300/70 bg-base-100 p-4">
+        <h2 class="text-sm font-semibold"><%= t("reconciliations.show.amount_mismatch") %></h2>
+        <p class="mb-2 text-xs text-base-content/50"><%= t("reconciliations.show.amount_mismatch_hint") %></p>
+        <ul class="flex flex-col gap-1.5">
+          <% diff.amount_mismatch.each do |row, txn| %>
+            <li>
+              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
+                <input type="checkbox" name="fix[]" value="<%= txn.id %>" checked class="checkbox checkbox-xs">
+                <span class="min-w-0 flex-1 truncate"><%= txn.merchant.presence || row.description %></span>
+                <span class="tabular-nums">
+                  <%= t("reconciliations.show.ours", amount: brl(txn.amount_cents)) %> →
+                  <span class="font-medium"><%= t("reconciliations.show.bank", amount: brl(row.amount_cents)) %></span>
+                </span>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+
+    <% if diff.only_in_source.empty? && diff.only_in_app.empty? && diff.amount_mismatch.empty? &&
+          (!import.credit_card_id || unknown_card_sections(import).empty?) %>
+      <div role="status" class="alert alert-success py-2 text-sm"><span><%= t("reconciliations.show.nothing") %></span></div>
+      <%= link_to t("reconciliations.show.back_to_bill"), back_link_for(import), class: "btn btn-ghost btn-sm self-start", data: { turbo_frame: "_top" } %>
+    <% else %>
+      <%= submit_tag t("reconciliations.show.apply"), class: "btn btn-primary btn-sm self-start" %>
+    <% end %>
+  <% end %>
+<% end %>

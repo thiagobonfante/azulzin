@@ -31,7 +31,8 @@ module ExploratorySeeds
     12 => { slug: "onboarding",      title: "Usuário confirmado, wizard incompleto" },
     13 => { slug: "invites",         title: "Convites/multi-usuário (+ convidado test-13b)" },
     14 => { slug: "tenancy-leak",    title: "Conta-canário p/ vazamento entre contas (R$ 666,66)" },
-    15 => { slug: "goal-celebrate",  title: "Meta a R$ 50,00 do alvo (festa 🎉)" }
+    15 => { slug: "goal-celebrate",  title: "Meta a R$ 50,00 do alvo (festa 🎉)" },
+    16 => { slug: "card-bills",      title: "Fatura de cartão — fechar, pagar, rotativo, conferir" }
   }.freeze
 
   def self.run(n)
@@ -216,6 +217,20 @@ module ExploratorySeeds
     saved = 3 * goal.monthly_target_cents
     goal.update!(target_cents: saved + 5_000)   # one R$ 50,00 contribution crosses the line
     [ scenario, [ "faltam exatos R$ 50,00 p/ o alvo — um aporte de R$ 50 dispara a festa 🎉" ] ]
+  end
+
+  # The founder walk (.plans/credit-cards): closed unpaid fatura calibrated for the picker
+  # (125.000¢, edge purchase 15.000¢, bank value 110.000¢) + frozen BCB rates for the
+  # rotativo warning/carryover. The bill_closed pack targets THIS month's bill, which only
+  # exists after the closing day — hence the day guard.
+  def self.card_bills(n)
+    if Date.current.day <= 3
+      puts "  ⚠ dia #{Date.current.day} ≤ 3: a fatura deste mês ainda não fechou (fecha dia 3) — rode do dia 4 em diante."
+    end
+    scenario = E2E::Scenario.build(:bill_closed).seed_bcb_rates!.wa_verified!
+    [ scenario, [ "fatura Nubank fechada: R$ 1.250,00 (fechou dia 3, vence dia 10) — em aberto",
+                  "borda do corte: 'Na Borda do Corte' R$ 150,00 (dia 3) · valor do banco p/ conferir: R$ 1.100,00",
+                  "taxas BCB congeladas: rotativo 15,09% · parcelamento 9,26% a.m. (projeções funcionam offline)" ] ]
   end
 
   def self.warn_early_month!

@@ -1,0 +1,168 @@
+<% content_for :title, t("card_bills.divergence.title") %>
+
+<%# The focused conferência (founder round 2026-07-22): only exists while the informed
+    bank number disagrees with ours. Ways out: move CLOSING-EDGE rows forward (partial
+    moves fine — never overshooting the bank's number), add a purchase found missing
+    (date clamped to the bill window), register the delta as an adjustment, or cancel.
+    Correcting a typo'd value = cancel and inform again from the bill page. %>
+<div class="mx-auto flex max-w-2xl flex-col gap-4">
+  <header>
+    <div class="flex items-stretch gap-3">
+      <%= render "shared/back_button", path: card_bill_path(@bill),
+            label: t("card_bills.show.title", month: l(@bill.billing_month, format: :month_name)) %>
+      <div class="min-w-0 flex-1">
+        <h1 data-native-dup class="font-display text-xl font-bold"><%= t("card_bills.divergence.title") %></h1>
+        <p class="truncate text-sm text-base-content/60">
+          <%= t("card_bills.show.title_with_card", month: l(@bill.billing_month, format: :month_name), card: @bill.credit_card.display_name) %>
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <%# Our figure INCLUDES the live carryover estimate (rows can never contain encargos)
+      — comparing the bank against raw computed would be nonsense on a rotativo bill. %>
+  <% diff = @bill.our_total_cents - @bill.stated_total_cents %>
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <div class="grid grid-cols-2 gap-3 text-sm">
+      <div>
+        <p class="text-xs text-base-content/50"><%= t("card_bills.review.our_total") %></p>
+        <p class="font-display text-lg font-bold tabular-nums"><%= brl(@bill.our_total_cents) %></p>
+      </div>
+      <div>
+        <p class="text-xs text-base-content/50"><%= t("card_bills.divergence.inform_label") %></p>
+        <p class="font-display text-lg font-bold tabular-nums"><%= brl(@bill.stated_total_cents) %></p>
+      </div>
+    </div>
+    <div class="mt-3">
+      <% if diff.positive? %>
+        <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.divergence.ours_higher", amount: brl(diff)) %></span></div>
+      <% else %>
+        <div role="status" class="alert alert-warning py-2 text-sm"><span><%= t("card_bills.divergence.bank_higher", amount: brl(-diff)) %></span></div>
+        <p class="mt-2 text-xs text-base-content/50"><%= t("card_bills.divergence.bank_higher_hint") %></p>
+      <% end %>
+    </div>
+  </section>
+
+  <% if diff.positive? && @edge_lines.any? %>
+    <%# The left-behind picker — only closing-edge rows (≤2 days before closing), the
+        plausible "o banco jogou pra frente" candidates. Partial moves are fine (pick one
+        row, adjust the rest); the button only blocks while nothing is picked or the
+        selection OVERSHOOTS the bank's number. %>
+    <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+      <%= form_with url: carry_over_card_bill_path(@bill), method: :patch,
+            data: { controller: "carry-over",
+                    carry_over_computed_value: @bill.our_total_cents,
+                    carry_over_stated_value: @bill.stated_total_cents, turbo: false } do %>
+        <p class="mb-1 text-sm font-medium"><%= t("card_bills.divergence.picker_title") %></p>
+        <p class="mb-2 text-xs text-base-content/50"><%= t("card_bills.divergence.picker_hint") %></p>
+        <ul class="flex max-h-64 flex-col gap-1 overflow-y-auto">
+          <% @edge_lines.sort_by { |l| [ l.occurred_on, l.id ] }.reverse.each do |line| %>
+            <li>
+              <label class="flex cursor-pointer items-center gap-2 text-xs text-base-content/70">
+                <input type="checkbox" name="transaction_ids[]" value="<%= line.id %>"
+                       class="checkbox checkbox-xs"
+                       data-carry-over-target="checkbox" data-action="carry-over#recount"
+                       data-amount="<%= line.income? ? -line.amount_cents : line.amount_cents %>">
+                <span class="min-w-0 flex-1 truncate">
+                  <%= line.merchant.presence || "—" %><% if line.installment_number %> <%= line.installment_number %>/<%= line.commitment&.installments_count %><% end %>
+                  · <%= l(line.occurred_on, format: :short) %>
+                </span>
+                <span class="tabular-nums"><%= brl(line.amount_cents) %></span>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+        <div class="mt-2 flex flex-wrap items-baseline justify-between gap-2 rounded-box bg-base-200/60 px-3 py-2 text-xs">
+          <span>
+            <%= t("card_bills.divergence.running_ours") %>:
+            <span class="font-medium tabular-nums"><%= t("money.symbol") %> <span data-carry-over-target="remaining"></span></span>
+            · <%= t("card_bills.divergence.running_stated") %>:
+            <span class="font-medium tabular-nums"><%= brl(@bill.stated_total_cents) %></span>
+          </span>
+          <span data-carry-over-target="match" class="hidden font-medium text-success"><%= t("card_bills.divergence.matches") %></span>
+        </div>
+        <div class="mt-2 flex justify-end">
+          <%= submit_tag t("card_bills.divergence.move_submit"), class: "btn btn-primary btn-sm",
+                data: { carry_over_target: "submit" } %>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if diff.negative? %>
+    <%# Bank higher — maybe the user FOUND the missing purchase: a normal card expense,
+        everything tied to this card, date clamped to the bill's window. %>
+    <% window_start = @bill.credit_card.closing_date(@bill.billing_month << 1) + 1 %>
+    <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+      <p class="text-sm font-medium"><%= t("card_bills.review.add_line.title") %></p>
+      <p class="mt-1 text-xs text-base-content/50"><%= t("card_bills.review.add_line.hint") %></p>
+      <%= form_with url: add_line_card_bill_path(@bill), method: :post, class: "mt-2 flex flex-col gap-2",
+            data: { turbo: false, controller: "clone" } do %>
+        <div class="flex flex-col gap-2" data-clone-target="container">
+          <div class="grid gap-2 sm:grid-cols-3">
+            <div class="form-control">
+              <label class="mb-1 text-xs text-base-content/60" for="add_line_merchant"><%= t("card_bills.review.add_line.merchant") %></label>
+              <%= text_field_tag "merchants[]", nil, id: "add_line_merchant", required: true,
+                    class: "input input-bordered input-sm w-full" %>
+            </div>
+            <div class="form-control">
+              <label class="mb-1 text-xs text-base-content/60" for="add_line_amount"><%= t("card_bills.review.add_line.amount") %></label>
+              <label class="input input-bordered input-sm flex items-center gap-1">
+                <span class="text-base-content/50"><%= t("money.symbol") %></span>
+                <%= text_field_tag "amounts_reais[]", nil, id: "add_line_amount", required: true,
+                      inputmode: "decimal", placeholder: "0,00", class: "grow",
+                      data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="mb-1 text-xs text-base-content/60" for="add_line_date"><%= t("card_bills.review.add_line.date") %></label>
+              <input type="date" id="add_line_date" name="occurred_ons[]" value="<%= @bill.closed_on.iso8601 %>"
+                     min="<%= window_start.iso8601 %>" max="<%= @bill.closed_on.iso8601 %>"
+                     class="input input-bordered input-sm w-full">
+            </div>
+          </div>
+        </div>
+        <%# Extra rows are optional (blank ones are skipped server-side) — no ids/labels,
+            the first row's column headers cover them. %>
+        <template data-clone-target="template">
+          <div class="grid gap-2 sm:grid-cols-3">
+            <%= text_field_tag "merchants[]", nil, id: nil, class: "input input-bordered input-sm w-full",
+                  aria: { label: t("card_bills.review.add_line.merchant") } %>
+            <label class="input input-bordered input-sm flex items-center gap-1">
+              <span class="text-base-content/50"><%= t("money.symbol") %></span>
+              <%= text_field_tag "amounts_reais[]", nil, id: nil, inputmode: "decimal", placeholder: "0,00", class: "grow",
+                    aria: { label: t("card_bills.review.add_line.amount") },
+                    data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+            </label>
+            <input type="date" name="occurred_ons[]" value="<%= @bill.closed_on.iso8601 %>"
+                   min="<%= window_start.iso8601 %>" max="<%= @bill.closed_on.iso8601 %>"
+                   aria-label="<%= t("card_bills.review.add_line.date") %>"
+                   class="input input-bordered input-sm w-full">
+          </div>
+        </template>
+        <div class="flex justify-between gap-2">
+          <button type="button" class="btn btn-ghost btn-sm text-primary" data-action="clone#add">
+            + <%= t("card_bills.review.add_line.more") %>
+          </button>
+          <%= submit_tag t("card_bills.review.add_line.submit"), class: "btn btn-primary btn-sm" %>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <%# The escape hatch: can't find the difference? One tap records the delta as a normal
+      card transaction — deleting it later is the rollback. %>
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <p class="text-sm font-medium"><%= t("card_bills.review.adjust_title") %></p>
+    <p class="mt-1 text-xs text-base-content/50"><%= t("card_bills.review.adjust_hint") %></p>
+    <div class="mt-2 flex justify-end">
+      <%= button_to t("card_bills.review.adjust_cta", amount: "#{diff.negative? ? "+" : "−"}#{brl(diff.abs)}"),
+            adjust_card_bill_path(@bill), method: :post, class: "btn btn-primary btn-sm" %>
+    </div>
+  </section>
+
+  <div class="flex justify-end">
+    <%= button_to t("card_bills.review.cancel_cta"), clear_stated_card_bill_path(@bill),
+          method: :patch, class: "btn btn-ghost btn-sm text-error" %>
+  </div>
+</div>

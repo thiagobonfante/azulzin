@@ -18,6 +18,7 @@ module Categories
       [ "#06B6D4", "arrow-path" ], # Assinaturas
       [ "#8B5CF6", "bag" ],        # Vestuário
       [ "#3B82F6", "plane" ],      # Viagem
+      [ "#EF4444", "credit-card" ], # Encargos — bank juros/IOF/multa lines (P0 #6: debt cost stays visible)
       [ "#64748B", "tag" ]        # Outros
     ].freeze
 

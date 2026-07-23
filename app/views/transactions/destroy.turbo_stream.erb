@@ -1,3 +1,7 @@
+<% if params[:context] == "bill" %>
+  <%# Bill-page delete: total + conferência shift — refresh the whole page. %>
+  <%= turbo_stream.refresh request_id: nil %>
+<% else %>
 <%# Reversed/discarded → rejected: leaves both the tray and the ledger. Remove from each
     (no-op where absent); refresh the tray chrome and the hub figures (spend/sobra dropped). %>
 <%= turbo_stream.remove dom_id(@transaction) %>
@@ -20,4 +24,5 @@
         locals: { rows: @recent_rows, window_empty: @recent_window.empty?, today: @recent_today } %>
   <%= turbo_stream.replace "recent_chips", partial: "transactions/recent_chips",
         locals: { window: @recent_window, category_filter: @recent_category } %>
+<% end %>
 <% end %>

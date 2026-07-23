@@ -15,4 +15,52 @@
   <div class="rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
     <%= render "bank_accounts/form", bank_account: @bank_account %>
   </div>
+
+  <%# Ajustar saldo: shows the LIVE derived balance and re-anchors it on save (the model
+      stamps balance_anchored_at). The "saldo inicial" field is create-only — this section
+      is the one place a persisted account's balance changes by hand. %>
+  <div class="mt-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="font-display text-lg font-bold"><%= t("bank_accounts.adjust.title") %></h2>
+    <p class="mt-1 text-sm text-base-content/60">
+      <% if @bank_account.balance_informed? %>
+        <%= t("bank_accounts.adjust.current", amount: brl(@bank_account.derived_balance_cents)) %>
+      <% else %>
+        <%= t("bank_accounts.no_balance") %>
+      <% end %>
+    </p>
+    <%= form_with url: adjust_balance_bank_account_path(@bank_account), method: :patch,
+          class: "mt-3 flex flex-col gap-3" do %>
+      <label class="input input-bordered flex w-full items-center gap-2">
+        <span class="text-base-content/50"><%= t("money.symbol") %></span>
+        <%= text_field_tag :balance_reais, nil, required: true, inputmode: "decimal", placeholder: "0,00", class: "grow",
+              data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" },
+              aria: { label: t("bank_accounts.adjust.title") } %>
+      </label>
+      <p class="text-xs text-base-content/50"><%= t("bank_accounts.adjust.hint") %></p>
+      <div class="flex justify-end">
+        <%= submit_tag t("bank_accounts.adjust.submit"), class: "btn btn-primary btn-sm" %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Conferir com extrato (.plans/credit-cards 03 §4), moved off the index rows: month
+      picker + uploader → the BankPeriodScope review. CSV/OFX parse free; a PDF consumes
+      the monthly slot. %>
+  <div class="mt-6 rounded-box border border-base-300/70 bg-base-100 p-5 shadow-sm">
+    <h2 class="font-display text-lg font-bold"><%= t("bank_accounts.reconcile.cta") %></h2>
+    <p class="mt-1 text-sm text-base-content/60"><%= t("bank_accounts.reconcile.hint") %></p>
+    <%= form_with url: reconciliations_path, method: :post, multipart: true,
+          class: "mt-3 flex flex-col gap-3", data: { turbo: false } do %>
+      <%= hidden_field_tag :bank_account_id, @bank_account.id %>
+      <input type="month" name="period" required value="<%= (Date.current << 1).strftime("%Y-%m") %>"
+             class="input input-bordered w-full" aria-label="<%= t("bank_accounts.reconcile.month") %>">
+      <%# MIME types first — Android's chooser can't resolve extension-only accepts. %>
+      <input type="file" name="file" accept="application/pdf,text/csv,text/plain,application/x-ofx,.pdf,.csv,.ofx,.txt" required
+             class="file-input file-input-bordered w-full"
+             aria-label="<%= t("bank_accounts.reconcile.cta") %>">
+      <div class="flex justify-end">
+        <%= submit_tag t("bank_accounts.reconcile.submit"), class: "btn btn-primary btn-sm" %>
+      </div>
+    <% end %>
+  </div>
 </div>

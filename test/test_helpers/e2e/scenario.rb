@@ -166,6 +166,89 @@ module E2E
       self
     end
 
+    # solo_basic + a CLOSED, unpaid fatura for the anchor month (BILL packs): calibrated
+    # 125_000¢ = 60_000 + 50_000 mid-cycle + 15_000 ON the closing edge (the BILL-05
+    # left-behind candidate — closest to closing, floats to the top of the picker).
+    # Itaú balance R$ 2.500,00 anchors derived-balance assertions. Card due day 10 /
+    # closes the 3rd ⇒ at the anchor (the 20th) the bill is closed and already past due.
+    def bill_closed(**)
+      solo_basic
+      close_day = nubank_card.bill_due_day - nubank_card.closing_offset_days   # the 3rd
+      prev = this_month << 1
+      expense(merchant: "Mercado Grande",    category: "Mercado", instrument: nubank_card,
+              cents: 60_000, on: prev + 14)
+      expense(merchant: "Farmácia Central",  category: "Saúde",   instrument: nubank_card,
+              cents: 50_000, on: prev + 19)
+      expense(merchant: "Na Borda do Corte", category: "Outros",  instrument: nubank_card,
+              cents: 15_000, on: this_month + (close_day - 1))   # ON the closing date → this bill
+      itau.update!(balance_cents: 250_000)
+      bills = CardBills::CloseScan.ensure_for(nubank_card)
+      verify_bill_calibration!(bills)
+      self
+    end
+
+    def closed_bill = nubank_card.card_bills.order(:billing_month).last
+
+    # bill_closed's rotativo sibling (ROT packs): one closed bill of exactly 300_000¢ for
+    # the anchor month (already past due at the anchor — due day 10, anchor the 20th) plus
+    # the frozen BCB rates rows (rotativo 15,09 / parcelamento 9,26 — tests NEVER call the
+    # API). Itaú balance R$ 4.000,00.
+    def bill_rotativo(**)
+      solo_basic
+      seed_bcb_rates!
+      expense(merchant: "Compra Grande", category: "Outros", instrument: nubank_card,
+              cents: 300_000, on: (this_month << 1) + 14)
+      itau.update!(balance_cents: 400_000)
+      bills = CardBills::CloseScan.ensure_for(nubank_card)
+      unless bills.size == 1 && bills.last.computed_total_cents == 300_000 && bills.last.overdue?
+        raise "bill_rotativo pack lost its calibration: #{bills.map { |b| [ b.billing_month, b.computed_total_cents ] }.inspect}"
+      end
+      self
+    end
+
+    # SUB-01 calibrated family: nubank root + "virtual iFood" + "cartão da filha", three
+    # rows on the anchor-month bill split across the family — 40.000 + 12.000 + 8.000 =
+    # 60.000¢. The count-once invariant self-checks at build time.
+    def card_family(**)
+      solo_basic
+      @instruments[:ifood_virtual] = account.credit_cards.create!(
+        institution: nubank_card.institution, parent_card: nubank_card,
+        nickname: "virtual iFood", card_type: "virtual", last4: "7001", created_by: owner)
+      @instruments[:filha_card] = account.credit_cards.create!(
+        institution: nubank_card.institution, parent_card: nubank_card,
+        nickname: "cartão da filha", last4: "7002", created_by: owner)
+      prev = this_month << 1
+      expense(merchant: "Compra Root",  category: "Outros",       instrument: nubank_card,   cents: 40_000, on: prev + 10)
+      expense(merchant: "iFood",        category: "Restaurantes", instrument: ifood_virtual, cents: 12_000, on: prev + 12)
+      expense(merchant: "Lanche Filha", category: "Restaurantes", instrument: filha_card,    cents: 8_000,  on: prev + 14)
+      verify_family_calibration!
+      self
+    end
+
+    def ifood_virtual = @instruments.fetch(:ifood_virtual)
+    def filha_card    = @instruments.fetch(:filha_card)
+
+    # The count-once invariant (04 §2): Σ over ROOTS' bill_cents covers every family row
+    # exactly once — no double count, no hole.
+    def verify_family_calibration!
+      roots_total = account.credit_cards.kept.roots.sum { |c| c.bill_cents(this_month) }
+      rows_total  = account.transactions.posted.kept
+                           .where.not(credit_card_id: nil)
+                           .where(billing_month: this_month, direction: "expense").sum(:amount_cents)
+      return if roots_total == 60_000 && rows_total == 60_000
+      raise "card_family pack lost the count-once calibration: roots=#{roots_total} rows=#{rows_total}"
+    end
+
+    def seed_bcb_rates!
+      { "rotativo" => "15.09", "parcelamento" => "9.26" }.each do |kind, rate|
+        BcbRate.find_or_create_by!(kind: kind, reference_month: this_month << 1) do |row|
+          row.monthly_rate = BigDecimal(rate)
+          row.fetched_at   = Time.current
+        end
+      end
+      self
+    end
+
     # solo_basic + caixinha + commitments arranged around the traveled "today"
     # (see .plans/e2e/02 §3): Condomínio due today+1 (default lead) · Luz due today−2 unpaid
     # (inside 3-day overdue grace) · Água due today−5 unpaid (outside grace) · card closing
@@ -350,6 +433,17 @@ module E2E
         raise "recent_days pack lost its calibration: " \
               "#{rows.map { |r| [ r.merchant, r.amount_cents, r.billing_month ] }.inspect}"
       end
+    end
+
+    # bill_closed tripwire: exactly ONE closed bill for the anchor month at exactly
+    # 125_000¢, unpaid — the frozen cents every BILL test asserts against.
+    def verify_bill_calibration!(bills)
+      bill = bills.last
+      ok = bills.size == 1 && bill&.billing_month == this_month &&
+           bill.computed_total_cents == 125_000 && bill.status == "unpaid"
+      return if ok
+      raise "bill_closed pack lost its calibration: " \
+            "#{bills.map { |b| [ b.billing_month, b.computed_total_cents, b.status ] }.inspect}"
     end
 
     # Cheap tripwire: if service logic changes ever un-calibrate this pack, fail HERE with

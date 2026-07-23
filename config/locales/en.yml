@@ -156,6 +156,19 @@ en:
           attributes:
             base:
               has_kept_incomes: "has active incomes — move them to another account before deleting."
+        credit_card:
+          attributes:
+            base:
+              has_kept_children: "has extra cards — remove the extra cards first."
+            parent_card:
+              nested: "can't be an extra card — one level only."
+              cross_account: "must belong to this account."
+            institution:
+              mismatch: "must match the main card's."
+            bill_due_day:
+              sub_card: "doesn't apply to an extra card — the due day belongs to the main card."
+            credit_limit_cents:
+              sub_card: "doesn't apply to an extra card — the limit belongs to the main card."
         commitment:
           one_instrument: "must have exactly one account or card."
           attributes:
@@ -221,6 +234,11 @@ en:
       invite: "Invite friends"
       open_menu: "Open menu"
       close_menu: "Close menu"
+    theme:
+      label: "Theme"
+      auto: "Auto"
+      light: "Light"
+      dark: "Dark"
   chat:
     show:
       title: "Chat"
@@ -477,7 +495,7 @@ en:
     nickname: "Nickname"
     nickname_placeholder: "e.g. Salary account"
     optional_details: "Optional details"
-    balance: "Current balance"
+    balance: "Starting balance"
     agency: "Branch"
     agency_placeholder: "0000"
     account_number: "Account number"
@@ -490,6 +508,24 @@ en:
     empty: "No accounts added yet."
     remove: "Remove account"
     confirm_remove: "Remove this account?"
+    adjust:
+      title: "Adjust balance"
+      current: "Current balance: %{amount}"
+      submit: "Save balance"
+      hint: "Enter today's balance at your bank — the difference is recorded as an adjustment entry, which you can delete to undo."
+      transaction_merchant: "Balance adjustment"
+      adjusted: "Adjustment of %{amount} recorded."
+      no_change: "Your balance already matches — nothing to adjust."
+      invalid: "Invalid amount — enter the balance in reais."
+    import:
+      divider: "or"
+      title: "Import a statement & create"
+      tooltip: "Upload a PDF, CSV or OFX statement and azulzin creates the account and brings in the entries for you to review."
+    reconcile:
+      cta: "Check against your bank statement"
+      hint: "Upload the month's statement and compare it with what's recorded here."
+      month: "Statement month"
+      submit: "Upload and check"
     index:
       meta_title: "Accounts"
       title: "Your accounts"
@@ -538,12 +574,193 @@ en:
       meta_title: "Cards"
       title: "Your cards"
       subtitle: "Manage the cards you track in azulzin."
+    sub_cards:
+      title: "Extra and virtual cards"
+      subtitle: "The family's virtual copies and extra cards — the bill and the limit live on the main card."
+      footer:
+        one: "1 extra card"
+        other: "%{count} extra cards"
+      add: "+ extra or virtual card"
+      save: "Add"
+      edit: "edit"
+      nickname: "Nickname"
+      nickname_placeholder: "e.g. iFood virtual, daughter's card"
+      belongs_to: "Extra card of %{card} — the due day and the limit live on the main card."
+      imported_name: "ending %{last4}"
+    default:
+      set: "Use as default"
+    make_default:
+      set: "%{card} is now your default card."
+    recent_bills:
+      title: "Latest bills"
+    bills:
+      title: "Bills"
+      subtitle: "Closed-bill history — each month's status and payments."
+      paid: "Paid %{amount}"
+      empty: "No closed bills yet."
     create:
       created: "Card added."
     update:
       updated: "Card updated."
     destroy:
       removed: "Card removed."
+  card_bills:
+    show:
+      title: "%{month} bill"
+      title_with_card: "%{month} bill — %{card}"
+      closed_on: "Closed on %{date}"
+      due_on: "Due on %{date}"
+      total: "Bill total"
+      paid_so_far: "Paid"
+      pay: "Pay bill"
+      lines_title: "Charges"
+      no_lines: "No charges on this bill."
+      payments_title: "Payments"
+      untracked_source: "another account"
+      unpay: "Undo"
+    status:
+      paid: "paid"
+      paid_late: "paid late"
+      partially_paid: "partially paid"
+      unpaid: "open"
+      overdue: "overdue"
+      rolled: "remainder on the next bill"
+      financed: "split into installments"
+    pay_modal:
+      title: "Pay bill"
+      subtitle: "%{card} bill — %{amount}"
+      amount: "Amount paid"
+      date: "Date"
+      source: "Source account"
+      untracked_source: "Another account (not tracked)"
+      submit: "Pay"
+      cancel: "Cancel"
+    pay:
+      paid: "Payment recorded."
+      invalid_amount: "Enter a valid amount."
+    unpay:
+      undone: "Payment undone."
+    divergence:
+      title: "Check against the bank"
+      hint: "The computed total can differ from the bank's — purchases near closing sometimes roll to the next bill."
+      inform_label: "Bank's total"
+      inform_submit: "Check"
+      matches: "Matches the bank 💙"
+      ours_higher: "%{amount} above the bank"
+      bank_higher: "%{amount} below the bank"
+      bank_higher_hint: "The bank has a charge that isn't here yet — add the missing entry in Movements."
+      picker_title: "Pick what rolled to the next bill"
+      picker_hint: "Purchases near closing are the likely ones — check the ones the bank pushed forward."
+      running_ours: "Our total minus the checked"
+      running_stated: "Bank's total"
+      move_submit: "Move to the next bill"
+      divider: "or"
+      pdf_cta: "Check against the bill PDF"
+    update:
+      stated_saved: "Bank's total recorded."
+    review:
+      our_total: "Our total"
+      resolve_cta: "Resolve the difference"
+      pending_warning: "You reported a value different from what we calculated — finish the check."
+      adjust_title: "Can't find the difference?"
+      adjust_hint: "Records the difference as an adjustment entry on the bill — a normal entry you can delete if you change your mind."
+      adjust_cta: "Record a %{amount} adjustment"
+      adjustment_merchant: "Bill adjustment"
+      cancel_cta: "Cancel the check"
+      add_line:
+        title: "Found the missing purchase?"
+        hint: "Added as a normal entry on this card, inside this bill's window."
+        merchant: "Where"
+        amount: "Amount"
+        date: "Date"
+        submit: "Add to the bill"
+        more: "Add another line"
+        default_merchant: "Card purchase"
+    clear_stated:
+      cleared: "Check canceled — bank value forgotten."
+    adjust:
+      adjusted: "%{amount} adjustment recorded on the bill."
+    add_line:
+      added: "Entry added to the bill."
+    carry_over:
+      moved:
+        one: "1 entry moved to the next bill."
+        other: "%{count} entries moved to the next bill."
+      none: "No entries selected."
+    carryover:
+      from_bill: "carried from the %{month} bill"
+      estimated_charges: "estimated charges"
+      estimate_label: "estimate (Central Bank average rates, %{month})"
+    financing:
+      title: "Bill installment plan"
+      offer: "I split this bill with the bank"
+      short_cta: "I split it"
+      back: "Back"
+      help: "Copy the numbers from your bank's app — the installments land on the next bills, and the financed amount keeps using your limit until settled."
+      entrada: "Down payment"
+      entrada_help: "The down payment is this bill's payment: it leaves the chosen account and the bill counts as paid. Leave blank if you already recorded it via Pay."
+      financed: "Financed amount"
+      count: "Number of installments"
+      installment: "Installment amount"
+      submit: "Record installment plan"
+      summary: "%{count}x of %{parcel} — total %{total}"
+      summary_fees: "of which %{amount} is interest and IOF"
+      summary_span: "installments from %{from} to %{to}"
+      cancel: "Cancel installment plan"
+      line: "installment plan from the %{month} bill — %{no}/%{count}"
+      line_fees: "of which %{amount} is interest and IOF"
+    finance:
+      financed: "Installment plan in %{count}x recorded — the installments land on the next bills."
+      invalid: "Check the plan's numbers — installments × amount must cover the financed amount."
+    unfinance:
+      unfinanced: "Installment plan canceled — the installments left the next bills."
+      unfinanced_with_entrada: "Installment plan canceled — the installments left the next bills and the down payment was undone."
+    rotativo:
+      below_total: "Paying less than the total starts revolving credit."
+      below_total_rate: "Today it costs an average of %{rate}% a month."
+      below_total_generic: "Card interest is among the most expensive there is."
+      below_minimum: "Below the minimum payment (%{minimum}%{label}) it becomes a late payment: 2% fine, 1% monthly interest, and the card can be blocked and your name sent to collections."
+      assumed_minimum: ", estimated at 15%"
+      panel_title: "If you pay %{amount} today:"
+      left_behind: "still owed"
+      next_bill_total: "lands on the next bill"
+      next_bill_fees: "%{amount} of it in interest and IOF"
+      parcelamento_hint: "Depending on the amount, consider the card's installment plan."
+      cap_reassurance: "The law caps charges at 100% of what was left — your debt can at most double. But it doubles in ~%{months} months."
+  reconciliations:
+    show:
+      title: "Check against the bank"
+      subtitle: "%{card} — %{month} bill"
+      subtitle_bank: "%{account} — %{month} statement"
+      balance_matches: "Your balance matches the bank 💙"
+      balance_drift: "Your balance differs from the bank by %{amount}."
+      only_in_app_hint_bank: "Checked ones will be removed (likely duplicates); unchecked stay as they are."
+      sections: "Cards on this bill"
+      sections_hint: "Plastics that appeared on the bill and aren't in azulzin yet — checked ones will be created as extra cards."
+      processing: "Reading the document…"
+      failed: "We couldn't read the document. Try again with another file."
+      applied_state: "Check applied."
+      back_to_bill: "Back to the bill"
+      matched:
+        one: "1 entry matches the bank"
+        other: "%{count} entries match the bank"
+      only_in_source: "Only at the bank"
+      only_in_source_hint: "Checked ones will be created in azulzin."
+      only_in_app: "Only in azulzin"
+      only_in_app_hint: "Checked ones move to the next bill; unchecked stay as they are."
+      amount_mismatch: "Different amount"
+      amount_mismatch_hint: "Checked ones will be corrected to the bank's amount."
+      ours: "in azulzin: %{amount}"
+      bank: "at the bank: %{amount}"
+      apply: "Apply"
+      nothing: "All good — matches the bank 💙"
+    create:
+      no_file: "Choose a file."
+      duplicate: "This file was already uploaded."
+      monthly_cap: "We already checked this card this month — again on %{date}."
+    apply:
+      applied: "Checked: %{created} created, %{moved} moved, %{fixed} corrected."
+      applied_bank: "Checked: %{created} created, %{moved} removed, %{fixed} corrected."
   incomes:
     add_title: "Add income"
     edit_title: "Edit income"
@@ -708,6 +925,7 @@ en:
       - "Subscriptions"
       - "Clothing"
       - "Travel"
+      - "Interest & fees"
       - "Other"
     add_title: "Add category"
     name: "Name"
@@ -920,6 +1138,7 @@ en:
       view_receipt: "View receipt"
       close_receipt: "Close receipt"
       has_receipt: "Has a receipt"
+      bill_payment: "Payment of the %{month} bill"
     new:
       submit: "Add"
     create:
@@ -981,7 +1200,6 @@ en:
       by_category: "Totals by category"
       net_total: "Net for the period: %{amount}"
   document_imports:
-    hero_title: "Import a statement"
     choose_files: "Choose files…"
     submit: "Upload"
     review_button: "Review and create"
@@ -1259,6 +1477,11 @@ en:
         zero: "Your %{card} bill is due today — %{amount}."
         one: "Your %{card} bill is due tomorrow — %{amount}."
         other: "Your %{card} bill is due in %{count} days — %{amount}."
+      card_due_payable:
+        zero: "Your %{card} bill closed at %{amount} and is due today — you can pay it now."
+        one: "Your %{card} bill closed at %{amount} and is due tomorrow — you can pay it now."
+        other: "Your %{card} bill closed at %{amount} and is due in %{count} days — you can pay it now."
+      card_overdue: "Your %{card} bill is overdue with %{amount} still open — revolving credit is expensive, worth paying off."
       income_expected:
         zero: "%{name} (%{amount}) should land today."
         one: "%{name} (%{amount}) should land tomorrow."
@@ -1322,6 +1545,15 @@ en:
           zero: "Your %{card} statement is due today."
           one: "Your %{card} statement is due tomorrow."
           other: "Your %{card} statement is due in %{count} days."
+      card_due_payable:
+        title: "Bill closed"
+        body:
+          zero: "Your %{card} bill is due today — tap to pay."
+          one: "Your %{card} bill is due tomorrow — tap to pay."
+          other: "Your %{card} bill is due in %{count} days — tap to pay."
+      card_overdue:
+        title: "Bill overdue"
+        body: "Your %{card} bill is overdue — tap to pay."
       income_expected:
         title: "Income expected"
         body:
@@ -1652,6 +1884,11 @@ en:
           zero: "📄 The *%{card}* bill (%{amount}) is due today. 💙"
           one: "📄 The *%{card}* bill (%{amount}) is due tomorrow. 💙"
           other: "📄 The *%{card}* bill (%{amount}) is due in %{count} days. 💙"
+        card_due_payable:
+          zero: "📄 The *%{card}* bill closed at %{amount} and is due today. You can pay it in the app. 💙"
+          one: "📄 The *%{card}* bill closed at %{amount} and is due tomorrow. You can pay it in the app. 💙"
+          other: "📄 The *%{card}* bill closed at %{amount} and is due in %{count} days. You can pay it in the app. 💙"
+        card_overdue: "⚠️ The *%{card}* bill is overdue with %{amount} still open. Revolving credit is expensive — you can pay it in the app. 💙"
         income_expected:
           zero: "💰 Your *%{name}* of %{amount} should land today. 💙"
           one: "💰 Your *%{name}* of %{amount} should land tomorrow. 💙"

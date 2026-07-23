@@ -13,6 +13,7 @@ class E2E::NotificationGatesTest < E2E::PipelineCase
     "bill_overdue"     => { name: "Luz", amount_cents: 18_500, days_overdue: 2 },
     "card_closing"     => { card: "Nubank", amount_cents: 25_000, days_until: 1 },
     "card_due"         => { card: "Nubank", amount_cents: 25_000, days_until: 2 },
+    "card_overdue"     => { card: "Nubank", amount_cents: 25_000, due_on: "2026-05-10" },
     "income_expected"  => { name: "Salário", amount_cents: 500_000, days_until: 1 },
     "budget_warn"      => { category: "Mercado", spent_cents: 132_500, budget_cents: 150_000, left_cents: 17_500 },
     "budget_breach"    => { category: "Restaurantes", spent_cents: 64_780, budget_cents: 60_000 },

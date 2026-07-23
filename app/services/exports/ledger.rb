@@ -40,7 +40,7 @@ module Exports
       def scope
         base = account.transactions.posted.kept
                       .includes(:category, :bank_account, :credit_card, :commitment,
-                                :transfer_to_bank_account)
+                                :transfer_to_bank_account, :transfer_to_credit_card)
         (from || to) ? base.where(occurred_on: from..to) : base
       end
 
@@ -67,7 +67,7 @@ module Exports
       def instrument_label(transaction)
         if transaction.transfer?
           [ transaction.bank_account&.display_name,
-            transaction.transfer_to_bank_account&.display_name ].compact.join(" → ")
+            (transaction.transfer_to_bank_account || transaction.transfer_to_credit_card)&.display_name ].compact.join(" → ")
         else
           transaction.instrument&.display_name
         end

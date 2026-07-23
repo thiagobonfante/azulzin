@@ -46,6 +46,33 @@ class BankAccountsController < ApplicationController
     end
   end
 
+  # Ajustar saldo (edit page): the informed "saldo de hoje" becomes a LEDGER row for the
+  # delta against the derived balance — visible in the ledger and deletable, which is the
+  # rollback (soft-deleting the row unspends it, so the derived balance reverts). Never a
+  # silent re-anchor. First-ever balance (none informed yet) anchors instead — there is no
+  # delta against nothing.
+  def adjust_balance
+    @bank_account = Current.account.bank_accounts.kept.find(params[:id])
+    target = Money.to_cents(params[:balance_reais])
+    if target.nil?
+      redirect_to edit_bank_account_path(@bank_account), alert: t("bank_accounts.adjust.invalid")
+    elsif !@bank_account.balance_informed?
+      @bank_account.update!(balance_cents: target)
+      redirect_to edit_bank_account_path(@bank_account), notice: t("bank_accounts.update.updated")
+    elsif (delta = target - @bank_account.derived_balance_cents).zero?
+      redirect_to edit_bank_account_path(@bank_account), notice: t("bank_accounts.adjust.no_change")
+    else
+      Current.account.transactions.create!(
+        created_by: Current.user, bank_account: @bank_account,
+        merchant: t("bank_accounts.adjust.transaction_merchant"),
+        direction: (delta.positive? ? "income" : "expense"),
+        status: "posted", confirmed_at: Time.current, source: "manual",
+        amount_cents: delta.abs, occurred_on: Date.current)
+      signed = "#{delta.positive? ? "+" : "−"}#{helpers.brl(delta.abs)}"
+      redirect_to edit_bank_account_path(@bank_account), notice: t("bank_accounts.adjust.adjusted", amount: signed)
+    end
+  end
+
   def destroy
     @bank_account = Current.account.bank_accounts.kept.find(params[:id])
     if @bank_account.soft_delete!(by: Current.user)   # restrict mirror: false while a kept income depends on it

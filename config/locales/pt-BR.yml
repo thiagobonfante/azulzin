@@ -157,6 +157,19 @@ pt-BR:
           attributes:
             base:
               has_kept_incomes: "tem entradas ativas — mova-as para outra conta antes de excluir."
+        credit_card:
+          attributes:
+            base:
+              has_kept_children: "tem cartões adicionais — remova os cartões adicionais primeiro."
+            parent_card:
+              nested: "não pode ser um cartão adicional — só um nível."
+              cross_account: "precisa ser desta conta."
+            institution:
+              mismatch: "precisa ser a mesma do cartão principal."
+            bill_due_day:
+              sub_card: "não se aplica a um cartão adicional — o vencimento é do cartão principal."
+            credit_limit_cents:
+              sub_card: "não se aplica a um cartão adicional — o limite é do cartão principal."
         commitment:
           one_instrument: "deve ter exatamente uma conta ou um cartão."
           attributes:
@@ -222,6 +235,11 @@ pt-BR:
       invite: "Convidar amigos"
       open_menu: "Abrir menu"
       close_menu: "Fechar menu"
+    theme:
+      label: "Tema"
+      auto: "Automático"
+      light: "Claro"
+      dark: "Escuro"
   chat:
     show:
       title: "Chat"
@@ -478,7 +496,7 @@ pt-BR:
     nickname: "Apelido"
     nickname_placeholder: "Ex.: Conta salário"
     optional_details: "Detalhes opcionais"
-    balance: "Saldo atual"
+    balance: "Saldo inicial"
     agency: "Agência"
     agency_placeholder: "0000"
     account_number: "Número da conta"
@@ -491,6 +509,24 @@ pt-BR:
     empty: "Nenhuma conta adicionada ainda."
     remove: "Remover conta"
     confirm_remove: "Remover esta conta?"
+    adjust:
+      title: "Ajustar saldo"
+      current: "Saldo atual: %{amount}"
+      submit: "Salvar saldo"
+      hint: "Informe o saldo de hoje no app do banco — a diferença entra como um lançamento de ajuste, que dá pra apagar se mudar de ideia."
+      transaction_merchant: "Ajuste de saldo"
+      adjusted: "Ajuste de %{amount} registrado."
+      no_change: "O saldo já confere — nada a ajustar."
+      invalid: "Valor inválido — informe o saldo em reais."
+    import:
+      divider: "ou"
+      title: "Importar extrato e criar"
+      tooltip: "Envie o extrato em PDF, CSV ou OFX e o azulzin cria a conta e traz os lançamentos pra você revisar."
+    reconcile:
+      cta: "Conferir com extrato do banco"
+      hint: "Envie o extrato do mês e compare com o que está registrado aqui."
+      month: "Mês do extrato"
+      submit: "Enviar e conferir"
     index:
       meta_title: "Contas"
       title: "Suas contas"
@@ -539,12 +575,193 @@ pt-BR:
       meta_title: "Cartões"
       title: "Seus cartões"
       subtitle: "Gerencie os cartões que você acompanha no azulzin."
+    sub_cards:
+      title: "Cartões adicionais e virtuais"
+      subtitle: "Cópias virtuais e adicionais da família — a fatura e o limite ficam no cartão principal."
+      footer:
+        one: "1 cartão adicional"
+        other: "%{count} cartões adicionais"
+      add: "+ cartão adicional ou virtual"
+      save: "Adicionar"
+      edit: "editar"
+      nickname: "Apelido"
+      nickname_placeholder: "Ex.: virtual iFood, cartão da filha"
+      belongs_to: "Cartão adicional do %{card} — vencimento e limite ficam no principal."
+      imported_name: "final %{last4}"
+    default:
+      set: "Usar como padrão"
+    make_default:
+      set: "%{card} agora é seu cartão padrão."
+    recent_bills:
+      title: "Últimas faturas"
+    bills:
+      title: "Faturas"
+      subtitle: "Histórico de faturas fechadas — status e pagamentos de cada mês."
+      paid: "Pago %{amount}"
+      empty: "Nenhuma fatura fechada ainda."
     create:
       created: "Cartão adicionado."
     update:
       updated: "Cartão atualizado."
     destroy:
       removed: "Cartão removido."
+  card_bills:
+    show:
+      title: "Fatura de %{month}"
+      title_with_card: "Fatura de %{month} — %{card}"
+      closed_on: "Fechou em %{date}"
+      due_on: "Vence em %{date}"
+      total: "Total da fatura"
+      paid_so_far: "Pago"
+      pay: "Pagar fatura"
+      lines_title: "Lançamentos"
+      no_lines: "Nenhum lançamento nesta fatura."
+      payments_title: "Pagamentos"
+      untracked_source: "outra conta"
+      unpay: "Desfazer"
+    status:
+      paid: "paga"
+      paid_late: "paga em atraso"
+      partially_paid: "parcialmente paga"
+      unpaid: "em aberto"
+      overdue: "vencida"
+      rolled: "restante na fatura seguinte"
+      financed: "parcelada"
+    pay_modal:
+      title: "Pagar fatura"
+      subtitle: "Fatura do %{card} — %{amount}"
+      amount: "Valor pago"
+      date: "Data"
+      source: "Conta de origem"
+      untracked_source: "Outra conta (não cadastrada)"
+      submit: "Pagar"
+      cancel: "Cancelar"
+    pay:
+      paid: "Pagamento registrado."
+      invalid_amount: "Informe um valor válido."
+    unpay:
+      undone: "Pagamento desfeito."
+    divergence:
+      title: "Conferir com o banco"
+      hint: "O valor calculado pode diferir do banco — compras perto do fechamento às vezes ficam para a fatura seguinte."
+      inform_label: "Valor no banco"
+      inform_submit: "Conferir"
+      matches: "Bate com o banco 💙"
+      ours_higher: "%{amount} a mais que o banco"
+      bank_higher: "%{amount} a menos que o banco"
+      bank_higher_hint: "Tem cobrança no banco que ainda não está aqui — adicione o lançamento que falta nos Movimentos."
+      picker_title: "Escolher o que ficou para a próxima fatura"
+      picker_hint: "Compras perto do fechamento são as mais prováveis — marque as que o banco jogou para a frente."
+      running_ours: "Nosso total sem as marcadas"
+      running_stated: "Valor no banco"
+      move_submit: "Mover para a próxima fatura"
+      divider: "ou"
+      pdf_cta: "Conferir com o PDF da fatura"
+    update:
+      stated_saved: "Valor do banco registrado."
+    review:
+      our_total: "Nosso total"
+      resolve_cta: "Resolver diferença"
+      pending_warning: "Você apontou um valor diferente do que calculamos — continue a verificação."
+      adjust_title: "Não achou a diferença?"
+      adjust_hint: "Registra a diferença como um lançamento de ajuste na fatura — vira um lançamento normal, dá pra apagar se mudar de ideia."
+      adjust_cta: "Registrar ajuste de %{amount}"
+      adjustment_merchant: "Ajuste da fatura"
+      cancel_cta: "Cancelar conferência"
+      add_line:
+        title: "Achou a compra que faltava?"
+        hint: "Entra como um lançamento normal deste cartão, dentro do período desta fatura."
+        merchant: "Onde foi"
+        amount: "Valor"
+        date: "Data"
+        submit: "Adicionar à fatura"
+        more: "Adicionar outra linha"
+        default_merchant: "Compra do cartão"
+    clear_stated:
+      cleared: "Conferência cancelada — valor do banco esquecido."
+    adjust:
+      adjusted: "Ajuste de %{amount} registrado na fatura."
+    add_line:
+      added: "Lançamento adicionado à fatura."
+    carry_over:
+      moved:
+        one: "1 lançamento movido para a próxima fatura."
+        other: "%{count} lançamentos movidos para a próxima fatura."
+      none: "Nenhum lançamento selecionado."
+    carryover:
+      from_bill: "veio da fatura de %{month}"
+      estimated_charges: "encargos estimados"
+      estimate_label: "estimativa (taxas médias do Banco Central, %{month})"
+    financing:
+      title: "Parcelamento da fatura"
+      offer: "Parcelei a fatura com o banco"
+      short_cta: "Parcelei"
+      back: "Voltar"
+      help: "Copie os valores do app do banco — as parcelas entram nas próximas faturas e o valor parcelado continua ocupando o limite até quitar."
+      entrada: "Entrada"
+      entrada_help: "A entrada é o pagamento desta fatura: sai da conta escolhida e a fatura fica como paga. Deixe em branco se já registrou pelo Pagar."
+      financed: "Valor parcelado"
+      count: "Número de parcelas"
+      installment: "Valor da parcela"
+      submit: "Registrar parcelamento"
+      summary: "%{count}x de %{parcel} — total %{total}"
+      summary_fees: "sendo %{amount} de juros e IOF"
+      summary_span: "parcelas de %{from} a %{to}"
+      cancel: "Cancelar parcelamento"
+      line: "parcelamento da fatura de %{month} — %{no}/%{count}"
+      line_fees: "sendo %{amount} de juros e IOF"
+    finance:
+      financed: "Parcelamento em %{count}x registrado — as parcelas entram nas próximas faturas."
+      invalid: "Confira os valores do parcelamento — parcelas × valor precisa cobrir o valor parcelado."
+    unfinance:
+      unfinanced: "Parcelamento cancelado — as parcelas saíram das próximas faturas."
+      unfinanced_with_entrada: "Parcelamento cancelado — as parcelas saíram das próximas faturas e a entrada foi desfeita."
+    rotativo:
+      below_total: "Pagar menos que o total liga o rotativo."
+      below_total_rate: "Hoje isso custa em média %{rate}% ao mês."
+      below_total_generic: "Os juros do cartão são dos mais caros que existem."
+      below_minimum: "Abaixo do pagamento mínimo (%{minimum}%{label}) vira atraso: multa de 2%, mora de 1% ao mês, e o cartão pode ser bloqueado e o nome negativado."
+      assumed_minimum: ", estimado em 15%"
+      panel_title: "Se pagar %{amount} hoje:"
+      left_behind: "fica devendo"
+      next_bill_total: "vem na próxima fatura"
+      next_bill_fees: "sendo %{amount} de juros e IOF"
+      parcelamento_hint: "Dependendo do valor, considere o parcelamento do cartão."
+      cap_reassurance: "A lei limita os encargos a 100% do valor que ficou — sua dívida pode no máximo dobrar. Mas dobra em ~%{months} meses."
+  reconciliations:
+    show:
+      title: "Conferir com o banco"
+      subtitle: "%{card} — fatura de %{month}"
+      subtitle_bank: "%{account} — extrato de %{month}"
+      balance_matches: "Seu saldo bate com o banco 💙"
+      balance_drift: "Seu saldo difere do banco em %{amount}."
+      only_in_app_hint_bank: "Marcados serão removidos (provável duplicado); desmarcados ficam como estão."
+      sections: "Cartões nesta fatura"
+      sections_hint: "Plásticos que apareceram na fatura e ainda não estão no azulzin — marcados serão criados como cartões adicionais."
+      processing: "Lendo o documento…"
+      failed: "Não conseguimos ler o documento. Tente de novo com outro arquivo."
+      applied_state: "Conferência aplicada."
+      back_to_bill: "Voltar para a fatura"
+      matched:
+        one: "1 lançamento bate com o banco"
+        other: "%{count} lançamentos batem com o banco"
+      only_in_source: "Só no banco"
+      only_in_source_hint: "Marcados serão criados no azulzin."
+      only_in_app: "Só no azulzin"
+      only_in_app_hint: "Marcados vão para a próxima fatura; desmarcados ficam como estão."
+      amount_mismatch: "Valor diferente"
+      amount_mismatch_hint: "Marcados serão corrigidos para o valor do banco."
+      ours: "no azulzin: %{amount}"
+      bank: "no banco: %{amount}"
+      apply: "Aplicar"
+      nothing: "Tudo certo — bate com o banco 💙"
+    create:
+      no_file: "Escolha um arquivo."
+      duplicate: "Este arquivo já foi enviado."
+      monthly_cap: "Já conferimos este cartão neste mês — de novo em %{date}."
+    apply:
+      applied: "Conferido: %{created} criados, %{moved} movidos, %{fixed} corrigidos."
+      applied_bank: "Conferido: %{created} criados, %{moved} removidos, %{fixed} corrigidos."
   incomes:
     add_title: "Adicionar renda"
     edit_title: "Editar renda"
@@ -709,6 +926,7 @@ pt-BR:
       - "Assinaturas"
       - "Vestuário"
       - "Viagem"
+      - "Encargos"
       - "Outros"
     add_title: "Adicionar categoria"
     name: "Nome"
@@ -921,6 +1139,7 @@ pt-BR:
       view_receipt: "Ver comprovante"
       close_receipt: "Fechar comprovante"
       has_receipt: "Tem comprovante"
+      bill_payment: "Pagamento da fatura de %{month}"
     new:
       submit: "Adicionar"
     create:
@@ -982,7 +1201,6 @@ pt-BR:
       by_category: "Totais por categoria"
       net_total: "Resultado do período: %{amount}"
   document_imports:
-    hero_title: "Importar extrato"
     choose_files: "Escolher arquivos…"
     submit: "Enviar"
     review_button: "Revisar e criar"
@@ -1260,6 +1478,11 @@ pt-BR:
         zero: "A fatura do %{card} vence hoje — %{amount}."
         one: "A fatura do %{card} vence amanhã — %{amount}."
         other: "A fatura do %{card} vence em %{count} dias — %{amount}."
+      card_due_payable:
+        zero: "A fatura do %{card} fechou em %{amount} e vence hoje — já dá para pagar."
+        one: "A fatura do %{card} fechou em %{amount} e vence amanhã — já dá para pagar."
+        other: "A fatura do %{card} fechou em %{amount} e vence em %{count} dias — já dá para pagar."
+      card_overdue: "A fatura do %{card} venceu e ainda tem %{amount} em aberto — o rotativo é caro, vale quitar."
       income_expected:
         zero: "%{name} de %{amount} deve cair hoje."
         one: "%{name} de %{amount} deve cair amanhã."
@@ -1323,6 +1546,15 @@ pt-BR:
           zero: "A fatura do %{card} vence hoje."
           one: "A fatura do %{card} vence amanhã."
           other: "A fatura do %{card} vence em %{count} dias."
+      card_due_payable:
+        title: "Fatura fechada"
+        body:
+          zero: "A fatura do %{card} vence hoje — toque para pagar."
+          one: "A fatura do %{card} vence amanhã — toque para pagar."
+          other: "A fatura do %{card} vence em %{count} dias — toque para pagar."
+      card_overdue:
+        title: "Fatura vencida"
+        body: "A fatura do %{card} venceu — toque para pagar."
       income_expected:
         title: "Entrada prevista"
         body:
@@ -1653,6 +1885,11 @@ pt-BR:
           zero: "📄 A fatura do *%{card}* (%{amount}) vence hoje. 💙"
           one: "📄 A fatura do *%{card}* (%{amount}) vence amanhã. 💙"
           other: "📄 A fatura do *%{card}* (%{amount}) vence em %{count} dias. 💙"
+        card_due_payable:
+          zero: "📄 A fatura do *%{card}* fechou em %{amount} e vence hoje. Dá pra pagar pelo app. 💙"
+          one: "📄 A fatura do *%{card}* fechou em %{amount} e vence amanhã. Dá pra pagar pelo app. 💙"
+          other: "📄 A fatura do *%{card}* fechou em %{amount} e vence em %{count} dias. Dá pra pagar pelo app. 💙"
+        card_overdue: "⚠️ A fatura do *%{card}* venceu e ainda tem %{amount} em aberto. O rotativo é caro — dá pra pagar pelo app. 💙"
         income_expected:
           zero: "💰 Seu *%{name}* de %{amount} deve cair hoje. 💙"
           one: "💰 Seu *%{name}* de %{amount} deve cair amanhã. 💙"

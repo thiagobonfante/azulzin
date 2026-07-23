@@ -33,6 +33,14 @@ production:
     class: Goals::ApplyBudgetCutsJob
     queue: default
     schedule: every day at 10am # UTC => 07:00 SP, before the 11am sweeps see the written budgets
+  bcb_rates_fetch:
+    class: BcbRates::FetchJob
+    queue: background
+    schedule: every day at 9am # UTC — SGS moves monthly; failure keeps serving the last row
+  card_bills_close:
+    class: CardBills::CloseScanJob
+    queue: default
+    schedule: every day at 10:45am # UTC — before reminders_daily_dispatch so card_due links the fresh bill
   reminders_daily_dispatch:
     class: Reminders::DailyDispatchJob
     queue: default

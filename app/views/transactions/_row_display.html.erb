@@ -27,9 +27,18 @@
 <% show_bill_badge = transaction.credit_card_id && transaction.billing_month > badge_ref_month %>
 <% method_tag = transaction.payment_method if transaction.expense? &&
      %w[credito debito pix boleto].include?(transaction.payment_method) %>
+<%# Optional (bill page): rows posted to a SUB-card of family_root show its apelido chip
+    (04 §3) — zero chips when the family is just the root, and no caller but the bill
+    page passes the local. %>
+<% sub_chip = (family_root = local_assigns[:family_root]) && transaction.credit_card_id &&
+              transaction.credit_card_id != family_root.id && transaction.credit_card %>
 <div class="min-w-0 flex-1">
   <p class="truncate text-sm">
-    <% if transaction.transfer? %>
+    <% if transaction.transfer_to_credit_card_id %>
+      <%# Fatura payment (.plans/credit-cards 01 §6): named by the bill it settles. %>
+      <%= t("transactions.row.bill_payment", month: l(transaction.billing_month, format: :month_name)) %>
+      <span class="text-xs text-base-content/50">· <%= transaction.transfer_to_credit_card&.display_name %></span>
+    <% elsif transaction.transfer? %>
       <%= transaction.bank_account&.display_name %><%= deleted_suffix(transaction.bank_account) %> →
       <%= transaction.transfer_to_bank_account&.display_name %><%= deleted_suffix(transaction.transfer_to_bank_account) %>
     <% else %>
@@ -40,10 +49,13 @@
       <span class="text-xs text-base-content/50"><%= transaction.installment_number %>/<%= transaction.commitment&.installments_count %></span>
     <% end %>
   </p>
-  <% if (transaction.expense? && transaction.category) || show_bill_badge || method_tag %>
+  <% if (transaction.expense? && transaction.category) || show_bill_badge || method_tag || sub_chip %>
     <p class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-base-content/50">
       <% if transaction.expense? && transaction.category %>
         <span class="truncate"><%= transaction.category.name %><%= deleted_suffix(transaction.category) %></span>
+      <% end %>
+      <% if sub_chip %>
+        <span class="badge badge-ghost badge-xs shrink-0"><%= sub_chip.display_name %></span>
       <% end %>
       <% if method_tag %>
         <%# How it was paid — the crédito/débito/pix/boleto split at a glance (founder ask). %>

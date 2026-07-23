@@ -51,6 +51,9 @@ class ProcessDocumentImportJob < ApplicationJob
 
     import.update!(source_format: format)
     import.update!(extraction: extract(format, bytes, import))
+    # Reconciliation runs stop here (.plans/credit-cards 03 §3): the review renders the
+    # deterministic diff from the stored extraction — no proposals, nothing auto-applies.
+    return import.update!(status: "extracted") if import.reconciliation?
     Imports::ProposalBuilder.call(import)
   rescue Imports::PasswordProtected then fail!(import, "password_protected")
   rescue Imports::TooLarge          then fail!(import, "too_large")

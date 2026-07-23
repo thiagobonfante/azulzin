@@ -18,27 +18,38 @@
 
   <%= render "shared/institution_select", form: f, institutions: Institution.for_cards %>
 
-  <div class="form-control">
-    <%= f.label :nickname, t("credit_cards.nickname"), class: "mb-1 block text-sm font-medium" %>
-    <%= f.text_field :nickname, placeholder: t("credit_cards.nickname_placeholder"), class: "input input-bordered w-full" %>
-  </div>
-
-  <%# Physical vs virtual — identification only, no billing effect. %>
-  <div class="form-control">
-    <label class="mb-1 block text-sm font-medium"><%= t("credit_cards.card_type") %></label>
-    <div class="join">
-      <% CreditCard.card_types.each_key do |ct| %>
-        <label class="join-item btn btn-sm font-normal has-checked:btn-primary">
-          <%= f.radio_button :card_type, ct, class: "hidden", checked: (credit_card.card_type == ct) %>
-          <%= t("credit_cards.card_types.#{ct}") %>
-        </label>
-      <% end %>
+  <%# Apelido + tipo share a row on sm+ (founder ask) — the type is identification only,
+      no billing effect. Stacks back to one column on phones. %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="form-control">
+      <%= f.label :nickname, t("credit_cards.nickname"), class: "mb-1 block text-sm font-medium" %>
+      <%= f.text_field :nickname, placeholder: t("credit_cards.nickname_placeholder"), class: "input input-bordered w-full" %>
+    </div>
+    <div class="form-control">
+      <label class="mb-1 block text-sm font-medium"><%= t("credit_cards.card_type") %></label>
+      <div class="join">
+        <% CreditCard.card_types.each_key do |ct| %>
+          <label class="join-item btn btn-sm font-normal has-checked:btn-primary">
+            <%= f.radio_button :card_type, ct, class: "hidden", checked: (credit_card.card_type == ct) %>
+            <%= t("credit_cards.card_types.#{ct}") %>
+          </label>
+        <% end %>
+      </div>
     </div>
   </div>
 
+  <%# Sub-cards carry no billing config and no limit (04 §1) — the cycle and the limit
+      belong to the root, so those sections simply don't render. %>
+  <% if credit_card.sub_card? %>
+    <%= f.hidden_field :parent_card_id %>
+    <p class="text-xs text-base-content/50">
+      <%= t("credit_cards.sub_cards.belongs_to", card: credit_card.billing_root.display_name) %>
+    </p>
+  <% end %>
+
   <%# ── Billing config (R2) — primary fields; R11 correctness depends on them ─────────── %>
   <% offset = credit_card.closing_offset_days || 7 %>
-  <div class="grid gap-4 sm:grid-cols-2" data-controller="billing-hint"
+  <div class="grid gap-4 sm:grid-cols-2 <%= "hidden" if credit_card.sub_card? %>" data-controller="billing-hint"
        data-billing-hint-template-value="<%= t('credit_cards.best_purchase_day', day: '{day}') %>">
     <div class="form-control">
       <%= f.label :bill_due_day, t("credit_cards.bill_due_day"), class: "mb-1 block text-sm font-medium" %>
@@ -70,7 +81,7 @@
   </div>
 
   <%# Optional details — legacy fallback for unconfigured cards; nothing here is required. %>
-  <details class="group">
+  <details class="group <%= "hidden" if credit_card.sub_card? %>">
     <summary class="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-primary">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
       <%= t("credit_cards.optional_details") %>

@@ -31,22 +31,26 @@
     <p class="mt-2 text-xs text-base-content/50"><%= t("bank_accounts.form.kind_hint") %></p>
   </div>
 
-  <%# Optional details — nothing here is required. Opened up-front on edit when already set. %>
-  <% has_details = bank_account.balance_informed? || bank_account.agency.present? || bank_account.account_number.present? %>
+  <%# Optional details — nothing here is required. Opened up-front on edit when already set.
+      The balance field is CREATE-only ("saldo inicial"): once the account exists, the
+      balance is adjusted from the edit page's Ajustar-saldo section, never re-typed here. %>
+  <% has_details = (!bank_account.persisted? && bank_account.balance_informed?) || bank_account.agency.present? || bank_account.account_number.present? %>
   <details class="group" <%= "open" if has_details %>>
     <summary class="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-primary">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
       <%= t("bank_accounts.optional_details") %>
     </summary>
     <div class="mt-3 grid gap-4 sm:grid-cols-2">
-      <div class="form-control">
-        <%= f.label :balance_reais, t("bank_accounts.balance"), class: "mb-1 block text-sm font-medium" %>
-        <label class="input input-bordered flex w-full items-center gap-2">
-          <span class="text-base-content/50"><%= t("money.symbol") %></span>
-          <%= f.text_field :balance_reais, inputmode: "decimal", placeholder: "0,00", class: "grow",
-                data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
-        </label>
-      </div>
+      <% unless bank_account.persisted? %>
+        <div class="form-control">
+          <%= f.label :balance_reais, t("bank_accounts.balance"), class: "mb-1 block text-sm font-medium" %>
+          <label class="input input-bordered flex w-full items-center gap-2">
+            <span class="text-base-content/50"><%= t("money.symbol") %></span>
+            <%= f.text_field :balance_reais, inputmode: "decimal", placeholder: "0,00", class: "grow",
+                  data: { controller: "money-mask", money_mask_cents_value: true, action: "input->money-mask#format" } %>
+          </label>
+        </div>
+      <% end %>
       <div class="form-control">
         <%= f.label :agency, t("bank_accounts.agency"), class: "mb-1 block text-sm font-medium" %>
         <%= f.text_field :agency, inputmode: "numeric", placeholder: t("bank_accounts.agency_placeholder"), class: "input input-bordered w-full" %>

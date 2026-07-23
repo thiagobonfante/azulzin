@@ -17,6 +17,8 @@ class Transaction < ApplicationRecord
   belongs_to :commitment,   optional: true                                           # R10/R11 payment/parcel link
   belongs_to :income,       optional: true                                           # R1 receipt link
   belongs_to :transfer_to_bank_account, class_name: "BankAccount", optional: true    # R5 destination leg
+  belongs_to :transfer_to_credit_card,  class_name: "CreditCard",  optional: true    # fatura payment destination
+  belongs_to :card_bill,    optional: true                                           # links a fatura payment to its bill
   belongs_to :whatsapp_message, optional: true, inverse_of: :produced_transactions   # the inbound msg that produced it
 
   # Outbound reply messages about this transaction (audit trail). nullify so destroying a
@@ -181,7 +183,11 @@ class Transaction < ApplicationRecord
     end
 
     def transfer_shape
-      if bank_account_id.blank? || transfer_to_bank_account_id.blank?
+      if transfer_to_credit_card_id.present?
+        # Fatura payment (.plans/credit-cards 01 §3): source bank OPTIONAL (P0 #4 — an
+        # untracked account still records the payment), never two destinations.
+        errors.add(:transfer_to_bank_account, :present) if transfer_to_bank_account_id.present?
+      elsif bank_account_id.blank? || transfer_to_bank_account_id.blank?
         errors.add(:transfer_to_bank_account, :blank)
       elsif transfer_to_bank_account_id == bank_account_id
         errors.add(:transfer_to_bank_account, :same_account)

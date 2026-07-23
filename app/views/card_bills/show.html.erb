@@ -1,0 +1,116 @@
+<% content_for :title, t(".title_with_card", month: l(@bill.billing_month, format: :month_name), card: @bill.credit_card.display_name) %>
+
+<div class="mx-auto flex max-w-2xl flex-col gap-4" data-controller="modal entry-modal"
+     data-action="turbo:submit-end@document->entry-modal#submitEnd">
+  <header>
+    <h1 class="font-display text-xl font-bold" data-native-dup>
+      <%= t(".title", month: l(@bill.billing_month, format: :month_name)) %>
+    </h1>
+    <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-base-content/60">
+      <span class="flex items-center gap-1.5">
+        <%= institution_avatar(@bill.credit_card.institution, size: 20) %>
+        <%= @bill.credit_card.display_name %>
+      </span>
+      <span class="badge badge-sm <%= card_bill_badge_class(@bill) %>"><%= t("card_bills.status.#{@bill.display_status}") %></span>
+    </div>
+    <p class="mt-1 text-xs text-base-content/50">
+      <%= t(".closed_on", date: l(@bill.closed_on, format: :short)) %> ·
+      <%= t(".due_on", date: l(@bill.due_on, format: :short)) %>
+    </p>
+  </header>
+
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <div class="flex items-baseline justify-between">
+      <span class="text-sm text-base-content/60"><%= t(".total") %></span>
+      <span class="font-display text-2xl font-bold tabular-nums"><%= brl(@bill.effective_total_cents) %></span>
+    </div>
+    <% if @bill.paid_cents.positive? %>
+      <div class="mt-1 flex items-baseline justify-between text-sm">
+        <span class="text-base-content/60"><%= t(".paid_so_far") %></span>
+        <span class="tabular-nums font-medium text-success"><%= brl(@bill.paid_cents) %></span>
+      </div>
+    <% end %>
+    <% if (carry = CardBills::Carryover.estimate(@bill.credit_card, @bill.billing_month)) %>
+      <div class="mt-2 border-t border-base-300/60 pt-2">
+        <%= render "card_bills/carryover_lines", carry: carry %>
+      </div>
+    <% end %>
+    <% if (fins = @bill.credit_card.financings_in(@bill.billing_month)).any? %>
+      <div class="mt-2 border-t border-base-300/60 pt-2">
+        <%= render "card_bills/financing_lines", financings: fins, month: @bill.billing_month %>
+      </div>
+    <% end %>
+    <div class="mt-3 flex flex-wrap justify-end gap-2">
+      <%# A rolled bill is settled here — the remainder (plus encargos) is payable on the
+          NEXT bill, so no pay CTA (founder round 2026-07-22). While a conferência is
+          pending, paying waits for the verified figure — button disabled, not hidden. %>
+      <% unless @bill.paid? || @bill.rolled? %>
+        <button type="button" class="btn btn-primary btn-sm" data-action="modal#open"
+                <%= "disabled" if @bill.divergence_pending? %>
+                <% if @bill.divergence_pending? %>title="<%= t("card_bills.review.pending_warning") %>"<% end %>>
+          <%= t(".pay") %>
+        </button>
+      <% end %>
+    </div>
+  </section>
+
+  <%= render "card_bills/divergence", bill: @bill, lines: @lines %>
+
+  <%= render "card_bills/financing", bill: @bill %>
+
+  <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <h2 class="mb-2 text-sm font-semibold"><%= t(".lines_title") %></h2>
+    <% if @lines.any? %>
+      <%# Same rows as Movimentos (founder ask): day-sectioned, category icon + amount via
+          the shared row_display; the sub-card apelido chip rides the caption line. And the
+          same edit-in-place (founder 2026-07-22c): tapping a row opens the shared entry
+          sheet; save/delete responds with a page refresh (totals + conferência shift too). %>
+      <div class="flex flex-col">
+        <% @lines.sort_by { |l| [ l.occurred_on, l.id ] }.reverse.group_by(&:occurred_on).each do |day, day_lines| %>
+          <div>
+            <div class="bg-base-200 px-2 py-1 text-xs font-medium text-base-content/60 first:rounded-t-lg"><%= l(day, format: :weekday_day) %></div>
+            <div class="divide-y divide-base-300/50">
+              <% day_lines.each do |line| %>
+                <%= link_to edit_transaction_path(line, context: "bill"),
+                      data: { turbo_frame: "entry_form", action: "click->entry-modal#open" },
+                      class: "flex items-center gap-3 px-2 py-2.5 transition-colors hover:bg-base-300/40" do %>
+                  <%= render "transactions/row_display", transaction: line, family_root: @bill.credit_card %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-xs text-base-content/50"><%= t(".no_lines") %></p>
+    <% end %>
+  </section>
+
+  <% if @payments.any? %>
+    <section class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+      <h2 class="mb-2 text-sm font-semibold"><%= t(".payments_title") %></h2>
+      <ul class="flex flex-col gap-2">
+        <% @payments.each do |payment| %>
+          <li class="flex items-center justify-between gap-2 text-sm">
+            <span class="min-w-0 truncate text-base-content/70">
+              <%= payment.bank_account&.display_name || t(".untracked_source") %>
+              · <%= l(payment.occurred_on, format: :short) %>
+            </span>
+            <span class="flex shrink-0 items-center gap-2">
+              <span class="tabular-nums font-medium"><%= brl(payment.amount_cents) %></span>
+              <%# Undo wears the house icon (same as unmark-paid on occurrences). %>
+              <%= button_to unpay_card_bill_path(@bill, payment_id: payment.id), method: :patch,
+                    class: "btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-error",
+                    title: t(".unpay"), aria: { label: t(".unpay") } do %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+              <% end %>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <%= render "card_bills/pay_modal", bill: @bill %>
+  <%= render "transactions/entry_modal" %>
+</div>

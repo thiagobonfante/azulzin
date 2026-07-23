@@ -4,14 +4,19 @@ module TransactionsHelper
     @inbox_bank_accounts ||= Current.account.bank_accounts.kept.includes(:institution).order(:created_at)
   end
 
+  # Family-grouped (04 §3): each root followed by its sub-cards, so the picker can indent
+  # "Nubank — virtual iFood" under Nubank.
   def inbox_credit_cards
-    @inbox_credit_cards ||= Current.account.credit_cards.kept.includes(:institution).order(:created_at)
+    @inbox_credit_cards ||= begin
+      cards = Current.account.credit_cards.kept.includes(:institution, :parent_card).order(:created_at).to_a
+      cards.select(&:root?).flat_map { |root| [ root, *cards.select { |c| c.parent_card_id == root.id } ] }
+    end
   end
 
   # Grouped <optgroup> options (accounts, then cards) for the instrument <select>.
   def instrument_option_groups
     [ [ t("app.nav.accounts"), inbox_bank_accounts.map { |a| [ a.display_name, "bank_account-#{a.id}" ] } ],
-      [ t("app.nav.cards"),    inbox_credit_cards.map  { |c| [ c.display_name, "credit_card-#{c.id}" ] } ] ]
+      [ t("app.nav.cards"),    inbox_credit_cards.map  { |c| [ instrument_card_label(c), "credit_card-#{c.id}" ] } ] ]
   end
 
   # The token matching a transaction's current instrument (for the select's selected value).

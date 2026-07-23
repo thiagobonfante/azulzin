@@ -51,6 +51,10 @@
       <% has_cards = inbox_credit_cards.any? %>
       <% selected_method = transaction.payment_method.presence || (has_cards ? "credito" : "pix") %>
       <% selected_token = current_instrument_token(transaction) %>
+      <%# Precedence (04 §5): explicit pick > member default > lone instrument > none. %>
+      <% if selected_token.nil? && selected_method == "credito" && (default_card = Current.user.default_credit_card) %>
+        <% selected_token = "credit_card-#{default_card.id}" %>
+      <% end %>
       <%# Income lands in a bank account — pre-select the first so the destination is always visible. %>
       <% selected_token ||= "bank_account-#{inbox_bank_accounts.first.id}" if !expense && inbox_bank_accounts.any? %>
       <%= form_with model: transaction,

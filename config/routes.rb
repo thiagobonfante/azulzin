@@ -77,11 +77,40 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :bank_accounts, only: %i[index create edit update destroy]  # edit/update: nickname, kind & balance
+    resources :bank_accounts, only: %i[index create edit update destroy] do  # edit/update: nickname & kind; saldo inicial on create
+      patch :adjust_balance, on: :member   # the informed saldo becomes a ledger delta row (deletable = rollback)
+    end
     resources :incomes,       only: %i[index create edit update destroy] do  # R1 — recurring income schedules
       member { patch :receive }   # mark this month's expected deposit as received (hub card)
     end
-    resources :credit_cards,  only: %i[index create edit update destroy]  # edit/update: billing config (R2)
+    resources :credit_cards,  only: %i[index create edit update destroy] do  # edit/update: billing config (R2)
+      member do
+        patch :make_default   # the per-member default plastic (.plans/credit-cards 04 §5)
+        get   :bills          # closed-faturas history (root cards only)
+      end
+    end
+
+    # Closed faturas (.plans/credit-cards 01+03): the bill page, Pagar/unpay, the bank's
+    # number (update) and the left-behind picker (carry_over).
+    resources :card_bills, only: %i[show update] do
+      member do
+        post  :pay
+        patch :unpay
+        patch :carry_over
+        get   :review         # focused divergence-resolution page (founder round 2026-07-22)
+        post  :adjust         # one-click delta row so computed == stated (deletable = rollback)
+        post  :add_line       # a missed purchase found during the review, clamped to the bill window
+        patch :clear_stated   # cancel the conferência — forget the informed bank value
+        get   :projection   # live rotativo warning panel for the Pagar modal
+        post   :finance     # record a parcelamento de fatura contracted with the bank
+        delete :unfinance   # cancel it — parcels are derived, destroy is the rollback
+      end
+    end
+
+    # "Conferir com o banco" runs (.plans/credit-cards 03): upload → diff review → apply.
+    resources :reconciliations, only: %i[create show] do
+      member { post :apply }
+    end
 
     # The monthly transactions hub (R3/R7/R8): index is the hub, new/create/edit power the
     # ledger's inline add + edit-in-place, and update/confirm keep the guarded-transition inbox.

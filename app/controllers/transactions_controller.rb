@@ -292,8 +292,9 @@ class TransactionsController < ApplicationController
     def auto_assign_instrument
       return if @transaction.bank_account_id || @transaction.credit_card_id
       if @transaction.payment_method == "credito"
+        # Precedence (.plans/credit-cards 04 §5): explicit pick > member default > lone card.
         cards = Current.account.credit_cards.kept.to_a
-        @transaction.credit_card = cards.first if cards.one?
+        @transaction.credit_card = Current.user.default_credit_card || (cards.first if cards.one?)
       else
         accounts = Current.account.bank_accounts.kept.to_a
         @transaction.bank_account = accounts.first if accounts.one?

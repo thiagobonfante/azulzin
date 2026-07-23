@@ -30,7 +30,7 @@ module Reminders
       @to      = to
     end
 
-    def call = bill_events + card_events + income_events
+    def call = bill_events + card_events + card_overdue_events + income_events
 
     private
 
@@ -65,7 +65,7 @@ module Reminders
     # (closing_offset_days), so billing months one past the window are probed too — a date
     # outside the window simply yields nothing.
     def card_events
-      @account.credit_cards.kept.select(&:billing_configured?).flat_map do |card|
+      @account.credit_cards.kept.roots.select(&:billing_configured?).flat_map do |card|
         months_between(@from, @to >> 1).flat_map { |month| fatura_events(card, month) }
       end
     end
@@ -74,14 +74,38 @@ module Reminders
     # unlinked card-commitment projection) — the running total at closing, the bill amount
     # at due. With closing_offset_days = 0 the two dates coincide and both still fire
     # (distinct kinds, distinct copy): that card's fatura closes and falls due at once.
+    # A card_due whose month already has a CLOSED bill row carries card_bill_id + the
+    # bill's effective total — the pay CTA (.plans/credit-cards 01 §4.3); dedup key
+    # unchanged. card_closing fires BEFORE closing, so there is never a row to link.
     def fatura_events(card, billing_month)
+      bill = card.card_bills.find_by(billing_month: billing_month)
       { "card_closing" => card.closing_date(billing_month),
         "card_due"     => card.due_date(billing_month) }.filter_map do |kind, date|
         next unless date.between?(@from, @to)
-        event(kind, card, date,
+        payload = { card: card.display_name,
+                    amount_cents: card.bill_cents(billing_month),
+                    date: date.iso8601, days_until: (date - @from).to_i }
+        if kind == "card_due" && bill
+          payload[:card_bill_id] = bill.id
+          payload[:amount_cents] = bill.effective_total_cents
+        end
+        event(kind, card, date, **payload)
+      end
+    end
+
+    # One escalation per closed unpaid bill once past due (.plans/credit-cards phase 3):
+    # period_key = the bill's month, so however many mornings re-scan an unpaid bill, the
+    # dedup key (kind, card, billing_month) yields ONE row ever. Paid bills never fire;
+    # amount = what's still open (partial payments shrink it at snapshot time).
+    def card_overdue_events
+      @account.card_bills.includes(credit_card: :institution)
+              .where(due_on: ...@from).filter_map do |bill|
+        card = bill.credit_card
+        next if card.soft_deleted? || bill.paid?
+        event("card_overdue", card, bill.billing_month,
               card: card.display_name,
-              amount_cents: card.bill_cents(billing_month),
-              date: date.iso8601, days_until: (date - @from).to_i)
+              amount_cents: bill.effective_total_cents - bill.paid_cents,
+              due_on: bill.due_on.iso8601, card_bill_id: bill.id)
       end
     end
 

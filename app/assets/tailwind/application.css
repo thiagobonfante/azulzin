@@ -78,12 +78,19 @@
   height: calc(100dvh - 1.5rem);
 }
 
+/* Wordmark color — per-theme via --wordmark (set inside each theme block below):
+   deep brand blue on light, soft ice blue on dark. */
+.text-wordmark {
+  color: var(--wordmark);
+}
+
 /* ── azulzin: the little-blue light theme (default) ─────────────────────── */
 @plugin "./daisyui-theme.mjs" {
   name: "azulzin";
   default: true;
   prefersdark: false;
   color-scheme: light;
+  --wordmark: oklch(42% 0.16 254);
 
   --color-base-100: oklch(99% 0.006 245);
   --color-base-200: oklch(96.5% 0.013 245);
@@ -124,6 +131,7 @@
   default: false;
   prefersdark: true;
   color-scheme: dark;
+  --wordmark: oklch(80% 0.08 250);
 
   --color-base-100: oklch(22% 0.03 256);
   --color-base-200: oklch(19% 0.03 258);

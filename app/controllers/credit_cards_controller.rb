@@ -5,22 +5,33 @@ class CreditCardsController < ApplicationController
   before_action :require_onboarding, only: :index
 
   def index
-    @credit_cards = Current.account.credit_cards.kept.includes(:institution).order(:created_at)
+    @credit_cards = Current.account.credit_cards.kept.roots.includes(:institution).order(:created_at)
+    # Lazy close (.plans/credit-cards 01 §2): arriving minutes after closing, before the
+    # daily scan, still shows a payable bill — same code path, second trigger.
+    @credit_cards.each { |card| CardBills::CloseScan.ensure_for(card) }
     @credit_card  = CreditCard.new
   end
 
   def create
     @credit_card = Current.account.credit_cards.build(credit_card_params)
     saved = @credit_card.save
+    # First card ever auto-becomes its creator's default (04 §5 — zero-setup common case).
+    if saved && Current.user.default_credit_card.nil? && Current.account.credit_cards.kept.count == 1
+      Current.user.update!(default_credit_card_id: @credit_card.id)
+    end
     respond_to do |format|
       # 422 on failure so Turbo's submit-end reports failure and the form is NOT reset
       # (the create.turbo_stream branches on persisted? to append the row or show errors).
       format.turbo_stream { render :create, status: (saved ? :ok : :unprocessable_entity) }
       format.html do
+        # A sub-card is created FROM its root's edit page — land back there (banner on
+        # top), never on the cards index (founder round 2026-07-22).
+        parent_id = @credit_card.parent_card_id || params.dig(:credit_card, :parent_card_id).presence
+        back = parent_id ? edit_credit_card_path(parent_id) : after_change_path
         if saved
-          redirect_to after_change_path, notice: t(".created")
+          redirect_to back, notice: t(".created")
         else
-          redirect_to after_change_path, alert: @credit_card.errors.full_messages.to_sentence
+          redirect_to back, alert: @credit_card.errors.full_messages.to_sentence
         end
       end
     end
@@ -48,15 +59,40 @@ class CreditCardsController < ApplicationController
 
   def destroy
     @credit_card = Current.account.credit_cards.kept.find(params[:id])
-    @credit_card.soft_delete!(by: Current.user)   # children keep their FKs (better history than nullify)
-    # Remove lives on the edit page (not the list rows), so a redirect is the only response.
-    recede_or_redirect_to after_change_path, notice: t(".removed"), status: :see_other
+    # A root with kept sub-cards refuses (04 §1) — orphan sub-cards are meaningless.
+    if @credit_card.soft_delete!(by: Current.user)
+      recede_or_redirect_to after_change_path, notice: t(".removed"), status: :see_other
+    else
+      recede_or_redirect_to after_change_path, alert: @credit_card.errors.full_messages.to_sentence, status: :see_other
+    end
+  end
+
+  # The per-member default plastic (04 §5): a star on the cards page, root or sub-card.
+  # Turbo swaps ONLY the two affected stars — a full redirect would collapse the sub-cards
+  # expansion the tap came from (founder complaint, 2026-07-22). HTML stays the fallback.
+  def make_default
+    card = Current.account.credit_cards.kept.find(params[:id])
+    previous = Current.user.default_credit_card
+    Current.user.update!(default_credit_card_id: card.id)
+    respond_to do |format|
+      format.turbo_stream { @stars = [ previous, card ].compact.uniq }
+      format.html { redirect_to credit_cards_path, notice: t(".set", card: card.display_name) }
+    end
+  end
+
+  # Closed-faturas history for a ROOT card (founder ask, 2026-07-22): every bill, its
+  # status and what was paid, newest first — each row links to the bill page (where Pagar
+  # lives). Sub-cards have no bills (04 §1), so they get no history.
+  def bills
+    @credit_card = Current.account.credit_cards.kept.roots.find(params[:id])
+    CardBills::CloseScan.ensure_for(@credit_card)   # same lazy-close as the index
+    @bills = @credit_card.card_bills.order(billing_month: :desc)
   end
 
   private
     def credit_card_params
       params.expect(credit_card: %i[institution_id nickname last4 card_type credit_limit_reais
-                                    current_bill_reais bill_due_day closing_offset_days])
+                                    current_bill_reais bill_due_day closing_offset_days parent_card_id])
     end
 
     def after_change_path

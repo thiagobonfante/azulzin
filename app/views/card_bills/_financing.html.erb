@@ -1,0 +1,34 @@
+<%# locals: bill — the parcelamento-de-fatura section (founder 2026-07-22d). Two states:
+    already financed → summary + cancel (destroy = rollback, everything is derived);
+    eligible remainder → a native disclosure with the "Parcelei com o banco" form. The
+    BANK's numbers rule: count + parcela are typed from the bank's app, financed prefills
+    with our remainder but stays editable. %>
+<% if bill.financed? %>
+  <% fin = bill.financing %>
+  <section id="financing" class="rounded-box border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <h2 class="text-sm font-semibold"><%= t("card_bills.financing.title") %></h2>
+    <p class="mt-1 text-sm text-base-content/70">
+      <%= t("card_bills.financing.summary", count: fin.installments_count, parcel: brl(fin.installment_cents), total: brl(fin.total_cents)) %>
+    </p>
+    <p class="mt-0.5 text-xs text-base-content/50">
+      <%= t("card_bills.financing.summary_fees", amount: brl(fin.encargos_total_cents)) %> ·
+      <%= t("card_bills.financing.summary_span", from: l(fin.first_charge_month, format: :month_name), to: l(fin.last_charge_month, format: :month_name)) %>
+    </p>
+    <div class="mt-2 flex justify-end">
+      <%= button_to t("card_bills.financing.cancel"), unfinance_card_bill_path(bill), method: :delete,
+            class: "btn btn-ghost btn-xs text-error" %>
+    </div>
+  </section>
+<% elsif !bill.paid? && !bill.rolled? && !bill.divergence_pending? && bill.carryover_cents.positive? %>
+  <section id="financing" class="rounded-box border border-base-300/70 bg-base-100 shadow-sm">
+    <details class="group">
+      <summary class="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-medium">
+        <%= t("card_bills.financing.offer") %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+      </summary>
+      <div class="px-4 pb-4">
+        <%= render "card_bills/financing_form", bill: bill, variant: "page" %>
+      </div>
+    </details>
+  </section>
+<% end %>
