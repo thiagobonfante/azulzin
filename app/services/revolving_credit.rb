@@ -21,10 +21,10 @@ module RevolvingCredit
   # Cost of one rotativo cycle on a financed remainder. monthly_rate as percent (15.09).
   def cycle_cost(financed_cents, monthly_rate:, days: 30)
     f     = BigDecimal(financed_cents)
-    juros = (f * monthly_rate / 100).round
+    interest = (f * monthly_rate / 100).round
     iof   = (f * IOF_FIXED_PCT / 100).round +
             (f * IOF_DAILY_PCT / 100 * [ days, IOF_DAILY_MAX ].min).round
-    { juros_cents: juros.to_i, iof_cents: iof.to_i, total_cents: (juros + iof).to_i }
+    { interest_cents: interest.to_i, iof_cents: iof.to_i, total_cents: (interest + iof).to_i }
   end
 
   # Price-table installment (rounded for display; the schedule uses the exact value).
@@ -56,14 +56,14 @@ module RevolvingCredit
 
     cap        = financed
     total_cost = paid_cents + (pmt * count).round.to_i
-    finance_charges   = total_cost - bill_cents
+    finance_charges = total_cost - bill_cents
     if finance_charges > cap                             # Lei 14.690/2023: the debt at most doubles
-      finance_charges   = cap
+      finance_charges = cap
       total_cost = bill_cents + cap
     end
 
     { financed_cents: financed, next_bill_add_cents: cost[:total_cents],
-      juros_cents: cost[:juros_cents], iof_cents: cost[:iof_cents],
+      interest_cents: cost[:interest_cents], iof_cents: cost[:iof_cents],
       parcel_cents: pmt.round.to_i, schedule: schedule,
       total_cost_cents: total_cost, finance_charges_cents: finance_charges,
       cap_cents: cap, months_to_cap: months_to_cap(financed, revolving_monthly_rate) }

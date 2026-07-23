@@ -66,17 +66,17 @@ class BankAccountsControllerTest < ActionDispatch::IntegrationTest
   test "a caixinha backing an active goal shows the livre/reservado split, mirroring Progress" do
     account  = @user.account
     checking = account.bank_accounts.create!(institution: @nubank, kind: "checking", balance_cents: 0)
-    caixinha = account.bank_accounts.create!(institution: @nubank, kind: "savings", balance_cents: 800_000)
+    savings_account = account.bank_accounts.create!(institution: @nubank, kind: "savings", balance_cents: 800_000)
     other    = account.bank_accounts.create!(institution: @nubank, kind: "savings", balance_cents: 100_000)
     month    = Date.current.beginning_of_month
 
     goal = account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
                                  target_date: month >> 17, status: "active",
                                  monthly_target_cents: 300_000, starts_on: month,
-                                 bank_account: caixinha,
-                                 initial_saved_cents: 400_000, initial_saved_bank_account: caixinha)
+                                 bank_account: savings_account,
+                                 initial_saved_cents: 400_000, initial_saved_bank_account: savings_account)
     account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 100_000,
-                                 bank_account: checking, transfer_to_bank_account: caixinha,
+                                 bank_account: checking, transfer_to_bank_account: savings_account,
                                  occurred_on: Date.current)
 
     # The invariant: the per-account earmark attribution sums to exactly what Progress shows.
@@ -86,17 +86,17 @@ class BankAccountsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match I18n.t("bank_accounts.reserved_for_goal", amount: brl_pt(500_000)), @response.body
     assert_match I18n.t("bank_accounts.free_balance", amount: brl_pt(400_000)), @response.body   # 900_000 derived − 500_000
-    # The goal-less caixinha (`other`) stays a single figure — exactly one reserved line on the page.
+    # The goal-less savings_account (`other`) stays a single figure — exactly one reserved line on the page.
     assert_equal 1, @response.body.scan(I18n.t("bank_accounts.reserved_for_goal", amount: "").strip).size
     assert other.reload.balance_informed?
   end
 
   test "a draft goal reserves nothing" do
     account  = @user.account
-    caixinha = account.bank_accounts.create!(institution: @nubank, kind: "savings", balance_cents: 500_000)
+    savings_account = account.bank_accounts.create!(institution: @nubank, kind: "savings", balance_cents: 500_000)
     account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
                           target_date: Date.current.beginning_of_month >> 17, status: "draft",
-                          initial_saved_cents: 400_000, initial_saved_bank_account: caixinha)
+                          initial_saved_cents: 400_000, initial_saved_bank_account: savings_account)
     get bank_accounts_url
     refute_match I18n.t("bank_accounts.reserved_for_goal", amount: "").strip, @response.body
   end

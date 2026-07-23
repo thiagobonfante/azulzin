@@ -13,7 +13,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     @account = @user.account
     @inst = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings", balance_cents: 123_456)
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings", balance_cents: 123_456)
     @rest = @account.categories.create!(name: "Restaurantes")
     travel_to Time.utc(2026, 7, 15, 12)
     seed_ledger
@@ -49,7 +49,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!   # draft screen
     assert_response :success
     assert_select "label", text: /Recomendado/
-    # The caixinha picker option shows the account's exact balance (round 3 P3; the partial's
+    # The savings_account picker option shows the account's exact balance (round 3 P3; the partial's
     # balances contract is { id => cents } — an object-keyed hash silently rendered "no balance").
     assert_match "R$ 1.234,56", @response.body
     # required = ceil((6_000_000 - 0) / 16 months Aug'26→Dec'27 — plans anchor NEXT month, round 3),
@@ -57,7 +57,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_match Goals.ceil_div(6_000_000, 16).then { |c| brl_whole_pt(c) }, @response.body
 
     assert_no_difference -> { @account.goals.count } do
-      patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id }
+      patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id }
     end
     assert_redirected_to goal_path(goal)
     assert goal.reload.active?
@@ -118,7 +118,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
   test "a savings goal at or below today's guardado is refused with a clear error" do
     WINDOW.each do |m|
       @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: 150_000,
-                                    bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                    bank_account: @checking, transfer_to_bank_account: @savings_account,
                                     occurred_on: m, billing_month: m, billing_month_manual: true)
     end
     assert_no_difference -> { @account.goals.count } do
@@ -161,7 +161,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("goals.diagnosis.reset_caps"), @response.body
   end
 
-  test "activation without a caixinha/source is blocked with the friendly error (round 3)" do
+  test "activation without a savings account/source is blocked with the friendly error (round 3)" do
     post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
     goal = @account.goals.last
     get goal_path(goal)   # populate baseline
@@ -179,7 +179,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!
     patch caps_goal_path(goal), params: { caps: { @rest.id.to_s => "15000" } }   # orçamento slider → fixed cut
     @rest.update!(monthly_budget_cents: 60_000)                                  # standing budget above the cap
-    patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id }
+    patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id }
     assert goal.reload.active?
 
     Goals::ApplyBudgetCutsJob.perform_now                     # July sweep: goal starts August → no-op
@@ -216,8 +216,8 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000,00", target_date: "2027-12-01" } }
     goal = @account.goals.last
     get goal_path(goal)   # populate baseline
-    patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id }
-    patch choose_goal_path(goal), params: { template: "acelerado", bank_account_id: @caixinha.id, source_bank_account_id: @checking.id }
+    patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id }
+    patch choose_goal_path(goal), params: { template: "acelerado", bank_account_id: @savings_account.id, source_bank_account_id: @checking.id }
     assert_equal 1, goal.commitments.savings.count
     assert_equal "recomendado", goal.reload.plan["template"]
   end
@@ -266,14 +266,14 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
   test "create with 'já tenho um valor guardado' persists the amount and its caixinha" do
     post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
                                        target_date: "2027-12-01", initial_saved_reais: "5.000",
-                                       initial_saved_bank_account_id: @caixinha.id } }
+                                       initial_saved_bank_account_id: @savings_account.id } }
     goal = @account.goals.last
     assert_redirected_to goal_path(goal)
     assert_equal 500_000, goal.initial_saved_cents
-    assert_equal @caixinha.id, goal.initial_saved_bank_account_id
+    assert_equal @savings_account.id, goal.initial_saved_bank_account_id
   end
 
-  test "an initial amount without its caixinha is refused while one exists to point at" do
+  test "an initial amount without its savings account is refused while one exists to point at" do
     assert_no_difference -> { @account.goals.count } do
       post goals_path, params: { goal: { name: "Carro", kind: "purchase", target_reais: "60.000",
                                          target_date: "2027-12-01", initial_saved_reais: "5.000" } }
@@ -317,7 +317,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
     txn = @account.transactions.where(direction: "transfer").order(:id).last
     assert_equal 10_000, txn.amount_cents
     assert_nil txn.commitment_id, "a speed-up transfer must never look like a second parcel payment"
-    assert_equal @caixinha.id, txn.transfer_to_bank_account_id
+    assert_equal @savings_account.id, txn.transfer_to_bank_account_id
     assert_equal @checking.id, txn.bank_account_id
     assert_equal before + 10_000, Goals::Progress.new(goal).actual_cents
   end
@@ -408,7 +408,7 @@ class GoalsFlowTest < ActionDispatch::IntegrationTest
                                          target_date: "2027-12-01", initial_saved_reais: "0,00" } }
       goal = @account.goals.last
       get goal_path(goal)   # populate baseline
-      patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @caixinha.id,
+      patch choose_goal_path(goal), params: { template: "recomendado", bank_account_id: @savings_account.id,
                                               source_bank_account_id: @checking.id }
       goal.reload
     end

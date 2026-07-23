@@ -9,7 +9,7 @@ class Goals::RiskScanTest < ActiveSupport::TestCase
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
     travel_to Time.utc(2026, 7, 9, 12)
   end
 
@@ -21,7 +21,7 @@ class Goals::RiskScanTest < ActiveSupport::TestCase
     @account.goals.create!(name:, kind: "purchase", target_cents: 6_000_000,
                            target_date: Date.new(2027, 12, 1), status: "active",
                            monthly_target_cents: monthly, starts_on:,
-                           activated_at: Time.utc(2026, 6, 15), bank_account: @caixinha,
+                           activated_at: Time.utc(2026, 6, 15), bank_account: @savings_account,
                            baseline: { "median_income_cents" => 0, "categories" => [] }.merge(baseline),
                            plan:)
   end
@@ -34,7 +34,7 @@ class Goals::RiskScanTest < ActiveSupport::TestCase
 
   def save!(cents, month:)
     @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: cents,
-                                  bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                  bank_account: @checking, transfer_to_bank_account: @savings_account,
                                   occurred_on: month, billing_month: month, billing_month_manual: true)
   end
 

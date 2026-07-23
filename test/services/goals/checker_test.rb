@@ -9,7 +9,7 @@ class Goals::CheckerTest < ActiveSupport::TestCase
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
   end
 
   teardown { travel_back }
@@ -18,13 +18,13 @@ class Goals::CheckerTest < ActiveSupport::TestCase
     @account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000,
                            target_date: Date.new(2027, 12, 1), status: "active",
                            monthly_target_cents: monthly, starts_on: Date.new(2026, 7, 1),
-                           activated_at: Time.utc(2026, 7, 1), bank_account: @caixinha,
+                           activated_at: Time.utc(2026, 7, 1), bank_account: @savings_account,
                            baseline: { "median_income_cents" => 0, "categories" => [] }.merge(baseline))
   end
 
   def save!(cents, month: Date.new(2026, 7, 1))
     @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: cents,
-                                  bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                  bank_account: @checking, transfer_to_bank_account: @savings_account,
                                   occurred_on: month, billing_month: month, billing_month_manual: true)
   end
 

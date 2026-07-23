@@ -10,7 +10,7 @@ class RotativoTest < ActiveSupport::TestCase
   # R$ 3.000,00 bill, pays 15% (R$ 450,00) → financed 255.000¢.
   test "canonical table: cycle cost" do
     cost = RevolvingCredit.cycle_cost(255_000, monthly_rate: ROT)
-    assert_equal 38_480, cost[:juros_cents]
+    assert_equal 38_480, cost[:interest_cents]
     assert_equal 969 + 627, cost[:iof_cents]     # 0,38% fixed + 0,0082%/day × 30
     assert_equal 40_076, cost[:total_cents]      # next fatura gains exactly this
   end

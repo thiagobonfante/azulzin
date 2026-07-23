@@ -115,9 +115,9 @@ class E2E::WhatsappCaptureTest < E2E::PipelineCase
     assert_wa_reply(s.jid, includes: [ "Lançado", s.nubank_card.display_name ])
   end
 
-  # WA-CAP-02d — debit narrows to checking accounts only (the caixinha is never a candidate)
+  # WA-CAP-02d — debit narrows to checking accounts only (the savings_account is never a candidate)
   test "debit with a single checking account → posts assigned, savings excluded" do
-    s = E2E::Scenario.build(:solo_basic).add_caixinha!.wa_verified!
+    s = E2E::Scenario.build(:solo_basic).add_savings_account!.wa_verified!
 
     with_canned_ai(extraction: E2E::CannedAI.expense(cents: 3_000, merchant: "padaria",
                                                      method: "debito")) do

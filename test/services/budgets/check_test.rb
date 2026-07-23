@@ -12,7 +12,7 @@ class Budgets::CheckTest < ActiveSupport::TestCase
     @account  = @user.account
     @inst     = Institution.find_by(code: "260")
     @bank     = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
     @rest     = @account.categories.create!(name: "Restaurantes")
     travel_to Time.utc(2026, 7, 20, 12)
   end
@@ -25,7 +25,7 @@ class Budgets::CheckTest < ActiveSupport::TestCase
   def goal_with_cut(cap:)
     @account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000, target_date: Date.new(2027, 12, 1),
                            status: "active", monthly_target_cents: 300_000, starts_on: JULY, activated_at: Time.utc(2026, 7, 1),
-                           bank_account: @caixinha, baseline: { "median_income_cents" => 0, "categories" => [] },
+                           bank_account: @savings_account, baseline: { "median_income_cents" => 0, "categories" => [] },
                            plan: { "cuts" => [ { "category_id" => @rest.id, "cap_cents" => cap, "baseline_cents" => 60_000 } ] })
   end
 

@@ -73,14 +73,14 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
 
   # ── Round 3 P3: goal boost tie-in ──────────────────────────────────────────────────────
 
-  def active_goal!(caixinha, kind: "purchase")
+  def active_goal!(savings_account, kind: "purchase")
     @user.account.goals.create!(name: "Carro", kind: kind, target_cents: 6_000_000,
                                 target_date: (kind == "purchase" ? Date.new(2027, 12, 1) : nil),
                                 status: "active", monthly_target_cents: 300_000,
-                                starts_on: Date.current.beginning_of_month, bank_account: caixinha)
+                                starts_on: Date.current.beginning_of_month, bank_account: savings_account)
   end
 
-  test "a transfer into a goal's caixinha streams the boost toast with the fresh forecast" do
+  test "a transfer into a goal's savings account streams the boost toast with the fresh forecast" do
     goal = active_goal!(@savings)
     transfer!(from: @checking, to: @savings, amount: "300,00")
     assert_response :ok
@@ -96,7 +96,7 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("transfers.saved_goal_boost_savings", goal: goal.name), @response.body
   end
 
-  test "a savings transfer with no goal on that caixinha keeps only the plain celebration" do
+  test "a savings transfer with no goal on that savings account keeps only the plain celebration" do
     transfer!(from: @checking, to: @savings, amount: "50")
     assert_response :ok
     refute_match "Nova previsão", @response.body

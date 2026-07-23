@@ -9,7 +9,7 @@ class Goals::NarrativeJobTest < ActiveSupport::TestCase
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings")
   end
 
   teardown { travel_back }
@@ -56,7 +56,7 @@ class Goals::NarrativeJobTest < ActiveSupport::TestCase
   test "ZERO LLM calls on the entire weekly check + notify path (regression gate)" do
     @account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000, target_date: Date.new(2027, 12, 1),
                            status: "active", monthly_target_cents: 300_000, starts_on: Date.new(2026, 7, 1),
-                           activated_at: Time.utc(2026, 7, 1), bank_account: @caixinha,
+                           activated_at: Time.utc(2026, 7, 1), bank_account: @savings_account,
                            baseline: { "median_income_cents" => 0, "categories" => [] })
     travel_to Time.utc(2026, 7, 31, 12)
     OpenRouterClient.stub(:new, ->(*) { raise "the LLM must never be constructed on the check path" }) do

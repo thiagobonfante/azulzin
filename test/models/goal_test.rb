@@ -70,7 +70,7 @@ class GoalTest < ActiveSupport::TestCase
     assert ok.valid?
   end
 
-  test "linked bank_account must be a savings caixinha in the same account" do
+  test "linked bank_account must be a savings savings account in the same account" do
     refute purchase(bank_account: @checking).valid?
     assert purchase(bank_account: @savings).valid?
 
@@ -81,7 +81,7 @@ class GoalTest < ActiveSupport::TestCase
 
   # ── Round 3 decision 7: initial-saved earmarking ─────────────────────────────────────────
 
-  test "initial_saved_bank_account must be a savings caixinha in the same account" do
+  test "initial_saved_bank_account must be a savings savings account in the same account" do
     refute purchase(initial_saved_cents: 1_000, initial_saved_bank_account: @checking).valid?
     assert purchase(initial_saved_cents: 1_000, initial_saved_bank_account: @savings).valid?
 

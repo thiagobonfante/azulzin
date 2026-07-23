@@ -21,7 +21,7 @@ module Goals
         categories:                 category_stats(by_cat),
         median_income_cents:        Goals.median(summaries.map(&:incomes_cents)),
         median_capacity_base_cents: Goals.median(summaries.map { |ms| ms.incomes_cents - ms.expenses_cents - ms.bills_cents }),
-        median_saved_cents:      Goals.median(summaries.map(&:saved_cents)),
+        median_saved_cents:         Goals.median(summaries.map(&:saved_cents)),
         income_irregular:           Goals.cv_squared(summaries.map(&:incomes_cents)) > INCOME_IRREGULAR_CV**2,
         uncategorized_ratio_bd:     uncategorized_ratio(by_cat),
         window:

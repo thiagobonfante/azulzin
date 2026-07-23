@@ -13,7 +13,7 @@ class E2E::WhatsappQueriesTest < E2E::PipelineCase
     body = assert_wa_reply(s.jid)
     assert_includes body, s.itau.display_name
     assert_brl 250_000, body     # itau derived (pack-calibrated)
-    assert_brl 520_000, body     # caixinha derived
+    assert_brl 520_000, body     # savings_account derived
     assert_brl 770_000, body     # total
   end
 

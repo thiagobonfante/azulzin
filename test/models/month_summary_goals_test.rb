@@ -10,7 +10,7 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     @account  = users(:confirmed).account
     @inst     = Institution.find_by(code: "260")
     @checking = @account.bank_accounts.create!(institution: @inst, kind: "checking", nickname: "Conta")
-    @caixinha = @account.bank_accounts.create!(institution: @inst, kind: "savings",  nickname: "Caixinha")
+    @savings_account = @account.bank_accounts.create!(institution: @inst, kind: "savings",  nickname: "Caixinha")
     @month    = Date.new(2026, 7, 1)
     travel_to Time.utc(2026, 7, 15, 12)   # mid-month → :current so projection terms apply
   end
@@ -19,13 +19,13 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
 
   def savings_commitment(cents)
     @account.commitments.create!(kind: "savings", bank_account: @checking, amount_cents: cents,
-                                 transfer_to_bank_account: @caixinha,   # goal-less shape (round 3 P4)
+                                 transfer_to_bank_account: @savings_account,   # goal-less shape (round 3 P4)
                                  name: "Meta: Carro", starts_on: @month, schedule_day: 5, schedule_kind: "fixed_day")
   end
 
   def pay!(commitment, cents)
     @account.transactions.create!(direction: "transfer", status: "posted", amount_cents: cents,
-                                  bank_account: @checking, transfer_to_bank_account: @caixinha,
+                                  bank_account: @checking, transfer_to_bank_account: @savings_account,
                                   commitment:, occurred_on: Date.new(2026, 7, 15),
                                   billing_month: @month, billing_month_manual: true)
   end
@@ -78,7 +78,7 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
 
   test "a savings commitment starting NEXT month leaves this month's sobra alone and dents next month" do
     @account.commitments.create!(kind: "savings", bank_account: @checking, amount_cents: 100_000,
-                                 transfer_to_bank_account: @caixinha,
+                                 transfer_to_bank_account: @savings_account,
                                  name: "Meta: Carro", starts_on: Date.new(2026, 8, 1), schedule_day: 5, schedule_kind: "fixed_day")
     current = MonthSummary.new(@account, @month)
     assert_equal 0, current.projected_saved_cents   # activation month untouched (round 3 decision 3)
@@ -94,7 +94,7 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     Commitments::MarkPaid.call(sav, @month)
 
     after = MonthSummary.new(@account, @month)
-    assert_equal 100_000, after.saved_cents             # landed in the caixinha (savings kind)
+    assert_equal 100_000, after.saved_cents             # landed in the savings_account (savings kind)
     assert_equal 0,       after.projected_saved_cents
     assert_equal before,  after.remaining_cents            # INVARIANT holds without a goal
   end

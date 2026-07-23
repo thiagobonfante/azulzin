@@ -202,11 +202,11 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
   test "weekly WA guard: two slipping goals, one push, both dashboard rows" do
     travel_to MONDAY
     s = push_ready(E2E::Scenario.build(:goal_active, paid: [ 1, 1, 0.3 ]))
-    second_caixinha = s.account.bank_accounts.create!(
+    second_savings_account = s.account.bank_accounts.create!(
       institution: Institution.find_by!(code: "260"), nickname: "Caixinha Viagem",
       kind: "savings", created_by: s.owner)
     s.add_active_goal!(name: "Viagem", paid: [ 1, 0.5, 0 ], target_cents: 1_000_000,
-                       into: second_caixinha)
+                       into: second_savings_account)
 
     dispatch_goals!
 
@@ -219,7 +219,7 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
   test "goal_achieved reaches every member even after a goal alert the same week" do
     travel_to MONDAY
     s = E2E::Scenario.build(:couple)
-    s.add_caixinha!
+    s.add_savings_account!
     goal = s.add_active_goal!(name: "Reserva", paid: [ 1, 1, 0.3 ])
     s.members.each do |m|
       m.notification_prefs.update!(whatsapp_consent: true, goal_alerts: true,
@@ -272,12 +272,12 @@ class E2E::NotificationGoalsTest < E2E::PipelineCase
   # parcel and the honest finish slips past the promise, firing missed_month. goal_active can't
   # slip (its parcel over-covers its backdated window), so this is built inline like WA-GOAL-05.
   def missed_month_scenario
-    s = push_ready(E2E::Scenario.build(:solo_basic) { |sc| sc.add_caixinha!; sc.ensure_income_history! })
+    s = push_ready(E2E::Scenario.build(:solo_basic) { |sc| sc.add_savings_account!; sc.ensure_income_history! })
     start = Date.new(2026, 3, 1)
     goal = s.account.goals.create!(
       name: "Carro", kind: "purchase", target_cents: 6_000_000, target_date: Date.new(2027, 12, 1),
       status: "active", monthly_target_cents: 300_000, starts_on: start, activated_at: start.in_time_zone,
-      bank_account: s.caixinha, created_by: s.owner,
+      bank_account: s.savings_account, created_by: s.owner,
       baseline: { "median_income_cents" => 0, "categories" => [] },
       plan: { "projected_done_on" => "2027-11-01" })
     commitment = s.account.commitments.create!(kind: "savings", goal: goal, bank_account: s.itau,
