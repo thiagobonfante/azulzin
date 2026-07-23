@@ -136,7 +136,7 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
   # undo → banner back. The notification is NOT dismissed on pay (payment is reversible),
   # the render simply skips a paid bill's card_due/card_overdue alert.
   test "overdue banner hides once the bill is paid and returns on undo" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     dispatch_reminders!
     notification = Notification.find_by!(user: s.owner, kind: "card_overdue")
     sign_in_as s.owner
@@ -163,7 +163,7 @@ class E2E::WebCardBillsTest < E2E::PipelineCase
   # page badges only the newest bill (same debt never announced twice); once fully paid
   # after due, the badge says "paga em atraso".
   test "rolled and paid_late refine display_status; cards badge probes only the newest bill" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     bill = s.closed_bill                        # due day 10, anchor the 20th → past due
     travel 1.minute
     CardBills::Pay.call(bill, amount_cents: 100_000, paid_on: Date.current,

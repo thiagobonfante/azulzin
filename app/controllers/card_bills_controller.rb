@@ -35,7 +35,7 @@ class CardBillsController < ApplicationController
   # this as the amount is typed — the projection math stays server-side.
   def projection
     typed = Money.to_cents(params[:amount_reais]).to_i
-    render partial: "card_bills/rotativo_warning",
+    render partial: "card_bills/revolving_warning",
            locals: { bill: @bill, paid_cents: @bill.paid_cents + [ typed, 0 ].max }, layout: false
   end
 

@@ -7,7 +7,7 @@
 # - juros and each IOF component round half-up independently;
 # - the Price schedule runs on the EXACT (unrounded) installment — rounding happens only
 #   at the output boundary (displayed parcel, schedule entries, totals).
-module Rotativo
+module RevolvingCredit
   module_function
 
   # IOF on PF credit (Decreto 6.306/2007 art. 7º): 0.38% fixed + 0.0082%/day, daily part
@@ -37,13 +37,13 @@ module Rotativo
   #   { financed:, next_bill_add: (cycle juros+IOF), parcel:, schedule: [12 balances],
   #     total_cost: (P + all parcels), encargos:, cap: (100% of financed, Lei 14.690),
   #     months_to_cap: (compounding-only "dobra em ~N meses" counterfactual) }
-  def projection(bill_cents, paid_cents, rotativo_am:, parcelado_am:, count: 12)
+  def projection(bill_cents, paid_cents, revolving_monthly_rate:, installment_monthly_rate:, count: 12)
     financed = bill_cents - paid_cents
     return nil unless financed.positive?
 
-    cost      = cycle_cost(financed, monthly_rate: rotativo_am)
+    cost      = cycle_cost(financed, monthly_rate: revolving_monthly_rate)
     principal = financed + cost[:total_cents]
-    rate      = parcelado_am / 100
+    rate      = installment_monthly_rate / 100
     pmt       = exact_parcel(BigDecimal(principal), rate, count)
 
     schedule = []
@@ -66,16 +66,16 @@ module Rotativo
       juros_cents: cost[:juros_cents], iof_cents: cost[:iof_cents],
       parcel_cents: pmt.round.to_i, schedule: schedule,
       total_cost_cents: total_cost, encargos_cents: encargos,
-      cap_cents: cap, months_to_cap: months_to_cap(financed, rotativo_am) }
+      cap_cents: cap, months_to_cap: months_to_cap(financed, revolving_monthly_rate) }
   end
 
   # Months for the debt to hit the 100%-encargos ceiling compounding at the rotativo rate
   # alone — the honest "sua dívida pode no máximo dobrar, e dobra em ~N meses" line.
-  def months_to_cap(financed_cents, rotativo_am)
-    return nil unless financed_cents.positive? && rotativo_am.positive?
+  def months_to_cap(financed_cents, revolving_monthly_rate)
+    return nil unless financed_cents.positive? && revolving_monthly_rate.positive?
     debt, months = BigDecimal(financed_cents), 0
     while debt < financed_cents * 2
-      debt   *= 1 + rotativo_am / 100
+      debt   *= 1 + revolving_monthly_rate / 100
       months += 1
     end
     months

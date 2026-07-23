@@ -193,7 +193,7 @@ module E2E
     # the anchor month (already past due at the anchor — due day 10, anchor the 20th) plus
     # the frozen BCB rates rows (rotativo 15,09 / parcelamento 9,26 — tests NEVER call the
     # API). Itaú balance R$ 4.000,00.
-    def bill_rotativo(**)
+    def bill_revolving(**)
       solo_basic
       seed_bcb_rates!
       expense(merchant: "Compra Grande", category: "Outros", instrument: nubank_card,
@@ -201,7 +201,7 @@ module E2E
       itau.update!(balance_cents: 400_000)
       bills = CardBills::CloseScan.ensure_for(nubank_card)
       unless bills.size == 1 && bills.last.computed_total_cents == 300_000 && bills.last.overdue?
-        raise "bill_rotativo pack lost its calibration: #{bills.map { |b| [ b.billing_month, b.computed_total_cents ] }.inspect}"
+        raise "bill_revolving pack lost its calibration: #{bills.map { |b| [ b.billing_month, b.computed_total_cents ] }.inspect}"
       end
       self
     end

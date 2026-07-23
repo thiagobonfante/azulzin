@@ -21,8 +21,8 @@
       </p>
 
       <%= form_with url: pay_card_bill_path(bill), method: :post, class: "mt-3 grid gap-3",
-            data: { turbo: false, controller: "rotativo-warning",
-                    rotativo_warning_url_value: projection_card_bill_path(bill) } do %>
+            data: { turbo: false, controller: "revolving-warning",
+                    revolving_warning_url_value: projection_card_bill_path(bill) } do %>
         <div class="form-control">
           <label class="mb-1 text-xs text-base-content/60" for="pay_amount_reais"><%= t("card_bills.pay_modal.amount") %></label>
           <label class="input input-bordered input-sm flex w-full items-center gap-1">
@@ -30,13 +30,13 @@
             <%= text_field_tag :amount_reais, MoneyColumns.prefill([ bill.effective_total_cents - bill.paid_cents, 0 ].max),
                   id: "pay_amount_reais", inputmode: "decimal", required: true, placeholder: "0,00", class: "grow",
                   data: { controller: "money-mask", money_mask_cents_value: true,
-                          rotativo_warning_target: "amount",
-                          action: "input->money-mask#format input->rotativo-warning#recount" } %>
+                          revolving_warning_target: "amount",
+                          action: "input->money-mask#format input->revolving-warning#recount" } %>
           </label>
         </div>
 
         <%# The live rotativo warning lands here (server-rendered — 02 §4; warn, never block). %>
-        <div data-rotativo-warning-target="panel"></div>
+        <div data-revolving-warning-target="panel"></div>
 
         <div class="form-control">
           <label class="mb-1 text-xs text-base-content/60" for="pay_paid_on"><%= t("card_bills.pay_modal.date") %></label>

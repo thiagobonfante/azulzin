@@ -27,7 +27,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
   end
 
   test "ROT-02: financing replaces the carryover — parcels ride the next bills as derived lines, never rows" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     next_month = bill.billing_month >> 1
@@ -68,7 +68,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
   end
 
   test "ROT-02: cancel is the whole rollback — entrada reversed, plain carryover returns" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     next_month = bill.billing_month >> 1
@@ -85,7 +85,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
   end
 
   test "ROT-02: cancel keeps a payment that was recorded via Pagar before the plan" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
 
@@ -102,7 +102,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
   end
 
   test "ROT-02: the financed amount holds limit, released as parcels are billed" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
 
     finance! s
@@ -117,7 +117,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
   end
 
   test "ROT-02: encargos split evenly with the remainder cents on parcel 1" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     fin = s.closed_bill.build_financing(
       account: s.account, installments_count: 7, installment_cents: 40_000,
       financed_cents: 255_000, first_charge_month: s.closed_bill.billing_month >> 1)
@@ -128,7 +128,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
   end
 
   test "ROT-02: a financed bill leaves the rotativo — warning panel and overdue banner stop" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     dispatch_reminders!
     notification = Notification.find_by!(user: s.owner, kind: "card_overdue")
     sign_in_as s.owner
@@ -153,7 +153,7 @@ class E2E::WebCardBillFinancingTest < E2E::PipelineCase
   end
 
   test "ROT-02: the bank's numbers must cover the principal — negative juros is a typo" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
 
     finance! s, count: 2, parcela: "100,00"   # 2 × 10.000 < 255.000

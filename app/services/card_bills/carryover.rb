@@ -25,7 +25,7 @@ module CardBills
       return nil if carry.zero?
 
       rate = (BcbRate.current("rotativo") if carry.positive?)
-      encargos = rate ? Rotativo.cycle_cost(carry, monthly_rate: rate.monthly_rate)[:total_cents] : 0
+      encargos = rate ? RevolvingCredit.cycle_cost(carry, monthly_rate: rate.monthly_rate)[:total_cents] : 0
       { from_month: prev.billing_month, carryover_cents: carry, encargos_cents: encargos,
         total_cents: carry + encargos, rate_month: rate&.reference_month }
     end

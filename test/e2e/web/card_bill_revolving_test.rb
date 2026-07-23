@@ -6,7 +6,7 @@ require "test_helpers/e2e/pipeline_case"
 # card_overdue escalation with its golden body.
 class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   test "ROT-01: partial payment warning panel renders the canonical figures" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
 
     get projection_card_bill_url(s.closed_bill), params: { amount_reais: "450,00" }
@@ -25,7 +25,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   end
 
   test "ROT-01: below the assumed minimum adds the atraso band, labeled as an assumption" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
 
     get projection_card_bill_url(s.closed_bill), params: { amount_reais: "100,00" }
@@ -33,7 +33,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   end
 
   test "ROT-01: carryover + encargos ride the next month as labeled lines, never rows" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     next_month = bill.billing_month >> 1
@@ -63,7 +63,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   # estimate lines — only once the conferência RESOLVES. While pending, our figure
   # (rows + carryover estimate) keeps ruling every surface.
   test "ROT-01: NEXT bill's stated rules only after the check resolves" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     next_month = bill.billing_month >> 1
@@ -92,7 +92,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   end
 
   test "ROT-01: overpay yields a negative carryover that reduces the next figure, no encargos" do
-    s = E2E::Scenario.build(:bill_rotativo)
+    s = E2E::Scenario.build(:bill_revolving)
     sign_in_as s.owner
     bill = s.closed_bill
     travel 1.minute
@@ -106,7 +106,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
   end
 
   test "ROT-01: card_overdue fires once past due with the golden body, never again, never for paid" do
-    s = push_ready(E2E::Scenario.build(:bill_rotativo))
+    s = push_ready(E2E::Scenario.build(:bill_revolving))
 
     2.times { dispatch_reminders! }
 
@@ -117,7 +117,7 @@ class E2E::WebCardBillRotativoTest < E2E::PipelineCase
     notification = Notification.find_by!(user: s.owner, kind: "card_overdue")
     assert_equal "/card_bills/#{s.closed_bill.id}", Notifications.url_for(notification)
 
-    paid = push_ready(E2E::Scenario.build(:bill_rotativo))
+    paid = push_ready(E2E::Scenario.build(:bill_revolving))
     CardBills::Pay.call(paid.closed_bill, amount_cents: 300_000, paid_on: Date.current,
                         bank_account: paid.itau, created_by: paid.owner)
     dispatch_reminders!
