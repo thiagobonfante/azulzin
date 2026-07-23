@@ -82,6 +82,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **⚠️ TEMPORARY launch pin (since 2026-07):** production currently pins `pt-BR` in code — `ApplicationController#resolve_locale` and `ApplicationMailer#set_locale` hardcode `I18n.default_locale`, so en-US is unreachable in every env. The bilingual rules above remain the contract (keep shipping keys in both locales); do NOT "fix" the pin in passing. Lifting it is a product decision and must restore the full resolve chain AND build the en-US E2E golden matrix + mailer-locale tests (follow-up recorded in `.plans/e2e/05-web-journeys.md` §8).
 - Details: [docs/i18n.md](docs/i18n.md) · decision: [ADR 0006](docs/decisions/0006-internationalization.md).
 
+### Code is written in English — Portuguese is content, never identifiers
+
+**All code identifiers are English: class/module names, methods, variables, kwargs, DB columns, scopes, Data members, view partials, DOM ids, Stimulus controllers, scenario packs.** Portuguese domain terms get translated (`rotativo` → revolving credit, `fatura` → bill, `encargos` → finance charges, `caixinha` → savings account, `sobra` → surplus, `guardado` → saved, `entrada` (financing) → down payment, `parcela` → installment). Self-check on every diff: no new Portuguese word appears left of a `=`, after a `def`, or in a symbol/column name.
+
+Portuguese is CORRECT and must stay in: user-facing copy (locale values, golden bodies), AI prompt bodies, regexes/word lists matching user input or Brazilian bank documents, seeded names ("Encargos" category), and **stored data contracts** — DB enum values (`picking_caixinha`, `rotativo`), serialized JSON keys (notification `payload["sobra_cents"]`, goal `baseline["median_guardado_cents"]`, conversation `data["caixinha_id"]`), and i18n keys whose interpolation names derive from stored payload keys (`%{sobra}`, `%{faturas}` in notification templates). Renaming a stored key breaks existing prod rows — don't.
+
 ### E2E tests — user journeys are pinned end to end
 
 **Any change to a money path, a WhatsApp reply, a notification, or a user-facing journey ships with (or updates) an E2E scenario.** The suite lives in `test/e2e/` + `test/system/journeys/`; the full manual is [docs/e2e-testing.md](docs/e2e-testing.md) — read it before writing an E2E test.
