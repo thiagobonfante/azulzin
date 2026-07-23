@@ -70,9 +70,9 @@ class SoftDeletableTest < ActiveSupport::TestCase
     drop = @account.transactions.create!(amount_cents: 5_000, occurred_on: Date.current, status: "posted", direction: "expense", bank_account: acct)
 
     drop.soft_delete!(by: @user)
-    assert_equal 3_000, MonthSummary.new(@account, month).saidas_cents   # the deleted row drops out
+    assert_equal 3_000, MonthSummary.new(@account, month).expenses_cents   # the deleted row drops out
 
     acct.soft_delete!(by: @user)                                          # no cascade to its transactions
-    assert_equal 3_000, MonthSummary.new(@account, month).saidas_cents   # the kept row still counts
+    assert_equal 3_000, MonthSummary.new(@account, month).expenses_cents   # the kept row still counts
   end
 end

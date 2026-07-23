@@ -16,7 +16,7 @@ class Goals::NarrativeJobTest < ActiveSupport::TestCase
 
   def draft
     profile = Goals::Profile.new(sufficiency: :ok, categories: [], median_income_cents: 900_000,
-                                 median_capacity_base_cents: 400_000, median_guardado_cents: 0,
+                                 median_capacity_base_cents: 400_000, median_saved_cents: 0,
                                  income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
                                  window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ])
     @account.goals.create!(name: "Carro", kind: "purchase", target_cents: 6_000_000, target_date: Date.new(2027, 12, 1),

@@ -27,7 +27,7 @@ module Whatsapp
       s = MonthSummary.new(account, month)
       key = s.in_the_blue? ? "month_answer_blue" : "month_answer_red"
       reply(key, month: month_label(s.month), remaining: currency(s.remaining_cents),
-            entradas: currency(s.entradas_cents), saidas: currency(s.saidas_cents), faturas: currency(s.faturas_cents))
+            incomes: currency(s.incomes_cents), expenses: currency(s.expenses_cents), bills: currency(s.bills_cents))
     end
 
     def answer_balance
@@ -51,7 +51,7 @@ module Whatsapp
 
     def answer_savings
       s = now_summary
-      reply("savings_answer", total: currency(s.guardado_total_cents), month: currency(s.guardado_cents))
+      reply("savings_answer", total: currency(s.saved_total_cents), month: currency(s.saved_cents))
     end
   end
 end

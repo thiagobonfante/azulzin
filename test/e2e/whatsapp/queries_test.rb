@@ -38,11 +38,11 @@ class E2E::WhatsappQueriesTest < E2E::PipelineCase
     ask_query(s, nil, "como tá o mês?")   # query_kind nil → month answer
 
     body = assert_wa_reply(s.jid)
-    assert_brl summary.entradas_cents, body
-    assert_brl summary.saidas_cents, body
+    assert_brl summary.incomes_cents, body
+    assert_brl summary.expenses_cents, body
     assert_brl summary.remaining_cents, body
     # The pack's terms are themselves frozen: income received this month is the salary.
-    assert_equal 500_000, summary.entradas_cents
+    assert_equal 500_000, summary.incomes_cents
   end
 
   # WA-QRY-04

@@ -11,7 +11,7 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
                               trimmable_median_cents: cents, months_present: 3, flexibility: "flexible")
     end
     Goals::Profile.new(sufficiency:, categories: cats, median_income_cents: income,
-                       median_capacity_base_cents: capacity, median_guardado_cents: guardado,
+                       median_capacity_base_cents: capacity, median_saved_cents: guardado,
                        income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
                        window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ])
   end
@@ -195,7 +195,7 @@ class Goals::PlanBuilderTest < ActiveSupport::TestCase
     cats = [ Goals::CategoryStat.new(category_id: 1, name: "Mercado", median_cents: 100_000,
                                      trimmable_median_cents: 30_000, months_present: 3, flexibility: "flexible") ]
     p = Goals::Profile.new(sufficiency: :ok, categories: cats, median_income_cents: 920_000,
-                           median_capacity_base_cents: 340_000, median_guardado_cents: 0,
+                           median_capacity_base_cents: 340_000, median_saved_cents: 0,
                            income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
                            window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ])
     r = build(p, user_caps: { 1 => 10_000 })              # asks to cut 90_000 — only 30_000 is trimmable

@@ -59,10 +59,10 @@ module GoalsHelper
       map = Hash.new(0)
       Current.account.goals.active.each do |goal|
         map[goal.initial_saved_bank_account_id] += goal.initial_saved_cents.to_i if goal.initial_saved_bank_account_id
-        next if goal.starts_on.blank?   # mirrors Progress#guardado_since_start's guard
+        next if goal.starts_on.blank?   # mirrors Progress#saved_since_start's guard
         ids = goal.savings_account_ids
         next if ids.empty?
-        Current.account.transactions.guardado_into(ids)
+        Current.account.transactions.saved_into(ids)
                .where(billing_month: Goals::Progress.new(goal).counting_from..)
                .group(:transfer_to_bank_account_id).sum(:amount_cents)
                .each { |account_id, cents| map[account_id] += cents }

@@ -11,7 +11,7 @@ class E2E::WebSubCardsTest < E2E::PipelineCase
     month = Date.current.beginning_of_month
 
     assert_equal 60_000, s.nubank_card.bill_cents(month)
-    assert_equal 60_000, MonthSummary.new(s.account, month).faturas_cents, "roots iteration — no double count"
+    assert_equal 60_000, MonthSummary.new(s.account, month).bills_cents, "roots iteration — no double count"
 
     CardBills::CloseScanJob.perform_now
     bill = s.account.card_bills.sole

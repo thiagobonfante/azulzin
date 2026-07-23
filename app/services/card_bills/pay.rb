@@ -1,7 +1,7 @@
 module CardBills
   # Pays (part of) a closed fatura (.plans/credit-cards 01 §3) — the money-correctness
   # core: the payment is a TRANSFER from the source bank account to the card, never an
-  # expense (the spend already settles through faturas_cents; an expense would count it
+  # expense (the spend already settles through bills_cents; an expense would count it
   # twice). Source is optional (P0 #4): a payment from an untracked account still records
   # THAT and HOW MUCH was paid, it just moves no tracked balance. Multiple partial
   # payments are legitimate (paid_cents is a sum); unpay = reverse! on the payment row.

@@ -82,7 +82,7 @@ module Goals
         return @goal.initial_saved_cents.to_i if ids.empty?
         window = Progress.new(@goal).counting_from...Recompute.current_month
         @goal.initial_saved_cents.to_i +
-          @goal.account.transactions.guardado_into(ids).where(billing_month: window).sum(:amount_cents)
+          @goal.account.transactions.saved_into(ids).where(billing_month: window).sum(:amount_cents)
       end
 
       # The merged head start lives in the goal's caixinha (an original head start in a

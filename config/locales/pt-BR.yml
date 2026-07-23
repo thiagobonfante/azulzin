@@ -219,7 +219,7 @@ pt-BR:
             initial_saved_cents:
               exceeds_target: "não pode ser maior ou igual ao valor da meta."
             target_cents:
-              below_current_guardado: "precisa ser maior do que vocês já guardam hoje (~%{guardado}/mês)."
+              below_current_guardado: "precisa ser maior do que vocês já guardam hoje (~%{saved}/mês)."
   app:
     nav:
       dashboard: "Painel"
@@ -1820,8 +1820,8 @@ pt-BR:
       nothing_to_move: "Não achei uma compra recente pra mover."
       balance_answer: "%{lines}\nTotal: %{total}"
       balance_line: "%{name}: %{amount}"
-      month_answer_blue: "%{month}: sobra de %{remaining} — no azul 💙\nEntradas %{entradas} · Saídas %{saidas} · Faturas %{faturas}"
-      month_answer_red: "%{month}: %{remaining} — no vermelho 🔴\nEntradas %{entradas} · Saídas %{saidas} · Faturas %{faturas}"
+      month_answer_blue: "%{month}: sobra de %{remaining} — no azul 💙\nEntradas %{incomes} · Saídas %{expenses} · Faturas %{bills}"
+      month_answer_red: "%{month}: %{remaining} — no vermelho 🔴\nEntradas %{incomes} · Saídas %{expenses} · Faturas %{bills}"
       card_bill_answer: "Fatura de %{month} do %{name}: %{amount} (fecha dia %{closes}, vence dia %{due})."
       savings_answer: "Guardado: %{total} 💙 Esse mês você moveu %{month} pra poupança."
       help: "Não entendi 🤔 Você pode me mandar coisas como:\n• \"mercado 84,90 no débito\"\n• \"guardei 200 na reserva\"\n• \"paguei a parcela do carro\"\n• \"comprei um celular, 5000 em 10x\"\n• \"como tá o mês?\""
@@ -1832,7 +1832,7 @@ pt-BR:
         ask_kind: "Boa! O que você quer planejar? Responde com o número:\n%{options}"
         ask_name: "Qual é o sonho? Me diz um nome curto — ex.: Viagem, Carro."
         ask_amount_purchase: "Quanto custa *%{name}*?"
-        ask_amount_savings: "Hoje vocês guardam ~%{guardado}/mês. Quanto quer guardar no total por mês?"
+        ask_amount_savings: "Hoje vocês guardam ~%{saved}/mês. Quanto quer guardar no total por mês?"
         ask_amount_savings_zero: "Quanto você quer guardar por mês?"
         ask_month: "Pra quando? Pode dizer o mês — ex.: \"dezembro de 2027\" ou \"em 18 meses\"."
         ask_initial_saved: "Já tem algo guardado pra isso? Responde um valor ou *não*."
@@ -1840,7 +1840,7 @@ pt-BR:
         reask_month: "Não entendi a data. Me diz o mês e o ano — ex.: \"outubro de 2027\" ou \"em 6 meses\"."
         reask_initial_saved: "Não entendi. Responde um valor (ex.: 2000) ou *não*."
         reask_initial_saved_high: "Esse valor já cobre a meta toda — aí não precisa de plano 😄 Me diz um valor menor ou *não*."
-        below_current_guardado: "Vocês já guardam ~%{guardado}/mês — pra ser meta, precisa ser mais que isso. Qual o novo total?"
+        below_current_guardado: "Vocês já guardam ~%{saved}/mês — pra ser meta, precisa ser mais que isso. Qual o novo total?"
         offer: |-
           💙 Fechei um plano pra *%{name}*: guardar %{monthly}/mês.
           %{reaches_line}%{cuts_block}Quer ativar? Responde *sim* ou *não*.

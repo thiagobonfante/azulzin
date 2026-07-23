@@ -33,11 +33,11 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
   test "an unpaid savings commitment reduces sobra via projected_guardado, not saídas" do
     savings_commitment(100_000)
     s = MonthSummary.new(@account, @month)
-    assert_equal 100_000, s.projected_guardado_cents
-    assert_equal 0,       s.saidas_cents               # savings kind excluded from saídas/debit commitments
-    assert_equal 0,       s.guardado_cents             # nothing posted yet
+    assert_equal 100_000, s.projected_saved_cents
+    assert_equal 0,       s.expenses_cents               # savings kind excluded from saídas/debit commitments
+    assert_equal 0,       s.saved_cents             # nothing posted yet
     assert_equal(-100_000, s.remaining_cents)          # entradas 0 − … − projected_guardado
-    assert_equal 100_000, s.a_pagar_cents              # it IS to pay this month
+    assert_equal 100_000, s.payable_cents              # it IS to pay this month
   end
 
   test "paying the goal occurrence mid-month leaves sobra UNCHANGED (the named invariant)" do
@@ -47,8 +47,8 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     pay!(sav, 100_000)
 
     after = MonthSummary.new(@account, @month)
-    assert_equal 100_000, after.guardado_cents             # moved into guardado
-    assert_equal 0,       after.projected_guardado_cents   # occurrence cleared
+    assert_equal 100_000, after.saved_cents             # moved into guardado
+    assert_equal 0,       after.projected_saved_cents   # occurrence cleared
     assert_equal before,  after.remaining_cents            # INVARIANT: sobra unchanged at pay time
   end
 
@@ -59,8 +59,8 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     pay!(sav, 130_000)   # paid 30_000 more than the scheduled contribution
 
     after = MonthSummary.new(@account, @month)
-    assert_equal 130_000, after.guardado_cents
-    assert_equal 0,       after.projected_guardado_cents
+    assert_equal 130_000, after.saved_cents
+    assert_equal 0,       after.projected_saved_cents
     assert_equal before - 30_000, after.remaining_cents          # only the extra reduces sobra
   end
 
@@ -71,8 +71,8 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     pay!(sav, 60_000)   # paid less than the scheduled contribution
 
     after = MonthSummary.new(@account, @month)
-    assert_equal 60_000, after.guardado_cents
-    assert_equal 0,      after.projected_guardado_cents          # existence-based paid_in? clears it
+    assert_equal 60_000, after.saved_cents
+    assert_equal 0,      after.projected_saved_cents          # existence-based paid_in? clears it
     assert_equal before + 40_000, after.remaining_cents          # sobra rises by the unpaid remainder (07 §1.3)
   end
 
@@ -81,10 +81,10 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
                                  transfer_to_bank_account: @caixinha,
                                  name: "Meta: Carro", starts_on: Date.new(2026, 8, 1), schedule_day: 5, schedule_kind: "fixed_day")
     current = MonthSummary.new(@account, @month)
-    assert_equal 0, current.projected_guardado_cents   # activation month untouched (round 3 decision 3)
-    assert_equal 0, current.a_pagar_cents
+    assert_equal 0, current.projected_saved_cents   # activation month untouched (round 3 decision 3)
+    assert_equal 0, current.payable_cents
     assert_equal 0, current.remaining_cents
-    assert_equal 100_000, MonthSummary.new(@account, Date.new(2026, 8, 1)).projected_guardado_cents
+    assert_equal 100_000, MonthSummary.new(@account, Date.new(2026, 8, 1)).projected_saved_cents
   end
 
   test "a GOAL-LESS savings commitment paid via MarkPaid keeps sobra invariant (round 3 P4)" do
@@ -94,8 +94,8 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     Commitments::MarkPaid.call(sav, @month)
 
     after = MonthSummary.new(@account, @month)
-    assert_equal 100_000, after.guardado_cents             # landed in the caixinha (savings kind)
-    assert_equal 0,       after.projected_guardado_cents
+    assert_equal 100_000, after.saved_cents             # landed in the caixinha (savings kind)
+    assert_equal 0,       after.projected_saved_cents
     assert_equal before,  after.remaining_cents            # INVARIANT holds without a goal
   end
 
@@ -103,7 +103,7 @@ class MonthSummaryGoalsTest < ActiveSupport::TestCase
     @account.commitments.create!(kind: "fixed", bank_account: @checking, amount_cents: 200_000,
                                  name: "Aluguel", starts_on: @month, schedule_day: 5, schedule_kind: "fixed_day")
     s = MonthSummary.new(@account, @month)
-    assert_equal 200_000, s.saidas_cents               # regular debit commitment still projected into saídas
-    assert_equal 0,       s.projected_guardado_cents
+    assert_equal 200_000, s.expenses_cents               # regular debit commitment still projected into saídas
+    assert_equal 0,       s.projected_saved_cents
   end
 end

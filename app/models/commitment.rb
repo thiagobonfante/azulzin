@@ -4,7 +4,7 @@
 #   subscription — Netflix etc.; charge day often unknown (schedule_day nil ⇒ end of month).
 #   savings      — a monthly "pay yourself first" contribution (.plans/goals 07 §1). The
 #                  bank_account is the SOURCE; paying it posts a transfer into a caixinha
-#                  (not an expense), so it reduces sobra via MonthSummary#projected_guardado_cents.
+#                  (not an expense), so it reduces sobra via MonthSummary#projected_saved_cents.
 #                  Two shapes: goal-backed (destination = goal.bank_account, this row's
 #                  transfer_to_bank_account stays nil; purchase = finite parcelado with
 #                  ends_on = last parcel month, savings_rate = open-ended) and standalone
@@ -166,7 +166,7 @@ class Commitment < ApplicationRecord
       errors.add(:credit_card, :not_on_savings) if savings? && credit_card_id.present?
     end
 
-    # Money correctness: guardado_cents only counts transfers INTO savings-kind accounts
+    # Money correctness: saved_cents only counts transfers INTO savings-kind accounts
     # (MonthSummary §7.5) — a checking destination would make sobra jump at pay time.
     def transfer_to_is_a_savings_caixinha
       return if transfer_to_bank_account.nil?

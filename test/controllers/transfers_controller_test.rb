@@ -37,9 +37,9 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
 
   test "a transfer to savings bumps Guardado; a same-month resgate does NOT decrement it (gross)" do
     transfer!(from: @checking, to: @savings, amount: "200")
-    assert_equal 20_000, MonthSummary.new(@user.account, Date.current.beginning_of_month).guardado_cents
+    assert_equal 20_000, MonthSummary.new(@user.account, Date.current.beginning_of_month).saved_cents
     transfer!(from: @savings, to: @checking, amount: "50") # resgate
-    assert_equal 20_000, MonthSummary.new(@user.account, Date.current.beginning_of_month).guardado_cents
+    assert_equal 20_000, MonthSummary.new(@user.account, Date.current.beginning_of_month).saved_cents
   end
 
   test "the hero save-money CTA (sobra button + modal) appears only with a surplus and a savings account" do

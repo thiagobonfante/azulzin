@@ -49,7 +49,7 @@ class Goal < ApplicationRecord
 
   # Where this goal's contributions land: the linked caixinha, else every savings account
   # (legacy pre-round-3 goals). One definition shared by Progress / RiskScan / Replan /
-  # GoalsHelper — pair with Transaction.guardado_into (round-4 review consolidation).
+  # GoalsHelper — pair with Transaction.saved_into (round-4 review consolidation).
   def savings_account_ids
     return [ bank_account_id ] if bank_account_id
     account.bank_accounts.kept.savings.pluck(:id)

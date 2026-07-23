@@ -151,9 +151,9 @@ module Whatsapp
     # (floored whole reais — never overstate a ledger figure, round 3 decision 1).
     def ask_amount
       return reply("goal_flow.ask_amount_purchase", name: @conv.data["name"]) if purchase?
-      guardado = Goals::Analyzer.call(account).median_guardado_cents
-      if guardado.positive?
-        reply("goal_flow.ask_amount_savings", guardado: whole_floor(guardado))
+      saved = Goals::Analyzer.call(account).median_saved_cents
+      if saved.positive?
+        reply("goal_flow.ask_amount_savings", saved: whole_floor(saved))
       else
         reply("goal_flow.ask_amount_savings_zero")
       end
@@ -190,11 +190,11 @@ module Whatsapp
         status: "draft", created_by: user
       )
       goal.baseline = Goals::Analyzer.call(account).to_snapshot
-      guardado = goal.baseline["median_guardado_cents"].to_i
+      saved = goal.baseline["median_guardado_cents"].to_i
       # Same guard as the web create: a "guardar mais" total at or below today's guardado
       # plans nothing — re-ask the amount instead of saving a doomed draft.
-      if goal.savings_rate? && goal.target_cents.to_i <= guardado
-        re_ask_slot("amount", "goal_flow.below_current_guardado", guardado: whole_floor(guardado))
+      if goal.savings_rate? && goal.target_cents.to_i <= saved
+        re_ask_slot("amount", "goal_flow.below_current_guardado", saved: whole_floor(saved))
         return nil
       end
       # The "já guardado" head start needs a home when a caixinha exists (decision 7);

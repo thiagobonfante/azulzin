@@ -21,7 +21,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
       sufficiency: :ok,
       categories: [ Goals::CategoryStat.new(category_id: 1, name: "Restaurantes", median_cents: 200_000,
                                            trimmable_median_cents: 200_000, months_present: 3, flexibility: "flexible") ],
-      median_income_cents: 900_000, median_capacity_base_cents: 400_000, median_guardado_cents: 0,
+      median_income_cents: 900_000, median_capacity_base_cents: 400_000, median_saved_cents: 0,
       income_irregular: false, uncategorized_ratio_bd: BigDecimal(0),
       window: [ Date.new(2026, 4, 1), Date.new(2026, 5, 1), Date.new(2026, 6, 1) ]
     )
@@ -166,7 +166,7 @@ class Goals::ActivateTest < ActiveSupport::TestCase
     assert_equal @checking.id, txn.bank_account_id
     assert_nil txn.category_id
     assert c.paid_in?(Date.new(2026, 8, 1))
-    assert_equal txn.amount_cents, MonthSummary.new(@account, Date.new(2026, 8, 1)).guardado_cents
+    assert_equal txn.amount_cents, MonthSummary.new(@account, Date.new(2026, 8, 1)).saved_cents
     assert_equal g.initial_saved_cents + txn.amount_cents, Goals::Progress.new(g).actual_cents
   end
 end

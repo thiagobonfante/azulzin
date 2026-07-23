@@ -218,7 +218,7 @@ en:
             initial_saved_cents:
               exceeds_target: "can't be greater than or equal to the goal amount."
             target_cents:
-              below_current_guardado: "needs to be higher than what you already save today (~%{guardado}/month)."
+              below_current_guardado: "needs to be higher than what you already save today (~%{saved}/month)."
   app:
     nav:
       dashboard: "Dashboard"
@@ -1819,8 +1819,8 @@ en:
       nothing_to_move: "I couldn't find a recent purchase to move."
       balance_answer: "%{lines}\nTotal: %{total}"
       balance_line: "%{name}: %{amount}"
-      month_answer_blue: "%{month}: %{remaining} left — in the blue 💙\nIncome %{entradas} · Spending %{saidas} · Bills %{faturas}"
-      month_answer_red: "%{month}: %{remaining} — in the red 🔴\nIncome %{entradas} · Spending %{saidas} · Bills %{faturas}"
+      month_answer_blue: "%{month}: %{remaining} left — in the blue 💙\nIncome %{incomes} · Spending %{expenses} · Bills %{bills}"
+      month_answer_red: "%{month}: %{remaining} — in the red 🔴\nIncome %{incomes} · Spending %{expenses} · Bills %{bills}"
       card_bill_answer: "%{name}'s %{month} bill: %{amount} (closes on the %{closes}, due on the %{due})."
       savings_answer: "Saved: %{total} 💙 This month you moved %{month} to savings."
       help: "I didn't get that 🤔 You can send me things like:\n• \"groceries 84.90 on debit\"\n• \"saved 200 to savings\"\n• \"paid the car installment\"\n• \"bought a phone, 5000 in 10x\"\n• \"how's the month?\""
@@ -1831,7 +1831,7 @@ en:
         ask_kind: "Nice! What do you want to plan? Reply with the number:\n%{options}"
         ask_name: "What's the dream? Give me a short name — e.g., Trip, Car."
         ask_amount_purchase: "How much does *%{name}* cost?"
-        ask_amount_savings: "Today you save ~%{guardado}/month. How much do you want to save in total per month?"
+        ask_amount_savings: "Today you save ~%{saved}/month. How much do you want to save in total per month?"
         ask_amount_savings_zero: "How much do you want to save per month?"
         ask_month: "By when? You can say the month — e.g., \"December 2027\" or \"in 18 months\"."
         ask_initial_saved: "Already have something saved for it? Reply with an amount or *no*."
@@ -1839,7 +1839,7 @@ en:
         reask_month: "I didn't get the date. Tell me the month and year — e.g., \"October 2027\" or \"in 6 months\"."
         reask_initial_saved: "I didn't get that. Reply with an amount (e.g., 2000) or *no*."
         reask_initial_saved_high: "That already covers the whole goal — no plan needed 😄 Give me a smaller amount or *no*."
-        below_current_guardado: "You already save ~%{guardado}/month — a goal needs to beat that. What's the new total?"
+        below_current_guardado: "You already save ~%{saved}/month — a goal needs to beat that. What's the new total?"
         offer: |-
           💙 I've put a plan together for *%{name}*: save %{monthly}/month.
           %{reaches_line}%{cuts_block}Want to activate it? Reply *yes* or *no*.
