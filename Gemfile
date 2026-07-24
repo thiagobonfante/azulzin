@@ -26,7 +26,7 @@ gem "bcrypt", "~> 3.1.7"
 gem "omniauth", "~> 2.1"
 gem "omniauth-rails_csrf_protection", "~> 2.0"   # REQUIRED — closes CVE-2015-9284
 gem "omniauth-google-oauth2", "~> 1.1"
-gem "omniauth-facebook", "~> 10.0"
+gem "omniauth-facebook", "~> 11.0"
 
 # Internationalization: pt-BR default, en-US supported (ADR 0006 / docs/i18n.md)
 gem "rails-i18n", "~> 8.1"            # locale data: pluralization, date/number/currency
